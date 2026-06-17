@@ -1,4 +1,4 @@
-# 统一工作台 Docker Compose 配置
+# 一站式工作台 Docker Compose 配置
 version: "3.8"
 
 services:

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     )
 
     # 应用配置
-    APP_NAME: str = "统一工作台"
+    APP_NAME: str = "一站式工作台"
     DEBUG: bool = False
 
     # 数据库配置

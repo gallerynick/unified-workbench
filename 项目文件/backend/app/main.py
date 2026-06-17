@@ -1,4 +1,4 @@
-"""统一工作台 FastAPI 应用入口"""
+"""一站式工作台 FastAPI 应用入口"""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager

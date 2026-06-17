@@ -3,7 +3,7 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 echo ========================================
-echo   统一工作台 - 一键启动脚本
+echo   一站式工作台 - 一键启动脚本
 echo ========================================
 echo.
 

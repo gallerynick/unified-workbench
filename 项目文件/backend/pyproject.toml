@@ -1,7 +1,7 @@
 [project]
 name = "unified-workbench-backend"
 version = "0.1.0"
-description = "统一工作台后端服务"
+description = "一站式工作台后端服务"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
