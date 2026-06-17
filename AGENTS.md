@@ -10,12 +10,14 @@
 │   ├── 开发基准文档.md         # 技术架构、功能模块、数据库设计、安全基准
 │   └── 项目开发日志格式.md     # 日志模板，每次开发后必须按此格式写日志
 ├── 项目开发日志/              # 【读写】仅放日志，不放代码
-├── backend/                   # 后端代码 (FastAPI + SQLAlchemy)
-├── frontend/                  # 前端代码 (React + TypeScript)
-├── nginx/                     # Nginx 配置
-├── docker-compose.yml         # Docker Compose 配置
-├── .env.example               # 环境变量模板
-├── README.md                  # 项目说明
+├── 项目文件/                  # 【读写】开发产物
+│   ├── backend/               # 后端代码 (FastAPI + SQLAlchemy)
+│   ├── frontend/              # 前端代码 (React + TypeScript)
+│   ├── nginx/                 # Nginx 配置
+│   ├── docker-compose.yml     # Docker Compose 配置
+│   ├── .env.example           # 环境变量模板
+│   ├── README.md              # 项目说明
+│   └── start.bat              # Windows 启动脚本
 └── AGENTS.md                  # 本文件
 ```
 
