@@ -1,0 +1,59 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.toolbarTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+  margin: 0;
+}
+
+.treeWrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.treeNode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.nodeLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nodeActions {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.treeNode:hover .nodeActions {
+  opacity: 1;
+}
+
+.folderIcon {
+  color: #faad14;
+  margin-right: 4px;
+}
+
+.allFilesIcon {
+  color: #1890ff;
+  margin-right: 4px;
+}

@@ -1,0 +1,101 @@
+import { lazy, Suspense } from 'react';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { Spin } from 'antd';
+import MainLayout from './layouts/MainLayout';
+import Home from './pages/Home';
+import NotFound from './pages/NotFound';
+import Login from '@/pages/Login';
+import AuthGuard from '@/components/AuthGuard';
+
+const UserManagement = lazy(() => import('@/pages/settings/UserManagement'));
+const ContentManagement = lazy(() => import('@/pages/content/ContentManagement'));
+const FileManagement = lazy(() => import('@/pages/files/FileManagement'));
+const AuditLog = lazy(() => import('@/pages/audit/AuditLog'));
+const TemplateManagement = lazy(() => import('@/pages/templates/TemplateManagement'));
+const RecordManagement = lazy(() => import('@/pages/records/RecordManagement'));
+const SecretManagement = lazy(() => import('@/pages/secrets/SecretManagement'));
+const ReminderManagement = lazy(() => import('@/pages/reminders/ReminderManagement'));
+const NotificationConfig = lazy(() => import('@/pages/settings/NotificationConfig'));
+const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'));
+
+function LazyPage({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<Spin size="large" style={{ display: 'block', margin: '100px auto' }} />}>
+      {children}
+    </Suspense>
+  );
+}
+
+export const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <Login />,
+  },
+  {
+    element: <AuthGuard />,
+    children: [
+      {
+        path: '/',
+        element: <MainLayout />,
+        children: [
+          {
+            index: true,
+            element: <Home />,
+          },
+          {
+            path: 'files',
+            element: <LazyPage><FileManagement /></LazyPage>,
+          },
+          {
+            path: 'content',
+            element: <LazyPage><ContentManagement /></LazyPage>,
+          },
+          {
+            path: 'projects',
+            element: <LazyPage><RecordManagement defaultType="project" /></LazyPage>,
+          },
+          {
+            path: 'records',
+            element: <LazyPage><RecordManagement defaultType="record" /></LazyPage>,
+          },
+          {
+            path: 'templates',
+            element: <LazyPage><TemplateManagement /></LazyPage>,
+          },
+          {
+            path: 'secrets',
+            element: <LazyPage><SecretManagement /></LazyPage>,
+          },
+          {
+            path: 'audit',
+            element: <LazyPage><AuditLog /></LazyPage>,
+          },
+          {
+            path: 'reminders',
+            element: <LazyPage><ReminderManagement /></LazyPage>,
+          },
+          {
+            path: 'settings/users',
+            element: <LazyPage><UserManagement /></LazyPage>,
+          },
+          {
+            path: 'settings/notifications',
+            element: <LazyPage><NotificationConfig /></LazyPage>,
+          },
+          {
+            path: 'settings/backups',
+            element: <LazyPage><BackupManagement /></LazyPage>,
+          },
+          {
+            path: '404',
+            element: <NotFound />,
+          },
+          {
+            path: '*',
+            element: <Navigate to="/404" replace />,
+          },
+        ],
+      },
+    ],
+  },
+]);

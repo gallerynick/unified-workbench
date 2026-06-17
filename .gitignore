@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+*.egg
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker data
+data/
+pg_data*/
+redis_data*/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+
+# Logs
+*.log
+
+# Temporary
+tmp/
+temp/

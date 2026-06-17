@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.git
+.env
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.db
+*.sqlite3

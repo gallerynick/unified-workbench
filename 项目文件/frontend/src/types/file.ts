@@ -1,0 +1,32 @@
+export interface FileRecord {
+  id: string;
+  name: string;
+  stored_path: string;
+  size: number;
+  sha256: string;
+  mime_type: string;
+  folder_id: string | null;
+  owner_id: string;
+  visibility: 'public' | 'private' | 'restricted';
+  restricted_users: string[] | null;
+  restricted_tags: string[] | null;
+  created_at: string;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  owner_id: string;
+  created_at: string;
+}
+
+export interface FileListResponse {
+  items: FileRecord[];
+  total: number;
+}
+
+export interface FolderCreateRequest {
+  name: string;
+  parent_id?: string;
+}

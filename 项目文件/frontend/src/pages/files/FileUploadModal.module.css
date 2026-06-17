@@ -1,0 +1,57 @@
+.modal {
+  top: 40px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.uploadSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.uploadArea {
+  width: 100%;
+}
+
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressLabel {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.65);
+  margin: 0;
+}
+
+.fileName {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.45);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.formItem {
+  margin-bottom: 0;
+}
+
+.visibilitySection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+  margin: 0;
+}
