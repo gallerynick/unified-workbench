@@ -136,7 +136,7 @@ export default function MainLayout() {
             {collapsed ? (
               <span style={{ fontSize: 20, fontWeight: 'bold' }}>工</span>
             ) : (
-              <span style={{ fontSize: 16, fontWeight: 'bold' }}>统一工作台</span>
+              <span style={{ fontSize: 16, fontWeight: 'bold' }}>一站式工作台</span>
             )}
           </div>
           <Menu
@@ -166,7 +166,7 @@ export default function MainLayout() {
               borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 'bold' }}>统一工作台</span>
+            <span style={{ fontSize: 16, fontWeight: 'bold' }}>一站式工作台</span>
           </div>
           <Menu
             mode="inline"

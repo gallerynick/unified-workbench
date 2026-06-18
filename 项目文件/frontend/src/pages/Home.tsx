@@ -11,7 +11,7 @@ const { Title, Paragraph } = Typography;
 export default function Home() {
   return (
     <div>
-      <Title level={2}>欢迎使用统一工作台</Title>
+      <Title level={2}>欢迎使用一站式工作台</Title>
       <Paragraph>
         面向小团队的内网一体化协作与信息管理平台
       </Paragraph>

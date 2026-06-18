@@ -45,7 +45,7 @@ export default function Login() {
       <Card className={styles.card ?? ''} bordered={false}>
         <div className={styles.header ?? ''}>
           <Title level={3} className={styles.title ?? ''}>
-            统一工作台
+            一站式工作台
           </Title>
           <Text type="secondary">请登录以继续</Text>
         </div>
