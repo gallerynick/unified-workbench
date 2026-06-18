@@ -1,0 +1,22 @@
+.modal {
+  min-width: 720px;
+  max-width: 90vw;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.editorField {
+  margin-bottom: 0;
+}
+
+.dividerField {
+  margin: 8px 0;
+}
+
+.visibilitySection {
+  margin-top: 8px;
+}

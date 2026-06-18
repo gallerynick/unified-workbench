@@ -1,0 +1,48 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
+.searchInput {
+  max-width: 320px;
+}
+
+.table {
+  flex: 1;
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding: 8px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .header > * {
+    width: 100%;
+  }
+
+  .searchInput {
+    max-width: 100%;
+  }
+
+  .table {
+    overflow-x: auto;
+  }
+}

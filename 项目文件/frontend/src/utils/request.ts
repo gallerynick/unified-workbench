@@ -1,0 +1,131 @@
+import { getToken, getRefreshToken, setTokens, clearTokens } from './auth';
+import type { UnifiedResponse } from '../types/user';
+
+const BASE_URL = '/api/v1';
+
+interface RequestOptions {
+  method?: string;
+  body?: unknown;
+  headers?: Record<string, string>;
+}
+
+async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
+
+  try {
+    const response = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (!response.ok) {
+      clearTokens();
+      return false;
+    }
+
+    const result = await response.json();
+    if (result.code === 0 && result.data) {
+      setTokens(result.data);
+      return true;
+    }
+
+    clearTokens();
+    return false;
+  } catch {
+    clearTokens();
+    return false;
+  }
+}
+
+export async function request<T>(
+  endpoint: string,
+  options: RequestOptions = {}
+): Promise<UnifiedResponse<T>> {
+  const { method = 'GET', body, headers = {} } = options;
+  const token = getToken();
+
+  const requestHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...headers,
+  };
+
+  if (token) {
+    requestHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method,
+    headers: requestHeaders,
+    body: body ? JSON.stringify(body) : null,
+  });
+
+  // Handle 401 - try to refresh token
+  if (response.status === 401 && token) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      const newToken = getToken();
+      if (newToken) {
+        requestHeaders['Authorization'] = `Bearer ${newToken}`;
+        const retryResponse = await fetch(`${BASE_URL}${endpoint}`, {
+          method,
+          headers: requestHeaders,
+          body: body ? JSON.stringify(body) : null,
+        });
+        if (retryResponse.ok) {
+          return retryResponse.json();
+        }
+      }
+    }
+    // Refresh failed - redirect to login
+    window.location.href = '/login';
+    throw new Error('Authentication failed');
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ msg: 'Request failed' }));
+    throw new Error(error.msg || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export function uploadWithProgress(
+  url: string,
+  file: File,
+  onProgress?: (percent: number) => void,
+  extraData?: Record<string, string>
+): Promise<UnifiedResponse<unknown>> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append('file', file);
+    if (extraData) {
+      for (const [key, value] of Object.entries(extraData)) {
+        formData.append(key, value);
+      }
+    }
+
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText));
+      } else {
+        reject(new Error(xhr.responseText));
+      }
+    });
+
+    xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+
+    xhr.open('POST', `${BASE_URL}${url}`);
+    const token = getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.send(formData);
+  });
+}
