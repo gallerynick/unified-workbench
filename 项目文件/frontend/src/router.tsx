@@ -23,6 +23,7 @@ const SiteSettings = lazy(() => import('@/pages/settings/SiteSettings'));
 const SidebarManagement = lazy(() => import('@/pages/settings/SidebarManagement'));
 const DeviceManagement = lazy(() => import('@/pages/settings/DeviceManagement'));
 const InventoryManagement = lazy(() => import('@/pages/inventory/InventoryManagement'));
+const FinanceManagement = lazy(() => import('@/pages/finance/FinanceManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
 
@@ -73,6 +74,10 @@ export const router = createBrowserRouter([
           {
             path: 'inventory',
             element: <LazyPage><InventoryManagement /></LazyPage>,
+          },
+          {
+            path: 'finance',
+            element: <LazyPage><FinanceManagement /></LazyPage>,
           },
           {
             path: 'records',
