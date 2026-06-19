@@ -3,6 +3,14 @@ import type { UnifiedResponse } from '../types/user';
 
 const BASE_URL = '/api/v1';
 
+export class HttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 interface RequestOptions {
   method?: string;
   body?: unknown;
@@ -86,7 +94,7 @@ export async function request<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ msg: 'Request failed' }));
-    throw new Error(error.msg || `HTTP ${response.status}`);
+    throw new HttpError(error.msg || `HTTP ${response.status}`, response.status);
   }
 
   return response.json();

@@ -4,6 +4,7 @@ import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { login } from '../api/auth';
 import { setTokens, isAuthenticated } from '../utils/auth';
+import { HttpError } from '../utils/request';
 import { useCustomization } from '../hooks/useCustomization';
 import type { LoginRequest } from '../types/user';
 import styles from './Login.module.css';
@@ -33,10 +34,14 @@ export default function Login() {
         message.error('用户名或密码有误');
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes('401')) {
-        message.error('用户名或密码有误');
-      } else if (err instanceof Error && err.message.includes('429')) {
-        message.error('登录尝试过于频繁，请稍后再试');
+      if (err instanceof HttpError) {
+        if (err.status === 401) {
+          message.error('用户名或密码有误');
+        } else if (err.status === 429) {
+          message.error('登录尝试过于频繁，请稍后再试');
+        } else {
+          message.error('服务器错误，请稍后再试');
+        }
       } else {
         message.error('网络错误，请检查网络连接');
       }
