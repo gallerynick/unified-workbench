@@ -7,6 +7,7 @@ from app.api.auth import router as auth_router
 from app.api.backups import router as backups_router
 from app.api.content import router as content_router
 from app.api.files import router as files_router
+from app.api.finance import router as finance_router
 from app.api.health import router as health_router
 from app.api.records import router as records_router
 from app.api.reminders import router as reminders_router
@@ -31,3 +32,4 @@ api_router.include_router(secret_categories_router, prefix="/secret-categories",
 api_router.include_router(system_config_router, prefix="/system-config", tags=["系统配置"])
 api_router.include_router(audit_router, prefix="/audit-logs", tags=["审计日志"])
 api_router.include_router(backups_router, prefix="/backups", tags=["备份管理"])
+api_router.include_router(finance_router, prefix="/finance", tags=["财务管理"])

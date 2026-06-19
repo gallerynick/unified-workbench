@@ -1,31 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Tabs, Table, Button, Input, Typography, Space, Tag, Modal, Form, InputNumber, Select, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { listBudgets, createBudget, updateBudget, deleteBudget } from '../../api/budgets';
+import { listSubscriptions, createSubscription, updateSubscription, deleteSubscription } from '../../api/subscriptions';
+import type { Budget } from '../../types/budget';
+import type { Subscription } from '../../types/subscription';
 
 const { Title } = Typography;
 
-interface BudgetItem {
-  id: string;
-  name: string;
-  category: string;
-  amount: number;
-  spent: number;
-  period: 'monthly' | 'quarterly' | 'yearly';
-  status: 'active' | 'exceeded' | 'completed';
-  created_at: string;
-}
+const PERIOD_MAP: Record<string, string> = {
+  monthly: '月度',
+  quarterly: '季度',
+  yearly: '年度',
+};
 
-interface SubscriptionItem {
-  id: string;
-  name: string;
-  provider: string;
-  amount: number;
-  billing_cycle: 'monthly' | 'yearly';
-  next_billing: string;
-  status: 'active' | 'cancelled' | 'paused';
-  created_at: string;
-}
+const CYCLE_MAP: Record<string, string> = {
+  monthly: '月付',
+  yearly: '年付',
+};
 
 const BUDGET_STATUS_MAP: Record<string, { color: string; text: string }> = {
   active: { color: 'green', text: '进行中' },
@@ -40,86 +33,142 @@ const SUB_STATUS_MAP: Record<string, { color: string; text: string }> = {
 };
 
 export default function FinanceManagement() {
-  const [budgets, setBudgets] = useState<BudgetItem[]>([]);
-  const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [subModalVisible, setSubModalVisible] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [editingSub, setEditingSub] = useState<Subscription | null>(null);
   const [budgetForm] = Form.useForm();
   const [subForm] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+
+  const fetchBudgets = useCallback(async () => {
+    try {
+      const res = await listBudgets();
+      if (res.code === 0) setBudgets(res.data.items);
+    } catch {
+      message.error('获取预算列表失败');
+    }
+  }, []);
+
+  const fetchSubscriptions = useCallback(async () => {
+    try {
+      const res = await listSubscriptions();
+      if (res.code === 0) setSubscriptions(res.data.items);
+    } catch {
+      message.error('获取订阅列表失败');
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBudgets();
+    fetchSubscriptions();
+  }, [fetchBudgets, fetchSubscriptions]);
 
   const handleAddBudget = () => {
+    setEditingBudget(null);
     budgetForm.resetFields();
     setBudgetModalVisible(true);
   };
 
-  const handleSaveBudget = () => {
-    budgetForm.validateFields().then((values) => {
-      const newBudget: BudgetItem = {
-        ...values,
-        id: Date.now().toString(),
-        spent: 0,
-        status: 'active',
-        created_at: new Date().toISOString(),
-      };
-      setBudgets([...budgets, newBudget]);
-      setBudgetModalVisible(false);
-      message.success('预算已添加');
-    });
+  const handleEditBudget = (item: Budget) => {
+    setEditingBudget(item);
+    budgetForm.setFieldsValue(item);
+    setBudgetModalVisible(true);
   };
 
-  const handleDeleteBudget = (item: BudgetItem) => {
+  const handleSaveBudget = async () => {
+    try {
+      const values = await budgetForm.validateFields();
+      setLoading(true);
+      if (editingBudget) {
+        await updateBudget(editingBudget.id, values);
+        message.success('预算已更新');
+      } else {
+        await createBudget(values);
+        message.success('预算已添加');
+      }
+      setBudgetModalVisible(false);
+      fetchBudgets();
+    } catch {
+      message.error('操作失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteBudget = (item: Budget) => {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除预算「${item.name}」吗？`,
       okText: '删除',
       okType: 'danger',
       cancelText: '取消',
-      onOk: () => {
-        setBudgets(budgets.filter((b) => b.id !== item.id));
+      onOk: async () => {
+        await deleteBudget(item.id);
         message.success('预算已删除');
+        fetchBudgets();
       },
     });
   };
 
   const handleAddSubscription = () => {
+    setEditingSub(null);
     subForm.resetFields();
     setSubModalVisible(true);
   };
 
-  const handleSaveSubscription = () => {
-    subForm.validateFields().then((values) => {
-      const newSub: SubscriptionItem = {
-        ...values,
-        id: Date.now().toString(),
-        status: 'active',
-        created_at: new Date().toISOString(),
-      };
-      setSubscriptions([...subscriptions, newSub]);
-      setSubModalVisible(false);
-      message.success('订阅已添加');
+  const handleEditSubscription = (item: Subscription) => {
+    setEditingSub(item);
+    subForm.setFieldsValue({
+      ...item,
+      next_billing: item.next_billing ? item.next_billing.split('T')[0] : '',
     });
+    setSubModalVisible(true);
   };
 
-  const handleDeleteSubscription = (item: SubscriptionItem) => {
+  const handleSaveSubscription = async () => {
+    try {
+      const values = await subForm.validateFields();
+      setLoading(true);
+      if (editingSub) {
+        await updateSubscription(editingSub.id, values);
+        message.success('订阅已更新');
+      } else {
+        await createSubscription(values);
+        message.success('订阅已添加');
+      }
+      setSubModalVisible(false);
+      fetchSubscriptions();
+    } catch {
+      message.error('操作失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteSubscription = (item: Subscription) => {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除订阅「${item.name}」吗？`,
       okText: '删除',
       okType: 'danger',
       cancelText: '取消',
-      onOk: () => {
-        setSubscriptions(subscriptions.filter((s) => s.id !== item.id));
+      onOk: async () => {
+        await deleteSubscription(item.id);
         message.success('订阅已删除');
+        fetchSubscriptions();
       },
     });
   };
 
-  const budgetColumns: ColumnsType<BudgetItem> = [
+  const budgetColumns: ColumnsType<Budget> = [
     { title: '名称', dataIndex: 'name', key: 'name' },
     { title: '分类', dataIndex: 'category', key: 'category' },
     { title: '预算金额', dataIndex: 'amount', key: 'amount', render: (v: number) => `¥${v.toFixed(2)}` },
     { title: '已使用', dataIndex: 'spent', key: 'spent', render: (v: number) => `¥${v.toFixed(2)}` },
-    { title: '周期', dataIndex: 'period', key: 'period' },
+    { title: '周期', dataIndex: 'period', key: 'period', render: (v: string) => PERIOD_MAP[v] ?? v },
     {
       title: '状态',
       key: 'status',
@@ -133,19 +182,19 @@ export default function FinanceManagement() {
       key: 'action',
       render: (_, record) => (
         <Space>
-          <Button type="link" icon={<EditOutlined />} />
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEditBudget(record)} />
           <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteBudget(record)} />
         </Space>
       ),
     },
   ];
 
-  const subColumns: ColumnsType<SubscriptionItem> = [
+  const subColumns: ColumnsType<Subscription> = [
     { title: '名称', dataIndex: 'name', key: 'name' },
     { title: '提供商', dataIndex: 'provider', key: 'provider' },
     { title: '费用', dataIndex: 'amount', key: 'amount', render: (v: number) => `¥${v.toFixed(2)}` },
-    { title: '计费周期', dataIndex: 'billing_cycle', key: 'billing_cycle' },
-    { title: '下次扣费', dataIndex: 'next_billing', key: 'next_billing' },
+    { title: '计费周期', dataIndex: 'billing_cycle', key: 'billing_cycle', render: (v: string) => CYCLE_MAP[v] ?? v },
+    { title: '下次扣费', dataIndex: 'next_billing', key: 'next_billing', render: (v: string | null) => v ? new Date(v).toLocaleDateString('zh-CN') : '-' },
     {
       title: '状态',
       key: 'status',
@@ -159,7 +208,7 @@ export default function FinanceManagement() {
       key: 'action',
       render: (_, record) => (
         <Space>
-          <Button type="link" icon={<EditOutlined />} />
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEditSubscription(record)} />
           <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteSubscription(record)} />
         </Space>
       ),
@@ -202,7 +251,7 @@ export default function FinanceManagement() {
         ]}
       />
 
-      <Modal title="新增预算" open={budgetModalVisible} onOk={handleSaveBudget} onCancel={() => setBudgetModalVisible(false)} okText="保存" cancelText="取消">
+      <Modal title={editingBudget ? '编辑预算' : '新增预算'} open={budgetModalVisible} onOk={handleSaveBudget} onCancel={() => setBudgetModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading}>
         <Form form={budgetForm} layout="vertical">
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="预算名称" />
@@ -219,7 +268,7 @@ export default function FinanceManagement() {
         </Form>
       </Modal>
 
-      <Modal title="新增订阅" open={subModalVisible} onOk={handleSaveSubscription} onCancel={() => setSubModalVisible(false)} okText="保存" cancelText="取消">
+      <Modal title={editingSub ? '编辑订阅' : '新增订阅'} open={subModalVisible} onOk={handleSaveSubscription} onCancel={() => setSubModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading}>
         <Form form={subForm} layout="vertical">
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="订阅名称" />
@@ -233,7 +282,7 @@ export default function FinanceManagement() {
           <Form.Item name="billing_cycle" label="计费周期" initialValue="monthly">
             <Select options={[{ value: 'monthly', label: '月付' }, { value: 'yearly', label: '年付' }]} />
           </Form.Item>
-          <Form.Item name="next_billing" label="下次扣费日期" rules={[{ required: true, message: '请选择日期' }]}>
+          <Form.Item name="next_billing" label="下次扣费日期">
             <Input type="date" />
           </Form.Item>
         </Form>
