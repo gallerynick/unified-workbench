@@ -5,7 +5,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+
+VALID_PERIODS = {"monthly", "quarterly", "yearly"}
+VALID_STATUSES = {"active", "exceeded", "completed"}
 
 
 class BudgetCreate(BaseModel):
@@ -13,6 +17,13 @@ class BudgetCreate(BaseModel):
     category: str
     amount: float
     period: str = "monthly"
+
+    @field_validator("period")
+    @classmethod
+    def validate_period(cls, v: str) -> str:
+        if v not in VALID_PERIODS:
+            raise ValueError(f"period 必须是 {VALID_PERIODS} 之一")
+        return v
 
 
 class BudgetUpdate(BaseModel):
@@ -22,6 +33,20 @@ class BudgetUpdate(BaseModel):
     spent: float | None = None
     period: str | None = None
     status: str | None = None
+
+    @field_validator("period")
+    @classmethod
+    def validate_period(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_PERIODS:
+            raise ValueError(f"period 必须是 {VALID_PERIODS} 之一")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_STATUSES:
+            raise ValueError(f"status 必须是 {VALID_STATUSES} 之一")
+        return v
 
 
 class BudgetResponse(BaseModel):

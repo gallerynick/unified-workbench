@@ -82,8 +82,12 @@ async def update_subscription(
         subscription.amount = request.amount
     if request.billing_cycle is not None:
         subscription.billing_cycle = BillingCycle(request.billing_cycle)
-    if request.next_billing not in (None, ''):
-        subscription.next_billing = datetime.fromisoformat(request.next_billing)
+    if request.next_billing is not None:
+        subscription.next_billing = (
+            datetime.fromisoformat(request.next_billing)
+            if request.next_billing
+            else None
+        )
     if request.status is not None:
         subscription.status = SubscriptionStatus(request.status)
     await db.flush()
