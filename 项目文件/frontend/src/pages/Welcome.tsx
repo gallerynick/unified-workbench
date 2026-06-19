@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Steps, Input, Button, Typography, message, Space } from 'antd';
 import { RocketOutlined, SettingOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useCustomization, saveAppSettings } from '../hooks/useCustomization';
+import { isAuthenticated } from '../utils/auth';
 import styles from './Welcome.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -25,6 +26,15 @@ export default function Welcome() {
   const [appDescription, setAppDescription] = useState(customization.app.description);
 
   useEffect(() => {
+    setAppName(customization.app.name);
+    setAppDescription(customization.app.description);
+  }, [customization.app.name, customization.app.description]);
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate('/login', { replace: true });
+      return;
+    }
     if (isSetupComplete()) {
       navigate('/', { replace: true });
     }
