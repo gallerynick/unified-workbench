@@ -78,7 +78,7 @@ const menuItems: MenuProps['items'] = [
       { key: '/settings/templates', label: '模板管理', icon: <FormOutlined /> },
       { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
       { key: '/settings/backups', label: '备份管理', icon: <CloudServerOutlined /> },
-      { key: '/settings/customization', label: '品牌配置', icon: <SkinOutlined /> },
+      { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
     ],
   },
 ];
