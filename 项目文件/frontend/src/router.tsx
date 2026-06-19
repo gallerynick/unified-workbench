@@ -22,6 +22,7 @@ const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationS
 const SiteSettings = lazy(() => import('@/pages/settings/SiteSettings'));
 const SidebarManagement = lazy(() => import('@/pages/settings/SidebarManagement'));
 const DeviceManagement = lazy(() => import('@/pages/settings/DeviceManagement'));
+const InventoryManagement = lazy(() => import('@/pages/inventory/InventoryManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
 
@@ -68,6 +69,10 @@ export const router = createBrowserRouter([
           {
             path: 'projects',
             element: <LazyPage><RecordManagement defaultType="project" /></LazyPage>,
+          },
+          {
+            path: 'inventory',
+            element: <LazyPage><InventoryManagement /></LazyPage>,
           },
           {
             path: 'records',

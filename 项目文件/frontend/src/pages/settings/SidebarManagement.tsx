@@ -22,6 +22,7 @@ const DEFAULT_ITEMS: SidebarItem[] = [
   { key: '/files', label: '文件管理', icon: 'FileOutlined', visible: true, hasData: true, builtin: true },
   { key: '/content', label: '内容管理', icon: 'FileTextOutlined', visible: true, hasData: true, builtin: true },
   { key: '/projects', label: '项目管理', icon: 'ProjectOutlined', visible: true, hasData: true, builtin: true },
+  { key: '/inventory', label: '物品管理', icon: 'AppstoreOutlined', visible: true, hasData: false, builtin: true },
   { key: '/secrets', label: '密钥管理', icon: 'KeyOutlined', visible: true, hasData: true, builtin: true },
   { key: '/reminders', label: '提醒管理', icon: 'BellOutlined', visible: true, hasData: true, builtin: true },
 ];
