@@ -37,11 +37,11 @@ class Subscription(Base):
     provider: Mapped[str] = mapped_column(String(100), nullable=False)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     billing_cycle: Mapped[BillingCycle] = mapped_column(
-        Enum(BillingCycle), default=BillingCycle.MONTHLY
+        Enum(BillingCycle, create_type=False), default=BillingCycle.MONTHLY
     )
     next_billing: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[SubscriptionStatus] = mapped_column(
-        Enum(SubscriptionStatus), default=SubscriptionStatus.ACTIVE
+        Enum(SubscriptionStatus, create_type=False), default=SubscriptionStatus.ACTIVE
     )
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
     created_at: Mapped[datetime] = mapped_column(

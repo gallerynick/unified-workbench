@@ -39,10 +39,10 @@ class Budget(Base):
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     spent: Mapped[float] = mapped_column(Float, default=0)
     period: Mapped[BudgetPeriod] = mapped_column(
-        Enum(BudgetPeriod), default=BudgetPeriod.MONTHLY
+        Enum(BudgetPeriod, create_type=False), default=BudgetPeriod.MONTHLY
     )
     status: Mapped[BudgetStatus] = mapped_column(
-        Enum(BudgetStatus), default=BudgetStatus.ACTIVE
+        Enum(BudgetStatus, create_type=False), default=BudgetStatus.ACTIVE
     )
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
     created_at: Mapped[datetime] = mapped_column(
