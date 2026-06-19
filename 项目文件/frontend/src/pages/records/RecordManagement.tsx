@@ -354,7 +354,7 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
             onChange={handleStatusFilter}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            新建记录
+            {defaultType === 'project' ? '新建项目' : '新建记录'}
           </Button>
         </div>
       </div>

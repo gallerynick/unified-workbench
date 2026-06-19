@@ -24,64 +24,73 @@ import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
-import { clearTokens } from '../utils/auth';
+import { clearTokens, isAdmin } from '../utils/auth';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
 
 const { Header, Sider, Content } = Layout;
 
-const menuItems: MenuProps['items'] = [
-  {
-    key: '/',
-    icon: <HomeOutlined />,
-    label: '首页',
-  },
-  {
-    key: '/files',
-    icon: <FileOutlined />,
-    label: '文件管理',
-  },
-  {
-    key: '/content',
-    icon: <FileTextOutlined />,
-    label: '内容管理',
-  },
-  {
-    key: '/projects',
-    icon: <ProjectOutlined />,
-    label: '项目管理',
-  },
-  {
-    key: '/secrets',
-    icon: <KeyOutlined />,
-    label: '密钥管理',
-  },
-  {
-    type: 'divider',
-  },
-  {
-    key: '/audit',
-    icon: <AuditOutlined />,
-    label: '审计日志',
-  },
-  {
-    key: '/reminders',
-    icon: <BellOutlined />,
-    label: '提醒管理',
-  },
-  {
-    key: '/settings',
-    icon: <SettingOutlined />,
-    label: '系统设置与管理',
-    children: [
-      { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
-      { key: '/settings/templates', label: '模板管理', icon: <FormOutlined /> },
-      { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
-      { key: '/settings/backups', label: '备份管理', icon: <CloudServerOutlined /> },
-      { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
-    ],
-  },
-];
+function getMenuItems(): MenuProps['items'] {
+  const items: MenuProps['items'] = [
+    {
+      key: '/',
+      icon: <HomeOutlined />,
+      label: '首页',
+    },
+    {
+      key: '/files',
+      icon: <FileOutlined />,
+      label: '文件管理',
+    },
+    {
+      key: '/content',
+      icon: <FileTextOutlined />,
+      label: '内容管理',
+    },
+    {
+      key: '/projects',
+      icon: <ProjectOutlined />,
+      label: '项目管理',
+    },
+    {
+      key: '/secrets',
+      icon: <KeyOutlined />,
+      label: '密钥管理',
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: '/reminders',
+      icon: <BellOutlined />,
+      label: '提醒管理',
+    },
+  ];
+
+  if (isAdmin()) {
+    items.push(
+      {
+        key: '/audit',
+        icon: <AuditOutlined />,
+        label: '审计日志',
+      },
+      {
+        key: '/settings',
+        icon: <SettingOutlined />,
+        label: '系统设置与管理',
+        children: [
+          { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
+          { key: '/settings/templates', label: '模板管理', icon: <FormOutlined /> },
+          { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
+          { key: '/settings/backups', label: '备份管理', icon: <CloudServerOutlined /> },
+          { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
+        ],
+      },
+    );
+  }
+
+  return items;
+}
 
 const userMenuItems: MenuProps['items'] = [
   {
@@ -159,7 +168,7 @@ export default function MainLayout() {
           <Menu
             mode="inline"
             selectedKeys={[location.pathname]}
-            items={menuItems ?? []}
+            items={getMenuItems() ?? []}
             onClick={({ key }) => navigate(key)}
             style={{ borderRight: 0 }}
           />
@@ -197,7 +206,7 @@ export default function MainLayout() {
           <Menu
             mode="inline"
             selectedKeys={[location.pathname]}
-            items={menuItems ?? []}
+            items={getMenuItems() ?? []}
             onClick={({ key }) => {
               navigate(key);
               setMenuDrawerOpen(false);
