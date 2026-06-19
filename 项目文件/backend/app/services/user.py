@@ -90,6 +90,22 @@ async def update_user(
     """更新用户信息。"""
     user = await get_user(db, user_id)
 
+    changing_role = request.role is not None and request.role != user.role.value
+    disabling = request.status is not None and request.status == "disabled" and user.status == UserStatus.ACTIVE
+
+    if (changing_role or disabling) and user.role == UserRole.ADMIN:
+        admin_count = await db.execute(
+            select(func.count()).select_from(User).where(
+                User.role == UserRole.ADMIN,
+                User.status == UserStatus.ACTIVE,
+            )
+        )
+        if admin_count.scalar_one() <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="至少需要保留一名管理员，无法修改最后一名管理员的角色或状态",
+            )
+
     if request.nickname is not None:
         user.nickname = request.nickname
     if request.avatar is not None:
