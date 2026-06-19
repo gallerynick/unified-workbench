@@ -4,6 +4,21 @@
   height: 100%;
 }
 
+.container :global(.ant-tree-treenode) {
+  padding: 2px 0 !important;
+  min-height: 28px;
+}
+
+.container :global(.ant-tree-node-content-wrapper) {
+  min-height: 28px;
+  line-height: 28px;
+}
+
+.container :global(.ant-tree-switcher) {
+  height: 28px;
+  line-height: 28px;
+}
+
 .toolbar {
   display: flex;
   align-items: center;

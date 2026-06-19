@@ -25,12 +25,27 @@ export function isAuthenticated(): boolean {
   const token = getToken();
   if (!token) return false;
 
-  // Check if token is expired (basic check without verification)
   try {
     const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
-    const exp = payload.exp * 1000; // Convert to milliseconds
+    const exp = payload.exp * 1000;
     return Date.now() < exp;
   } catch {
     return false;
   }
+}
+
+export function getUserRole(): string | null {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
+    return payload.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function isAdmin(): boolean {
+  return getUserRole() === 'admin';
 }

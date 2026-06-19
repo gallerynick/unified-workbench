@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, message, Space, Alert } from 'antd';
-import { ReloadOutlined, SaveOutlined, PictureOutlined, FontSizeOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Typography, message, Space, Alert, Result } from 'antd';
+import { ReloadOutlined, SaveOutlined, PictureOutlined, FontSizeOutlined, LockOutlined } from '@ant-design/icons';
 import { useCustomization, saveAppSettings } from '../../hooks/useCustomization';
 import { DEFAULT_CONFIG } from '../../types/customization';
+import { isAdmin } from '../../utils/auth';
 import styles from './CustomizationSettings.module.css';
 
 const { Title } = Typography;
@@ -22,6 +23,17 @@ export default function CustomizationSettings() {
       logoCollapsedUrl: customization.branding.logoCollapsed || '',
     });
   }, [customization, form]);
+
+  if (!isAdmin()) {
+    return (
+      <Result
+        status="403"
+        title="权限不足"
+        subTitle="只有管理员可以访问客制化设置"
+        icon={<LockOutlined />}
+      />
+    );
+  }
 
   const handleSave = async () => {
     try {
