@@ -20,15 +20,13 @@ async def create_initial_admin(db: AsyncSession) -> None:
     """
     settings = get_settings()
 
-    # 检查是否已存在管理员用户
     result = await db.execute(
-        select(User).where(User.role == UserRole.ADMIN).limit(1)
+        select(User).where(User.username == settings.INITIAL_ADMIN_USERNAME).limit(1)
     )
     if result.scalar_one_or_none() is not None:
         logger.debug("Admin user already exists, skipping seed")
         return
 
-    # 创建初始管理员
     admin = User(
         username=settings.INITIAL_ADMIN_USERNAME,
         password_hash=hash_password(settings.INITIAL_ADMIN_PASSWORD),
