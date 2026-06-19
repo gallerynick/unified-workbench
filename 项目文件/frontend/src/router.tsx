@@ -21,6 +21,7 @@ const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'))
 const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationSettings'));
 const SiteSettings = lazy(() => import('@/pages/settings/SiteSettings'));
 const SidebarManagement = lazy(() => import('@/pages/settings/SidebarManagement'));
+const DeviceManagement = lazy(() => import('@/pages/settings/DeviceManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
 
@@ -111,6 +112,10 @@ export const router = createBrowserRouter([
           {
             path: 'settings/sidebar',
             element: <LazyPage><SidebarManagement /></LazyPage>,
+          },
+          {
+            path: 'settings/devices',
+            element: <LazyPage><DeviceManagement /></LazyPage>,
           },
           {
             path: 'profile',
