@@ -20,6 +20,7 @@ import {
   TeamOutlined,
   SkinOutlined,
   GlobalOutlined,
+  LayoutOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -83,6 +84,7 @@ function getMenuItems(): MenuProps['items'] {
           { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
           { key: '/settings/templates', label: '模板管理', icon: <FormOutlined /> },
           { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
+          { key: '/settings/sidebar', label: '侧边栏管理', icon: <LayoutOutlined /> },
           { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
           { key: '/settings/backups', label: '备份管理', icon: <CloudServerOutlined /> },
           { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },

@@ -20,6 +20,7 @@ const NotificationConfig = lazy(() => import('@/pages/settings/NotificationConfi
 const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'));
 const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationSettings'));
 const SiteSettings = lazy(() => import('@/pages/settings/SiteSettings'));
+const SidebarManagement = lazy(() => import('@/pages/settings/SidebarManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
 
@@ -106,6 +107,10 @@ export const router = createBrowserRouter([
           {
             path: 'settings/site',
             element: <LazyPage><SiteSettings /></LazyPage>,
+          },
+          {
+            path: 'settings/sidebar',
+            element: <LazyPage><SidebarManagement /></LazyPage>,
           },
           {
             path: 'profile',
