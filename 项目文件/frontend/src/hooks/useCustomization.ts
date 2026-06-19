@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { CustomizationConfig } from '../types/customization';
+import type { CustomizationConfig, DisplayMode } from '../types/customization';
 import { DEFAULT_CONFIG } from '../types/customization';
 
 const CONFIG_URL = '/custom/config.json';
@@ -12,6 +12,7 @@ interface StoredSettings {
   favicon?: string;
   logoExpanded?: string;
   logoCollapsed?: string;
+  displayMode?: DisplayMode;
 }
 
 function getStoredSettings(): StoredSettings {
@@ -51,6 +52,7 @@ export function useCustomization(): CustomizationConfig {
             favicon: stored.favicon ?? fileConfig.branding?.favicon ?? DEFAULT_CONFIG.branding.favicon,
             logoExpanded: stored.logoExpanded ?? fileConfig.branding?.logoExpanded ?? DEFAULT_CONFIG.branding.logoExpanded,
             logoCollapsed: stored.logoCollapsed ?? fileConfig.branding?.logoCollapsed ?? DEFAULT_CONFIG.branding.logoCollapsed,
+            displayMode: stored.displayMode ?? fileConfig.branding?.displayMode ?? DEFAULT_CONFIG.branding.displayMode,
           },
         };
 
@@ -84,6 +86,7 @@ export function saveAppSettings(settings: {
   favicon?: string;
   logoExpanded?: string;
   logoCollapsed?: string;
+  displayMode?: DisplayMode;
 }): void {
   const existing = getStoredSettings();
   const merged = { ...existing, ...settings };

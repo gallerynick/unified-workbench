@@ -22,6 +22,7 @@ import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
+import { clearTokens } from '../utils/auth';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
 
@@ -131,21 +132,30 @@ export default function MainLayout() {
             style={{
               height: 64,
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+              gap: 2,
             }}
           >
             {collapsed ? (
-              customization.branding.logoCollapsed ? (
-                <img src={customization.branding.logoCollapsed} alt="Logo" style={{ height: 32 }} />
+              customization.branding.displayMode !== 'text' && customization.branding.logoCollapsed ? (
+                <img src={customization.branding.logoCollapsed} alt="Logo" style={{ height: 28 }} />
               ) : (
                 <span style={{ fontSize: 20, fontWeight: 'bold' }}>{customization.app.shortName}</span>
               )
-            ) : customization.branding.logoExpanded ? (
-              <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 32 }} />
             ) : (
-              <span style={{ fontSize: 16, fontWeight: 'bold' }}>{customization.app.name}</span>
+              <>
+                {customization.branding.displayMode !== 'text' && customization.branding.logoExpanded && (
+                  <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 28 }} />
+                )}
+                {customization.branding.displayMode !== 'icon' && (
+                  <span style={{ fontSize: customization.branding.displayMode === 'both' ? 12 : 16, fontWeight: 'bold' }}>
+                    {customization.app.name}
+                  </span>
+                )}
+              </>
             )}
           </div>
           <Menu
@@ -170,15 +180,20 @@ export default function MainLayout() {
             style={{
               height: 64,
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+              gap: 2,
             }}
           >
-            {customization.branding.logoExpanded ? (
-              <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 32 }} />
-            ) : (
-              <span style={{ fontSize: 16, fontWeight: 'bold' }}>{customization.app.name}</span>
+            {customization.branding.displayMode !== 'text' && customization.branding.logoExpanded && (
+              <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 28 }} />
+            )}
+            {customization.branding.displayMode !== 'icon' && (
+              <span style={{ fontSize: customization.branding.displayMode === 'both' ? 12 : 16, fontWeight: 'bold' }}>
+                {customization.app.name}
+              </span>
             )}
           </div>
           <Menu
@@ -242,7 +257,10 @@ export default function MainLayout() {
               onMarkAllAsRead={markAllAsRead}
               onOpenDrawer={() => setDrawerOpen(true)}
             />
-            <Dropdown menu={{ items: userMenuItems ?? [] }} placement="bottomRight">
+            <Dropdown menu={{ items: userMenuItems ?? [], onClick: ({ key }) => {
+              if (key === 'profile') navigate('/profile');
+              if (key === 'logout') { clearTokens(); navigate('/login'); }
+            } }} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
                 <Avatar icon={<UserOutlined />} />
                 {!isMobile && <span>管理员</span>}

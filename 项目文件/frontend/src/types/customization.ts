@@ -1,3 +1,5 @@
+export type DisplayMode = 'icon' | 'text' | 'both';
+
 export interface AppConfig {
   name: string;
   shortName: string;
@@ -8,6 +10,7 @@ export interface BrandingConfig {
   logoExpanded: string | null;
   logoCollapsed: string | null;
   favicon: string | null;
+  displayMode: DisplayMode;
 }
 
 export interface CustomizationConfig {
@@ -25,5 +28,6 @@ export const DEFAULT_CONFIG: CustomizationConfig = {
     logoExpanded: null,
     logoCollapsed: null,
     favicon: null,
+    displayMode: 'both',
   },
 };

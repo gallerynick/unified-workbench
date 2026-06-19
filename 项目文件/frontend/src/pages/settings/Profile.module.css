@@ -1,0 +1,18 @@
+.container {
+  max-width: 600px;
+}
+
+.card {
+  margin-bottom: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+}

@@ -19,6 +19,7 @@ const ReminderManagement = lazy(() => import('@/pages/reminders/ReminderManageme
 const NotificationConfig = lazy(() => import('@/pages/settings/NotificationConfig'));
 const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'));
 const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationSettings'));
+const Profile = lazy(() => import('@/pages/settings/Profile'));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -95,6 +96,10 @@ export const router = createBrowserRouter([
           {
             path: 'settings/customization',
             element: <LazyPage><CustomizationSettings /></LazyPage>,
+          },
+          {
+            path: 'profile',
+            element: <LazyPage><Profile /></LazyPage>,
           },
           {
             path: '404',
