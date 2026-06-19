@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, message, Space, Alert, Result } from 'antd';
-import { ReloadOutlined, SaveOutlined, PictureOutlined, FontSizeOutlined, LockOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Typography, message, Space, Alert, Result, Upload } from 'antd';
+import { ReloadOutlined, SaveOutlined, PictureOutlined, FontSizeOutlined, LockOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import type { UploadFile, UploadProps } from 'antd';
 import { useCustomization, saveAppSettings } from '../../hooks/useCustomization';
 import { DEFAULT_CONFIG } from '../../types/customization';
 import { isAdmin } from '../../utils/auth';
@@ -8,20 +9,39 @@ import styles from './CustomizationSettings.module.css';
 
 const { Title } = Typography;
 
+function getBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+}
+
 export default function CustomizationSettings() {
   const customization = useCustomization();
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [faviconFile, setFaviconFile] = useState<UploadFile[]>([]);
+  const [logoExpandedFile, setLogoExpandedFile] = useState<UploadFile[]>([]);
+  const [logoCollapsedFile, setLogoCollapsedFile] = useState<UploadFile[]>([]);
 
   useEffect(() => {
     form.setFieldsValue({
       appName: customization.app.name,
       appShortName: customization.app.shortName,
       appDescription: customization.app.description,
-      faviconUrl: customization.branding.favicon || '',
-      logoExpandedUrl: customization.branding.logoExpanded || '',
-      logoCollapsedUrl: customization.branding.logoCollapsed || '',
     });
+
+    if (customization.branding.favicon) {
+      setFaviconFile([{ uid: '-1', name: 'favicon', status: 'done', url: customization.branding.favicon }]);
+    }
+    if (customization.branding.logoExpanded) {
+      setLogoExpandedFile([{ uid: '-2', name: 'logo-expanded', status: 'done', url: customization.branding.logoExpanded }]);
+    }
+    if (customization.branding.logoCollapsed) {
+      setLogoCollapsedFile([{ uid: '-3', name: 'logo-collapsed', status: 'done', url: customization.branding.logoCollapsed }]);
+    }
   }, [customization, form]);
 
   if (!isAdmin()) {
@@ -35,6 +55,16 @@ export default function CustomizationSettings() {
     );
   }
 
+  const handleUpload = async (file: File, setter: React.Dispatch<React.SetStateAction<UploadFile[]>>) => {
+    const base64 = await getBase64(file);
+    setter([{ uid: Date.now().toString(), name: file.name, status: 'done', url: base64 }]);
+    return false;
+  };
+
+  const handleRemove = (setter: React.Dispatch<React.SetStateAction<UploadFile[]>>) => {
+    setter([]);
+  };
+
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
@@ -43,9 +73,9 @@ export default function CustomizationSettings() {
         name: values.appName,
         shortName: values.appShortName,
         description: values.appDescription,
-        favicon: values.faviconUrl,
-        logoExpanded: values.logoExpandedUrl,
-        logoCollapsed: values.logoCollapsedUrl,
+        favicon: faviconFile[0]?.url || '',
+        logoExpanded: logoExpandedFile[0]?.url || '',
+        logoCollapsed: logoCollapsedFile[0]?.url || '',
       });
       message.success('设置已保存，刷新页面后生效');
     } catch {
@@ -60,12 +90,24 @@ export default function CustomizationSettings() {
       appName: DEFAULT_CONFIG.app.name,
       appShortName: DEFAULT_CONFIG.app.shortName,
       appDescription: DEFAULT_CONFIG.app.description,
-      faviconUrl: '',
-      logoExpandedUrl: '',
-      logoCollapsedUrl: '',
     };
     form.setFieldValue(field, defaultValues[field]);
     message.success('已重置为默认值');
+  };
+
+  const handleResetAll = () => {
+    form.resetFields();
+    setFaviconFile([]);
+    setLogoExpandedFile([]);
+    setLogoCollapsedFile([]);
+    message.success('已全部重置');
+  };
+
+  const uploadProps: UploadProps = {
+    beforeUpload: () => false,
+    listType: 'picture-card',
+    maxCount: 1,
+    accept: 'image/*',
   };
 
   return (
@@ -94,14 +136,53 @@ export default function CustomizationSettings() {
         </Card>
 
         <Card title={<><PictureOutlined /> 品牌图标</>} className={styles.card ?? ''}>
-          <Form.Item label="网页图标 (Favicon)" name="faviconUrl">
-            <Input placeholder="https://example.com/favicon.ico 或 /custom/favicon.ico" suffix={<Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => handleReset('faviconUrl')}>重置</Button>} />
+          <Form.Item label="网页图标 (Favicon)">
+            <Upload
+              {...uploadProps}
+              fileList={faviconFile}
+              beforeUpload={(file) => handleUpload(file, setFaviconFile)}
+              onRemove={() => handleRemove(setFaviconFile)}
+            >
+              {faviconFile.length === 0 && (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>上传</div>
+                </div>
+              )}
+            </Upload>
+            <Button type="link" size="small" icon={<DeleteOutlined />} onClick={() => handleRemove(setFaviconFile)}>清除</Button>
           </Form.Item>
-          <Form.Item label="侧栏展开图标" name="logoExpandedUrl">
-            <Input placeholder="https://example.com/logo.png 或 /custom/logo-expanded.png" suffix={<Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => handleReset('logoExpandedUrl')}>重置</Button>} />
+          <Form.Item label="侧栏展开图标">
+            <Upload
+              {...uploadProps}
+              fileList={logoExpandedFile}
+              beforeUpload={(file) => handleUpload(file, setLogoExpandedFile)}
+              onRemove={() => handleRemove(setLogoExpandedFile)}
+            >
+              {logoExpandedFile.length === 0 && (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>上传</div>
+                </div>
+              )}
+            </Upload>
+            <Button type="link" size="small" icon={<DeleteOutlined />} onClick={() => handleRemove(setLogoExpandedFile)}>清除</Button>
           </Form.Item>
-          <Form.Item label="侧栏收起图标" name="logoCollapsedUrl">
-            <Input placeholder="https://example.com/icon.png 或 /custom/logo-collapsed.png" suffix={<Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => handleReset('logoCollapsedUrl')}>重置</Button>} />
+          <Form.Item label="侧栏收起图标">
+            <Upload
+              {...uploadProps}
+              fileList={logoCollapsedFile}
+              beforeUpload={(file) => handleUpload(file, setLogoCollapsedFile)}
+              onRemove={() => handleRemove(setLogoCollapsedFile)}
+            >
+              {logoCollapsedFile.length === 0 && (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>上传</div>
+                </div>
+              )}
+            </Upload>
+            <Button type="link" size="small" icon={<DeleteOutlined />} onClick={() => handleRemove(setLogoCollapsedFile)}>清除</Button>
           </Form.Item>
         </Card>
 
@@ -110,7 +191,7 @@ export default function CustomizationSettings() {
             <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>
               保存设置
             </Button>
-            <Button onClick={() => form.resetFields()}>
+            <Button onClick={handleResetAll}>
               全部重置
             </Button>
           </Space>
