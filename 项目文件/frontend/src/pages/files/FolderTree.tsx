@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Tree, Button, Input, Modal, message, Space } from 'antd';
 import {
   PlusOutlined,
@@ -19,8 +19,9 @@ interface FolderTreeProps {
 export default function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [newFolderName, setNewFolderName] = useState('');
-  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [creating, setCreating] = useState(false);
+  const creatingRef = useRef(false);
 
   const fetchFolders = useCallback(async () => {
     try {
@@ -84,18 +85,20 @@ export default function FolderTree({ selectedFolderId, onSelect }: FolderTreePro
   };
 
   const handleCreateFolder = async () => {
+    if (creatingRef.current) return;
     if (!newFolderName.trim()) {
       message.warning('请输入文件夹名称');
       return;
     }
 
+    creatingRef.current = true;
     setCreating(true);
     try {
       const res = await createFolder({ name: newFolderName.trim() });
       if (res.code === 0) {
         message.success('文件夹创建成功');
         setNewFolderName('');
-        setCreateModalVisible(false);
+        setIsCreating(false);
         fetchFolders();
       } else {
         message.error(res.msg || '创建文件夹失败');
@@ -104,8 +107,15 @@ export default function FolderTree({ selectedFolderId, onSelect }: FolderTreePro
       const msg = err instanceof Error ? err.message : '创建文件夹失败';
       message.error(msg);
     } finally {
+      creatingRef.current = false;
       setCreating(false);
     }
+  };
+
+  const cancelCreate = () => {
+    if (creatingRef.current) return;
+    setIsCreating(false);
+    setNewFolderName('');
   };
 
   const handleDeleteFolder = (folder: Folder) => {
@@ -147,14 +157,29 @@ export default function FolderTree({ selectedFolderId, onSelect }: FolderTreePro
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.toolbar ?? ''}>
-        <h4 className={styles.toolbarTitle ?? ''}>文件夹</h4>
         <Button
           type="text"
           size="small"
           icon={<PlusOutlined />}
-          onClick={() => setCreateModalVisible(true)}
+          onClick={() => setIsCreating(true)}
         />
       </div>
+
+      {isCreating && (
+        <div className={styles.inlineCreate ?? ''}>
+          <Input
+            size="small"
+            placeholder="文件夹名称"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onPressEnter={handleCreateFolder}
+            onKeyDown={(e) => e.key === 'Escape' && cancelCreate()}
+            onBlur={cancelCreate}
+            autoFocus
+            disabled={creating}
+          />
+        </div>
+      )}
 
       <div className={styles.treeWrapper ?? ''}>
         <Tree
@@ -165,26 +190,6 @@ export default function FolderTree({ selectedFolderId, onSelect }: FolderTreePro
           onSelect={handleSelect}
         />
       </div>
-
-      <Modal
-        title="新建文件夹"
-        open={createModalVisible}
-        onOk={handleCreateFolder}
-        onCancel={() => {
-          setCreateModalVisible(false);
-          setNewFolderName('');
-        }}
-        confirmLoading={creating}
-        okText="创建"
-        cancelText="取消"
-      >
-        <Input
-          placeholder="请输入文件夹名称"
-          value={newFolderName}
-          onChange={(e) => setNewFolderName(e.target.value)}
-          onPressEnter={handleCreateFolder}
-        />
-      </Modal>
     </div>
   );
 }

@@ -5,15 +5,18 @@ import {
   ProjectOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import { useCustomization } from '../hooks/useCustomization';
 
 const { Title, Paragraph } = Typography;
 
 export default function Home() {
+  const customization = useCustomization();
+
   return (
     <div>
-      <Title level={2}>欢迎使用一站式工作台</Title>
+      <Title level={2}>欢迎使用{customization.app.name}</Title>
       <Paragraph>
-        面向小团队的内网一体化协作与信息管理平台
+        {customization.app.description}
       </Paragraph>
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>

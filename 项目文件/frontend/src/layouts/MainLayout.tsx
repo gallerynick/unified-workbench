@@ -21,6 +21,7 @@ import {
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useResponsive } from '../hooks/useBreakpoint';
+import { useCustomization } from '../hooks/useCustomization';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
 
@@ -104,6 +105,7 @@ export default function MainLayout() {
   } = theme.useToken();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useWebSocket();
   const { isMobile } = useResponsive();
+  const customization = useCustomization();
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -134,9 +136,15 @@ export default function MainLayout() {
             }}
           >
             {collapsed ? (
-              <span style={{ fontSize: 20, fontWeight: 'bold' }}>工</span>
+              customization.branding.logoCollapsed ? (
+                <img src={customization.branding.logoCollapsed} alt="Logo" style={{ height: 32 }} />
+              ) : (
+                <span style={{ fontSize: 20, fontWeight: 'bold' }}>{customization.app.shortName}</span>
+              )
+            ) : customization.branding.logoExpanded ? (
+              <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 32 }} />
             ) : (
-              <span style={{ fontSize: 16, fontWeight: 'bold' }}>一站式工作台</span>
+              <span style={{ fontSize: 16, fontWeight: 'bold' }}>{customization.app.name}</span>
             )}
           </div>
           <Menu
@@ -166,7 +174,11 @@ export default function MainLayout() {
               borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 'bold' }}>一站式工作台</span>
+            {customization.branding.logoExpanded ? (
+              <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 32 }} />
+            ) : (
+              <span style={{ fontSize: 16, fontWeight: 'bold' }}>{customization.app.name}</span>
+            )}
           </div>
           <Menu
             mode="inline"
