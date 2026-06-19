@@ -41,6 +41,9 @@ class File(Base):
     restricted_tags: Mapped[list | None] = mapped_column(
         JSONB, nullable=True
     )  # ["tag_name", ...]
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, comment="文件过期时间"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

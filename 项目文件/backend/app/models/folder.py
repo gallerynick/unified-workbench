@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -27,6 +27,21 @@ class Folder(Base):
         ForeignKey("folder.id"), nullable=True
     )
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
+    visibility: Mapped[str] = mapped_column(
+        String(20), default="private"
+    )
+    restricted_users: Mapped[list | None] = mapped_column(
+        nullable=True
+    )
+    restricted_tags: Mapped[list | None] = mapped_column(
+        nullable=True
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, comment="文件夹过期时间"
+    )
+    unified_management: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="是否统一管理子文件"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )
