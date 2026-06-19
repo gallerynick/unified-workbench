@@ -19,6 +19,14 @@ interface SidebarItem {
 
 const DEFAULT_ITEMS: SidebarItem[] = [
   { key: '/', label: '首页', icon: 'HomeOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/tasks', label: '任务管理', icon: 'CheckSquareOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/contacts', label: '客户管理', icon: 'ContactsOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/calendar', label: '日历', icon: 'CalendarOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/votes', label: '投票决策', icon: 'LikeOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/forms', label: '表单收集', icon: 'FormOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/members', label: '成员目录', icon: 'TeamOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/announcements', label: '公告中心', icon: 'SoundOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/notes', label: '笔记知识库', icon: 'BookOutlined', visible: true, hasData: false, builtin: true },
   { key: '/files', label: '文件管理', icon: 'FileOutlined', visible: true, hasData: true, builtin: true },
   { key: '/content', label: '内容管理', icon: 'FileTextOutlined', visible: true, hasData: true, builtin: true },
   { key: '/projects', label: '项目管理', icon: 'ProjectOutlined', visible: true, hasData: true, builtin: true },

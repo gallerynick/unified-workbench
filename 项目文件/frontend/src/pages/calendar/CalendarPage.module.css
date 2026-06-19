@@ -1,0 +1,112 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendar {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.weekday {
+  padding: 8px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 13px;
+  color: #666;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.day {
+  min-height: 100px;
+  padding: 4px;
+  border: 1px solid #f0f0f0;
+  cursor: pointer;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.day:hover {
+  background: #f5f5f5;
+}
+
+.today {
+  background: #e6f4ff;
+}
+
+.selected {
+  background: #bae0ff;
+}
+
+.emptyDay {
+  background: #fafafa;
+}
+
+.dayNumber {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.dayEvents {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eventDot {
+  font-size: 11px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moreEvents {
+  font-size: 11px;
+  color: #999;
+}
+
+.eventList {
+  margin-top: 16px;
+}
+
+.eventItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.eventItem:last-child {
+  border-bottom: none;
+}
+
+.eventInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -24,6 +24,14 @@ const SidebarManagement = lazy(() => import('@/pages/settings/SidebarManagement'
 const DeviceManagement = lazy(() => import('@/pages/settings/DeviceManagement'));
 const InventoryManagement = lazy(() => import('@/pages/inventory/InventoryManagement'));
 const FinanceManagement = lazy(() => import('@/pages/finance/FinanceManagement'));
+const TaskManagement = lazy(() => import('@/pages/tasks/TaskManagement'));
+const ContactManagement = lazy(() => import('@/pages/contacts/ContactManagement'));
+const CalendarPage = lazy(() => import('@/pages/calendar/CalendarPage'));
+const VoteManagement = lazy(() => import('@/pages/votes/VoteManagement'));
+const FormManagement = lazy(() => import('@/pages/forms/FormManagement'));
+const MemberDirectory = lazy(() => import('@/pages/members/MemberDirectory'));
+const AnnouncementManagement = lazy(() => import('@/pages/announcements/AnnouncementManagement'));
+const NoteManagement = lazy(() => import('@/pages/notes/NoteManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
 
@@ -78,6 +86,38 @@ export const router = createBrowserRouter([
           {
             path: 'finance',
             element: <LazyPage><FinanceManagement /></LazyPage>,
+          },
+          {
+            path: 'tasks',
+            element: <LazyPage><TaskManagement /></LazyPage>,
+          },
+          {
+            path: 'contacts',
+            element: <LazyPage><ContactManagement /></LazyPage>,
+          },
+          {
+            path: 'calendar',
+            element: <LazyPage><CalendarPage /></LazyPage>,
+          },
+          {
+            path: 'votes',
+            element: <LazyPage><VoteManagement /></LazyPage>,
+          },
+          {
+            path: 'forms',
+            element: <LazyPage><FormManagement /></LazyPage>,
+          },
+          {
+            path: 'members',
+            element: <LazyPage><MemberDirectory /></LazyPage>,
+          },
+          {
+            path: 'announcements',
+            element: <LazyPage><AnnouncementManagement /></LazyPage>,
+          },
+          {
+            path: 'notes',
+            element: <LazyPage><NoteManagement /></LazyPage>,
           },
           {
             path: 'records',
