@@ -1,0 +1,12 @@
+{
+  "app": {
+    "name": "一站式工作台",
+    "shortName": "工",
+    "description": "面向小团队的内网一体化协作与信息管理平台"
+  },
+  "branding": {
+    "logoExpanded": null,
+    "logoCollapsed": null,
+    "favicon": null
+  }
+}
