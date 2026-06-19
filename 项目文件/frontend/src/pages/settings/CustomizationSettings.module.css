@@ -1,0 +1,13 @@
+.container {
+  max-width: 800px;
+}
+
+.card {
+  margin-bottom: 24px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+}

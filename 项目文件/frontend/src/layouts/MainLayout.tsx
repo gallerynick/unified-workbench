@@ -79,6 +79,7 @@ const menuItems: MenuProps['items'] = [
       { key: '/settings/users', label: '用户管理' },
       { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
       { key: '/settings/backups', label: '备份管理', icon: <CloudServerOutlined /> },
+      { key: '/settings/customization', label: '客制化设置', icon: <SettingOutlined /> },
     ],
   },
 ];

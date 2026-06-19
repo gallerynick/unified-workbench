@@ -18,6 +18,7 @@ const SecretManagement = lazy(() => import('@/pages/secrets/SecretManagement'));
 const ReminderManagement = lazy(() => import('@/pages/reminders/ReminderManagement'));
 const NotificationConfig = lazy(() => import('@/pages/settings/NotificationConfig'));
 const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'));
+const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationSettings'));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -90,6 +91,10 @@ export const router = createBrowserRouter([
           {
             path: 'settings/backups',
             element: <LazyPage><BackupManagement /></LazyPage>,
+          },
+          {
+            path: 'settings/customization',
+            element: <LazyPage><CustomizationSettings /></LazyPage>,
           },
           {
             path: '404',
