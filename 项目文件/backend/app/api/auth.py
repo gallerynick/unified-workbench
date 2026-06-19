@@ -42,6 +42,22 @@ async def get_me_endpoint(current_user: User = Depends(get_current_user)):
     return UnifiedResponse(data=UserResponse.model_validate(current_user))
 
 
+@router.put("/me", response_model=UnifiedResponse[UserResponse])
+async def update_me_endpoint(
+    request: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """更新当前用户信息（昵称、头像）。"""
+    if "nickname" in request and request["nickname"]:
+        current_user.nickname = request["nickname"]
+    if "avatar" in request:
+        current_user.avatar = request["avatar"] or None
+    await db.flush()
+    await db.refresh(current_user)
+    return UnifiedResponse(data=UserResponse.model_validate(current_user))
+
+
 @router.put("/me/password", response_model=UnifiedResponse[None])
 async def change_password_endpoint(
     request: PasswordChangeRequest,
