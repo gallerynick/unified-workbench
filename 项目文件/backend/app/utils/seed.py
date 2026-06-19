@@ -23,8 +23,12 @@ async def create_initial_admin(db: AsyncSession) -> None:
     result = await db.execute(
         select(User).where(User.username == settings.INITIAL_ADMIN_USERNAME).limit(1)
     )
-    if result.scalar_one_or_none() is not None:
-        logger.debug("Admin user already exists, skipping seed")
+    existing = result.scalar_one_or_none()
+    if existing is not None:
+        if existing.role != UserRole.ADMIN:
+            existing.role = UserRole.ADMIN
+            await db.commit()
+            logger.info(f"Fixed admin user role to ADMIN")
         return
 
     admin = User(
