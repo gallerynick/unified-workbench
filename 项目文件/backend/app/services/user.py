@@ -119,6 +119,20 @@ async def update_user(
 async def disable_user(db: AsyncSession, user_id: uuid.UUID) -> User:
     """软删除：将用户状态设为禁用。"""
     user = await get_user(db, user_id)
+
+    if user.role == UserRole.ADMIN:
+        admin_count = await db.execute(
+            select(func.count()).select_from(User).where(
+                User.role == UserRole.ADMIN,
+                User.status == UserStatus.ACTIVE,
+            )
+        )
+        if admin_count.scalar_one() <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="至少需要保留一名管理员，无法禁用最后一名管理员",
+            )
+
     user.status = UserStatus.DISABLED
     await db.flush()
     return user

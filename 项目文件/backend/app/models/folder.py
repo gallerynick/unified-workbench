@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -31,10 +32,10 @@ class Folder(Base):
         String(20), default="private"
     )
     restricted_users: Mapped[list | None] = mapped_column(
-        nullable=True
+        JSONB, nullable=True
     )
     restricted_tags: Mapped[list | None] = mapped_column(
-        nullable=True
+        JSONB, nullable=True
     )
     expires_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True, comment="文件夹过期时间"

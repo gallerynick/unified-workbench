@@ -89,7 +89,7 @@ async def restore_backup(filename: str, backup_dir: str = "/data/backups") -> bo
     return True
 
 
-def cleanup_old_backups(backup_dir: str = "/data/backups", max_keep: int = 7) -> int:
+def cleanup_old_backups(backup_dir: str = "/data/backups", max_keep: int = 5) -> int:
     """清理旧备份，保留最新的 max_keep 个。"""
     backups = sorted(Path(backup_dir).glob("backup_*.sql.gz"))
     deleted = 0
