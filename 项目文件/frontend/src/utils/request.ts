@@ -59,6 +59,7 @@ export async function request<T>(
     method,
     headers: requestHeaders,
     body: body ? JSON.stringify(body) : null,
+    redirect: 'follow',
   });
 
   // Handle 401 - try to refresh token
