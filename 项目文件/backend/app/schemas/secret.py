@@ -13,6 +13,7 @@ class SecretCreate(BaseModel):
 
     name: str
     secret_type: str = "other"
+    category_id: uuid.UUID | None = None
     data: dict
     note: str = ""
 
@@ -25,6 +26,7 @@ class SecretResponse(BaseModel):
     id: uuid.UUID
     name: str
     secret_type: str
+    category_id: uuid.UUID | None
     note: str
     owner_id: uuid.UUID
     created_at: datetime

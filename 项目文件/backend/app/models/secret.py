@@ -28,6 +28,9 @@ class Secret(Base):
         server_default="other",
         comment="api_key/account/config/other",
     )
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("secret_category.id"), nullable=True, comment="所属分类"
+    )
     encrypted_data: Mapped[bytes] = mapped_column(
         LargeBinary, nullable=False, comment="AES-256-GCM 加密数据"
     )

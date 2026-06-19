@@ -10,6 +10,7 @@ from app.api.files import router as files_router
 from app.api.health import router as health_router
 from app.api.records import router as records_router
 from app.api.reminders import router as reminders_router
+from app.api.secret_categories import router as secret_categories_router
 from app.api.secrets import router as secrets_router
 from app.api.system_config import router as system_config_router
 from app.api.templates import router as templates_router
@@ -26,6 +27,7 @@ api_router.include_router(templates_router, prefix="/templates", tags=["模板�
 api_router.include_router(records_router, prefix="/records", tags=["记录管理"])
 api_router.include_router(reminders_router, prefix="/reminders", tags=["提醒管理"])
 api_router.include_router(secrets_router, prefix="/secrets", tags=["密钥管理"])
+api_router.include_router(secret_categories_router, prefix="/secret-categories", tags=["密钥分类"])
 api_router.include_router(system_config_router, prefix="/system-config", tags=["系统配置"])
 api_router.include_router(audit_router, prefix="/audit-logs", tags=["审计日志"])
 api_router.include_router(backups_router, prefix="/backups", tags=["备份管理"])

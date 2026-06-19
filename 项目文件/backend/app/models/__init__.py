@@ -8,6 +8,7 @@ from app.models.folder import Folder
 from app.models.record import Record, RecordStatus, RecordType
 from app.models.reminder import Reminder, ReminderStatus, TriggerType
 from app.models.secret import Secret
+from app.models.secret_category import SecretCategory
 from app.models.system_config import SystemConfig
 from app.models.tag import Tag
 from app.models.template import Template
@@ -33,5 +34,6 @@ __all__ = [
     "ReminderStatus",
     "TriggerType",
     "Secret",
+    "SecretCategory",
     "SystemConfig",
 ]
