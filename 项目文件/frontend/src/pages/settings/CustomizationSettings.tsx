@@ -29,7 +29,11 @@ export default function CustomizationSettings() {
       setSaving(true);
       saveAppSettings({
         name: values.appName,
+        shortName: values.appShortName,
         description: values.appDescription,
+        favicon: values.faviconUrl,
+        logoExpanded: values.logoExpandedUrl,
+        logoCollapsed: values.logoCollapsedUrl,
       });
       message.success('设置已保存，刷新页面后生效');
     } catch {

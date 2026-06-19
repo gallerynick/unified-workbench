@@ -65,7 +65,14 @@ export function useCustomization(): CustomizationConfig {
   return config;
 }
 
-export function saveAppSettings(settings: { name?: string; description?: string }): void {
+export function saveAppSettings(settings: {
+  name?: string;
+  shortName?: string;
+  description?: string;
+  favicon?: string;
+  logoExpanded?: string;
+  logoCollapsed?: string;
+}): void {
   const existing = getStoredSettings();
   const merged = { ...existing, ...settings };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
