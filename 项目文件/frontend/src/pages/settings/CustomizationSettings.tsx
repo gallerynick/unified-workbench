@@ -42,6 +42,37 @@ function validateImage(file: File, isFavicon: boolean): string | null {
   return null;
 }
 
+function checkImageDimensions(file: File, isFavicon: boolean): Promise<string | null> {
+  return new Promise((resolve) => {
+    if (file.type === 'image/svg+xml') {
+      resolve(null);
+      return;
+    }
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const limits = isFavicon ? UPLOAD_RULES.faviconDimensions : UPLOAD_RULES.maxDimensions;
+      if (isFavicon) {
+        if (img.width !== limits.width || img.height !== limits.height) {
+          resolve(`尺寸不符: ${img.width}x${img.height}。Favicon 要求 ${limits.width}x${limits.height} 像素`);
+        }
+      } else {
+        if (img.width > limits.width || img.height > limits.height) {
+          resolve(`尺寸过大: ${img.width}x${img.height}。最大允许 ${limits.width}x${limits.height} 像素`);
+        }
+      }
+      resolve(null);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve('无法读取图片尺寸');
+    };
+    img.src = url;
+  });
+}
+
 export default function CustomizationSettings() {
   const customization = useCustomization();
   const [form] = Form.useForm();
@@ -84,6 +115,12 @@ export default function CustomizationSettings() {
     const error = validateImage(file, isFavicon);
     if (error) {
       message.error(error);
+      return false;
+    }
+
+    const dimError = await checkImageDimensions(file, isFavicon);
+    if (dimError) {
+      message.error(dimError);
       return false;
     }
 
