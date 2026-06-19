@@ -105,7 +105,7 @@ export default function CustomizationSettings() {
       <Result
         status="403"
         title="权限不足"
-        subTitle="只有管理员可以访问外观配置"
+        subTitle="只有管理员可以访问品牌配置"
         icon={<LockOutlined />}
       />
     );
@@ -212,10 +212,10 @@ export default function CustomizationSettings() {
 
   return (
     <div className={styles.container}>
-      <Title level={4}>外观配置</Title>
+      <Title level={4}>品牌配置</Title>
       <Alert
         message="管理员专属"
-        description="只有管理员可以修改外观配置。修改后需刷新页面才能看到效果。"
+        description="只有管理员可以修改品牌配置。修改后需刷新页面才能看到效果。"
         type="info"
         showIcon
         style={{ marginBottom: 24 }}
