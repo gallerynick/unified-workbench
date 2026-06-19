@@ -2,19 +2,12 @@ import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, theme, Avatar, Dropdown, Space, Drawer, Button } from 'antd';
 import {
-  HomeOutlined,
-  FileOutlined,
-  FileTextOutlined,
-  ProjectOutlined,
-  FormOutlined,
-  KeyOutlined,
   AuditOutlined,
   SettingOutlined,
   UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MenuOutlined,
-  BellOutlined,
   NotificationOutlined,
   CloudServerOutlined,
   TeamOutlined,
@@ -22,56 +15,29 @@ import {
   GlobalOutlined,
   LayoutOutlined,
   DesktopOutlined,
+  FormOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
 import { clearTokens, isAdmin } from '../utils/auth';
+import { getVisibleSidebarItems } from '../pages/settings/SidebarManagement';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
 
 const { Header, Sider, Content } = Layout;
 
 function getMenuItems(): MenuProps['items'] {
-  const items: MenuProps['items'] = [
-    {
-      key: '/',
-      icon: <HomeOutlined />,
-      label: '首页',
-    },
-    {
-      key: '/files',
-      icon: <FileOutlined />,
-      label: '文件管理',
-    },
-    {
-      key: '/content',
-      icon: <FileTextOutlined />,
-      label: '内容管理',
-    },
-    {
-      key: '/projects',
-      icon: <ProjectOutlined />,
-      label: '项目管理',
-    },
-    {
-      key: '/secrets',
-      icon: <KeyOutlined />,
-      label: '密钥管理',
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: '/reminders',
-      icon: <BellOutlined />,
-      label: '提醒管理',
-    },
-  ];
+  const sidebarItems = getVisibleSidebarItems();
+  const items: MenuProps['items'] = sidebarItems.map((item) => ({
+    key: item.key,
+    label: item.label,
+  }));
 
   if (isAdmin()) {
     items.push(
+      { type: 'divider' },
       {
         key: '/audit',
         icon: <AuditOutlined />,

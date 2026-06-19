@@ -32,8 +32,14 @@ export default function Login() {
       } else {
         message.error('用户名或密码有误');
       }
-    } catch {
-      message.error('用户名或密码有误');
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes('401')) {
+        message.error('用户名或密码有误');
+      } else if (err instanceof Error && err.message.includes('429')) {
+        message.error('登录尝试过于频繁，请稍后再试');
+      } else {
+        message.error('网络错误，请检查网络连接');
+      }
     } finally {
       setLoading(false);
     }
