@@ -49,6 +49,37 @@ async def upload_file_endpoint(
     return UnifiedResponse(data=FileResponseSchema.model_validate(db_file))
 
 
+@router.post("/folders", response_model=UnifiedResponse[FolderResponse])
+async def create_folder_endpoint(
+    request: FolderCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    folder = await create_folder(db, request.name, current_user, request.parent_id)
+    return UnifiedResponse(data=FolderResponse.model_validate(folder))
+
+
+@router.get("/folders", response_model=UnifiedResponse[list[FolderResponse]])
+async def list_folders_endpoint(
+    parent_id: uuid.UUID | None = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    folders = await list_folders(db, current_user, parent_id)
+    items = [FolderResponse.model_validate(f) for f in folders]
+    return UnifiedResponse(data=items)
+
+
+@router.delete("/folders/{folder_id}", response_model=UnifiedResponse[None])
+async def delete_folder_endpoint(
+    folder_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await delete_folder(db, folder_id, current_user)
+    return UnifiedResponse(msg="文件夹删除成功")
+
+
 @router.get("/", response_model=UnifiedResponse[FileListResponse])
 async def list_files_endpoint(
     folder_id: uuid.UUID | None = Query(None),
@@ -94,34 +125,3 @@ async def delete_file_endpoint(
 ):
     await delete_file(db, file_id, current_user)
     return UnifiedResponse(msg="文件删除成功")
-
-
-@router.post("/folders", response_model=UnifiedResponse[FolderResponse])
-async def create_folder_endpoint(
-    request: FolderCreateRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    folder = await create_folder(db, request.name, current_user, request.parent_id)
-    return UnifiedResponse(data=FolderResponse.model_validate(folder))
-
-
-@router.get("/folders", response_model=UnifiedResponse[list[FolderResponse]])
-async def list_folders_endpoint(
-    parent_id: uuid.UUID | None = Query(None),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    folders = await list_folders(db, current_user, parent_id)
-    items = [FolderResponse.model_validate(f) for f in folders]
-    return UnifiedResponse(data=items)
-
-
-@router.delete("/folders/{folder_id}", response_model=UnifiedResponse[None])
-async def delete_folder_endpoint(
-    folder_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    await delete_folder(db, folder_id, current_user)
-    return UnifiedResponse(msg="文件夹删除成功")

@@ -20,11 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """创建初始表结构"""
 
-    # 创建枚举类型（PostgreSQL 专用）
-    user_role_enum = sa.Enum("admin", "member", name="userrole")
-    user_status_enum = sa.Enum("active", "disabled", name="userstatus")
-    user_role_enum.create(op.get_bind(), checkfirst=True)
-    user_status_enum.create(op.get_bind(), checkfirst=True)
+    # 创建枚举类型（PostgreSQL 专用，使用 IF NOT EXISTS）
+    op.execute("CREATE TYPE IF NOT EXISTS userrole AS ENUM ('admin', 'member')")
+    op.execute("CREATE TYPE IF NOT EXISTS userstatus AS ENUM ('active', 'disabled')")
 
     # 创建 user 表
     op.create_table(
@@ -34,8 +32,8 @@ def upgrade() -> None:
         sa.Column("password_hash", sa.String(128), nullable=False),
         sa.Column("nickname", sa.String(50), nullable=False),
         sa.Column("avatar", sa.String(255), nullable=True),
-        sa.Column("role", user_role_enum, nullable=False, server_default="member"),
-        sa.Column("status", user_status_enum, nullable=False, server_default="active"),
+        sa.Column("role", sa.Enum("admin", "member", name="userrole", create_type=False), nullable=False, server_default="member"),
+        sa.Column("status", sa.Enum("active", "disabled", name="userstatus", create_type=False), nullable=False, server_default="active"),
         sa.Column(
             "created_at",
             sa.DateTime(),

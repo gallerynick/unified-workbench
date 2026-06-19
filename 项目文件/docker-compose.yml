@@ -1,5 +1,4 @@
 # 一站式工作台 Docker Compose 配置
-version: "3.8"
 
 services:
   # PostgreSQL 数据库
@@ -85,7 +84,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: celery -A app.tasks beat --loglevel=info
+    working_dir: /tmp
+    environment:
+      - PYTHONPATH=/app
+    command: celery -A app.tasks beat --loglevel=info --schedule=/tmp/celerybeat-schedule
     env_file:
       - .env
     depends_on:

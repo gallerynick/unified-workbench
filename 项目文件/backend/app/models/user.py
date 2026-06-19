@@ -41,10 +41,10 @@ class User(Base):
     nickname: Mapped[str] = mapped_column(String(50))
     avatar: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole), default=UserRole.MEMBER
+        Enum(UserRole, create_type=False), default=UserRole.MEMBER
     )
     status: Mapped[UserStatus] = mapped_column(
-        Enum(UserStatus), default=UserStatus.ACTIVE
+        Enum(UserStatus, create_type=False), default=UserStatus.ACTIVE
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()

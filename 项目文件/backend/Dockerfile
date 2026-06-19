@@ -41,5 +41,5 @@ USER workbench
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
-# 启动命令
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 启动命令（先运行迁移再启动）
+CMD ["sh", "-c", "cd /app && PYTHONPATH=/app python -c \"from sqlalchemy import create_engine; from app.core.config import get_settings; from app.core.database import Base; from app.models import *; settings = get_settings(); url = settings.DATABASE_URL.replace('+asyncpg', '+psycopg2'); engine = create_engine(url); Base.metadata.create_all(engine)\" && PYTHONPATH=/app uvicorn app.main:app --host 0.0.0.0 --port 8000"]
