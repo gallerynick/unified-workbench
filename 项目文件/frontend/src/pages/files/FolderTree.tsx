@@ -3,7 +3,6 @@ import { Tree, Button, Input, Modal, message, Space } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
-  FolderOutlined,
   HomeOutlined,
 } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
@@ -65,7 +64,6 @@ export default function FolderTree({ selectedFolderId, onSelect }: FolderTreePro
             </Space>
           </div>
         ),
-        icon: <FolderOutlined className={styles.folderIcon ?? ''} />,
         children: children.map(buildNode),
       };
     };

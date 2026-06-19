@@ -17,6 +17,8 @@ import {
   BellOutlined,
   NotificationOutlined,
   CloudServerOutlined,
+  TeamOutlined,
+  SkinOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -50,11 +52,6 @@ const menuItems: MenuProps['items'] = [
     label: '项目管理',
   },
   {
-    key: '/templates',
-    icon: <FormOutlined />,
-    label: '模板管理',
-  },
-  {
     key: '/secrets',
     icon: <KeyOutlined />,
     label: '密钥管理',
@@ -75,12 +72,13 @@ const menuItems: MenuProps['items'] = [
   {
     key: '/settings',
     icon: <SettingOutlined />,
-    label: '系统设置',
+    label: '系统设置与管理',
     children: [
-      { key: '/settings/users', label: '用户管理' },
+      { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
+      { key: '/settings/templates', label: '模板管理', icon: <FormOutlined /> },
       { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
       { key: '/settings/backups', label: '备份管理', icon: <CloudServerOutlined /> },
-      { key: '/settings/customization', label: '客制化设置', icon: <SettingOutlined /> },
+      { key: '/settings/customization', label: '外观配置', icon: <SkinOutlined /> },
     ],
   },
 ];

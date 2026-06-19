@@ -55,7 +55,6 @@ export default function UserFormModal({
           password: values.password,
           nickname: values.nickname,
           role: values.role,
-          tags: values.tags,
         };
         const res = await createUser(payload);
         if (res.code === 0) {
@@ -124,10 +123,10 @@ export default function UserFormModal({
 
         <Form.Item
           name="nickname"
-          label="昵称"
-          rules={[{ required: true, message: '请输入昵称' }]}
+          label="姓名"
+          rules={[{ required: true, message: '请输入姓名' }]}
         >
-          <Input placeholder="请输入昵称" />
+          <Input placeholder="请输入姓名" />
         </Form.Item>
 
         <Form.Item
@@ -156,16 +155,18 @@ export default function UserFormModal({
           </Form.Item>
         )}
 
-        <Form.Item
-          name="tags"
-          label="标签"
-        >
-          <Select
-            mode="multiple"
-            placeholder="请选择标签"
-            options={TAG_OPTIONS}
-          />
-        </Form.Item>
+        {mode === 'edit' && (
+          <Form.Item
+            name="tags"
+            label="标签"
+          >
+            <Select
+              mode="multiple"
+              placeholder="请选择标签"
+              options={TAG_OPTIONS}
+            />
+          </Form.Item>
+        )}
       </Form>
     </Modal>
   );

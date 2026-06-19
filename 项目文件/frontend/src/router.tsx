@@ -66,7 +66,7 @@ export const router = createBrowserRouter([
             element: <LazyPage><RecordManagement defaultType="record" /></LazyPage>,
           },
           {
-            path: 'templates',
+            path: 'settings/templates',
             element: <LazyPage><TemplateManagement /></LazyPage>,
           },
           {

@@ -326,7 +326,7 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
-          记录管理
+          {defaultType === 'project' ? '项目管理' : '记录管理'}
         </Title>
         <div className={styles.filters ?? ''}>
           <Input

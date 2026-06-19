@@ -137,7 +137,7 @@ export default function UserManagement() {
       width: 140,
     },
     {
-      title: '昵称',
+      title: '姓名',
       dataIndex: 'nickname',
       key: 'nickname',
       width: 140,
@@ -215,7 +215,7 @@ export default function UserManagement() {
         </Title>
         <Space>
           <Input
-            placeholder="搜索用户名/昵称"
+            placeholder="搜索用户名/姓名"
             prefix={<SearchOutlined />}
             allowClear
             className={styles.searchInput ?? ''}

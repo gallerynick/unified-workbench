@@ -99,8 +99,8 @@ export default function Profile() {
         <Divider />
 
         <Form form={profileForm} layout="vertical">
-          <Form.Item label="昵称" name="nickname" rules={[{ required: true, message: '请输入昵称' }]}>
-            <Input placeholder="请输入昵称" />
+          <Form.Item label="姓名" name="nickname" rules={[{ required: true, message: '请输入姓名' }]}>
+            <Input placeholder="请输入姓名" />
           </Form.Item>
           <Form.Item label="头像 URL" name="avatar">
             <Input placeholder="https://example.com/avatar.png" />
