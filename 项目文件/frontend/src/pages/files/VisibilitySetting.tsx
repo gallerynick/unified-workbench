@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Radio, Select, Tag } from 'antd';
+import { Radio, Select } from 'antd';
 import type { RadioChangeEvent } from 'antd';
 import { getVisibilityOptions } from '../../utils/visibility';
 import type { Visibility } from '../../utils/visibility';
@@ -64,13 +64,6 @@ export default function VisibilitySetting({
     onRestrictedUsersChange?.(selectedUsers);
   };
 
-  const handleTagToggle = (tagId: string) => {
-    const newTags = restrictedTags.includes(tagId)
-      ? restrictedTags.filter((t) => t !== tagId)
-      : [...restrictedTags, tagId];
-    onRestrictedTagsChange?.(newTags);
-  };
-
   return (
     <div className={styles.container ?? ''}>
       <Radio.Group
@@ -121,20 +114,21 @@ export default function VisibilitySetting({
             />
           </div>
 
-          <div>
-            <p className={styles.sectionLabel ?? ''}>指定标签</p>
-            <div className={styles.tagGroup ?? ''}>
-              {tags.map((tag) => (
-                <Tag.CheckableTag
-                  key={tag.id}
-                  checked={restrictedTags.includes(tag.id)}
-                  onChange={() => handleTagToggle(tag.id)}
-                >
-                  {tag.name}
-                </Tag.CheckableTag>
-              ))}
+            <div>
+              <p className={styles.sectionLabel ?? ''}>指定标签</p>
+              <Select
+                className={styles.userSelect ?? ''}
+                mode="multiple"
+                placeholder="选择可访问的标签"
+                value={restrictedTags}
+                onChange={(v) => onRestrictedTagsChange?.(v)}
+                allowClear
+                options={tags.map((t) => ({
+                  value: t.id,
+                  label: t.name,
+                }))}
+              />
             </div>
-          </div>
         </div>
       )}
     </div>
