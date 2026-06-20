@@ -1,19 +1,10 @@
 import { Radio } from 'antd';
 import type { RadioChangeEvent } from 'antd';
+import { getVisibilityOptions } from '../../utils/visibility';
+import type { Visibility } from '../../utils/visibility';
 import styles from './VisibilitySetting.module.css';
 
-export type Visibility = 'public' | 'private';
-
-interface VisibilityOption {
-  value: Visibility;
-  label: string;
-  description?: string;
-}
-
-const DEFAULT_OPTIONS: VisibilityOption[] = [
-  { value: 'public', label: '公开', description: '所有人可见' },
-  { value: 'private', label: '私有', description: '仅自己可见' },
-];
+export type { Visibility };
 
 interface VisibilitySettingProps {
   value?: Visibility;
@@ -28,6 +19,8 @@ export default function VisibilitySetting({
   showDescription = false,
   layout = 'horizontal',
 }: VisibilitySettingProps) {
+  const options = getVisibilityOptions();
+
   const handleVisibilityChange = (e: RadioChangeEvent) => {
     onChange?.(e.target.value as Visibility);
   };
@@ -41,7 +34,7 @@ export default function VisibilitySetting({
       >
         {layout === 'vertical' ? (
           <div className={styles.visibilitySection ?? ''}>
-            {DEFAULT_OPTIONS.map((opt) => (
+            {options.map((opt) => (
               <Radio key={opt.value} value={opt.value}>
                 <div>
                   <div className={styles.visibilityOptionTitle ?? ''}>{opt.label}</div>
@@ -53,7 +46,7 @@ export default function VisibilitySetting({
             ))}
           </div>
         ) : (
-          DEFAULT_OPTIONS.map((opt) => (
+          options.map((opt) => (
             <Radio.Button key={opt.value} value={opt.value}>
               {opt.label}
             </Radio.Button>

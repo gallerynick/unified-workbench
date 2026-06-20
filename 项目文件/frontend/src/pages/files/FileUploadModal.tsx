@@ -4,6 +4,7 @@ import { InboxOutlined } from '@ant-design/icons';
 import type { UploadFile, RcFile } from 'antd/es/upload';
 import { uploadWithProgress } from '../../utils/request';
 import VisibilitySetting from './VisibilitySetting';
+import type { Visibility } from '../../utils/visibility';
 import type { Folder } from '../../types/file';
 import styles from './FileUploadModal.module.css';
 
@@ -49,7 +50,7 @@ export default function FileUploadModal({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(currentFolderId);
-  const [visibility, setVisibility] = useState<'public' | 'private'>('private');
+  const [visibility, setVisibility] = useState<Visibility>('private');
 
   const resetState = () => {
     setFileList([]);

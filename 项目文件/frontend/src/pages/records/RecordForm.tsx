@@ -20,6 +20,7 @@ import type { WorkRecord, RecordCreate, RecordUpdate } from '../../types/record'
 import type { TemplateField } from '../../types/template';
 import ContentEditor from '../content/ContentEditor';
 import VisibilitySetting from '../files/VisibilitySetting';
+import type { Visibility } from '../../utils/visibility';
 import styles from './RecordForm.module.css';
 
 interface RecordFormProps {
@@ -46,7 +47,7 @@ export default function RecordForm({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [richtextValues, setRichtextValues] = useState<Record<string, Record<string, unknown>>>({});
-  const [visibility, setVisibility] = useState<'public' | 'private'>('public');
+  const [visibility, setVisibility] = useState<Visibility>('public');
   const [fileLists, setFileLists] = useState<Record<string, UploadFile[]>>({});
 
   // 初始化表单数据
@@ -66,7 +67,7 @@ export default function RecordForm({
         });
         setRichtextValues(rtValues);
         // 初始化可见性
-        setVisibility((record.visibility as 'public' | 'private') || 'public');
+        setVisibility((record.visibility as Visibility) || 'public');
         // 初始化文件列表
         const fl: Record<string, UploadFile[]> = {};
         templateSnapshot.forEach((field) => {
