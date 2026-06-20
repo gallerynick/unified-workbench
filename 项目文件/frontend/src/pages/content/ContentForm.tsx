@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, message } from 'antd';
+import { useEffect, useState, useCallback } from 'react';
+import { Modal, Form, Input, Select, message, Button, Space } from 'antd';
 import { createContent, updateContent } from '../../api/contents';
 import type { Content, ContentCreateRequest, ContentUpdateRequest } from '../../types/content';
 import ContentEditor from './ContentEditor';
@@ -38,6 +38,39 @@ export default function ContentForm({
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
 
+  const DRAFT_KEY = 'content_draft';
+
+  const saveDraft = () => {
+    if (mode !== 'create') return;
+    const values = form.getFieldsValue();
+    const draft = {
+      title: values.title || '',
+      tags: values.tags || [],
+      visibility,
+      editorValue,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    message.success('草稿已保存');
+  };
+
+  const loadDraft = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(DRAFT_KEY);
+      if (!stored) return;
+      const draft = JSON.parse(stored);
+      if (draft.title) form.setFieldsValue({ title: draft.title });
+      if (draft.tags) form.setFieldsValue({ tags: draft.tags });
+      if (draft.visibility) setVisibility(draft.visibility);
+      if (draft.editorValue) setEditorValue(draft.editorValue);
+    } catch {
+    }
+  }, [form]);
+
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+  };
+
   useEffect(() => {
     if (visible) {
       if (mode === 'edit' && content) {
@@ -55,9 +88,10 @@ export default function ContentForm({
         setRestrictedUsers([]);
         setRestrictedTags([]);
         setEditorValue(null);
+        loadDraft();
       }
     }
-  }, [visible, mode, content, form]);
+  }, [visible, mode, content, form, loadDraft]);
 
   const handleSubmit = async () => {
     try {
@@ -84,6 +118,7 @@ export default function ContentForm({
         const res = await createContent(payload);
         if (res.code === 0) {
           message.success('内容创建成功');
+          clearDraft();
           onSuccess();
         } else {
           message.error(res.msg || '创建失败');
@@ -124,8 +159,21 @@ export default function ContentForm({
       onCancel={onClose}
       confirmLoading={submitting}
       destroyOnClose
-      width={800}
+      width={960}
       className={styles.modal ?? ''}
+      footer={(_defaultFooter, { OkBtn, CancelBtn }) => (
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div>
+            {mode === 'create' && (
+              <Button onClick={saveDraft}>存草稿</Button>
+            )}
+          </div>
+          <Space>
+            <CancelBtn />
+            <OkBtn />
+          </Space>
+        </div>
+      )}
     >
       <Form
         form={form}
@@ -150,7 +198,7 @@ export default function ContentForm({
             value={editorValue}
             onChange={setEditorValue}
             placeholder="请输入内容..."
-            minHeight={250}
+            minHeight={400}
           />
         </Form.Item>
 
