@@ -1,5 +1,6 @@
 """用户相关 Schema。"""
 
+import re
 import uuid
 from datetime import datetime
 
@@ -50,6 +51,21 @@ class UserCreateRequest(BaseModel):
     nickname: str
     role: str = "member"
     tags: list[uuid.UUID] = []
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        """验证用户名：只允许英文字母、数字、下划线、连字符，不允许中文。"""
+        if not v or not v.strip():
+            raise ValueError("用户名不能为空")
+        v = v.strip()
+        if len(v) < 3:
+            raise ValueError("用户名长度至少 3 个字符")
+        if len(v) > 50:
+            raise ValueError("用户名长度不能超过 50 个字符")
+        if not re.match(r'^[a-zA-Z0-9_-]+$', v):
+            raise ValueError("用户名只允许英文字母、数字、下划线(_)和连字符(-)，不允许中文或特殊字符")
+        return v
 
     @field_validator("password")
     @classmethod
