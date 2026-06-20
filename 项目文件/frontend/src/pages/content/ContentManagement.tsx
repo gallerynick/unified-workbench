@@ -269,14 +269,12 @@ export default function ContentManagement() {
             className={styles.searchInput ?? ''}
             onChange={(e) => handleSearch(e.target.value)}
           />
-          {drafts.length > 0 && (
-            <Button
-              icon={<FileTextOutlined />}
-              onClick={() => setDraftModalVisible(true)}
-            >
-              草稿箱 ({drafts.length})
-            </Button>
-          )}
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() => setDraftModalVisible(true)}
+          >
+            草稿箱{drafts.length > 0 ? ` (${drafts.length})` : ''}
+          </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建内容
           </Button>
