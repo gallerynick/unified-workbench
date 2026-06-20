@@ -174,8 +174,6 @@ export default function ContentForm({
             onChange={setVisibility}
             onRestrictedUsersChange={setRestrictedUsers}
             onRestrictedTagsChange={setRestrictedTags}
-            showDescription
-            layout="vertical"
           />
         </Form.Item>
       </Form>
