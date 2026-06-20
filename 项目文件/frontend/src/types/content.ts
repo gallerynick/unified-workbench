@@ -1,9 +1,11 @@
+import type { Visibility } from '../utils/visibility';
+
 export interface Content {
   id: string;
   title: string;
   body: Record<string, unknown>;
   owner_id: string;
-  visibility: 'public' | 'private';
+  visibility: Visibility;
   tags: string[] | null;
   created_at: string;
   updated_at: string;
@@ -12,7 +14,7 @@ export interface Content {
 export interface ContentCreateRequest {
   title: string;
   body: Record<string, unknown>;
-  visibility?: string;
+  visibility?: Visibility;
   tags?: string[];
   file_ids?: string[];
 }
@@ -20,7 +22,7 @@ export interface ContentCreateRequest {
 export interface ContentUpdateRequest {
   title?: string;
   body?: Record<string, unknown>;
-  visibility?: string;
+  visibility?: Visibility;
   tags?: string[];
   file_ids?: string[];
 }

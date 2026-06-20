@@ -1,3 +1,5 @@
+import type { Visibility } from '../utils/visibility';
+
 export interface FileRecord {
   id: string;
   name: string;
@@ -7,7 +9,7 @@ export interface FileRecord {
   mime_type: string;
   folder_id: string | null;
   owner_id: string;
-  visibility: 'public' | 'private';
+  visibility: Visibility;
   expires_at: string | null;
   created_at: string;
 }
@@ -17,7 +19,7 @@ export interface Folder {
   name: string;
   parent_id: string | null;
   owner_id: string;
-  visibility: 'public' | 'private';
+  visibility: Visibility;
   expires_at: string | null;
   unified_management: boolean;
   created_at: string;
