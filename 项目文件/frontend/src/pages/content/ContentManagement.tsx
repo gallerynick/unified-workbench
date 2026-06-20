@@ -15,6 +15,7 @@ import {
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listContents, deleteContent } from '../../api/contents';
@@ -37,6 +38,23 @@ export default function ContentManagement() {
   const [formVisible, setFormVisible] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editingContent, setEditingContent] = useState<Content | null>(null);
+  const [draftModalVisible, setDraftModalVisible] = useState(false);
+  const [draftCount, setDraftCount] = useState(0);
+
+  const DRAFT_KEY = 'content_draft';
+
+  const updateDraftCount = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(DRAFT_KEY);
+      setDraftCount(stored ? 1 : 0);
+    } catch {
+      setDraftCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    updateDraftCount();
+  }, [updateDraftCount]);
 
   const fetchContents = useCallback(async () => {
     setLoading(true);
@@ -233,6 +251,14 @@ export default function ContentManagement() {
             className={styles.searchInput ?? ''}
             onChange={(e) => handleSearch(e.target.value)}
           />
+          {draftCount > 0 && (
+            <Button
+              icon={<FileTextOutlined />}
+              onClick={() => setDraftModalVisible(true)}
+            >
+              草稿箱 ({draftCount})
+            </Button>
+          )}
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建内容
           </Button>
@@ -266,6 +292,34 @@ export default function ContentManagement() {
         onClose={handleFormClose}
         onSuccess={handleFormSuccess}
       />
+
+      <Modal
+        title="草稿箱"
+        open={draftModalVisible}
+        onCancel={() => setDraftModalVisible(false)}
+        footer={null}
+      >
+        <div style={{ padding: '16px 0' }}>
+          {draftCount > 0 ? (
+            <div>
+              <p>当前有 {draftCount} 篇草稿</p>
+              <Button
+                type="primary"
+                onClick={() => {
+                  setDraftModalVisible(false);
+                  setFormMode('create');
+                  setEditingContent(null);
+                  setFormVisible(true);
+                }}
+              >
+                继续编辑草稿
+              </Button>
+            </div>
+          ) : (
+            <p>暂无草稿</p>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

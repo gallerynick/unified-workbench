@@ -40,18 +40,31 @@ export default function ContentForm({
 
   const DRAFT_KEY = 'content_draft';
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
     if (mode !== 'create') return;
-    const values = form.getFieldsValue();
-    const draft = {
-      title: values.title || '',
-      tags: values.tags || [],
-      visibility,
-      editorValue,
-      timestamp: Date.now(),
-    };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-    message.success('草稿已保存');
+    try {
+      const values = await form.validateFields();
+
+      if (!editorValue || Object.keys(editorValue).length === 0) {
+        message.warning('请输入内容');
+        return;
+      }
+
+      const draft = {
+        title: values.title || '',
+        tags: values.tags || [],
+        visibility,
+        editorValue,
+        restrictedUsers,
+        restrictedTags,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      message.success('草稿已保存');
+      onClose();
+    } catch {
+      message.warning('请检查必填项');
+    }
   };
 
   const loadDraft = useCallback(() => {
@@ -67,9 +80,9 @@ export default function ContentForm({
     }
   }, [form]);
 
-  const clearDraft = () => {
+  const clearDraft = useCallback(() => {
     localStorage.removeItem(DRAFT_KEY);
-  };
+  }, []);
 
   useEffect(() => {
     if (visible) {
