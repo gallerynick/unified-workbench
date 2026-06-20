@@ -35,6 +35,8 @@ export default function ContentForm({
   const [submitting, setSubmitting] = useState(false);
   const [editorValue, setEditorValue] = useState<Record<string, unknown> | null>(null);
   const [visibility, setVisibility] = useState<Visibility>('public');
+  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
+  const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
 
   useEffect(() => {
     if (visible) {
@@ -44,10 +46,14 @@ export default function ContentForm({
           tags: content.tags || [],
         });
         setVisibility((content.visibility as Visibility) || 'public');
+        setRestrictedUsers(content.restricted_users || []);
+        setRestrictedTags(content.restricted_tags || []);
         setEditorValue(content.body);
       } else {
         form.resetFields();
         setVisibility('public');
+        setRestrictedUsers([]);
+        setRestrictedTags([]);
         setEditorValue(null);
       }
     }
@@ -71,6 +77,10 @@ export default function ContentForm({
           visibility,
           tags: values.tags,
         };
+        if (visibility === 'restricted') {
+          if (restrictedUsers.length > 0) payload.restricted_users = restrictedUsers;
+          if (restrictedTags.length > 0) payload.restricted_tags = restrictedTags;
+        }
         const res = await createContent(payload);
         if (res.code === 0) {
           message.success('内容创建成功');
@@ -85,6 +95,10 @@ export default function ContentForm({
           visibility,
           tags: values.tags,
         };
+        if (visibility === 'restricted') {
+          if (restrictedUsers.length > 0) payload.restricted_users = restrictedUsers;
+          if (restrictedTags.length > 0) payload.restricted_tags = restrictedTags;
+        }
         const res = await updateContent(content.id, payload);
         if (res.code === 0) {
           message.success('内容更新成功');
@@ -155,7 +169,11 @@ export default function ContentForm({
         <Form.Item label="可见性">
           <VisibilitySetting
             value={visibility}
+            restrictedUsers={restrictedUsers}
+            restrictedTags={restrictedTags}
             onChange={setVisibility}
+            onRestrictedUsersChange={setRestrictedUsers}
+            onRestrictedTagsChange={setRestrictedTags}
             showDescription
             layout="vertical"
           />

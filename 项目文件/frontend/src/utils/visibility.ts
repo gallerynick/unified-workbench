@@ -1,6 +1,6 @@
 import type { TagProps } from 'antd';
 
-export type Visibility = 'public' | 'private';
+export type Visibility = 'public' | 'private' | 'restricted';
 
 export interface VisibilityConfig {
   color: NonNullable<TagProps['color']>;
@@ -11,6 +11,7 @@ export interface VisibilityConfig {
 export const VISIBILITY_MAP: Record<Visibility, VisibilityConfig> = {
   public: { color: 'success', text: '公开', description: '所有人可见' },
   private: { color: 'default', text: '私有', description: '仅自己可见' },
+  restricted: { color: 'warning', text: '受限', description: '指定用户可见' },
 };
 
 const DEFAULT_CONFIG: VisibilityConfig = { color: 'default', text: '未知', description: '' };

@@ -158,10 +158,19 @@ export default function ContentManagement() {
       title: '可见性',
       dataIndex: 'visibility',
       key: 'visibility',
-      width: 100,
-      render: (visibility: Content['visibility']) => {
-        const cfg = getVisibilityConfig(visibility);
-        return <Tag color={cfg.color}>{cfg.text}</Tag>;
+      width: 120,
+      render: (_: unknown, record: Content) => {
+        const cfg = getVisibilityConfig(record.visibility);
+        return (
+          <Space direction="vertical" size={2}>
+            <Tag color={cfg.color}>{cfg.text}</Tag>
+            {record.visibility === 'restricted' && record.restricted_users && record.restricted_users.length > 0 && (
+              <span style={{ fontSize: 11, color: '#999' }}>
+                {record.restricted_users.length} 个用户
+              </span>
+            )}
+          </Space>
+        );
       },
     },
     {

@@ -10,6 +10,8 @@ export interface FileRecord {
   folder_id: string | null;
   owner_id: string;
   visibility: Visibility;
+  restricted_users: string[] | null;
+  restricted_tags: string[] | null;
   expires_at: string | null;
   created_at: string;
 }
@@ -20,6 +22,8 @@ export interface Folder {
   parent_id: string | null;
   owner_id: string;
   visibility: Visibility;
+  restricted_users: string[] | null;
+  restricted_tags: string[] | null;
   expires_at: string | null;
   unified_management: boolean;
   created_at: string;

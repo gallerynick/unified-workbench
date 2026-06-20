@@ -222,10 +222,19 @@ export default function FileManagement() {
       title: '可见性',
       dataIndex: 'visibility',
       key: 'visibility',
-      width: 100,
-      render: (visibility: FileRecord['visibility']) => {
-        const cfg = getVisibilityConfig(visibility);
-        return <Tag color={cfg.color}>{cfg.text}</Tag>;
+      width: 120,
+      render: (_: unknown, record: FileRecord) => {
+        const cfg = getVisibilityConfig(record.visibility);
+        return (
+          <Space direction="vertical" size={2}>
+            <Tag color={cfg.color}>{cfg.text}</Tag>
+            {record.visibility === 'restricted' && record.restricted_users && record.restricted_users.length > 0 && (
+              <span style={{ fontSize: 11, color: '#999' }}>
+                {record.restricted_users.length} 个用户
+              </span>
+            )}
+          </Space>
+        );
       },
     },
     {

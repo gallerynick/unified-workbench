@@ -267,10 +267,19 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
       title: '可见性',
       dataIndex: 'visibility',
       key: 'visibility',
-      width: 80,
-      render: (visibility: string) => {
-        const cfg = getVisibilityConfig(visibility);
-        return <Tag color={cfg.color}>{cfg.text}</Tag>;
+      width: 120,
+      render: (_: unknown, record: WorkRecord) => {
+        const cfg = getVisibilityConfig(record.visibility);
+        return (
+          <Space direction="vertical" size={2}>
+            <Tag color={cfg.color}>{cfg.text}</Tag>
+            {record.visibility === 'restricted' && record.restricted_users && record.restricted_users.length > 0 && (
+              <span style={{ fontSize: 11, color: '#999' }}>
+                {record.restricted_users.length} 个用户
+              </span>
+            )}
+          </Space>
+        );
       },
     },
     {
