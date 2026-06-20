@@ -15,7 +15,6 @@ import {
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
-  EyeOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listContents, deleteContent } from '../../api/contents';
@@ -162,12 +161,7 @@ export default function ContentManagement() {
       width: 100,
       render: (visibility: Content['visibility']) => {
         const cfg = getVisibilityConfig(visibility);
-        return (
-          <Space size={4}>
-            <EyeOutlined className={styles.visibilityPublic ?? ''} />
-            <Tag color={cfg.color}>{cfg.text}</Tag>
-          </Space>
-        );
+        return <Tag color={cfg.color}>{cfg.text}</Tag>;
       },
     },
     {
