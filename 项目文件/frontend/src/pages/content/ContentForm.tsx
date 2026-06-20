@@ -11,6 +11,7 @@ interface ContentFormProps {
   visible: boolean;
   mode: 'create' | 'edit';
   content: Content | null;
+  draftId?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -24,10 +25,33 @@ const TAG_OPTIONS = [
   { value: 'spec', label: '规格' },
 ];
 
+interface Draft {
+  id: string;
+  title: string;
+  tags: string[];
+  visibility: Visibility;
+  editorValue: Record<string, unknown> | null;
+  restrictedUsers: string[];
+  restrictedTags: string[];
+  timestamp: number;
+}
+
+const DRAFT_KEY = 'content_drafts';
+
+const getDrafts = (): Draft[] => {
+  try {
+    const stored = localStorage.getItem(DRAFT_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
 export default function ContentForm({
   visible,
   mode,
   content,
+  draftId,
   onClose,
   onSuccess,
 }: ContentFormProps) {
@@ -37,8 +61,6 @@ export default function ContentForm({
   const [visibility, setVisibility] = useState<Visibility>('public');
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
-
-  const DRAFT_KEY = 'content_draft';
 
   const saveDraft = async () => {
     if (mode !== 'create') return;
@@ -50,8 +72,9 @@ export default function ContentForm({
         return;
       }
 
-      const draft = {
-        title: values.title || '',
+      const draft: Draft = {
+        id: Date.now().toString(),
+        title: values.title || '无标题草稿',
         tags: values.tags || [],
         visibility,
         editorValue,
@@ -59,7 +82,9 @@ export default function ContentForm({
         restrictedTags,
         timestamp: Date.now(),
       };
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      const drafts = getDrafts();
+      drafts.unshift(draft);
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
       message.success('草稿已保存');
       onClose();
     } catch {
@@ -67,12 +92,12 @@ export default function ContentForm({
     }
   };
 
-  const loadDraft = useCallback(() => {
+  const loadDraftById = useCallback((draftId: string) => {
     try {
-      const stored = localStorage.getItem(DRAFT_KEY);
-      if (!stored) return;
-      const draft = JSON.parse(stored);
-      if (draft.title) form.setFieldsValue({ title: draft.title });
+      const drafts = getDrafts();
+      const draft = drafts.find((d) => d.id === draftId);
+      if (!draft) return;
+      form.setFieldsValue({ title: draft.title });
       if (draft.tags) form.setFieldsValue({ tags: draft.tags });
       if (draft.visibility) setVisibility(draft.visibility);
       if (draft.restrictedUsers) setRestrictedUsers(draft.restrictedUsers);
@@ -81,10 +106,6 @@ export default function ContentForm({
     } catch {
     }
   }, [form]);
-
-  const clearDraft = useCallback(() => {
-    localStorage.removeItem(DRAFT_KEY);
-  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -97,16 +118,17 @@ export default function ContentForm({
         setRestrictedUsers(content.restricted_users || []);
         setRestrictedTags(content.restricted_tags || []);
         setEditorValue(content.body);
+      } else if (draftId) {
+        loadDraftById(draftId);
       } else {
         form.resetFields();
         setVisibility('public');
         setRestrictedUsers([]);
         setRestrictedTags([]);
         setEditorValue(null);
-        loadDraft();
       }
     }
-  }, [visible, mode, content, form, loadDraft]);
+  }, [visible, mode, content, draftId, form, loadDraftById]);
 
   const handleSubmit = async () => {
     try {
@@ -133,7 +155,6 @@ export default function ContentForm({
         const res = await createContent(payload);
         if (res.code === 0) {
           message.success('内容创建成功');
-          clearDraft();
           onSuccess();
         } else {
           message.error(res.msg || '创建失败');
