@@ -33,6 +33,7 @@ const FormManagement = lazy(() => import('@/pages/forms/FormManagement'));
 const MemberDirectory = lazy(() => import('@/pages/members/MemberDirectory'));
 const AnnouncementManagement = lazy(() => import('@/pages/announcements/AnnouncementManagement'));
 const NoteManagement = lazy(() => import('@/pages/notes/NoteManagement'));
+const TagManagement = lazy(() => import('@/pages/settings/TagManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
 
@@ -167,6 +168,10 @@ export const router = createBrowserRouter([
           {
             path: 'settings/sidebar',
             element: <LazyPage><SidebarManagement /></LazyPage>,
+          },
+          {
+            path: 'settings/tags',
+            element: <LazyPage><TagManagement /></LazyPage>,
           },
           {
             path: 'settings/devices',

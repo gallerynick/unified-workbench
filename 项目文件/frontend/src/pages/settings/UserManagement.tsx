@@ -10,14 +10,10 @@ import {
   message,
   Space,
 } from 'antd';
-import {
-  PlusOutlined,
-  SearchOutlined,
-  EditOutlined,
-  StopOutlined,
-} from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listUsers, disableUser } from '../../api/users';
+import { useTagContext } from '../../contexts/TagContext';
 import type { User } from '../../types/user';
 import UserFormModal from './UserFormModal';
 import styles from './UserManagement.module.css';
@@ -34,14 +30,6 @@ const STATUS_BADGE_MAP: Record<User['status'], { status: 'success' | 'error'; te
   disabled: { status: 'error', text: '禁用' },
 };
 
-// 预设标签颜色映射（与 UserFormModal 保持一致）
-const TAG_COLOR_MAP: Record<string, string> = {
-  'tag-1': 'blue',
-  'tag-2': 'purple',
-  'tag-3': 'green',
-  'tag-4': 'gold',
-};
-
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
@@ -49,6 +37,7 @@ export default function UserManagement() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const { getTagById } = useTagContext();
 
   // 弹窗状态
   const [modalVisible, setModalVisible] = useState(false);
@@ -169,11 +158,14 @@ export default function UserManagement() {
       width: 200,
       render: (tags: User['tags']) => (
         <Space size={[0, 4]} wrap>
-          {tags.map((tag) => (
-            <Tag key={tag.id} color={tag.color ?? TAG_COLOR_MAP[tag.id] ?? 'default'}>
-              {tag.name}
-            </Tag>
-          ))}
+          {tags.map((tag) => {
+            const dynamicTag = getTagById(tag.id);
+            return (
+              <Tag key={tag.id} color={tag.color ?? dynamicTag?.color ?? 'default'}>
+                {tag.name ?? dynamicTag?.name ?? '未知标签'}
+              </Tag>
+            );
+          })}
         </Space>
       ),
     },

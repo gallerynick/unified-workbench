@@ -19,6 +19,7 @@ from app.api.reminders import router as reminders_router
 from app.api.secret_categories import router as secret_categories_router
 from app.api.secrets import router as secrets_router
 from app.api.system_config import router as system_config_router
+from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
 from app.api.templates import router as templates_router
 from app.api.users import router as users_router
@@ -47,3 +48,4 @@ api_router.include_router(votes_router, prefix="/votes", tags=["投票"])
 api_router.include_router(forms_router, prefix="/forms", tags=["表单"])
 api_router.include_router(announcements_router, prefix="/announcements", tags=["公告"])
 api_router.include_router(notes_router, prefix="/notes", tags=["笔记"])
+api_router.include_router(tags_router, prefix="/tags", tags=["标签管理"])

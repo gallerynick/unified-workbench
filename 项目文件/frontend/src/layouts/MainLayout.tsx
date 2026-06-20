@@ -30,6 +30,7 @@ import {
   LikeOutlined,
   SoundOutlined,
   BookOutlined,
+  TagOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -37,6 +38,7 @@ import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
 import { clearTokens, isAdmin } from '../utils/auth';
 import { getVisibleSidebarItems } from '../pages/settings/SidebarManagement';
+import { TagProvider } from '../contexts/TagContext';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
 
@@ -84,7 +86,8 @@ function getMenuItems(): MenuProps['items'] {
         icon: <SettingOutlined />,
         label: '系统设置与管理',
         children: [
-          { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
+            { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
+            { key: '/settings/tags', label: '标签管理', icon: <TagOutlined /> },
           { key: '/settings/templates', label: '模板管理', icon: <FormOutlined /> },
           { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
           { key: '/settings/sidebar', label: '侧边栏管理', icon: <LayoutOutlined /> },
@@ -125,8 +128,9 @@ export default function MainLayout() {
   const customization = useCustomization();
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      {!isMobile && (
+    <TagProvider>
+      <Layout style={{ minHeight: '100vh' }}>
+        {!isMobile && (
         <Sider
           collapsible
           collapsed={collapsed}
@@ -302,6 +306,7 @@ export default function MainLayout() {
           onMarkAllAsRead={markAllAsRead}
         />
       </Layout>
-    </Layout>
+      </Layout>
+    </TagProvider>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Modal, Form, Input, Select, message } from 'antd';
 import { createUser, updateUser } from '../../api/users';
+import { useTagContext } from '../../contexts/TagContext';
 import type { User, UserCreateRequest, UserUpdateRequest } from '../../types/user';
 import styles from './UserFormModal.module.css';
 
@@ -12,14 +13,6 @@ interface UserFormModalProps {
   onSuccess: () => void;
 }
 
-// 预设标签选项（后续可从 API 获取）
-const TAG_OPTIONS = [
-  { value: 'tag-1', label: '开发', color: 'blue' },
-  { value: 'tag-2', label: '设计', color: 'purple' },
-  { value: 'tag-3', label: '运营', color: 'green' },
-  { value: 'tag-4', label: '管理', color: 'gold' },
-];
-
 export default function UserFormModal({
   visible,
   mode,
@@ -28,6 +21,7 @@ export default function UserFormModal({
   onSuccess,
 }: UserFormModalProps) {
   const [form] = Form.useForm();
+  const { tags } = useTagContext();
 
   useEffect(() => {
     if (visible) {
@@ -163,7 +157,7 @@ export default function UserFormModal({
             <Select
               mode="multiple"
               placeholder="请选择标签"
-              options={TAG_OPTIONS}
+              options={tags.map((t) => ({ value: t.id, label: t.name }))}
             />
           </Form.Item>
         )}

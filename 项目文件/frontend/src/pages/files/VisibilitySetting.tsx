@@ -4,6 +4,7 @@ import type { RadioChangeEvent } from 'antd';
 import { getVisibilityOptions } from '../../utils/visibility';
 import type { Visibility } from '../../utils/visibility';
 import { listUsers } from '../../api/users';
+import { useTagContext } from '../../contexts/TagContext';
 import type { User } from '../../types/user';
 import styles from './VisibilitySetting.module.css';
 
@@ -20,13 +21,6 @@ interface VisibilitySettingProps {
   layout?: 'horizontal' | 'vertical';
 }
 
-const PRESET_TAGS = [
-  { id: 'tag-1', name: '标签一', color: 'blue' },
-  { id: 'tag-2', name: '标签二', color: 'purple' },
-  { id: 'tag-3', name: '标签三', color: 'green' },
-  { id: 'tag-4', name: '标签四', color: 'gold' },
-];
-
 export default function VisibilitySetting({
   value = 'public',
   restrictedUsers = [],
@@ -38,6 +32,7 @@ export default function VisibilitySetting({
   layout = 'horizontal',
 }: VisibilitySettingProps) {
   const options = getVisibilityOptions();
+  const { tags } = useTagContext();
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
@@ -129,7 +124,7 @@ export default function VisibilitySetting({
           <div>
             <p className={styles.sectionLabel ?? ''}>指定标签</p>
             <div className={styles.tagGroup ?? ''}>
-              {PRESET_TAGS.map((tag) => (
+              {tags.map((tag) => (
                 <Tag.CheckableTag
                   key={tag.id}
                   checked={restrictedTags.includes(tag.id)}
