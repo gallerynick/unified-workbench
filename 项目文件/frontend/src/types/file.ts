@@ -7,9 +7,7 @@ export interface FileRecord {
   mime_type: string;
   folder_id: string | null;
   owner_id: string;
-  visibility: 'public' | 'private' | 'restricted';
-  restricted_users: string[] | null;
-  restricted_tags: string[] | null;
+  visibility: 'public' | 'private';
   expires_at: string | null;
   created_at: string;
 }
@@ -19,9 +17,7 @@ export interface Folder {
   name: string;
   parent_id: string | null;
   owner_id: string;
-  visibility: 'public' | 'private' | 'restricted';
-  restricted_users: string[] | null;
-  restricted_tags: string[] | null;
+  visibility: 'public' | 'private';
   expires_at: string | null;
   unified_management: boolean;
   created_at: string;

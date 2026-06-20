@@ -15,6 +15,7 @@ const AuditLog = lazy(() => import('@/pages/audit/AuditLog'));
 const TemplateManagement = lazy(() => import('@/pages/templates/TemplateManagement'));
 const RecordManagement = lazy(() => import('@/pages/records/RecordManagement'));
 const SecretManagement = lazy(() => import('@/pages/secrets/SecretManagement'));
+const SecretCategoryPage = lazy(() => import('@/pages/secrets/SecretCategoryPage'));
 const ReminderManagement = lazy(() => import('@/pages/reminders/ReminderManagement'));
 const NotificationConfig = lazy(() => import('@/pages/settings/NotificationConfig'));
 const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'));
@@ -130,6 +131,10 @@ export const router = createBrowserRouter([
           {
             path: 'secrets',
             element: <LazyPage><SecretManagement /></LazyPage>,
+          },
+          {
+            path: 'secrets/category/:categoryId',
+            element: <LazyPage><SecretCategoryPage /></LazyPage>,
           },
           {
             path: 'audit',

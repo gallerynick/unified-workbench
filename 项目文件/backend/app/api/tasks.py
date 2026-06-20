@@ -15,7 +15,7 @@ from app.services.task import create_task, delete_task, get_task, list_tasks, up
 router = APIRouter()
 
 
-@router.get("", response_model=UnifiedResponse[TaskListResponse])
+@router.get("/", response_model=UnifiedResponse[TaskListResponse])
 async def list_tasks_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -33,7 +33,7 @@ async def list_tasks_endpoint(
     )
 
 
-@router.post("", response_model=UnifiedResponse[TaskResponse])
+@router.post("/", response_model=UnifiedResponse[TaskResponse])
 async def create_task_endpoint(
     request: TaskCreate,
     current_user: User = Depends(get_current_user),

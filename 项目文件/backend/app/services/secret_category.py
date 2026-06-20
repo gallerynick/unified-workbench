@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.secret import Secret
 from app.models.secret_category import SecretCategory
 from app.schemas.secret_category import (
     SecretCategoryCreateRequest,
@@ -86,6 +87,12 @@ async def delete_category(
     category = await get_category(db, category_id, owner_id)
     if not category:
         return False
+    # 先将该分类下的密钥的 category_id 设为 NULL
+    await db.execute(
+        update(Secret)
+        .where(Secret.category_id == category_id)
+        .values(category_id=None)
+    )
     await db.delete(category)
     await db.flush()
     return True

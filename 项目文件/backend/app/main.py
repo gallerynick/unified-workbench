@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.APP_NAME,
+        # redirect_slashes=False removed — FastAPI default handles /path ↔ /path/
         version="0.1.0",
         docs_url="/api/v1/docs",
         openapi_url="/api/v1/openapi.json",

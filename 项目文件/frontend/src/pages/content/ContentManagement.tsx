@@ -28,7 +28,6 @@ const { Title } = Typography;
 const VISIBILITY_MAP: Record<Content['visibility'], { color: string; text: string; className: string }> = {
   public: { color: 'success', text: '公开', className: styles.visibilityPublic ?? '' },
   private: { color: 'error', text: '私有', className: styles.visibilityPrivate ?? '' },
-  restricted: { color: 'warning', text: '受限', className: styles.visibilityRestricted ?? '' },
 };
 
 export default function ContentManagement() {

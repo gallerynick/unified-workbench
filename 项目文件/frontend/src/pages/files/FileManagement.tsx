@@ -37,7 +37,6 @@ const { Title } = Typography;
 const VISIBILITY_MAP: Record<FileRecord['visibility'], { color: string; text: string }> = {
   public: { color: 'green', text: '公开' },
   private: { color: 'default', text: '私有' },
-  restricted: { color: 'orange', text: '指定用户' },
 };
 
 // 根据 MIME 类型获取图标

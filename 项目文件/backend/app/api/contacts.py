@@ -15,7 +15,7 @@ from app.services.contact import create_contact, delete_contact, get_contact, li
 router = APIRouter()
 
 
-@router.get("", response_model=UnifiedResponse[ContactListResponse])
+@router.get("/", response_model=UnifiedResponse[ContactListResponse])
 async def list_contacts_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -33,7 +33,7 @@ async def list_contacts_endpoint(
     )
 
 
-@router.post("", response_model=UnifiedResponse[ContactResponse])
+@router.post("/", response_model=UnifiedResponse[ContactResponse])
 async def create_contact_endpoint(
     request: ContactCreate,
     current_user: User = Depends(get_current_user),

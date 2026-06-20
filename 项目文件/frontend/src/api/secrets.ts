@@ -18,7 +18,7 @@ export async function listSecrets(params?: {
   if (params?.search) searchParams.set('search', params.search);
 
   const query = searchParams.toString();
-  return request<SecretListResponse>(`/secrets${query ? `?${query}` : ''}`);
+  return request<SecretListResponse>(`/secrets/${query ? `?${query}` : ''}`);
 }
 
 export async function getSecret(id: string): Promise<UnifiedResponse<Secret>> {
@@ -26,7 +26,7 @@ export async function getSecret(id: string): Promise<UnifiedResponse<Secret>> {
 }
 
 export async function createSecret(data: SecretCreate): Promise<UnifiedResponse<Secret>> {
-  return request<Secret>('/secrets', {
+  return request<Secret>('/secrets/', {
     method: 'POST',
     body: data,
   });

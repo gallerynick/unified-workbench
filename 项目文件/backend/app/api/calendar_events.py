@@ -15,7 +15,7 @@ from app.services.calendar_event import create_event, delete_event, get_event, l
 router = APIRouter()
 
 
-@router.get("", response_model=UnifiedResponse[CalendarEventListResponse])
+@router.get("/", response_model=UnifiedResponse[CalendarEventListResponse])
 async def list_events_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
@@ -33,7 +33,7 @@ async def list_events_endpoint(
     )
 
 
-@router.post("", response_model=UnifiedResponse[CalendarEventResponse])
+@router.post("/", response_model=UnifiedResponse[CalendarEventResponse])
 async def create_event_endpoint(
     request: CalendarEventCreate,
     current_user: User = Depends(get_current_user),

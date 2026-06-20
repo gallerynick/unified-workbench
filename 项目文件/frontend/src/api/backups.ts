@@ -3,11 +3,11 @@ import type { BackupInfo, BackupListResponse } from '../types/backup';
 import type { UnifiedResponse } from '../types/user';
 
 export async function createBackup(): Promise<UnifiedResponse<BackupInfo>> {
-  return request('/backups', { method: 'POST' });
+  return request('/backups/', { method: 'POST' });
 }
 
 export async function listBackups(): Promise<UnifiedResponse<BackupListResponse>> {
-  return request('/backups');
+  return request('/backups/');
 }
 
 export async function deleteBackup(filename: string): Promise<UnifiedResponse<null>> {

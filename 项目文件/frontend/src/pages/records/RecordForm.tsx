@@ -46,9 +46,7 @@ export default function RecordForm({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [richtextValues, setRichtextValues] = useState<Record<string, Record<string, unknown>>>({});
-  const [visibility, setVisibility] = useState<'public' | 'private' | 'restricted'>('public');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
-  const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
+  const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [fileLists, setFileLists] = useState<Record<string, UploadFile[]>>({});
 
   // 初始化表单数据
@@ -68,9 +66,7 @@ export default function RecordForm({
         });
         setRichtextValues(rtValues);
         // 初始化可见性
-        setVisibility((record.visibility as 'public' | 'private' | 'restricted') || 'public');
-        setRestrictedUsers(record.restricted_users || []);
-        setRestrictedTags(record.restricted_tags || []);
+        setVisibility((record.visibility as 'public' | 'private') || 'public');
         // 初始化文件列表
         const fl: Record<string, UploadFile[]> = {};
         templateSnapshot.forEach((field) => {
@@ -94,8 +90,6 @@ export default function RecordForm({
         form.resetFields();
         setRichtextValues({});
         setVisibility('public');
-        setRestrictedUsers([]);
-        setRestrictedTags([]);
         setFileLists({});
       }
     }
@@ -152,10 +146,6 @@ export default function RecordForm({
           type: recordType,
           visibility,
         };
-        if (visibility === 'restricted') {
-          if (restrictedUsers.length > 0) payload.restricted_users = restrictedUsers;
-          if (restrictedTags.length > 0) payload.restricted_tags = restrictedTags;
-        }
         const res = await createRecord(payload);
         if (res.code === 0) {
           message.success('记录创建成功');
@@ -169,10 +159,6 @@ export default function RecordForm({
           data,
           visibility,
         };
-        if (visibility === 'restricted') {
-          if (restrictedUsers.length > 0) payload.restricted_users = restrictedUsers;
-          if (restrictedTags.length > 0) payload.restricted_tags = restrictedTags;
-        }
         const res = await updateRecord(record.id, payload);
         if (res.code === 0) {
           message.success('记录更新成功');
@@ -350,11 +336,7 @@ export default function RecordForm({
         <div className={styles.visibilitySection ?? ''}>
           <VisibilitySetting
             value={visibility}
-            restrictedUsers={restrictedUsers}
-            restrictedTags={restrictedTags}
             onChange={setVisibility}
-            onRestrictedUsersChange={setRestrictedUsers}
-            onRestrictedTagsChange={setRestrictedTags}
           />
         </div>
       </Form>

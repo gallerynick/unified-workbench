@@ -49,9 +49,7 @@ export default function FileUploadModal({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(currentFolderId);
-  const [visibility, setVisibility] = useState<'public' | 'private' | 'restricted'>('private');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
-  const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
+  const [visibility, setVisibility] = useState<'public' | 'private'>('private');
 
   const resetState = () => {
     setFileList([]);
@@ -59,8 +57,6 @@ export default function FileUploadModal({
     setProgress(0);
     setSelectedFolderId(currentFolderId);
     setVisibility('private');
-    setRestrictedUsers([]);
-    setRestrictedTags([]);
   };
 
   const handleClose = () => {
@@ -99,15 +95,6 @@ export default function FileUploadModal({
 
       if (selectedFolderId) {
         extraData.folder_id = selectedFolderId;
-      }
-
-      if (visibility === 'restricted') {
-        if (restrictedUsers.length > 0) {
-          extraData.restricted_users = restrictedUsers.join(",");
-        }
-        if (restrictedTags.length > 0) {
-          extraData.restricted_tags = restrictedTags.join(",");
-        }
       }
 
       const res = await uploadWithProgress(
@@ -202,11 +189,7 @@ export default function FileUploadModal({
           <p className={styles.sectionLabel ?? ''}>可见性设置</p>
           <VisibilitySetting
             value={visibility}
-            restrictedUsers={restrictedUsers}
-            restrictedTags={restrictedTags}
             onChange={setVisibility}
-            onRestrictedUsersChange={setRestrictedUsers}
-            onRestrictedTagsChange={setRestrictedTags}
           />
         </div>
       </div>

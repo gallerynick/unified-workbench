@@ -7,11 +7,11 @@ export async function listAnnouncements(params?: { page?: number; page_size?: nu
   if (params?.page) searchParams.set('page', String(params.page));
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
   const query = searchParams.toString();
-  return request<AnnouncementListResponse>(`/announcements${query ? `?${query}` : ''}`);
+  return request<AnnouncementListResponse>(`/announcements/${query ? `?${query}` : ''}`);
 }
 
 export async function createAnnouncement(data: AnnouncementCreate): Promise<UnifiedResponse<Announcement>> {
-  return request<Announcement>('/announcements', { method: 'POST', body: data });
+  return request<Announcement>('/announcements/', { method: 'POST', body: data });
 }
 
 export async function updateAnnouncement(id: string, data: AnnouncementUpdate): Promise<UnifiedResponse<Announcement>> {

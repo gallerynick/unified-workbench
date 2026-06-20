@@ -7,11 +7,11 @@ export async function listVotes(params?: { page?: number; page_size?: number }):
   if (params?.page) searchParams.set('page', String(params.page));
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
   const query = searchParams.toString();
-  return request<VoteListResponse>(`/votes${query ? `?${query}` : ''}`);
+  return request<VoteListResponse>(`/votes/${query ? `?${query}` : ''}`);
 }
 
 export async function createVote(data: VoteCreate): Promise<UnifiedResponse<Vote>> {
-  return request<Vote>('/votes', { method: 'POST', body: data });
+  return request<Vote>('/votes/', { method: 'POST', body: data });
 }
 
 export async function deleteVote(id: string): Promise<UnifiedResponse<null>> {

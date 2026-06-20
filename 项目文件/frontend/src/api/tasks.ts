@@ -14,7 +14,7 @@ export async function listTasks(params?: {
   if (params?.status) searchParams.set('status', params.status);
   if (params?.priority) searchParams.set('priority', params.priority);
   const query = searchParams.toString();
-  return request<TaskListResponse>(`/tasks${query ? `?${query}` : ''}`);
+  return request<TaskListResponse>(`/tasks/${query ? `?${query}` : ''}`);
 }
 
 export async function getTask(id: string): Promise<UnifiedResponse<Task>> {
@@ -22,7 +22,7 @@ export async function getTask(id: string): Promise<UnifiedResponse<Task>> {
 }
 
 export async function createTask(data: TaskCreate): Promise<UnifiedResponse<Task>> {
-  return request<Task>('/tasks', { method: 'POST', body: data });
+  return request<Task>('/tasks/', { method: 'POST', body: data });
 }
 
 export async function updateTask(id: string, data: TaskUpdate): Promise<UnifiedResponse<Task>> {

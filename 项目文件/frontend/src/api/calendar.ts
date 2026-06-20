@@ -14,7 +14,7 @@ export async function listCalendarEvents(params?: {
   if (params?.start_date) searchParams.set('start_date', params.start_date);
   if (params?.end_date) searchParams.set('end_date', params.end_date);
   const query = searchParams.toString();
-  return request<CalendarEventListResponse>(`/calendar${query ? `?${query}` : ''}`);
+  return request<CalendarEventListResponse>(`/calendar/${query ? `?${query}` : ''}`);
 }
 
 export async function getCalendarEvent(id: string): Promise<UnifiedResponse<CalendarEvent>> {
@@ -22,7 +22,7 @@ export async function getCalendarEvent(id: string): Promise<UnifiedResponse<Cale
 }
 
 export async function createCalendarEvent(data: CalendarEventCreate): Promise<UnifiedResponse<CalendarEvent>> {
-  return request<CalendarEvent>('/calendar', { method: 'POST', body: data });
+  return request<CalendarEvent>('/calendar/', { method: 'POST', body: data });
 }
 
 export async function updateCalendarEvent(id: string, data: CalendarEventUpdate): Promise<UnifiedResponse<CalendarEvent>> {

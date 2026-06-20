@@ -17,5 +17,5 @@ export async function listAuditLogs(params?: {
   if (params?.end_date) searchParams.set('end_date', params.end_date);
 
   const query = searchParams.toString();
-  return request<AuditLogListResponse>(`/audit-logs${query ? `?${query}` : ''}`);
+  return request<AuditLogListResponse>(`/audit-logs/${query ? `?${query}` : ''}`);
 }

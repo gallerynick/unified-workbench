@@ -18,7 +18,7 @@ from app.services.backup import create_backup, delete_backup, list_backups, rest
 router = APIRouter()
 
 
-@router.post("", response_model=UnifiedResponse[BackupInfo])
+@router.post("/", response_model=UnifiedResponse[BackupInfo])
 async def create_backup_endpoint(
     current_user=Depends(require_role(UserRole.ADMIN)),
     db: AsyncSession = Depends(get_db),
@@ -33,7 +33,7 @@ async def create_backup_endpoint(
     ))
 
 
-@router.get("", response_model=UnifiedResponse[BackupListResponse])
+@router.get("/", response_model=UnifiedResponse[BackupListResponse])
 async def list_backups_endpoint(
     current_user=Depends(require_role(UserRole.ADMIN)),
 ):

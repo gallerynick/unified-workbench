@@ -20,7 +20,7 @@ export async function listTemplates(params?: {
   if (params?.search) searchParams.set('search', params.search);
 
   const query = searchParams.toString();
-  return request<TemplateListResponse>(`/templates${query ? `?${query}` : ''}`);
+  return request<TemplateListResponse>(`/templates/${query ? `?${query}` : ''}`);
 }
 
 export async function getTemplate(id: string): Promise<UnifiedResponse<Template>> {
@@ -28,7 +28,7 @@ export async function getTemplate(id: string): Promise<UnifiedResponse<Template>
 }
 
 export async function createTemplate(data: TemplateCreate): Promise<UnifiedResponse<Template>> {
-  return request<Template>('/templates', {
+  return request<Template>('/templates/', {
     method: 'POST',
     body: data,
   });

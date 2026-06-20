@@ -18,7 +18,7 @@ export async function listReminders(params?: {
   if (params?.status) searchParams.set('status', params.status);
 
   const query = searchParams.toString();
-  return request<ReminderListResponse>(`/reminders${query ? `?${query}` : ''}`);
+  return request<ReminderListResponse>(`/reminders/${query ? `?${query}` : ''}`);
 }
 
 export async function getReminder(id: string): Promise<UnifiedResponse<Reminder>> {
@@ -26,7 +26,7 @@ export async function getReminder(id: string): Promise<UnifiedResponse<Reminder>
 }
 
 export async function createReminder(data: ReminderCreate): Promise<UnifiedResponse<Reminder>> {
-  return request<Reminder>('/reminders', {
+  return request<Reminder>('/reminders/', {
     method: 'POST',
     body: data,
   });

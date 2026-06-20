@@ -15,13 +15,13 @@ from app.services.form import create_form, delete_form, get_form, list_form_resp
 router = APIRouter()
 
 
-@router.get("", response_model=UnifiedResponse[FormListResponse])
+@router.get("/", response_model=UnifiedResponse[FormListResponse])
 async def list_forms_endpoint(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     forms, total = await list_forms(db, current_user.id, page, page_size)
     return UnifiedResponse(data=FormListResponse(items=[FormResponseSchema.model_validate(f) for f in forms], total=total))
 
 
-@router.post("", response_model=UnifiedResponse[FormResponseSchema])
+@router.post("/", response_model=UnifiedResponse[FormResponseSchema])
 async def create_form_endpoint(request: FormCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     form = await create_form(db, current_user.id, request)
     return UnifiedResponse(data=FormResponseSchema.model_validate(form))

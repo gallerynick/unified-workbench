@@ -271,7 +271,6 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
         const map: Record<string, { color: string; text: string }> = {
           public: { color: 'green', text: '公开' },
           private: { color: 'default', text: '私有' },
-          restricted: { color: 'orange', text: '受限' },
         };
         const cfg = map[visibility] ?? { color: 'default', text: visibility };
         return <Tag color={cfg.color}>{cfg.text}</Tag>;

@@ -15,13 +15,13 @@ from app.services.note import create_note, delete_note, get_note, list_notes, up
 router = APIRouter()
 
 
-@router.get("", response_model=UnifiedResponse[NoteListResponse])
+@router.get("/", response_model=UnifiedResponse[NoteListResponse])
 async def list_notes_endpoint(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), search: str | None = Query(None), category: str | None = Query(None), current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     notes, total = await list_notes(db, current_user.id, page, page_size, search, category)
     return UnifiedResponse(data=NoteListResponse(items=[NoteResponse.model_validate(n) for n in notes], total=total))
 
 
-@router.post("", response_model=UnifiedResponse[NoteResponse])
+@router.post("/", response_model=UnifiedResponse[NoteResponse])
 async def create_note_endpoint(request: NoteCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     note = await create_note(db, current_user.id, request)
     return UnifiedResponse(data=NoteResponse.model_validate(note))

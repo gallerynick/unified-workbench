@@ -14,7 +14,7 @@ export async function listContacts(params?: {
   if (params?.contact_type) searchParams.set('contact_type', params.contact_type);
   if (params?.search) searchParams.set('search', params.search);
   const query = searchParams.toString();
-  return request<ContactListResponse>(`/contacts${query ? `?${query}` : ''}`);
+  return request<ContactListResponse>(`/contacts/${query ? `?${query}` : ''}`);
 }
 
 export async function getContact(id: string): Promise<UnifiedResponse<Contact>> {
@@ -22,7 +22,7 @@ export async function getContact(id: string): Promise<UnifiedResponse<Contact>> 
 }
 
 export async function createContact(data: ContactCreate): Promise<UnifiedResponse<Contact>> {
-  return request<Contact>('/contacts', { method: 'POST', body: data });
+  return request<Contact>('/contacts/', { method: 'POST', body: data });
 }
 
 export async function updateContact(id: string, data: ContactUpdate): Promise<UnifiedResponse<Contact>> {

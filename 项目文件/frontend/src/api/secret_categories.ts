@@ -11,7 +11,7 @@ export async function listSecretCategories(params?: {
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
 
   const query = searchParams.toString();
-  return request<SecretCategoryListResponse>(`/secret-categories${query ? `?${query}` : ''}`);
+  return request<SecretCategoryListResponse>(`/secret-categories/${query ? `?${query}` : ''}`);
 }
 
 export async function getSecretCategory(id: string): Promise<UnifiedResponse<SecretCategory>> {
@@ -19,7 +19,7 @@ export async function getSecretCategory(id: string): Promise<UnifiedResponse<Sec
 }
 
 export async function createSecretCategory(data: SecretCategoryCreate): Promise<UnifiedResponse<SecretCategory>> {
-  return request<SecretCategory>('/secret-categories', { method: 'POST', body: data });
+  return request<SecretCategory>('/secret-categories/', { method: 'POST', body: data });
 }
 
 export async function updateSecretCategory(id: string, data: SecretCategoryUpdate): Promise<UnifiedResponse<SecretCategory>> {

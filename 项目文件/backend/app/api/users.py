@@ -26,7 +26,7 @@ from app.services.user import (
 router = APIRouter()
 
 
-@router.get("", response_model=UnifiedResponse[UserListResponse])
+@router.get("/", response_model=UnifiedResponse[UserListResponse])
 async def list_users_endpoint(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
@@ -44,7 +44,7 @@ async def list_users_endpoint(
     )
 
 
-@router.post("", response_model=UnifiedResponse[UserResponse])
+@router.post("/", response_model=UnifiedResponse[UserResponse])
 async def create_user_endpoint(
     request: UserCreateRequest,
     _admin: User = Depends(require_admin),

@@ -26,7 +26,7 @@ from app.services.content import (
 router = APIRouter()
 
 
-@router.post("", response_model=UnifiedResponse[ContentResponse])
+@router.post("/", response_model=UnifiedResponse[ContentResponse])
 async def create_content_endpoint(
     request: ContentCreateRequest,
     current_user: User = Depends(get_current_user),
@@ -37,7 +37,7 @@ async def create_content_endpoint(
     return UnifiedResponse(data=ContentResponse.model_validate(content))
 
 
-@router.get("", response_model=UnifiedResponse[ContentListResponse])
+@router.get("/", response_model=UnifiedResponse[ContentListResponse])
 async def list_contents_endpoint(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),

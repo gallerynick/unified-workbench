@@ -11,11 +11,11 @@ export async function listSubscriptions(params?: {
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
 
   const query = searchParams.toString();
-  return request<SubscriptionListResponse>(`/finance/subscriptions${query ? `?${query}` : ''}`);
+  return request<SubscriptionListResponse>(`/finance/subscriptions/${query ? `?${query}` : ''}`);
 }
 
 export async function createSubscription(data: SubscriptionCreate): Promise<UnifiedResponse<Subscription>> {
-  return request<Subscription>('/finance/subscriptions', { method: 'POST', body: data });
+  return request<Subscription>('/finance/subscriptions/', { method: 'POST', body: data });
 }
 
 export async function updateSubscription(id: string, data: SubscriptionUpdate): Promise<UnifiedResponse<Subscription>> {

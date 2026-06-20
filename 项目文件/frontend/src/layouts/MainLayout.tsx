@@ -16,6 +16,20 @@ import {
   LayoutOutlined,
   DesktopOutlined,
   FormOutlined,
+  HomeOutlined,
+  FileOutlined,
+  FileTextOutlined,
+  ProjectOutlined,
+  AppstoreOutlined,
+  MoneyCollectOutlined,
+  KeyOutlined,
+  BellOutlined,
+  CheckSquareOutlined,
+  ContactsOutlined,
+  CalendarOutlined,
+  LikeOutlined,
+  SoundOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -28,11 +42,33 @@ import NotificationDrawer from '../components/NotificationDrawer';
 
 const { Header, Sider, Content } = Layout;
 
+const ICON_MAP: Record<string, React.ReactNode> = {
+  HomeOutlined: <HomeOutlined />,
+  FileOutlined: <FileOutlined />,
+  FileTextOutlined: <FileTextOutlined />,
+  ProjectOutlined: <ProjectOutlined />,
+  AppstoreOutlined: <AppstoreOutlined />,
+  MoneyCollectOutlined: <MoneyCollectOutlined />,
+  KeyOutlined: <KeyOutlined />,
+  BellOutlined: <BellOutlined />,
+  CheckSquareOutlined: <CheckSquareOutlined />,
+  ContactsOutlined: <ContactsOutlined />,
+  CalendarOutlined: <CalendarOutlined />,
+  LikeOutlined: <LikeOutlined />,
+  FormOutlined: <FormOutlined />,
+  TeamOutlined: <TeamOutlined />,
+  SoundOutlined: <SoundOutlined />,
+  BookOutlined: <BookOutlined />,
+  SettingOutlined: <SettingOutlined />,
+  AuditOutlined: <AuditOutlined />,
+};
+
 function getMenuItems(): MenuProps['items'] {
   const sidebarItems = getVisibleSidebarItems();
   const items: MenuProps['items'] = sidebarItems.map((item) => ({
     key: item.key,
     label: item.label,
+    icon: item.icon ? (ICON_MAP[item.icon] ?? null) : null,
   }));
 
   if (isAdmin()) {

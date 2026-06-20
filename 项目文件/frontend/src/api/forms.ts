@@ -7,11 +7,11 @@ export async function listForms(params?: { page?: number; page_size?: number }):
   if (params?.page) searchParams.set('page', String(params.page));
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
   const query = searchParams.toString();
-  return request<FormListResponse>(`/forms${query ? `?${query}` : ''}`);
+  return request<FormListResponse>(`/forms/${query ? `?${query}` : ''}`);
 }
 
 export async function createForm(data: FormCreate): Promise<UnifiedResponse<FormItem>> {
-  return request<FormItem>('/forms', { method: 'POST', body: data });
+  return request<FormItem>('/forms/', { method: 'POST', body: data });
 }
 
 export async function getForm(id: string): Promise<UnifiedResponse<FormItem>> {

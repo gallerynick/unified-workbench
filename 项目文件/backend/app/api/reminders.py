@@ -28,7 +28,7 @@ from app.services.reminder import (
 router = APIRouter()
 
 
-@router.post("", response_model=UnifiedResponse[ReminderResponse])
+@router.post("/", response_model=UnifiedResponse[ReminderResponse])
 async def create_reminder_endpoint(
     data: ReminderCreate,
     current_user: User = Depends(get_current_user),
@@ -39,7 +39,7 @@ async def create_reminder_endpoint(
     return UnifiedResponse(data=ReminderResponse.model_validate(reminder))
 
 
-@router.get("", response_model=UnifiedResponse[ReminderListResponse])
+@router.get("/", response_model=UnifiedResponse[ReminderListResponse])
 async def list_reminders_endpoint(
     status: str | None = Query(None),
     page: int = Query(1, ge=1),

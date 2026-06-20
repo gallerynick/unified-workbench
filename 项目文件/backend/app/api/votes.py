@@ -15,13 +15,13 @@ from app.services.vote import create_vote, delete_vote, get_vote, get_vote_resul
 router = APIRouter()
 
 
-@router.get("", response_model=UnifiedResponse[VoteListResponse])
+@router.get("/", response_model=UnifiedResponse[VoteListResponse])
 async def list_votes_endpoint(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     votes, total = await list_votes(db, current_user.id, page, page_size)
     return UnifiedResponse(data=VoteListResponse(items=[VoteResponse.model_validate(v) for v in votes], total=total))
 
 
-@router.post("", response_model=UnifiedResponse[VoteResponse])
+@router.post("/", response_model=UnifiedResponse[VoteResponse])
 async def create_vote_endpoint(request: VoteCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     vote = await create_vote(db, current_user.id, request)
     return UnifiedResponse(data=VoteResponse.model_validate(vote))

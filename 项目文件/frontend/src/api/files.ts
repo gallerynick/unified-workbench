@@ -18,7 +18,7 @@ export async function listFiles(params?: {
   if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
 
   const query = searchParams.toString();
-  return request<FileListResponse>(`/files${query ? `?${query}` : ''}`);
+  return request<FileListResponse>(`/files/${query ? `?${query}` : ''}`);
 }
 
 export async function getFile(id: string): Promise<UnifiedResponse<FileRecord>> {
@@ -32,11 +32,11 @@ export async function deleteFile(id: string): Promise<UnifiedResponse<null>> {
 }
 
 export async function listFolders(): Promise<UnifiedResponse<Folder[]>> {
-  return request<Folder[]>('/files/folders');
+  return request<Folder[]>('/files/folders/');
 }
 
 export async function createFolder(data: FolderCreateRequest): Promise<UnifiedResponse<Folder>> {
-  return request<Folder>('/files/folders', {
+  return request<Folder>('/files/folders/', {
     method: 'POST',
     body: data,
   });

@@ -31,6 +31,9 @@ class Secret(Base):
     category_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("secret_category.id"), nullable=True, comment="所属分类"
     )
+    sub_category: Mapped[str] = mapped_column(
+        String(100), nullable=False, server_default="", comment="子分类（如 OpenAI、Claude 等）"
+    )
     encrypted_data: Mapped[bytes] = mapped_column(
         LargeBinary, nullable=False, comment="AES-256-GCM 加密数据"
     )

@@ -43,6 +43,8 @@ async def create_secret_endpoint(
         name=request.name,
         secret_type=request.secret_type,
         note=request.note,
+        category_id=request.category_id,
+        sub_category=request.sub_category,
     )
     return UnifiedResponse(data=SecretResponse.model_validate(secret))
 

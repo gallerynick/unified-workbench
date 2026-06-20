@@ -17,7 +17,6 @@ interface ContentFormProps {
 const VISIBILITY_OPTIONS = [
   { value: 'public', label: '公开', description: '所有人可见' },
   { value: 'private', label: '私有', description: '仅自己可见' },
-  { value: 'restricted', label: '受限', description: '指定用户/标签可见' },
 ];
 
 // 预设标签选项（后续可从 API 获取）
@@ -47,7 +46,6 @@ export default function ContentForm({
           title: content.title,
           visibility: content.visibility,
           tags: content.tags || [],
-          restricted_users: content.restricted_users || [],
         });
         setEditorValue(content.body);
       } else {
@@ -74,7 +72,6 @@ export default function ContentForm({
           body: editorValue,
           visibility: values.visibility,
           tags: values.tags,
-          restricted_users: values.visibility === 'restricted' ? values.restricted_users : undefined,
         };
         const res = await createContent(payload);
         if (res.code === 0) {
@@ -89,7 +86,6 @@ export default function ContentForm({
           body: editorValue,
           visibility: values.visibility,
           tags: values.tags,
-          restricted_users: values.visibility === 'restricted' ? values.restricted_users : undefined,
         };
         const res = await updateContent(content.id, payload);
         if (res.code === 0) {
@@ -107,8 +103,6 @@ export default function ContentForm({
       setSubmitting(false);
     }
   };
-
-  const visibility = Form.useWatch('visibility', form);
 
   return (
     <Modal
@@ -177,20 +171,6 @@ export default function ContentForm({
             </div>
           </Radio.Group>
         </Form.Item>
-
-        {visibility === 'restricted' && (
-          <Form.Item
-            name="restricted_users"
-            label="受限用户"
-            tooltip="指定可以查看此内容的用户ID"
-          >
-            <Select
-              mode="multiple"
-              placeholder="请输入用户ID"
-              allowClear
-            />
-          </Form.Item>
-        )}
       </Form>
     </Modal>
   );

@@ -26,7 +26,7 @@ from app.services.secret_category import (
 router = APIRouter()
 
 
-@router.get("", response_model=UnifiedResponse[SecretCategoryListResponse])
+@router.get("/", response_model=UnifiedResponse[SecretCategoryListResponse])
 async def list_categories_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -42,7 +42,7 @@ async def list_categories_endpoint(
     )
 
 
-@router.post("", response_model=UnifiedResponse[SecretCategoryResponse])
+@router.post("/", response_model=UnifiedResponse[SecretCategoryResponse])
 async def create_category_endpoint(
     request: SecretCategoryCreateRequest,
     current_user: User = Depends(get_current_user),

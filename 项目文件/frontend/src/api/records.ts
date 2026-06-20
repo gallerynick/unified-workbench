@@ -26,7 +26,7 @@ export async function listRecords(params?: {
   if (params?.search) searchParams.set('search', params.search);
 
   const query = searchParams.toString();
-  return request<RecordListResponse>(`/records${query ? `?${query}` : ''}`);
+  return request<RecordListResponse>(`/records/${query ? `?${query}` : ''}`);
 }
 
 export async function getRecord(id: string): Promise<UnifiedResponse<WorkRecord>> {
@@ -34,7 +34,7 @@ export async function getRecord(id: string): Promise<UnifiedResponse<WorkRecord>
 }
 
 export async function createRecord(data: RecordCreate): Promise<UnifiedResponse<WorkRecord>> {
-  return request<WorkRecord>('/records', {
+  return request<WorkRecord>('/records/', {
     method: 'POST',
     body: data,
   });

@@ -15,11 +15,11 @@ export async function listUsers(params: ListParams = {}): Promise<UnifiedRespons
   if (params.search) searchParams.set('search', params.search);
 
   const query = searchParams.toString();
-  return request<PaginatedResponse<User>>(`/users${query ? `?${query}` : ''}`);
+  return request<PaginatedResponse<User>>(`/users/${query ? `?${query}` : ''}`);
 }
 
 export async function createUser(data: UserCreateRequest): Promise<UnifiedResponse<User>> {
-  return request<User>('/users', {
+  return request<User>('/users/', {
     method: 'POST',
     body: data,
   });

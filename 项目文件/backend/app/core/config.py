@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     THUMBNAIL_SIZE: int = 200  # 200x200
 
     # 加密配置
-    ENCRYPTION_MASTER_KEY: str = "change-this-32-byte-key-in-prod!"
+    ENCRYPTION_MASTER_KEY: str = "7433947cd794fc1c74ca1a2063baf5defd908128356ac1f6e36b6861a1d283eb"
 
     @field_validator("DATABASE_URL")
     @classmethod

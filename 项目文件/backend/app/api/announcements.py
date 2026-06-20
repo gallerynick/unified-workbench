@@ -15,13 +15,13 @@ from app.services.announcement import create_announcement, delete_announcement, 
 router = APIRouter()
 
 
-@router.get("", response_model=UnifiedResponse[AnnouncementListResponse])
+@router.get("/", response_model=UnifiedResponse[AnnouncementListResponse])
 async def list_announcements_endpoint(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     announcements, total = await list_announcements(db, page, page_size)
     return UnifiedResponse(data=AnnouncementListResponse(items=[AnnouncementResponse.model_validate(a) for a in announcements], total=total))
 
 
-@router.post("", response_model=UnifiedResponse[AnnouncementResponse])
+@router.post("/", response_model=UnifiedResponse[AnnouncementResponse])
 async def create_announcement_endpoint(request: AnnouncementCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     announcement = await create_announcement(db, current_user.id, request)
     return UnifiedResponse(data=AnnouncementResponse.model_validate(announcement))

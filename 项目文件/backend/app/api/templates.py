@@ -30,7 +30,7 @@ from app.services.template import (
 router = APIRouter()
 
 
-@router.post("", response_model=UnifiedResponse[TemplateResponse])
+@router.post("/", response_model=UnifiedResponse[TemplateResponse])
 async def create_template_endpoint(
     request: TemplateCreate,
     current_user: User = Depends(get_current_user),
@@ -42,7 +42,7 @@ async def create_template_endpoint(
     return UnifiedResponse(data=TemplateResponse.model_validate(template))
 
 
-@router.get("", response_model=UnifiedResponse[TemplateListResponse])
+@router.get("/", response_model=UnifiedResponse[TemplateListResponse])
 async def list_templates_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),

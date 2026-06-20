@@ -9,11 +9,11 @@ export async function listNotes(params?: { page?: number; page_size?: number; se
   if (params?.search) searchParams.set('search', params.search);
   if (params?.category) searchParams.set('category', params.category);
   const query = searchParams.toString();
-  return request<NoteListResponse>(`/notes${query ? `?${query}` : ''}`);
+  return request<NoteListResponse>(`/notes/${query ? `?${query}` : ''}`);
 }
 
 export async function createNote(data: NoteCreate): Promise<UnifiedResponse<Note>> {
-  return request<Note>('/notes', { method: 'POST', body: data });
+  return request<Note>('/notes/', { method: 'POST', body: data });
 }
 
 export async function getNote(id: string): Promise<UnifiedResponse<Note>> {

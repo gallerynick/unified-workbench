@@ -7,6 +7,7 @@ import styles from './SecretFormModal.module.css';
 
 interface SecretFormModalProps {
   visible: boolean;
+  categoryId?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -25,6 +26,7 @@ interface KeyValue {
 
 export default function SecretFormModal({
   visible,
+  categoryId,
   onClose,
   onSuccess,
 }: SecretFormModalProps) {
@@ -82,6 +84,8 @@ export default function SecretFormModal({
         secret_type: values.secret_type,
         data,
         note: values.note || undefined,
+        sub_category: values.sub_category || undefined,
+        ...(categoryId ? { category_id: categoryId } : {}),
       };
 
       setSubmitting(true);
@@ -131,6 +135,13 @@ export default function SecretFormModal({
           rules={[{ required: true, message: '请选择密钥类型' }]}
         >
           <Select placeholder="请选择密钥类型" options={SECRET_TYPE_OPTIONS} />
+        </Form.Item>
+
+        <Form.Item
+          name="sub_category"
+          label="子分类"
+        >
+          <Input placeholder="例如：OpenAI、Claude、AWS（可选）" />
         </Form.Item>
 
         {/* 动态 key-value 输入区 */}

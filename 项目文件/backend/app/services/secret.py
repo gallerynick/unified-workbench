@@ -23,6 +23,8 @@ async def create_secret(
     name: str,
     secret_type: str = "other",
     note: str = "",
+    category_id: uuid.UUID | None = None,
+    sub_category: str = "",
 ) -> Secret:
     """创建密钥，加密 data 后存储"""
     settings = get_settings()
@@ -34,6 +36,8 @@ async def create_secret(
         encrypted_data=encrypted,
         note=note,
         owner_id=owner_id,
+        category_id=category_id,
+        sub_category=sub_category,
     )
     db.add(secret)
     await db.flush()

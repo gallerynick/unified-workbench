@@ -20,7 +20,7 @@ export async function listContents(params?: {
   if (params?.page_size) searchParams.set('page_size', params.page_size.toString());
 
   const query = searchParams.toString();
-  return request<ContentListResponse>(`/contents${query ? `?${query}` : ''}`);
+  return request<ContentListResponse>(`/contents/${query ? `?${query}` : ''}`);
 }
 
 export async function getContent(id: string): Promise<UnifiedResponse<Content>> {
@@ -28,7 +28,7 @@ export async function getContent(id: string): Promise<UnifiedResponse<Content>> 
 }
 
 export async function createContent(data: ContentCreateRequest): Promise<UnifiedResponse<Content>> {
-  return request<Content>('/contents', {
+  return request<Content>('/contents/', {
     method: 'POST',
     body: data,
   });
