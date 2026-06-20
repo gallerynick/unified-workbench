@@ -146,6 +146,10 @@ export default function RecordForm({
       setSubmitting(true);
 
       if (mode === 'create') {
+        if (!templateId) {
+          message.error('请先选择模板');
+          return;
+        }
         const payload: RecordCreate = {
           template_id: templateId,
           title: values.title as string,
