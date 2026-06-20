@@ -27,17 +27,12 @@ import type { ColumnsType } from 'antd/es/table';
 import { listFiles, deleteFile, listFolders } from '../../api/files';
 import { getToken } from '../../utils/auth';
 import type { FileRecord, Folder } from '../../types/file';
-import FolderTree from './FolderTree';
+import { getVisibilityConfig } from '../../utils/visibility';
 import FileUploadModal from './FileUploadModal';
+import FolderTree from './FolderTree';
 import styles from './FileManagement.module.css';
 
 const { Title } = Typography;
-
-// 可见性标签映射
-const VISIBILITY_MAP: Record<FileRecord['visibility'], { color: string; text: string }> = {
-  public: { color: 'green', text: '公开' },
-  private: { color: 'default', text: '私有' },
-};
 
 // 根据 MIME 类型获取图标
 function getFileIcon(mimeType: string) {
@@ -229,7 +224,7 @@ export default function FileManagement() {
       key: 'visibility',
       width: 100,
       render: (visibility: FileRecord['visibility']) => {
-        const cfg = VISIBILITY_MAP[visibility];
+        const cfg = getVisibilityConfig(visibility);
         return <Tag color={cfg.color}>{cfg.text}</Tag>;
       },
     },

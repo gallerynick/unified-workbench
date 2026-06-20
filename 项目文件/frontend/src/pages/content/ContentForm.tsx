@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, Radio, message } from 'antd';
+import { Modal, Form, Input, Select, message } from 'antd';
 import { createContent, updateContent } from '../../api/contents';
 import type { Content, ContentCreateRequest, ContentUpdateRequest } from '../../types/content';
 import ContentEditor from './ContentEditor';
+import VisibilitySetting from '../files/VisibilitySetting';
+import type { Visibility } from '../../utils/visibility';
 import styles from './ContentForm.module.css';
 
 interface ContentFormProps {
@@ -12,12 +14,6 @@ interface ContentFormProps {
   onClose: () => void;
   onSuccess: () => void;
 }
-
-// 可见性选项
-const VISIBILITY_OPTIONS = [
-  { value: 'public', label: '公开', description: '所有人可见' },
-  { value: 'private', label: '私有', description: '仅自己可见' },
-];
 
 // 预设标签选项（后续可从 API 获取）
 const TAG_OPTIONS = [
@@ -38,18 +34,20 @@ export default function ContentForm({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [editorValue, setEditorValue] = useState<Record<string, unknown> | null>(null);
+  const [visibility, setVisibility] = useState<Visibility>('public');
 
   useEffect(() => {
     if (visible) {
       if (mode === 'edit' && content) {
         form.setFieldsValue({
           title: content.title,
-          visibility: content.visibility,
           tags: content.tags || [],
         });
+        setVisibility((content.visibility as Visibility) || 'public');
         setEditorValue(content.body);
       } else {
         form.resetFields();
+        setVisibility('public');
         setEditorValue(null);
       }
     }
@@ -70,7 +68,7 @@ export default function ContentForm({
         const payload: ContentCreateRequest = {
           title: values.title,
           body: editorValue,
-          visibility: values.visibility,
+          visibility,
           tags: values.tags,
         };
         const res = await createContent(payload);
@@ -84,7 +82,7 @@ export default function ContentForm({
         const payload: ContentUpdateRequest = {
           title: values.title,
           body: editorValue,
-          visibility: values.visibility,
+          visibility,
           tags: values.tags,
         };
         const res = await updateContent(content.id, payload);
@@ -154,22 +152,13 @@ export default function ContentForm({
           />
         </Form.Item>
 
-        <Form.Item
-          name="visibility"
-          label="可见性"
-        >
-          <Radio.Group>
-            <div className={styles.visibilitySection ?? ''}>
-              {VISIBILITY_OPTIONS.map((opt) => (
-                <Radio key={opt.value} value={opt.value}>
-                  <div>
-                    <div className={styles.visibilityOptionTitle ?? ''}>{opt.label}</div>
-                    <div className={styles.visibilityOptionDesc ?? ''}>{opt.description}</div>
-                  </div>
-                </Radio>
-              ))}
-            </div>
-          </Radio.Group>
+        <Form.Item label="可见性">
+          <VisibilitySetting
+            value={visibility}
+            onChange={setVisibility}
+            showDescription
+            layout="vertical"
+          />
         </Form.Item>
       </Form>
     </Modal>

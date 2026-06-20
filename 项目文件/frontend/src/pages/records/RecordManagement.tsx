@@ -21,6 +21,7 @@ import { listRecords, deleteRecord, updateRecordStatus } from '../../api/records
 import { listTemplates, getTemplate } from '../../api/templates';
 import type { WorkRecord, RecordType, RecordStatus } from '../../types/record';
 import type { Template, TemplateField } from '../../types/template';
+import { getVisibilityConfig } from '../../utils/visibility';
 import RecordForm from './RecordForm';
 import ExportButtons from './ExportButtons';
 import styles from './RecordManagement.module.css';
@@ -268,11 +269,7 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
       key: 'visibility',
       width: 80,
       render: (visibility: string) => {
-        const map: Record<string, { color: string; text: string }> = {
-          public: { color: 'green', text: '公开' },
-          private: { color: 'default', text: '私有' },
-        };
-        const cfg = map[visibility] ?? { color: 'default', text: visibility };
+        const cfg = getVisibilityConfig(visibility);
         return <Tag color={cfg.color}>{cfg.text}</Tag>;
       },
     },
