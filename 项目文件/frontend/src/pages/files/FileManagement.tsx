@@ -256,7 +256,9 @@ export default function FileManagement() {
               size="small"
               icon={<DownloadOutlined />}
               onClick={() => handleDownload(record)}
-            />
+            >
+              下载
+            </Button>
           </Tooltip>
           <Tooltip title="删除">
             <Button
@@ -265,7 +267,9 @@ export default function FileManagement() {
               danger
               icon={<DeleteOutlined />}
               onClick={() => handleDelete(record)}
-            />
+            >
+              删除
+            </Button>
           </Tooltip>
         </Space>
       ),

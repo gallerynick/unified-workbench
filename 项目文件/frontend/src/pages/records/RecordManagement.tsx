@@ -9,6 +9,7 @@ import {
   Modal,
   message,
   Space,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
@@ -304,24 +305,28 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
       width: 280,
       render: (_: unknown, record: WorkRecord) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
+          <Tooltip title="编辑">
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            >
+              编辑
+            </Button>
+          </Tooltip>
           <ExportButtons recordId={record.id} recordTitle={record.title} />
-          <Button
-            type="link"
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record)}
-          >
-            删除
-          </Button>
+          <Tooltip title="删除">
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record)}
+            >
+              删除
+            </Button>
+          </Tooltip>
         </Space>
       ),
     },
