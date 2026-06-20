@@ -75,6 +75,8 @@ export default function ContentForm({
       if (draft.title) form.setFieldsValue({ title: draft.title });
       if (draft.tags) form.setFieldsValue({ tags: draft.tags });
       if (draft.visibility) setVisibility(draft.visibility);
+      if (draft.restrictedUsers) setRestrictedUsers(draft.restrictedUsers);
+      if (draft.restrictedTags) setRestrictedTags(draft.restrictedTags);
       if (draft.editorValue) setEditorValue(draft.editorValue);
     } catch {
     }
