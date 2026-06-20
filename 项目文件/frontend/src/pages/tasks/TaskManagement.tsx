@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space } from 'antd';
+import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listTasks, createTask, updateTask, deleteTask } from '../../api/tasks';
@@ -133,11 +133,15 @@ export default function TaskManagement() {
       render: (date: string) => new Date(date).toLocaleString('zh-CN'),
     },
     {
-      title: '操作', key: 'action', width: 100,
+      title: '操作', key: 'action', width: 140,
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} />
+          <Tooltip title="编辑">
+            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
+          </Tooltip>
+          <Tooltip title="删除">
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
+          </Tooltip>
         </Space>
       ),
     },

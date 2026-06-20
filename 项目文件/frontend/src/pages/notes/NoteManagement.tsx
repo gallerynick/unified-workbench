@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Input, Tag } from 'antd';
+import { Table, Button, Typography, Modal, message, Space, Input, Tag, Tooltip } from 'antd';
 import { PlusOutlined, DeleteOutlined, PushpinOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listNotes, createNote, updateNote, deleteNote } from '../../api/notes';
@@ -54,10 +54,14 @@ export default function NoteManagement() {
     { title: '分类', dataIndex: 'category', key: 'category', render: (c: string | null) => c ? <Tag>{c}</Tag> : '-' },
     { title: '标签', dataIndex: 'tags', key: 'tags', render: (tags: string[] | null) => tags?.map((t) => <Tag key={t}>{t}</Tag>) ?? '-' },
     { title: '更新时间', dataIndex: 'updated_at', key: 'updated_at', render: (d: string) => new Date(d).toLocaleString('zh-CN') },
-    { title: '操作', key: 'action', render: (_, record) => (
+    { title: '操作', key: 'action', width: 140, render: (_, record) => (
       <Space size="small">
-        <Button type="link" size="small" icon={<PushpinOutlined />} onClick={() => handleTogglePin(record)} />
-        <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} />
+        <Tooltip title={record.is_pinned ? '取消置顶' : '置顶'}>
+          <Button type="link" size="small" icon={<PushpinOutlined />} onClick={() => handleTogglePin(record)}>{record.is_pinned ? '取消置顶' : '置顶'}</Button>
+        </Tooltip>
+        <Tooltip title="删除">
+          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
+        </Tooltip>
       </Space>
     ) },
   ];

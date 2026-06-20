@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch } from 'antd';
+import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch, Tooltip } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listForms, createForm, deleteForm } from '../../api/forms';
@@ -48,7 +48,7 @@ export default function FormManagement() {
     { title: '字段数', key: 'fields', render: (_, r) => r.fields.length },
     { title: '状态', dataIndex: 'is_active', key: 'is_active', render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? '启用' : '关闭'}</Tag> },
     { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: (d: string) => new Date(d).toLocaleString('zh-CN') },
-    { title: '操作', key: 'action', render: (_, record) => (<Space size="small"><Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} /></Space>) },
+    { title: '操作', key: 'action', width: 100, render: (_, record) => (<Space size="small"><Tooltip title="删除"><Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button></Tooltip></Space>) },
   ];
 
   return (

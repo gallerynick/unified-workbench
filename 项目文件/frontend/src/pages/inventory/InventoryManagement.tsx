@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Table, Button, Input, Typography, Space, Tag, Modal, Form, InputNumber, message } from 'antd';
+import { Table, Button, Input, Typography, Space, Tag, Modal, Form, InputNumber, message, Tooltip } from 'antd';
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -94,10 +94,15 @@ export default function InventoryManagement() {
     {
       title: '操作',
       key: 'action',
+      width: 140,
       render: (_, record) => (
-        <Space>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} />
+        <Space size="small">
+          <Tooltip title="编辑">
+            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
+          </Tooltip>
+          <Tooltip title="删除">
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
+          </Tooltip>
         </Space>
       ),
     },

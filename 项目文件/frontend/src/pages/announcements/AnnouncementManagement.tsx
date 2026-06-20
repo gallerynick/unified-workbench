@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch } from 'antd';
+import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch, Tooltip } from 'antd';
 import { PlusOutlined, DeleteOutlined, PushpinOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listAnnouncements, createAnnouncement, deleteAnnouncement } from '../../api/announcements';
@@ -45,7 +45,7 @@ export default function AnnouncementManagement() {
     { title: '标题', dataIndex: 'title', key: 'title', render: (t: string, r) => <>{r.is_pinned && <PushpinOutlined style={{ marginRight: 4 }} />}{t}</> },
     { title: '发布时间', dataIndex: 'created_at', key: 'created_at', render: (d: string) => new Date(d).toLocaleString('zh-CN') },
     { title: '状态', dataIndex: 'is_published', key: 'is_published', render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? '已发布' : '草稿'}</Tag> },
-    { title: '操作', key: 'action', render: (_, record) => (<Space size="small"><Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} /></Space>) },
+    { title: '操作', key: 'action', width: 100, render: (_, record) => (<Space size="small"><Tooltip title="删除"><Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button></Tooltip></Space>) },
   ];
 
   return (

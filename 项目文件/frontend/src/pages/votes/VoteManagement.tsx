@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Input, Tag, Progress } from 'antd';
+import { Table, Button, Typography, Modal, message, Space, Input, Tag, Progress, Tooltip } from 'antd';
 import { PlusOutlined, DeleteOutlined, BarChartOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listVotes, createVote, deleteVote, getVoteResults } from '../../api/votes';
@@ -65,11 +65,15 @@ export default function VoteManagement() {
     { title: '状态', dataIndex: 'status', key: 'status', render: (s: string) => <Tag color={s === 'active' ? 'green' : 'default'}>{s === 'active' ? '进行中' : '已结束'}</Tag> },
     { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: (d: string) => new Date(d).toLocaleString('zh-CN') },
     {
-      title: '操作', key: 'action',
+      title: '操作', key: 'action', width: 160,
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<BarChartOutlined />} onClick={() => handleViewResults(record)}>结果</Button>
-          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} />
+          <Tooltip title="查看结果">
+            <Button type="link" size="small" icon={<BarChartOutlined />} onClick={() => handleViewResults(record)}>结果</Button>
+          </Tooltip>
+          <Tooltip title="删除">
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
+          </Tooltip>
         </Space>
       ),
     },

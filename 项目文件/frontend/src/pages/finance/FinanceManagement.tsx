@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Tabs, Table, Button, Input, Typography, Space, Tag, Modal, Form, InputNumber, Select, message } from 'antd';
+import { Tabs, Table, Button, Input, Typography, Space, Tag, Modal, Form, InputNumber, Select, message, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listBudgets, createBudget, updateBudget, deleteBudget } from '../../api/budgets';
@@ -180,10 +180,15 @@ export default function FinanceManagement() {
     {
       title: '操作',
       key: 'action',
+      width: 140,
       render: (_, record) => (
-        <Space>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEditBudget(record)} />
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteBudget(record)} />
+        <Space size="small">
+          <Tooltip title="编辑">
+            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEditBudget(record)}>编辑</Button>
+          </Tooltip>
+          <Tooltip title="删除">
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteBudget(record)}>删除</Button>
+          </Tooltip>
         </Space>
       ),
     },
@@ -206,10 +211,15 @@ export default function FinanceManagement() {
     {
       title: '操作',
       key: 'action',
+      width: 140,
       render: (_, record) => (
-        <Space>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEditSubscription(record)} />
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteSubscription(record)} />
+        <Space size="small">
+          <Tooltip title="编辑">
+            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEditSubscription(record)}>编辑</Button>
+          </Tooltip>
+          <Tooltip title="删除">
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteSubscription(record)}>删除</Button>
+          </Tooltip>
         </Space>
       ),
     },
