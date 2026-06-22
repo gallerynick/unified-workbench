@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, theme, Avatar, Dropdown, Space, Drawer, Button } from 'antd';
+import { Layout, Menu, theme, Avatar, Dropdown, Space, Drawer, Button, Typography } from 'antd';
 import {
   AuditOutlined,
   SettingOutlined,
@@ -43,8 +43,10 @@ import { getVisibleSidebarItems } from '../pages/settings/SidebarManagement';
 import { TagProvider } from '../contexts/TagContext';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
+import { getRouteTitle } from '../config/routeTitles';
 
 const { Header, Sider, Content } = Layout;
+const { Text } = Typography;
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   HomeOutlined: <HomeOutlined />,
@@ -280,6 +282,9 @@ export default function MainLayout() {
               </button>
             )}
           </Space>
+          <Text strong style={{ fontSize: 16, marginLeft: 8, flex: 1, textAlign: 'center' }}>
+            {getRouteTitle(location.pathname)}
+          </Text>
           <Space size="middle">
             <NotificationBell
               notifications={notifications}
