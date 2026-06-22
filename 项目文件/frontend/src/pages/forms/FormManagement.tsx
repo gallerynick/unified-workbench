@@ -54,7 +54,7 @@ export default function FormManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4}>表单管理</Title>
+        <Title level={4}>表单收集</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建表单</Button>
       </div>
       <Table<FormItem> columns={columns} dataSource={forms} rowKey="id" loading={loading}

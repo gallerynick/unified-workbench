@@ -69,7 +69,7 @@ export default function NoteManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4}>笔记管理</Title>
+        <Title level={4}>笔记知识库</Title>
         <Space>
           <Input placeholder="搜索笔记" prefix={<SearchOutlined />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 200 }} />
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建笔记</Button>

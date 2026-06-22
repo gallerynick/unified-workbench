@@ -51,7 +51,7 @@ export default function AnnouncementManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4}>公告管理</Title>
+        <Title level={4}>公告中心</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>发布公告</Button>
       </div>
       <Table<Announcement> columns={columns} dataSource={announcements} rowKey="id" loading={loading}
