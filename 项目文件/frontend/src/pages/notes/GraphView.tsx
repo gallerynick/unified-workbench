@@ -158,14 +158,9 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
       ctx.textBaseline = 'top';
 
       const label = node.name;
-      const textWidth = ctx.measureText(label).width;
-      const bgPadding = 4;
-
-      ctx.fillStyle = isDark ? '#1e293b' : '#ffffff';
-      ctx.fillRect(x - textWidth / 2 - bgPadding, y + radius + 4, textWidth + bgPadding * 2, fontSize + bgPadding * 2);
 
       ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-      ctx.fillText(label, x, y + radius + 4 + bgPadding);
+      ctx.fillText(label, x, y + radius + 4);
     }
   }, [isDark, hoveredNode]);
 
