@@ -140,7 +140,7 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const {
-    token: { colorBgContainer, borderRadiusLG },
+    token: { colorBgContainer, colorBgLayout, borderRadiusLG },
   } = theme.useToken();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useWebSocket();
   const { isMobile } = useResponsive();
@@ -160,7 +160,7 @@ export default function MainLayout() {
 
   return (
     <TagProvider>
-      <Layout style={{ minHeight: '100vh' }}>
+      <Layout style={{ minHeight: '100vh', background: colorBgLayout }}>
         {!isMobile && (
         <div ref={siderRef} className="sider-scroll-container" style={{ overflow: 'auto', height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240 }}>
         <Sider

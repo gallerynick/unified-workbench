@@ -1,3 +1,23 @@
+/* 全局背景色 - 深色模式适配 */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+  color: rgba(0, 0, 0, 0.88);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+[data-theme="dark"] html,
+[data-theme="dark"] body {
+  background-color: #141414;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+#root {
+  min-height: 100vh;
+}
+
 /* 全局滚动条样式 - 深色模式适配 */
 
 /* Webkit 浏览器 (Chrome, Safari, Edge) */
