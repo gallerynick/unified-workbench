@@ -105,31 +105,37 @@ export default function CalendarPage() {
   const renderCalendarDays = () => {
     const days = [];
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className={styles.emptyDay ?? ''} />);
+      days.push(<div key={`empty-${i}`} className={styles.emptyDay} />);
     }
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayEvents = getEventsForDate(day);
       const isToday = dateStr === today;
       const isSelected = dateStr === selectedDate;
+      const classNames = [
+        styles.day,
+        isToday ? styles.today : '',
+        isSelected ? styles.selected : '',
+      ].filter(Boolean).join(' ');
+
       days.push(
-          <button
-            key={day}
-            type="button"
-            className={`${styles.day ?? ''} ${isToday ? styles.today ?? '' : ''} ${isSelected ? styles.selected ?? '' : ''}`}
-            onClick={() => setSelectedDate(dateStr)}
-            onDoubleClick={() => handleCreate(dateStr)}
-          >
-          <div className={styles.dayNumber ?? ''}>{day}</div>
-          <div className={styles.dayEvents ?? ''}>
+        <button
+          key={day}
+          type="button"
+          className={classNames}
+          onClick={() => setSelectedDate(dateStr)}
+          onDoubleClick={() => handleCreate(dateStr)}
+        >
+          <div className={styles.dayNumber}>{day}</div>
+          <div className={styles.dayEvents}>
             {dayEvents.slice(0, 2).map((e) => (
-              <div key={e.id} className={styles.eventDot ?? ''} style={{ background: e.color || '#1677ff' }}>
+              <div key={e.id} className={styles.eventDot} style={{ background: e.color || '#1677ff' }}>
                 {e.title}
               </div>
             ))}
-            {dayEvents.length > 2 && <div className={styles.moreEvents ?? ''}>+{dayEvents.length - 2}</div>}
+            {dayEvents.length > 2 && <div className={styles.moreEvents}>+{dayEvents.length - 2}</div>}
           </div>
-          </button>
+        </button>
       );
     }
     return days;
@@ -138,22 +144,24 @@ export default function CalendarPage() {
   const selectedEvents = selectedDate ? events.filter((e) => e.start_time.startsWith(selectedDate)) : [];
 
   return (
-    <div className={styles.container ?? ''}>
-      <div className={styles.header ?? ''}>
+    <div className={styles.container}>
+      <div className={styles.header}>
         <Title level={4}><CalendarOutlined /> 日历</Title>
         <Space>
           <Button icon={<LeftOutlined />} onClick={handlePrevMonth} />
-          <Text strong>{year}年{month + 1}月</Text>
+          <Text strong style={{ fontSize: 16, minWidth: 120, textAlign: 'center' }}>
+            {year}年{month + 1}月
+          </Text>
           <Button icon={<RightOutlined />} onClick={handleNextMonth} />
           <Button type="primary" icon={<PlusOutlined />} onClick={() => handleCreate()}>新建事件</Button>
         </Space>
       </div>
 
-      <div className={styles.calendar ?? ''}>
-        <div className={styles.weekdays ?? ''}>
-          {DAYS.map((d) => <div key={d} className={styles.weekday ?? ''}>{d}</div>)}
+      <div className={styles.calendar}>
+        <div className={styles.weekdays}>
+          {DAYS.map((d) => <div key={d} className={styles.weekday}>{d}</div>)}
         </div>
-        <div className={styles.days ?? ''}>
+        <div className={styles.days}>
           {renderCalendarDays()}
         </div>
       </div>
@@ -164,8 +172,8 @@ export default function CalendarPage() {
             <Text type="secondary">暂无事件</Text>
           ) : (
             selectedEvents.map((e) => (
-              <div key={e.id} className={styles.eventItem ?? ''}>
-                <div className={styles.eventInfo ?? ''}>
+              <div key={e.id} className={styles.eventItem}>
+                <div className={styles.eventInfo}>
                   <Tag color={e.color || 'blue'}>{e.start_time.split('T')[1]?.substring(0, 5)}</Tag>
                   <Text strong>{e.title}</Text>
                   {e.description && <Text type="secondary"> - {e.description}</Text>}
