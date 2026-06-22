@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, theme, Avatar, Dropdown, Space, Drawer, Button, Typography } from 'antd';
 import {
@@ -135,6 +135,7 @@ export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
+  const siderRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -145,10 +146,27 @@ export default function MainLayout() {
   const customization = useCustomization();
   const { isDark } = useTheme();
 
+  // 当展开"系统设置与管理"子菜单时，自动滚动侧边栏以显示完整内容
+  const handleMenuOpenChange = useCallback((openKeys: string[]) => {
+    if (openKeys.includes('/settings') && siderRef.current) {
+      // 延迟滚动，等待子菜单动画完成
+      setTimeout(() => {
+        const sider = siderRef.current;
+        if (sider) {
+          sider.scrollTo({
+            top: sider.scrollHeight,
+            behavior: 'smooth',
+          });
+        }
+      }, 100);
+    }
+  }, []);
+
   return (
     <TagProvider>
       <Layout style={{ minHeight: '100vh' }}>
         {!isMobile && (
+        <div ref={siderRef} style={{ overflow: 'auto', height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240 }}>
         <Sider
           width={240}
           collapsible
@@ -157,12 +175,7 @@ export default function MainLayout() {
           trigger={null}
           theme={isDark ? 'dark' : 'light'}
           style={{
-            overflow: 'auto',
-            height: '100vh',
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            bottom: 0,
+            height: '100%',
             borderRight: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
           }}
         >
@@ -201,9 +214,11 @@ export default function MainLayout() {
             selectedKeys={[location.pathname]}
             items={getMenuItems() ?? []}
             onClick={({ key }) => navigate(key)}
+            onOpenChange={handleMenuOpenChange}
             style={{ borderRight: 0 }}
           />
         </Sider>
+        </div>
       )}
 
       {isMobile && (
