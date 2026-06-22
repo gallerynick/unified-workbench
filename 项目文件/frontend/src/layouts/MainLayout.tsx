@@ -146,10 +146,8 @@ export default function MainLayout() {
   const customization = useCustomization();
   const { isDark } = useTheme();
 
-  // 当展开"系统设置与管理"子菜单时，自动滚动侧边栏以显示完整内容
   const handleMenuOpenChange = useCallback((openKeys: string[]) => {
     if (openKeys.includes('/settings') && siderRef.current) {
-      // 延迟滚动，等待子菜单动画完成
       setTimeout(() => {
         const sider = siderRef.current;
         if (sider) {
@@ -158,7 +156,7 @@ export default function MainLayout() {
             behavior: 'smooth',
           });
         }
-      }, 100);
+      }, 350);
     }
   }, []);
 
@@ -166,7 +164,7 @@ export default function MainLayout() {
     <TagProvider>
       <Layout style={{ minHeight: '100vh' }}>
         {!isMobile && (
-        <div ref={siderRef} style={{ overflow: 'auto', height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240 }}>
+        <div ref={siderRef} className="sider-scroll-container" style={{ overflow: 'auto', height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240 }}>
         <Sider
           width={240}
           collapsible
@@ -257,6 +255,7 @@ export default function MainLayout() {
               navigate(key);
               setMenuDrawerOpen(false);
             }}
+            onOpenChange={handleMenuOpenChange}
             style={{ borderRight: 0 }}
           />
         </Drawer>

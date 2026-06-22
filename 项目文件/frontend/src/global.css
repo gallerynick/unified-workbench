@@ -45,19 +45,19 @@
 }
 
 /* 侧边栏滚动条特殊样式 */
-.ant-layout-sider::-webkit-scrollbar {
+.sider-scroll-container::-webkit-scrollbar {
   width: 6px;
 }
 
-.ant-layout-sider::-webkit-scrollbar-thumb {
+.sider-scroll-container::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.1);
   border-radius: 3px;
 }
 
-[data-theme="dark"] .ant-layout-sider::-webkit-scrollbar-thumb {
+[data-theme="dark"] .sider-scroll-container::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-[data-theme="dark"] .ant-layout-sider::-webkit-scrollbar-thumb:hover {
+[data-theme="dark"] .sider-scroll-container::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.2);
 }
