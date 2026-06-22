@@ -32,11 +32,14 @@ def upgrade() -> None:
     """执行迁移"""
 
     # ========== 0. 创建枚举类型 ==========
-    op.execute("CREATE TYPE IF NOT EXISTS eventrepeat AS ENUM ('none', 'daily', 'weekly', 'monthly', 'yearly')")
-    op.execute("CREATE TYPE IF NOT EXISTS votestatus AS ENUM ('active', 'closed')")
-    op.execute("CREATE TYPE IF NOT EXISTS contacttype AS ENUM ('customer', 'supplier', 'partner', 'other')")
-    op.execute("CREATE TYPE IF NOT EXISTS taskstatus AS ENUM ('todo', 'in_progress', 'done', 'cancelled')")
-    op.execute("CREATE TYPE IF NOT EXISTS taskpriority AS ENUM ('low', 'medium', 'high', 'urgent')")
+    for type_name, type_values in [
+        ("eventrepeat", "('none', 'daily', 'weekly', 'monthly', 'yearly')"),
+        ("votestatus", "('active', 'closed')"),
+        ("contacttype", "('customer', 'supplier', 'partner', 'other')"),
+        ("taskstatus", "('todo', 'in_progress', 'done', 'cancelled')"),
+        ("taskpriority", "('low', 'medium', 'high', 'urgent')"),
+    ]:
+        op.execute(f"DO $$ BEGIN CREATE TYPE {type_name} AS ENUM {type_values}; EXCEPTION WHEN duplicate_object THEN NULL; END $$;")
 
     # ========== 1. calendar_event 日历事件表 ==========
     op.create_table(
