@@ -2,11 +2,10 @@
   flex: 1;
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 4px;
   border: 1px solid var(--graph-border, rgba(148, 163, 184, 0.2));
   background: var(--graph-bg, #f8fafc);
   min-height: 400px;
-  box-shadow: var(--graph-shadow, 0 4px 24px rgba(0, 0, 0, 0.06));
 }
 
 .loadingOverlay {
@@ -29,7 +28,6 @@
 :root {
   --graph-bg: #f8fafc;
   --graph-border: rgba(148, 163, 184, 0.2);
-  --graph-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   --graph-empty-color: #94a3b8;
 }
 
@@ -37,6 +35,5 @@
 :root.ant-dark {
   --graph-bg: #0f172a;
   --graph-border: rgba(148, 163, 184, 0.1);
-  --graph-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   --graph-empty-color: #64748b;
 }
