@@ -66,8 +66,7 @@
 }
 
 /* Dark theme */
-:root[data-theme="dark"],
-:root.ant-dark {
+:root[data-theme="dark"] {
   --calendar-bg: #1f1f1f;
   --calendar-border: #303030;
   --calendar-weekday-bg: #141414;

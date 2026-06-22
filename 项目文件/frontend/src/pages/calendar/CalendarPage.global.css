@@ -51,8 +51,7 @@
   font-size: 13px;
 }
 
-:root[data-theme="dark"] .fc,
-:root.ant-dark .fc {
+:root[data-theme="dark"] .fc {
   --fc-border-color: #303030;
   --fc-page-bg-color: #1f1f1f;
   --fc-neutral-bg-color: #141414;
@@ -68,24 +67,19 @@
 }
 
 :root[data-theme="dark"] .fc-theme-standard td,
-:root[data-theme="dark"] .fc-theme-standard th,
-:root.ant-dark .fc-theme-standard td,
-:root.ant-dark .fc-theme-standard th {
+:root[data-theme="dark"] .fc-theme-standard th {
   border-color: #303030;
 }
 
-:root[data-theme="dark"] .fc .fc-daygrid-day-number,
-:root.ant-dark .fc .fc-daygrid-day-number {
+:root[data-theme="dark"] .fc .fc-daygrid-day-number {
   color: #e8e8e8;
 }
 
-:root[data-theme="dark"] .fc .fc-col-header-cell-cushion,
-:root.ant-dark .fc .fc-col-header-cell-cushion {
+:root[data-theme="dark"] .fc .fc-col-header-cell-cushion {
   color: #e8e8e8;
 }
 
-:root[data-theme="dark"] .fc .fc-list-empty,
-:root.ant-dark .fc .fc-list-empty {
+:root[data-theme="dark"] .fc .fc-list-empty {
   background-color: #1f1f1f;
   color: #e8e8e8;
 }
