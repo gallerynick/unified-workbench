@@ -2,10 +2,11 @@
   flex: 1;
   position: relative;
   overflow: hidden;
-  border-radius: 8px;
-  border: 1px solid var(--graph-border, #e8e8e8);
-  background: var(--graph-bg, #fff);
+  border-radius: 16px;
+  border: 1px solid var(--graph-border, rgba(148, 163, 184, 0.2));
+  background: var(--graph-bg, #f8fafc);
   min-height: 400px;
+  box-shadow: var(--graph-shadow, 0 4px 24px rgba(0, 0, 0, 0.06));
 }
 
 .loadingOverlay {
@@ -21,19 +22,21 @@
   align-items: center;
   justify-content: center;
   height: 400px;
-  color: var(--graph-empty-color, #999);
+  color: var(--graph-empty-color, #94a3b8);
+  font-size: 15px;
 }
 
-/* 主题变量 */
 :root {
-  --graph-bg: #fff;
-  --graph-border: #e8e8e8;
-  --graph-empty-color: #999;
+  --graph-bg: #f8fafc;
+  --graph-border: rgba(148, 163, 184, 0.2);
+  --graph-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --graph-empty-color: #94a3b8;
 }
 
 :root[data-theme="dark"],
 :root.ant-dark {
-  --graph-bg: #1f1f1f;
-  --graph-border: #303030;
-  --graph-empty-color: #666;
+  --graph-bg: #0f172a;
+  --graph-border: rgba(148, 163, 184, 0.1);
+  --graph-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --graph-empty-color: #64748b;
 }
