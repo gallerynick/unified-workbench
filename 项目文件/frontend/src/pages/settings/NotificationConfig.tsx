@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Switch, Button, Typography, Card, message, Space } from 'antd';
-import { SaveOutlined } from '@ant-design/icons';
+import { Form, Input, Switch, Button, Typography, Card, message, Space, Result } from 'antd';
+import { SaveOutlined, LockOutlined } from '@ant-design/icons';
 import { getConfig, updateConfig } from '../../api/system_config';
+import { isAdmin } from '../../utils/auth';
 import type { NotificationConfig as NotificationConfigType } from '../../types/system_config';
 import styles from './NotificationConfig.module.css';
 
@@ -15,6 +16,10 @@ export default function NotificationConfig() {
   useEffect(() => {
     fetchConfig();
   }, []);
+
+  if (!isAdmin()) {
+    return <Result status="403" title="权限不足" subTitle="只有管理员可以配置通知" icon={<LockOutlined />} />;
+  }
 
   const fetchConfig = async () => {
     setLoading(true);

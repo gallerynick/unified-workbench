@@ -14,6 +14,7 @@ export interface Template {
   id: string;
   name: string;
   category: string;
+  location: 'project' | 'record' | 'global';
   schema: TemplateField[];
   version: number;
   owner_id: string;
@@ -24,12 +25,14 @@ export interface Template {
 export interface TemplateCreate {
   name: string;
   category: string;
+  location: 'project' | 'record' | 'global';
   schema: TemplateField[];
 }
 
 export interface TemplateUpdate {
   name?: string;
   category?: string;
+  location?: 'project' | 'record' | 'global';
   schema?: TemplateField[];
 }
 

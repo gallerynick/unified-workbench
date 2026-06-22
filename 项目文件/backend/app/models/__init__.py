@@ -9,6 +9,7 @@ from app.models.content_file import ContentFile
 from app.models.contact import Contact, ContactType
 from app.models.file import File
 from app.models.folder import Folder
+from app.models.inventory import Inventory
 from app.models.form import Form, FormResponse
 from app.models.note import Note
 from app.models.record import Record, RecordStatus, RecordType
@@ -39,6 +40,7 @@ __all__ = [
     "File",
     "Folder",
     "Form",
+    "Inventory",
     "FormResponse",
     "Note",
     "Tag",

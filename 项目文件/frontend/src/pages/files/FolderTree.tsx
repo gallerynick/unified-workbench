@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Tree, Button, Input, Modal, message, Space } from 'antd';
+import { Tree, Button, Input, Modal, message, Space, Tag, Tooltip } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
   HomeOutlined,
+  SettingOutlined,
+  FolderOutlined,
 } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { listFolders, createFolder, deleteFolder } from '../../api/files';
 import type { Folder } from '../../types/file';
+import FolderSettingsModal from './FolderSettingsModal';
 import styles from './FolderTree.module.css';
 
 interface FolderTreeProps {
@@ -21,6 +24,8 @@ export default function FolderTree({ selectedFolderId, onSelect }: FolderTreePro
   const [isCreating, setIsCreating] = useState(false);
   const [creating, setCreating] = useState(false);
   const creatingRef = useRef(false);
+  const [settingsFolder, setSettingsFolder] = useState<Folder | null>(null);
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   const fetchFolders = useCallback(async () => {
     try {
@@ -49,8 +54,28 @@ export default function FolderTree({ selectedFolderId, onSelect }: FolderTreePro
         key: folder.id,
         title: (
           <div className={styles.treeNode ?? ''}>
-            <span className={styles.nodeLabel ?? ''}>{folder.name}</span>
+            <span className={styles.nodeLabel ?? ''}>
+              <FolderOutlined className={styles.folderIcon ?? ''} />
+              {folder.name}
+              {folder.unified_management && (
+                <Tooltip title="已开启统一管理，子文件将继承文件夹设置">
+                  <Tag color="blue" className={styles.unifiedTag ?? ''}>统一</Tag>
+                </Tooltip>
+              )}
+            </span>
             <Space className={styles.nodeActions ?? ''} size={4}>
+              <Tooltip title="文件夹设置">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<SettingOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSettingsFolder(folder);
+                    setSettingsVisible(true);
+                  }}
+                />
+              </Tooltip>
               <Button
                 type="text"
                 size="small"
@@ -188,6 +213,18 @@ export default function FolderTree({ selectedFolderId, onSelect }: FolderTreePro
           onSelect={handleSelect}
         />
       </div>
+
+      <FolderSettingsModal
+        visible={settingsVisible}
+        folder={settingsFolder}
+        onClose={() => {
+          setSettingsVisible(false);
+          setSettingsFolder(null);
+        }}
+        onSuccess={() => {
+          fetchFolders();
+        }}
+      />
     </div>
   );
 }

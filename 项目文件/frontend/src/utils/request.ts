@@ -63,6 +63,12 @@ export async function request<T>(
     requestHeaders['Authorization'] = `Bearer ${token}`;
   }
 
+  // 防止浏览器对 GET 请求做启发式缓存，避免 Safari/Edge 等浏览器显示过时数据
+  if (method === 'GET') {
+    requestHeaders['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    requestHeaders['Pragma'] = 'no-cache';
+  }
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method,
     headers: requestHeaders,
@@ -93,8 +99,14 @@ export async function request<T>(
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ msg: 'Request failed' }));
-    throw new HttpError(error.msg || `HTTP ${response.status}`, response.status);
+    const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+    // FastAPI 422 验证错误返回 { detail: [{ msg: "...", loc: [...], type: "..." }] }
+    const msg = Array.isArray(error.detail)
+      ? error.detail.map((e: { msg: string; loc?: string[] }) =>
+          e.loc ? `${e.loc.join('.')}: ${e.msg}` : e.msg
+        ).join('; ')
+      : (error.detail || error.msg || `HTTP ${response.status}`);
+    throw new HttpError(msg, response.status);
   }
 
   return response.json();

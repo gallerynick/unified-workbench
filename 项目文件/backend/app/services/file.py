@@ -66,6 +66,7 @@ async def upload_file(
     visibility: str = "private",
     restricted_users: list[str] | None = None,
     restricted_tags: list[str] | None = None,
+    expires_at: datetime | None = None,
 ) -> File:
     settings = get_settings()
     mime_type = file.content_type or "application/octet-stream"
@@ -99,6 +100,16 @@ async def upload_file(
         except Exception:
             pass
 
+    # 如果指定了文件夹，检查是否启用统一管理
+    if folder_id is not None:
+        folder_result = await db.execute(select(Folder).where(Folder.id == folder_id))
+        folder = folder_result.scalar_one_or_none()
+        if folder and folder.unified_management:
+            visibility = folder.visibility
+            restricted_users = folder.restricted_users
+            restricted_tags = folder.restricted_tags
+            expires_at = folder.expires_at
+
     db_file = File(
         id=file_id,
         name=file.filename or "unnamed",
@@ -111,6 +122,7 @@ async def upload_file(
         visibility=visibility,
         restricted_users=restricted_users,
         restricted_tags=restricted_tags,
+        expires_at=expires_at,
     )
     db.add(db_file)
     await db.flush()
@@ -281,3 +293,81 @@ async def delete_folder(
     await db.delete(folder)
     await db.flush()
     await log_audit(db, current_user.id, "delete_folder", "folder", str(folder_id))
+
+
+async def update_file(
+    db: AsyncSession,
+    file_id: uuid.UUID,
+    data: dict,
+    current_user: User,
+) -> File:
+    """更新文件属性"""
+    result = await db.execute(select(File).where(File.id == file_id))
+    file = result.scalar_one_or_none()
+    if not file:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="文件不存在")
+
+    if file.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="仅所有者或管理员可修改")
+
+    if file.folder_id is not None and current_user.role != UserRole.ADMIN:
+        folder_result = await db.execute(select(Folder).where(Folder.id == file.folder_id))
+        folder = folder_result.scalar_one_or_none()
+        if folder and folder.unified_management:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="该文件受文件夹统一管理，无法单独修改",
+            )
+
+    for key, value in data.items():
+        if hasattr(file, key):
+            setattr(file, key, value)
+
+    await db.flush()
+    await log_audit(db, current_user.id, "update_file", "file", str(file_id))
+    return file
+
+
+async def update_folder(
+    db: AsyncSession,
+    folder_id: uuid.UUID,
+    data: dict,
+    current_user: User,
+) -> Folder:
+    """更新文件夹属性"""
+    result = await db.execute(select(Folder).where(Folder.id == folder_id))
+    folder = result.scalar_one_or_none()
+    if not folder:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="文件夹不存在")
+
+    if folder.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="仅所有者或管理员可修改")
+
+    # 检查 unified_management 是否变更
+    old_unified = folder.unified_management
+    new_unified = data.get("unified_management")
+
+    for key, value in data.items():
+        if hasattr(folder, key):
+            setattr(folder, key, value)
+
+    # 如果 unified_management 为 True，同步设置到子文件（无论之前状态如何）
+    if new_unified is True:
+        sync_fields = {}
+        if "visibility" in data:
+            sync_fields["visibility"] = data["visibility"]
+        if "restricted_users" in data:
+            sync_fields["restricted_users"] = data["restricted_users"]
+        if "restricted_tags" in data:
+            sync_fields["restricted_tags"] = data["restricted_tags"]
+        if "expires_at" in data:
+            sync_fields["expires_at"] = data["expires_at"]
+
+        if sync_fields:
+            await db.execute(
+                update(File).where(File.folder_id == folder_id).values(**sync_fields)
+            )
+
+    await db.flush()
+    await log_audit(db, current_user.id, "update_folder", "folder", str(folder_id))
+    return folder

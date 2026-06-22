@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.common import UnifiedResponse
 from app.schemas.form import FormCreate, FormListResponse, FormResponse as FormResponseSchema, FormSubmit
 from app.services.form import create_form, delete_form, get_form, list_form_responses, list_forms, submit_form_response
@@ -32,6 +32,8 @@ async def get_form_endpoint(form_id: uuid.UUID, current_user: User = Depends(get
     form = await get_form(db, form_id)
     if not form:
         raise HTTPException(status_code=404, detail="表单不存在")
+    if form.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="无权查看此表单")
     return UnifiedResponse(data=FormResponseSchema.model_validate(form))
 
 
@@ -53,5 +55,10 @@ async def submit_form_endpoint(form_id: uuid.UUID, request: FormSubmit, current_
 
 @router.get("/{form_id}/responses")
 async def list_form_responses_endpoint(form_id: uuid.UUID, page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    form = await get_form(db, form_id)
+    if not form:
+        raise HTTPException(status_code=404, detail="表单不存在")
+    if form.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="无权查看此表单的回复")
     responses, total = await list_form_responses(db, form_id, page, page_size)
     return UnifiedResponse(data={"items": [{"id": str(r.id), "data": r.data, "created_at": r.created_at.isoformat()} for r in responses], "total": total})

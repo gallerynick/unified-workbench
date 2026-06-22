@@ -36,10 +36,28 @@ const DEFAULT_ITEMS: SidebarItem[] = [
   { key: '/reminders', label: '提醒管理', icon: 'BellOutlined', visible: true, hasData: true, builtin: true },
 ];
 
+function mergeWithDefaults(storedItems: SidebarItem[]): SidebarItem[] {
+  const mergedDefaults = DEFAULT_ITEMS.map((defaultItem) => {
+    const storedItem = storedItems.find((s) => s.key === defaultItem.key);
+    return storedItem ? { ...defaultItem, visible: storedItem.visible } : defaultItem;
+  });
+
+  const customItems = storedItems.filter(
+    (s) => !s.builtin && !DEFAULT_ITEMS.some((d) => d.key === s.key)
+  );
+
+  return [...mergedDefaults, ...customItems];
+}
+
 function getSidebarConfig(): SidebarItem[] {
   try {
     const stored = localStorage.getItem(SIDEBAR_CONFIG_KEY);
-    return stored ? JSON.parse(stored) : DEFAULT_ITEMS;
+    if (!stored) return DEFAULT_ITEMS;
+
+    const storedItems: SidebarItem[] = JSON.parse(stored);
+    const merged = mergeWithDefaults(storedItems);
+    localStorage.setItem(SIDEBAR_CONFIG_KEY, JSON.stringify(merged));
+    return merged;
   } catch {
     return DEFAULT_ITEMS;
   }

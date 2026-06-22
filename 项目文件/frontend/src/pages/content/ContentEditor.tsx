@@ -84,6 +84,7 @@ interface ContentEditorProps {
   onChange?: (value: Record<string, unknown>) => void;
   placeholder?: string;
   minHeight?: number;
+  editable?: boolean;
 }
 
 export default function ContentEditor({
@@ -91,6 +92,7 @@ export default function ContentEditor({
   onChange,
   placeholder = '请输入内容...',
   minHeight = 200,
+  editable = true,
 }: ContentEditorProps) {
   const currentColorRef = useRef('#000000');
 
@@ -104,6 +106,7 @@ export default function ContentEditor({
       Color,
       FontSize,
     ],
+    editable: editable,
     content: value ? JSON.parse(JSON.stringify(value)) : undefined,
     editorProps: {
       attributes: {
@@ -181,71 +184,73 @@ export default function ContentEditor({
 
   return (
     <div className={styles.editorWrapper} style={{ '--editor-min-height': `${minHeight}px` } as React.CSSProperties}>
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarGroup}>
-          <button
-            type="button"
-            className={`${styles.toolbarBtn} ${editor.isActive('bold') ? styles.toolbarBtnActive : ''}`}
-            onClick={handleBold}
-            title="粗体"
-          >
-            <BoldOutlined />
-          </button>
-          <button
-            type="button"
-            className={`${styles.toolbarBtn} ${editor.isActive('italic') ? styles.toolbarBtnActive : ''}`}
-            onClick={handleItalic}
-            title="斜体"
-          >
-            <ItalicOutlined />
-          </button>
-          <button
-            type="button"
-            className={`${styles.toolbarBtn} ${editor.isActive('underline') ? styles.toolbarBtnActive : ''}`}
-            onClick={handleUnderline}
-            title="下划线"
-          >
-            <UnderlineOutlined />
-          </button>
-        </div>
-
-        <div className={styles.toolbarDivider} />
-
-        <div className={styles.toolbarGroup}>
-          <Popover
-            content={colorContent}
-            trigger="click"
-            placement="bottomLeft"
-            overlayClassName={styles.colorPopover ?? ''}
-          >
+      {editable && (
+        <div className={styles.toolbar}>
+          <div className={styles.toolbarGroup}>
             <button
               type="button"
-              className={styles.colorPickerBtn}
-              title="文字颜色"
+              className={`${styles.toolbarBtn} ${editor.isActive('bold') ? styles.toolbarBtnActive : ''}`}
+              onClick={handleBold}
+              title="粗体"
             >
-              <FontColorsOutlined />
-              <span
-                className={styles.colorIndicator}
-                style={{ backgroundColor: currentColorRef.current }}
-              />
+              <BoldOutlined />
             </button>
-          </Popover>
-        </div>
+            <button
+              type="button"
+              className={`${styles.toolbarBtn} ${editor.isActive('italic') ? styles.toolbarBtnActive : ''}`}
+              onClick={handleItalic}
+              title="斜体"
+            >
+              <ItalicOutlined />
+            </button>
+            <button
+              type="button"
+              className={`${styles.toolbarBtn} ${editor.isActive('underline') ? styles.toolbarBtnActive : ''}`}
+              onClick={handleUnderline}
+              title="下划线"
+            >
+              <UnderlineOutlined />
+            </button>
+          </div>
 
-        <div className={styles.toolbarDivider} />
+          <div className={styles.toolbarDivider} />
 
-        <div className={styles.toolbarGroup}>
-          <Select
-            className={styles.fontSizeSelect ?? ''}
-            size="small"
-            placeholder="字号"
-            options={FONT_SIZES}
-            onChange={handleFontSize}
-            allowClear
-            popupMatchSelectWidth={false}
-          />
+          <div className={styles.toolbarGroup}>
+            <Popover
+              content={colorContent}
+              trigger="click"
+              placement="bottomLeft"
+              overlayClassName={styles.colorPopover ?? ''}
+            >
+              <button
+                type="button"
+                className={styles.colorPickerBtn}
+                title="文字颜色"
+              >
+                <FontColorsOutlined />
+                <span
+                  className={styles.colorIndicator}
+                  style={{ backgroundColor: currentColorRef.current }}
+                />
+              </button>
+            </Popover>
+          </div>
+
+          <div className={styles.toolbarDivider} />
+
+          <div className={styles.toolbarGroup}>
+            <Select
+              className={styles.fontSizeSelect ?? ''}
+              size="small"
+              placeholder="字号"
+              options={FONT_SIZES}
+              onChange={handleFontSize}
+              allowClear
+              popupMatchSelectWidth={false}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.editorContent} style={{ minHeight }}>
         <EditorContent editor={editor} />

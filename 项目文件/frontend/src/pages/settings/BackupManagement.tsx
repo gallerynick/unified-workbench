@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Card, Switch, InputNumber, Input } from 'antd';
-import { CloudServerOutlined, DeleteOutlined, ReloadOutlined, CloudDownloadOutlined } from '@ant-design/icons';
+import { Table, Button, Typography, Modal, message, Space, Card, Switch, InputNumber, Input, Result } from 'antd';
+import { CloudServerOutlined, DeleteOutlined, ReloadOutlined, CloudDownloadOutlined, LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { createBackup, listBackups, deleteBackup, restoreBackup } from '../../api/backups';
 import { getConfig, updateConfig } from '../../api/system_config';
+import { isAdmin } from '../../utils/auth';
 import type { BackupInfo } from '../../types/backup';
 import type { BackupConfig } from '../../types/backup';
 import styles from './BackupManagement.module.css';
@@ -50,6 +51,10 @@ export default function BackupManagement() {
     fetchBackups();
     fetchConfig();
   }, [fetchBackups, fetchConfig]);
+
+  if (!isAdmin()) {
+    return <Result status="403" title="权限不足" subTitle="只有管理员可以管理备份" icon={<LockOutlined />} />;
+  }
 
   const handleCreate = async () => {
     try {

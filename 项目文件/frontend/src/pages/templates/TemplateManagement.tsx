@@ -4,10 +4,12 @@ import {
   Button,
   Input,
   Select,
+  Tag,
   Typography,
   Modal,
   message,
   Space,
+  Result,
 } from 'antd';
 import {
   PlusOutlined,
@@ -16,6 +18,7 @@ import {
   DeleteOutlined,
   ExportOutlined,
   ImportOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -24,6 +27,7 @@ import {
   exportTemplate,
   importTemplate,
 } from '../../api/templates';
+import { isAdmin } from '../../utils/auth';
 import type { Template } from '../../types/template';
 import TemplateEditor from './TemplateEditor';
 import styles from './TemplateManagement.module.css';
@@ -39,6 +43,19 @@ const CATEGORY_FILTER_OPTIONS = [
   { value: '其他', label: '其他' },
 ];
 
+const LOCATION_FILTER_OPTIONS = [
+  { value: '', label: '全部位置' },
+  { value: 'project', label: '项目级' },
+  { value: 'record', label: '记录级' },
+  { value: 'global', label: '全局' },
+];
+
+const LOCATION_TAG_CONFIG: Record<string, { label: string; color: string }> = {
+  project: { label: '项目级', color: 'blue' },
+  record: { label: '记录级', color: 'green' },
+  global: { label: '全局', color: 'orange' },
+};
+
 export default function TemplateManagement() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [total, setTotal] = useState(0);
@@ -46,6 +63,7 @@ export default function TemplateManagement() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
+  const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [editorVisible, setEditorVisible] = useState(false);
@@ -60,12 +78,14 @@ export default function TemplateManagement() {
         page_size: number;
         search?: string;
         category?: string;
+        location?: string;
       } = {
         page,
         page_size: pageSize,
       };
       if (search) params.search = search;
       if (category) params.category = category;
+      if (location) params.location = location;
 
       const res = await listTemplates(params);
       if (res.code === 0) {
@@ -80,11 +100,15 @@ export default function TemplateManagement() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, category]);
+  }, [page, pageSize, search, category, location]);
 
   useEffect(() => {
     fetchTemplates();
   }, [fetchTemplates]);
+
+  if (!isAdmin()) {
+    return <Result status="403" title="权限不足" subTitle="只有管理员可以管理模板" icon={<LockOutlined />} />;
+  }
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -93,6 +117,11 @@ export default function TemplateManagement() {
 
   const handleCategoryChange = (value: string) => {
     setCategory(value);
+    setPage(1);
+  };
+
+  const handleLocationChange = (value: string) => {
+    setLocation(value);
     setPage(1);
   };
 
@@ -199,6 +228,16 @@ export default function TemplateManagement() {
       width: 120,
     },
     {
+      title: '位置',
+      dataIndex: 'location',
+      key: 'location',
+      width: 100,
+      render: (loc: string) => {
+        const cfg = LOCATION_TAG_CONFIG[loc];
+        return cfg ? <Tag color={cfg.color}>{cfg.label}</Tag> : <Tag>{loc}</Tag>;
+      },
+    },
+    {
       title: '版本',
       dataIndex: 'version',
       key: 'version',
@@ -281,6 +320,13 @@ export default function TemplateManagement() {
             className={styles.categorySelect ?? ''}
             allowClear
             value={category || null}
+          />
+          <Select
+            placeholder="全部位置"
+            options={LOCATION_FILTER_OPTIONS}
+            onChange={handleLocationChange}
+            allowClear
+            value={location || null}
           />
           <Button
             icon={<ImportOutlined />}

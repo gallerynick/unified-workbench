@@ -73,3 +73,11 @@
   color: #1890ff;
   margin-right: 4px;
 }
+
+.unifiedTag {
+  margin-left: 6px;
+  font-size: 11px;
+  line-height: 18px;
+  padding: 0 4px;
+  vertical-align: middle;
+}

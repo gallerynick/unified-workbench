@@ -6,6 +6,7 @@ import {
   Tag,
   Typography,
   Modal,
+  DatePicker,
   message,
   Space,
   Tooltip,
@@ -22,9 +23,13 @@ import {
   FileWordOutlined,
   FilePptOutlined,
   FileZipOutlined,
+  LinkOutlined,
+  WarningOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { listFiles, deleteFile, listFolders } from '../../api/files';
+import type { Dayjs } from 'dayjs';
+import { listFiles, deleteFile, listFolders, updateFile } from '../../api/files';
 import { getToken } from '../../utils/auth';
 import type { FileRecord, Folder } from '../../types/file';
 import { getVisibilityConfig } from '../../utils/visibility';
@@ -33,6 +38,20 @@ import FolderTree from './FolderTree';
 import styles from './FileManagement.module.css';
 
 const { Title } = Typography;
+
+// 检查文件是否受文件夹统一管理
+function isFileManagedByFolder(file: FileRecord, folders: Folder[]): boolean {
+  if (!file.folder_id) return false;
+  const folder = folders.find((f) => f.id === file.folder_id);
+  return folder?.unified_management ?? false;
+}
+
+// 获取文件所在文件夹名称
+function getFileFolderName(file: FileRecord, folders: Folder[]): string | null {
+  if (!file.folder_id) return null;
+  const folder = folders.find((f) => f.id === file.folder_id);
+  return folder?.name ?? null;
+}
 
 // 根据 MIME 类型获取图标
 function getFileIcon(mimeType: string) {
@@ -70,6 +89,12 @@ function formatDate(dateStr: string): string {
   });
 }
 
+// 检查文件是否已过期
+function isExpired(expiresAt: string | null): boolean {
+  if (!expiresAt) return false;
+  return new Date(expiresAt).getTime() < Date.now();
+}
+
 export default function FileManagement() {
   const [files, setFiles] = useState<FileRecord[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -80,6 +105,10 @@ export default function FileManagement() {
   const [loading, setLoading] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [editExpireModalVisible, setEditExpireModalVisible] = useState(false);
+  const [editingFile, setEditingFile] = useState<FileRecord | null>(null);
+  const [editExpireValue, setEditExpireValue] = useState<Dayjs | null>(null);
+  const [editExpireSaving, setEditExpireSaving] = useState(false);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -184,6 +213,35 @@ export default function FileManagement() {
     fetchFolders();
   };
 
+  const handleOpenEditExpire = (file: FileRecord) => {
+    setEditingFile(file);
+    setEditExpireValue(null);
+    setEditExpireModalVisible(true);
+  };
+
+  const handleSaveExpire = async () => {
+    if (!editingFile) return;
+    setEditExpireSaving(true);
+    try {
+      const res = await updateFile(editingFile.id, {
+        expires_at: editExpireValue ? editExpireValue.toISOString() : null,
+      });
+      if (res.code === 0) {
+        message.success('过期时间已更新');
+        setEditExpireModalVisible(false);
+        setEditingFile(null);
+        fetchFiles();
+      } else {
+        message.error(res.msg || '更新失败');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '更新失败';
+      message.error(msg);
+    } finally {
+      setEditExpireSaving(false);
+    }
+  };
+
   // 搜索过滤
   const filteredFiles = search
     ? files.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()))
@@ -225,6 +283,8 @@ export default function FileManagement() {
       width: 120,
       render: (_: unknown, record: FileRecord) => {
         const cfg = getVisibilityConfig(record.visibility);
+        const isManaged = isFileManagedByFolder(record, folders);
+        const folderName = getFileFolderName(record, folders);
         return (
           <Space direction="vertical" size={2}>
             <Tag color={cfg.color}>{cfg.text}</Tag>
@@ -232,6 +292,13 @@ export default function FileManagement() {
               <span style={{ fontSize: 11, color: '#999' }}>
                 {record.restricted_users.length} 个用户
               </span>
+            )}
+            {isManaged && folderName && (
+              <Tooltip title={`此文件受文件夹「${folderName}」统一管理，设置将继承自文件夹`}>
+                <Tag icon={<LinkOutlined />} color="processing" style={{ fontSize: 11, lineHeight: '18px' }}>
+                  继承自文件夹
+                </Tag>
+              </Tooltip>
             )}
           </Space>
         );
@@ -245,9 +312,34 @@ export default function FileManagement() {
       render: (date: string) => formatDate(date),
     },
     {
+      title: '过期时间',
+      dataIndex: 'expires_at',
+      key: 'expires_at',
+      width: 200,
+      render: (expiresAt: string | null, record: FileRecord) => {
+        if (isFileManagedByFolder(record, folders)) {
+          return <Tag color="blue">继承自文件夹</Tag>;
+        }
+        if (!expiresAt) {
+          return <Tag>未设置</Tag>;
+        }
+        const expired = isExpired(expiresAt);
+        return (
+          <Space size={4}>
+            {expired && (
+              <Tag icon={<WarningOutlined />} color="warning">已过期</Tag>
+            )}
+            <span style={{ color: expired ? '#ff4d4f' : undefined, fontSize: 13 }}>
+              {formatDate(expiresAt)}
+            </span>
+          </Space>
+        );
+      },
+    },
+    {
       title: '操作',
       key: 'action',
-      width: 140,
+      width: 200,
       render: (_: unknown, record: FileRecord) => (
         <Space size="small">
           <Tooltip title="下载">
@@ -258,6 +350,17 @@ export default function FileManagement() {
               onClick={() => handleDownload(record)}
             >
               下载
+            </Button>
+          </Tooltip>
+          <Tooltip title={isFileManagedByFolder(record, folders) ? '文件受文件夹统一管理，无法单独编辑' : '编辑过期时间'}>
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleOpenEditExpire(record)}
+              disabled={isFileManagedByFolder(record, folders)}
+            >
+              过期
             </Button>
           </Tooltip>
           <Tooltip title="删除">
@@ -336,6 +439,43 @@ export default function FileManagement() {
         onClose={() => setUploadModalVisible(false)}
         onSuccess={handleUploadSuccess}
       />
+
+      <Modal
+        title={`编辑过期时间 - ${editingFile?.name ?? ''}`}
+        open={editExpireModalVisible}
+        onOk={handleSaveExpire}
+        onCancel={() => {
+          setEditExpireModalVisible(false);
+          setEditingFile(null);
+        }}
+        okText="保存"
+        cancelText="取消"
+        confirmLoading={editExpireSaving}
+        destroyOnClose
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {editingFile?.expires_at && !isExpired(editingFile.expires_at) && (
+            <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.45)' }}>
+              当前过期时间：{formatDate(editingFile.expires_at)}
+            </span>
+          )}
+          {editingFile?.expires_at && isExpired(editingFile.expires_at) && (
+            <Tag icon={<WarningOutlined />} color="warning" style={{ alignSelf: 'flex-start' }}>
+              文件已过期
+            </Tag>
+          )}
+          <DatePicker
+            showTime
+            format="YYYY-MM-DD HH:mm"
+            placeholder="选择新的过期时间（留空表示清除）"
+            value={editExpireValue}
+            onChange={setEditExpireValue}
+            disabledDate={(current) => current && current.isBefore(Date.now(), 'day')}
+            style={{ width: '100%' }}
+            allowClear
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

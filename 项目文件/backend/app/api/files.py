@@ -1,6 +1,7 @@
 """文件 API 路由"""
 
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from fastapi.responses import FileResponse
@@ -12,8 +13,10 @@ from app.models.user import User
 from app.schemas.common import UnifiedResponse
 from app.schemas.file import (
     FileListResponse,
+    FileUpdateRequest,
     FolderCreateRequest,
     FolderResponse,
+    FolderUpdateRequest,
 )
 from app.schemas.file import (
     FileResponse as FileResponseSchema,
@@ -25,6 +28,8 @@ from app.services.file import (
     download_file,
     list_files,
     list_folders,
+    update_file,
+    update_folder,
     upload_file,
 )
 
@@ -38,13 +43,15 @@ async def upload_file_endpoint(
     visibility: str = Form("private"),
     restricted_users: str | None = Form(None),
     restricted_tags: str | None = Form(None),
+    expires_at: str | None = Form(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     r_users = restricted_users.split(",") if restricted_users else None
     r_tags = restricted_tags.split(",") if restricted_tags else None
+    exp_at = datetime.fromisoformat(expires_at) if expires_at else None
     db_file = await upload_file(
-        db, file, current_user, folder_id, visibility, r_users, r_tags
+        db, file, current_user, folder_id, visibility, r_users, r_tags, exp_at
     )
     return UnifiedResponse(data=FileResponseSchema.model_validate(db_file))
 
@@ -78,6 +85,19 @@ async def delete_folder_endpoint(
 ):
     await delete_folder(db, folder_id, current_user)
     return UnifiedResponse(msg="文件夹删除成功")
+
+
+@router.patch("/folders/{folder_id}", response_model=UnifiedResponse[FolderResponse])
+async def update_folder_endpoint(
+    folder_id: uuid.UUID,
+    request: FolderUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    folder = await update_folder(
+        db, folder_id, request.model_dump(exclude_unset=True), current_user
+    )
+    return UnifiedResponse(data=FolderResponse.model_validate(folder))
 
 
 @router.get("/", response_model=UnifiedResponse[FileListResponse])
@@ -125,3 +145,16 @@ async def delete_file_endpoint(
 ):
     await delete_file(db, file_id, current_user)
     return UnifiedResponse(msg="文件删除成功")
+
+
+@router.patch("/{file_id}", response_model=UnifiedResponse[FileResponseSchema])
+async def update_file_endpoint(
+    file_id: uuid.UUID,
+    request: FileUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    file = await update_file(
+        db, file_id, request.model_dump(exclude_unset=True), current_user
+    )
+    return UnifiedResponse(data=FileResponseSchema.model_validate(file))

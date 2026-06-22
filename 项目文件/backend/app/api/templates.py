@@ -47,11 +47,12 @@ async def list_templates_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     category: str | None = Query(None),
+    location: str | None = Query(None),
     search: str | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    templates, total = await list_templates(db, page, page_size, category, search)
+    templates, total = await list_templates(db, page, page_size, category, search, location)
     items = [TemplateResponse.model_validate(t) for t in templates]
     return UnifiedResponse(data=TemplateListResponse(items=items, total=total))
 

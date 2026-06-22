@@ -1,26 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Steps, Input, Button, Typography, message, Space } from 'antd';
+import { Card, Steps, Input, Button, Typography, message, Space, Spin } from 'antd';
 import { RocketOutlined, SettingOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useCustomization, saveAppSettings } from '../hooks/useCustomization';
+import { useSetupStatus } from '../hooks/useSetupStatus';
 import { isAuthenticated } from '../utils/auth';
 import styles from './Welcome.module.css';
 
 const { Title, Paragraph, Text } = Typography;
 
-const STORAGE_KEY = 'setup_complete';
-
-export function isSetupComplete(): boolean {
-  return localStorage.getItem(STORAGE_KEY) === 'true';
-}
-
-export function markSetupComplete(): void {
-  localStorage.setItem(STORAGE_KEY, 'true');
-}
-
 export default function Welcome() {
   const navigate = useNavigate();
   const customization = useCustomization();
+  const { isComplete, loading, markComplete } = useSetupStatus();
   const [currentStep, setCurrentStep] = useState(0);
   const [appName, setAppName] = useState(customization.app.name);
   const [appDescription, setAppDescription] = useState(customization.app.description);
@@ -35,20 +27,20 @@ export default function Welcome() {
       navigate('/login', { replace: true });
       return;
     }
-    if (isSetupComplete()) {
+    if (!loading && isComplete === true) {
       navigate('/', { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, isComplete, loading]);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     saveAppSettings({ name: appName, description: appDescription });
-    markSetupComplete();
+    await markComplete();
     message.success('设置完成，欢迎使用！');
     navigate('/', { replace: true });
   };
 
-  const handleSkip = () => {
-    markSetupComplete();
+  const handleSkip = async () => {
+    await markComplete();
     navigate('/', { replace: true });
   };
 
@@ -116,6 +108,14 @@ export default function Welcome() {
       ),
     },
   ];
+
+  if (loading) {
+    return (
+      <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

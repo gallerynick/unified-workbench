@@ -20,7 +20,7 @@ from app.schemas.auth import LoginRequest, PasswordChangeRequest, RefreshRequest
 
 # 登录失败限制配置
 MAX_LOGIN_ATTEMPTS = 5
-LOCKOUT_DURATION = 300  # 5 分钟
+LOCKOUT_DURATION = 3  # 3 秒
 
 
 async def _check_login_rate_limit(username: str, ip: str | None = None) -> None:

@@ -13,7 +13,9 @@ from app.api.files import router as files_router
 from app.api.finance import router as finance_router
 from app.api.forms import router as forms_router
 from app.api.health import router as health_router
+from app.api.inventory import router as inventory_router
 from app.api.notes import router as notes_router
+from app.api.project_documents import router as project_documents_router
 from app.api.records import router as records_router
 from app.api.reminders import router as reminders_router
 from app.api.secret_categories import router as secret_categories_router
@@ -43,9 +45,11 @@ api_router.include_router(backups_router, prefix="/backups", tags=["备份管理
 api_router.include_router(finance_router, prefix="/finance", tags=["财务管理"])
 api_router.include_router(tasks_router, prefix="/tasks", tags=["任务管理"])
 api_router.include_router(contacts_router, prefix="/contacts", tags=["客户管理"])
+api_router.include_router(inventory_router, prefix="/inventory", tags=["物品管理"])
 api_router.include_router(calendar_events_router, prefix="/calendar", tags=["日历"])
 api_router.include_router(votes_router, prefix="/votes", tags=["投票"])
 api_router.include_router(forms_router, prefix="/forms", tags=["表单"])
 api_router.include_router(announcements_router, prefix="/announcements", tags=["公告"])
 api_router.include_router(notes_router, prefix="/notes", tags=["笔记"])
+api_router.include_router(project_documents_router, prefix="/project-documents", tags=["项目文档"])
 api_router.include_router(tags_router, prefix="/tags", tags=["标签管理"])

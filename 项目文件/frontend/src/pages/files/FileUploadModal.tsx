@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Modal, Upload, Progress, Select, message } from 'antd';
+import { Modal, Upload, Progress, Select, DatePicker, message } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import type { UploadFile, RcFile } from 'antd/es/upload';
+import type { Dayjs } from 'dayjs';
 import { uploadWithProgress } from '../../utils/request';
 import VisibilitySetting from './VisibilitySetting';
 import type { Visibility } from '../../utils/visibility';
@@ -53,6 +54,7 @@ export default function FileUploadModal({
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
+  const [expiresAt, setExpiresAt] = useState<Dayjs | null>(null);
 
   const resetState = () => {
     setFileList([]);
@@ -62,6 +64,7 @@ export default function FileUploadModal({
     setVisibility('private');
     setRestrictedUsers([]);
     setRestrictedTags([]);
+    setExpiresAt(null);
   };
 
   const handleClose = () => {
@@ -109,6 +112,10 @@ export default function FileUploadModal({
         if (restrictedTags.length > 0) {
           extraData.restricted_tags = restrictedTags.join(',');
         }
+      }
+
+      if (expiresAt) {
+        extraData.expires_at = expiresAt.toISOString();
       }
 
       const res = await uploadWithProgress(
@@ -208,6 +215,20 @@ export default function FileUploadModal({
             onChange={setVisibility}
             onRestrictedUsersChange={setRestrictedUsers}
             onRestrictedTagsChange={setRestrictedTags}
+          />
+        </div>
+
+        <div className={styles.formItem ?? ''}>
+          <p className={styles.sectionLabel ?? ''}>过期时间</p>
+          <DatePicker
+            showTime
+            format="YYYY-MM-DD HH:mm"
+            placeholder="选择过期时间（可选）"
+            value={expiresAt}
+            onChange={setExpiresAt}
+            disabledDate={(current) => current && current.isBefore(Date.now(), 'day')}
+            style={{ width: '100%' }}
+            allowClear
           />
         </div>
       </div>

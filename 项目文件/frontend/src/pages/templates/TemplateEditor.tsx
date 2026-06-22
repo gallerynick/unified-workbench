@@ -44,6 +44,12 @@ const CATEGORY_OPTIONS = [
   { value: '其他', label: '其他' },
 ];
 
+const LOCATION_OPTIONS = [
+  { value: 'project', label: '项目' },
+  { value: 'record', label: '记录' },
+  { value: 'global', label: '全局' },
+];
+
 export default function TemplateEditor({
   visible,
   mode,
@@ -61,11 +67,13 @@ export default function TemplateEditor({
         form.setFieldsValue({
           name: template.name,
           category: template.category,
+          location: template.location ?? 'global',
         });
         setFields([...template.schema]);
         fieldCounter.current = template.schema.length;
       } else {
         form.resetFields();
+        form.setFieldValue('location', 'global');
         setFields([]);
         fieldCounter.current = 0;
       }
@@ -142,6 +150,7 @@ export default function TemplateEditor({
         const payload: TemplateCreate = {
           name: values.name as string,
           category: values.category as string,
+          location: (values.location as 'project' | 'record' | 'global') ?? 'global',
           schema,
         };
         const res = await createTemplate(payload);
@@ -155,6 +164,7 @@ export default function TemplateEditor({
         const payload: TemplateUpdate = {
           name: values.name as string,
           category: values.category as string,
+          location: (values.location as 'project' | 'record' | 'global') ?? 'global',
           schema,
         };
         const res = await updateTemplate(template.id, payload);
@@ -202,6 +212,15 @@ export default function TemplateEditor({
             className={styles.categoryField ?? ''}
           >
             <Select placeholder="请选择分类" options={CATEGORY_OPTIONS} />
+          </Form.Item>
+
+          <Form.Item
+            name="location"
+            label="使用位置"
+            rules={[{ required: true, message: '请选择使用位置' }]}
+            className={styles.locationField ?? ''}
+          >
+            <Select placeholder="请选择使用位置" options={LOCATION_OPTIONS} />
           </Form.Item>
         </div>
 

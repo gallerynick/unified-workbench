@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Button, Space, message } from 'antd';
+import { Button, Dropdown, message } from 'antd';
 import {
+  DownloadOutlined,
   FileWordOutlined,
   FilePdfOutlined,
   FileExcelOutlined,
 } from '@ant-design/icons';
+import type { MenuProps } from 'antd';
 import { exportRecordWord, exportRecordPdf, exportRecordExcel } from '../../api/records';
 
 interface ExportButtonsProps {
@@ -48,20 +50,19 @@ export default function ExportButtons({ recordId, recordTitle }: ExportButtonsPr
     }
   };
 
+  const menuItems: MenuProps['items'] = (Object.keys(FORMAT_META) as ExportFormat[]).map((format) => ({
+    key: format,
+    icon: FORMAT_META[format].icon,
+    label: FORMAT_META[format].label,
+    disabled: exporting !== null,
+    onClick: () => handleExport(format),
+  }));
+
   return (
-    <Space size="small">
-      {(Object.keys(FORMAT_META) as ExportFormat[]).map((format) => (
-        <Button
-          key={format}
-          type="link"
-          size="small"
-          icon={FORMAT_META[format].icon}
-          loading={exporting === format}
-          onClick={() => handleExport(format)}
-        >
-          {FORMAT_META[format].label}
-        </Button>
-      ))}
-    </Space>
+    <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+      <Button type="link" size="small" icon={<DownloadOutlined />} loading={exporting !== null}>
+        导出
+      </Button>
+    </Dropdown>
   );
 }

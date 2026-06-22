@@ -23,6 +23,7 @@ async def create_template(
     template = Template(
         name=data["name"],
         category=data.get("category", "默认"),
+        location=data.get("location", "global"),
         schema=[f.model_dump() if hasattr(f, "model_dump") else f for f in schema_data],
         owner_id=owner_id,
     )
@@ -37,14 +38,19 @@ async def list_templates(
     page_size: int = 20,
     category: str | None = None,
     search: str | None = None,
+    location: str | None = None,
 ) -> tuple[list[Template], int]:
-    """列出模板，支持分类过滤和搜索"""
+    """列出模板，支持分类过滤、位置过滤和搜索"""
     query = select(Template)
     count_query = select(func.count()).select_from(Template)
 
     if category:
         query = query.where(Template.category == category)
         count_query = count_query.where(Template.category == category)
+
+    if location:
+        query = query.where(Template.location == location)
+        count_query = count_query.where(Template.location == location)
 
     if search:
         query = query.where(Template.name.ilike(f"%{search}%"))
@@ -88,6 +94,8 @@ async def update_template(
         template.name = data["name"]
     if "category" in data and data["category"] is not None:
         template.category = data["category"]
+    if "location" in data and data["location"] is not None:
+        template.location = data["location"]
     if "schema" in data and data["schema"] is not None:
         template.schema = [
             f.model_dump() if hasattr(f, "model_dump") else f for f in data["schema"]
@@ -116,6 +124,7 @@ async def export_template_json(db: AsyncSession, template_id: uuid.UUID) -> dict
     return {
         "name": template.name,
         "category": template.category,
+        "location": template.location,
         "schema": template.schema,
         "version": template.version,
     }
@@ -140,6 +149,7 @@ async def import_template_json(
     template = Template(
         name=json_data["name"],
         category=json_data.get("category", "默认"),
+        location=json_data.get("location", "global"),
         schema=json_data["schema"],
         owner_id=owner_id,
     )

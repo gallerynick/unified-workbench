@@ -23,6 +23,7 @@ const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationS
 const SiteSettings = lazy(() => import('@/pages/settings/SiteSettings'));
 const SidebarManagement = lazy(() => import('@/pages/settings/SidebarManagement'));
 const DeviceManagement = lazy(() => import('@/pages/settings/DeviceManagement'));
+const UserPersonalization = lazy(() => import('@/pages/settings/UserPersonalization'));
 const InventoryManagement = lazy(() => import('@/pages/inventory/InventoryManagement'));
 const FinanceManagement = lazy(() => import('@/pages/finance/FinanceManagement'));
 const TaskManagement = lazy(() => import('@/pages/tasks/TaskManagement'));
@@ -36,6 +37,7 @@ const NoteManagement = lazy(() => import('@/pages/notes/NoteManagement'));
 const TagManagement = lazy(() => import('@/pages/settings/TagManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
+const ProjectDetailPage = lazy(() => import('@/pages/projects/ProjectDetailPage'));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -80,6 +82,10 @@ export const router = createBrowserRouter([
           {
             path: 'projects',
             element: <LazyPage><RecordManagement defaultType="project" /></LazyPage>,
+          },
+          {
+            path: 'projects/:id',
+            element: <LazyPage><ProjectDetailPage /></LazyPage>,
           },
           {
             path: 'inventory',
@@ -144,6 +150,10 @@ export const router = createBrowserRouter([
           {
             path: 'reminders',
             element: <LazyPage><ReminderManagement /></LazyPage>,
+          },
+          {
+            path: 'settings/personalization',
+            element: <LazyPage><UserPersonalization /></LazyPage>,
           },
           {
             path: 'settings/users',

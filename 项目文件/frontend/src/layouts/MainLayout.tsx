@@ -31,11 +31,13 @@ import {
   SoundOutlined,
   BookOutlined,
   TagOutlined,
+  BgColorsOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
+import { useTheme } from '../contexts/ThemeContext';
 import { clearTokens, isAdmin } from '../utils/auth';
 import { getVisibleSidebarItems } from '../pages/settings/SidebarManagement';
 import { TagProvider } from '../contexts/TagContext';
@@ -73,9 +75,17 @@ function getMenuItems(): MenuProps['items'] {
     icon: item.icon ? (ICON_MAP[item.icon] ?? null) : null,
   }));
 
+  items.push(
+    { type: 'divider' },
+    {
+      key: '/settings/personalization',
+      icon: <BgColorsOutlined />,
+      label: '用户个性化',
+    },
+  );
+
   if (isAdmin()) {
     items.push(
-      { type: 'divider' },
       {
         key: '/audit',
         icon: <AuditOutlined />,
@@ -86,8 +96,8 @@ function getMenuItems(): MenuProps['items'] {
         icon: <SettingOutlined />,
         label: '系统设置与管理',
         children: [
-            { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
-            { key: '/settings/tags', label: '标签管理', icon: <TagOutlined /> },
+          { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
+          { key: '/settings/tags', label: '标签管理', icon: <TagOutlined /> },
           { key: '/settings/templates', label: '模板管理', icon: <FormOutlined /> },
           { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
           { key: '/settings/sidebar', label: '侧边栏管理', icon: <LayoutOutlined /> },
@@ -126,17 +136,19 @@ export default function MainLayout() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useWebSocket();
   const { isMobile } = useResponsive();
   const customization = useCustomization();
+  const { isDark } = useTheme();
 
   return (
     <TagProvider>
       <Layout style={{ minHeight: '100vh' }}>
         {!isMobile && (
         <Sider
+          width={240}
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
           trigger={null}
-          theme="light"
+          theme={isDark ? 'dark' : 'light'}
           style={{
             overflow: 'auto',
             height: '100vh',
@@ -144,7 +156,7 @@ export default function MainLayout() {
             left: 0,
             top: 0,
             bottom: 0,
-            borderRight: '1px solid rgba(0, 0, 0, 0.06)',
+            borderRight: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
           }}
         >
           <div
@@ -154,7 +166,7 @@ export default function MainLayout() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+              borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
               gap: 2,
             }}
           >
@@ -162,7 +174,7 @@ export default function MainLayout() {
               customization.branding.displayMode !== 'text' && customization.branding.logoCollapsed ? (
                 <img src={customization.branding.logoCollapsed} alt="Logo" style={{ height: 28 }} />
               ) : (
-                <span style={{ fontSize: 20, fontWeight: 'bold' }}>{customization.app.shortName}</span>
+                <span style={{ fontSize: 20, fontWeight: 'bold', color: isDark ? '#fff' : undefined }}>{customization.app.shortName}</span>
               )
             ) : (
               <>
@@ -170,7 +182,7 @@ export default function MainLayout() {
                   <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 28 }} />
                 )}
                 {customization.branding.displayMode !== 'icon' && (
-                  <span style={{ fontSize: customization.branding.displayMode === 'both' ? 12 : 16, fontWeight: 'bold' }}>
+                  <span style={{ fontSize: customization.branding.displayMode === 'both' ? 12 : 16, fontWeight: 'bold', color: isDark ? '#fff' : undefined }}>
                     {customization.app.name}
                   </span>
                 )}
@@ -202,7 +214,7 @@ export default function MainLayout() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+              borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
               gap: 2,
             }}
           >
@@ -228,7 +240,7 @@ export default function MainLayout() {
         </Drawer>
       )}
 
-      <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 200), transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 240), transition: 'margin-left 0.2s' }}>
         <Header
           style={{
             padding: isMobile ? '0 16px' : '0 24px',
@@ -236,7 +248,7 @@ export default function MainLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+            borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
             position: 'sticky',
             top: 0,
             zIndex: 100,

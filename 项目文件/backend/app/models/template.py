@@ -27,6 +27,9 @@ class Template(Base):
     category: Mapped[str] = mapped_column(
         String(50), nullable=False, server_default="默认", comment="分类"
     )
+    location: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="global", comment="模板位置: project/record/global"
+    )
     schema: Mapped[dict] = mapped_column(JSONB, nullable=False, comment="字段定义数组")
     version: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="1", comment="版本号"

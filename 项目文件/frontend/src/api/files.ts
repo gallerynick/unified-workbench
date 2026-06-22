@@ -4,6 +4,7 @@ import type {
   FileListResponse,
   Folder,
   FolderCreateRequest,
+  FolderUpdateRequest,
 } from '../types/file';
 import type { UnifiedResponse } from '../types/user';
 
@@ -45,5 +46,25 @@ export async function createFolder(data: FolderCreateRequest): Promise<UnifiedRe
 export async function deleteFolder(id: string): Promise<UnifiedResponse<null>> {
   return request<null>(`/files/folders/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export async function updateFolder(
+  id: string,
+  data: FolderUpdateRequest
+): Promise<UnifiedResponse<Folder>> {
+  return request<Folder>(`/files/folders/${id}`, {
+    method: 'PATCH',
+    body: data,
+  });
+}
+
+export async function updateFile(
+  id: string,
+  data: { expires_at?: string | null }
+): Promise<UnifiedResponse<FileRecord>> {
+  return request<FileRecord>(`/files/${id}`, {
+    method: 'PATCH',
+    body: data,
   });
 }

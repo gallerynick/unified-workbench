@@ -18,13 +18,17 @@ export default function CalendarPage() {
   const [formDescription, setFormDescription] = useState('');
   const [formDate, setFormDate] = useState('');
   const [formTime, setFormTime] = useState('');
+  const [saving, setSaving] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date().toISOString().split('T')[0] ?? '';
+  const today = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -69,6 +73,8 @@ export default function CalendarPage() {
 
   const handleSave = async () => {
     if (!formTitle.trim()) { message.warning('请输入事件标题'); return; }
+    if (!formDate) { message.warning('请选择日期'); return; }
+    setSaving(true);
     try {
       const start_time = `${formDate}T${formTime}:00`;
       if (editingEvent) {
@@ -79,6 +85,7 @@ export default function CalendarPage() {
         if (res.code === 0) { message.success('事件已创建'); setModalVisible(false); fetchEvents(); }
       }
     } catch { message.error('操作失败'); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = (event: CalendarEvent) => {
@@ -174,7 +181,8 @@ export default function CalendarPage() {
       )}
 
       <Modal title={editingEvent ? '编辑事件' : '新建事件'} open={modalVisible} onOk={handleSave}
-        onCancel={() => setModalVisible(false)} okText="保存" cancelText="取消">
+        onCancel={() => setModalVisible(false)} okText="保存" cancelText="取消"
+        okButtonProps={{ loading: saving }} confirmLoading={saving}>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <Input placeholder="事件标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
           <Input.TextArea placeholder="事件描述（可选）" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} rows={3} />

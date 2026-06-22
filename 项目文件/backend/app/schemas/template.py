@@ -45,6 +45,7 @@ class TemplateCreate(BaseModel):
 
     name: str
     category: str = "默认"
+    location: str = "global"
     schema_: list[TemplateField] = Field(alias="schema")
 
 
@@ -55,6 +56,7 @@ class TemplateUpdate(BaseModel):
 
     name: str | None = None
     category: str | None = None
+    location: str | None = None
     schema_: list[TemplateField] | None = Field(default=None, alias="schema")
 
 
@@ -66,6 +68,7 @@ class TemplateResponse(BaseModel):
     id: uuid.UUID
     name: str
     category: str
+    location: str
     schema_: list[dict[str, Any]] = Field(alias="schema")
     version: int
     owner_id: uuid.UUID

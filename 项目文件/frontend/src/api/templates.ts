@@ -11,12 +11,14 @@ export async function listTemplates(params?: {
   page?: number;
   page_size?: number;
   category?: string;
+  location?: string;
   search?: string;
 }): Promise<UnifiedResponse<TemplateListResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page) searchParams.set('page', String(params.page));
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
   if (params?.category) searchParams.set('category', params.category);
+  if (params?.location) searchParams.set('location', params.location);
   if (params?.search) searchParams.set('search', params.search);
 
   const query = searchParams.toString();

@@ -38,3 +38,12 @@ export interface FolderCreateRequest {
   name: string;
   parent_id?: string;
 }
+
+export interface FolderUpdateRequest {
+  name?: string;
+  visibility?: Visibility;
+  restricted_users?: string[];
+  restricted_tags?: string[];
+  expires_at?: string | null;
+  unified_management?: boolean;
+}

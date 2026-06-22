@@ -9,11 +9,13 @@ import {
   Modal,
   message,
   Space,
+  Result,
 } from 'antd';
-import { PlusOutlined, SearchOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, EditOutlined, StopOutlined, LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listUsers, disableUser } from '../../api/users';
 import { useTagContext } from '../../contexts/TagContext';
+import { isAdmin } from '../../utils/auth';
 import type { User } from '../../types/user';
 import UserFormModal from './UserFormModal';
 import styles from './UserManagement.module.css';
@@ -65,6 +67,10 @@ export default function UserManagement() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  if (!isAdmin()) {
+    return <Result status="403" title="权限不足" subTitle="只有管理员可以管理用户" icon={<LockOutlined />} />;
+  }
 
   const handleSearch = (value: string) => {
     setSearch(value);

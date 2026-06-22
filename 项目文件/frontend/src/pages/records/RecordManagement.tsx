@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   Button,
@@ -16,6 +17,7 @@ import {
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
+  EnterOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listRecords, deleteRecord, updateRecordStatus } from '../../api/records';
@@ -48,6 +50,7 @@ interface RecordManagementProps {
 }
 
 export default function RecordManagement({ defaultType }: RecordManagementProps = {}) {
+  const navigate = useNavigate();
   const [records, setRecords] = useState<WorkRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -154,7 +157,7 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
       if (res.code === 0) {
         setCurrentTemplateSnapshot(res.data.schema);
         setCurrentTemplateId(res.data.id);
-        setCurrentRecordType(res.data.category as RecordType || 'record');
+        setCurrentRecordType(defaultType || 'record');
         setFormMode('create');
         setEditingRecord(null);
         setTemplateModalVisible(false);
@@ -168,8 +171,11 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
     }
   };
 
-  // 编辑记录
   const handleEdit = (record: WorkRecord) => {
+    if (defaultType === 'project') {
+      navigate(`/projects/${record.id}`);
+      return;
+    }
     setCurrentTemplateSnapshot(record.template_snapshot);
     setCurrentTemplateId(record.template_id);
     setCurrentRecordType(record.type);
@@ -232,7 +238,7 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
 
   const columns: ColumnsType<WorkRecord> = [
     {
-      title: '标题',
+      title: defaultType === 'project' ? '项目名称' : '标题',
       dataIndex: 'title',
       key: 'title',
       ellipsis: true,
@@ -305,14 +311,14 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
       width: 280,
       render: (_: unknown, record: WorkRecord) => (
         <Space size="small">
-          <Tooltip title="编辑">
+          <Tooltip title={defaultType === 'project' ? '进入' : '编辑'}>
             <Button
               type="link"
               size="small"
-              icon={<EditOutlined />}
+              icon={defaultType === 'project' ? <EnterOutlined /> : <EditOutlined />}
               onClick={() => handleEdit(record)}
             >
-              编辑
+              {defaultType === 'project' ? '进入' : '编辑'}
             </Button>
           </Tooltip>
           <ExportButtons recordId={record.id} recordTitle={record.title} />

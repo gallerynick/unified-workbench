@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Table, Button, Input, Typography, Modal, message, Space, Tag, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Typography, Modal, message, Space, Tag, Tooltip, Result } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useTagContext } from '../../contexts/TagContext';
+import { isAdmin } from '../../utils/auth';
 import { createTag, updateTag, deleteTag } from '../../api/tags';
 import type { Tag as TagType } from '../../api/tags';
 import styles from './TagManagement.module.css';
@@ -26,6 +27,10 @@ export default function TagManagement() {
   const [editingTag, setEditingTag] = useState<TagType | null>(null);
   const [formName, setFormName] = useState('');
   const [formColor, setFormColor] = useState('blue');
+
+  if (!isAdmin()) {
+    return <Result status="403" title="权限不足" subTitle="只有管理员可以管理标签" icon={<LockOutlined />} />;
+  }
 
   const handleCreate = () => {
     setEditingTag(null);
