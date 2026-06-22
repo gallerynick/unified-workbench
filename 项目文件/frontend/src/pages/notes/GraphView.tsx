@@ -168,7 +168,8 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // 置顶笔记金色光环
+    if (isDimmed) return;
+
     if (node.isPinned) {
       ctx.strokeStyle = '#fbbf24';
       ctx.lineWidth = 3;
@@ -215,7 +216,7 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
   const nodePointerAreaPaint = useCallback((node: NodeObject<GraphNodeData>, color: string, ctx: CanvasRenderingContext2D) => {
     const x = node.x ?? 0;
     const y = node.y ?? 0;
-    const radius = Math.log(node.degree + 2) * 4 + 6;
+    const radius = (Math.log(node.degree + 2) * 4 + 6) * 1.3;
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI);
@@ -300,7 +301,7 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
         backgroundColor={bgColor}
-        autoPauseRedraw={false}
+        autoPauseRedraw={true}
         warmupTicks={200}
         cooldownTime={15000}
         minZoom={0.1}
