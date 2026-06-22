@@ -281,7 +281,7 @@ export default function NoteManagement() {
 
       {notes.length === 0 && !loading ? (
         <div className={styles.emptyState}>
-          <FileOutlined style={{ fontSize: 40, marginBottom: 12, color: 'var(--tree-empty-color)' }} />
+          <FileOutlined style={{ fontSize: 40, marginBottom: 12, color: 'var(--tree-empty-color, #94a3b8)' }} />
           <div>还没有笔记，点击「新建笔记」创建一个吧</div>
         </div>
       ) : viewMode === 'tree' ? (
