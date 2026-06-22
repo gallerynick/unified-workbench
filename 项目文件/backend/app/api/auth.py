@@ -11,6 +11,7 @@ from app.schemas.auth import (
     LoginRequest,
     PasswordChangeRequest,
     PasswordVerifyRequest,
+    ProfileUpdateRequest,
     RefreshRequest,
     TokenResponse,
 )
@@ -45,15 +46,15 @@ async def get_me_endpoint(current_user: User = Depends(get_current_user)):
 
 @router.put("/me", response_model=UnifiedResponse[UserResponse])
 async def update_me_endpoint(
-    request: dict,
+    request: ProfileUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """更新当前用户信息（昵称、头像）。"""
-    if "nickname" in request and request["nickname"]:
-        current_user.nickname = request["nickname"]
-    if "avatar" in request:
-        current_user.avatar = request["avatar"] or None
+    if request.nickname is not None:
+        current_user.nickname = request.nickname
+    if "avatar" in request.model_fields_set:
+        current_user.avatar = request.avatar
     await db.flush()
     await db.refresh(current_user)
     return UnifiedResponse(data=UserResponse.model_validate(current_user))

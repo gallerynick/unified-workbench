@@ -1,5 +1,8 @@
 """认证相关 Schema。"""
 
+import re
+from typing import ClassVar
+
 from pydantic import BaseModel, field_validator
 
 
@@ -47,3 +50,27 @@ class PasswordVerifyRequest(BaseModel):
     """密码验证请求（用于查看密钥等敏感操作）。"""
 
     password: str
+
+
+class ProfileUpdateRequest(BaseModel):
+    """个人资料更新请求。"""
+
+    AVATAR_MAX_BYTES: ClassVar[int] = 5 * 1024 * 1024
+
+    nickname: str | None = None
+    avatar: str | None = None
+
+    @field_validator("avatar")
+    @classmethod
+    def validate_avatar(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError("头像数据无效")
+        if not v.startswith("data:image/"):
+            raise ValueError("头像必须是有效的 base64 图片数据（data:image/...）")
+        if "image/svg+xml" in v:
+            raise ValueError("不支持 SVG 格式的头像")
+        if len(v) > cls.AVATAR_MAX_BYTES:
+            raise ValueError(f"头像数据过大（最大 {cls.AVATAR_MAX_BYTES // (1024 * 1024)}MB）")
+        return v

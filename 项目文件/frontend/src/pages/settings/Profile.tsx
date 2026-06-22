@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, message, Avatar, Divider, Upload } from 'antd';
-import { UserOutlined, SaveOutlined, LockOutlined, CameraOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Typography, message, Avatar, Divider, Upload, Tag, Descriptions, Space } from 'antd';
+import { UserOutlined, SaveOutlined, LockOutlined, CameraOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import ImgCrop from 'antd-img-crop';
 import type { RcFile } from 'antd/es/upload/interface';
 import type { UploadProps } from 'antd';
@@ -14,11 +14,21 @@ function readFileAsDataURL(file: RcFile): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
+    reader.onerror = (err) => reject(err);
     reader.onabort = () => reject(new Error('文件读取已取消'));
     reader.readAsDataURL(file);
   });
 }
+
+const ROLE_MAP: Record<string, { label: string; color: string }> = {
+  admin: { label: '管理员', color: 'red' },
+  member: { label: '成员', color: 'blue' },
+};
+
+const STATUS_MAP: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  active: { label: '正常', icon: <CheckCircleOutlined />, color: 'green' },
+  disabled: { label: '已禁用', icon: <CloseCircleOutlined />, color: 'red' },
+};
 
 export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
@@ -88,10 +98,10 @@ export default function Profile() {
   };
 
   const handleAvatarChange: UploadProps['beforeUpload'] = async (file) => {
-    const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
-    if (file.size > MAX_AVATAR_SIZE) {
+    const MAX_SIZE = 2 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
       message.error('头像图片不能超过 2MB');
-      return false;
+      return Upload.LIST_IGNORE;
     }
 
     setAvatarSaving(true);
@@ -106,7 +116,7 @@ export default function Profile() {
       }
     } catch (err) {
       console.error('头像上传失败:', err);
-      message.error('头像上传失败');
+      message.error('头像上传失败，请重试');
     } finally {
       setAvatarSaving(false);
     }
@@ -114,13 +124,17 @@ export default function Profile() {
   };
 
   if (loading) {
-    return <div>加载中...</div>;
+    return <div style={{ padding: 40, textAlign: 'center' }}>加载中...</div>;
   }
+
+  const roleInfo = ROLE_MAP[user?.role ?? ''] ?? { label: user?.role ?? '未知', color: 'default' };
+  const statusInfo = STATUS_MAP[user?.status ?? ''] ?? { label: user?.status ?? '未知', icon: null, color: 'default' };
 
   return (
     <div className={styles.container}>
       <Title level={4}>个人资料</Title>
 
+      {/* 用户信息卡片 */}
       <Card className={styles.card ?? ''}>
         <div className={styles.header ?? ''}>
           <ImgCrop
@@ -172,6 +186,39 @@ export default function Profile() {
 
         <Divider />
 
+        <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
+          <Descriptions.Item label="角色">
+            <Tag color={roleInfo.color}>{roleInfo.label}</Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="状态">
+            <Tag icon={statusInfo.icon} color={statusInfo.color}>{statusInfo.label}</Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="用户名">
+            <Text>{user?.username}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="昵称">
+            <Text>{user?.nickname}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="标签">
+            {user?.tags && user.tags.length > 0 ? (
+              <Space wrap size={[4, 4]}>
+                {user.tags.map((tag) => tag.color ? (
+  <Tag key={tag.id} color={tag.color}>{tag.name}</Tag>
+) : (
+  <Tag key={tag.id}>{tag.name}</Tag>
+))}
+              </Space>
+            ) : (
+              <Text type="secondary">无标签</Text>
+            )}
+          </Descriptions.Item>
+          <Descriptions.Item label="注册时间">
+            <Text>{user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN') : '-'}</Text>
+          </Descriptions.Item>
+        </Descriptions>
+
+        <Divider />
+
         <Form form={profileForm} layout="vertical">
           <Form.Item label="姓名" name="nickname" rules={[{ required: true, message: '请输入姓名' }]}>
             <Input placeholder="请输入姓名" variant="filled" />
@@ -182,6 +229,7 @@ export default function Profile() {
         </Form>
       </Card>
 
+      {/* 修改密码卡片 */}
       <Card title={<><LockOutlined /> 修改密码</>} className={styles.card ?? ''}>
         <Form form={passwordForm} layout="vertical">
           <Form.Item label="当前密码" name="oldPassword" rules={[{ required: true, message: '请输入当前密码' }]}>
