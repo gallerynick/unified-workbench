@@ -11,12 +11,16 @@ from app.models.note import Note
 from app.schemas.note import NoteCreate, NoteUpdate
 
 
-async def list_notes(db: AsyncSession, owner_id: uuid.UUID, page: int = 1, page_size: int = 20, search: str | None = None, category: str | None = None) -> tuple[list[Note], int]:
+async def list_notes(db: AsyncSession, owner_id: uuid.UUID, page: int = 1, page_size: int = 20, search: str | None = None, category: str | None = None, parent_id: uuid.UUID | None = None) -> tuple[list[Note], int]:
     query = select(Note).where(Note.owner_id == owner_id)
     if search:
         query = query.where(Note.title.ilike(f"%{search}%") | Note.content.ilike(f"%{search}%"))
     if category:
         query = query.where(Note.category == category)
+    if parent_id is not None:
+        query = query.where(Note.parent_id == parent_id)
+    else:
+        query = query.where(Note.parent_id.is_(None))
     count_query = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_query)).scalar() or 0
     query = query.order_by(Note.is_pinned.desc(), Note.updated_at.desc()).offset((page - 1) * page_size).limit(page_size)
@@ -51,6 +55,8 @@ async def update_note(db: AsyncSession, note_id: uuid.UUID, owner_id: uuid.UUID,
         note.tags = request.tags
     if request.is_pinned is not None:
         note.is_pinned = request.is_pinned
+    if request.parent_id is not None:
+        note.parent_id = request.parent_id
     await db.flush()
     await db.refresh(note)
     return note

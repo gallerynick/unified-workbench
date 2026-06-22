@@ -9,6 +9,7 @@ import zhLocale from '@fullcalendar/core/locales/zh-cn';
 import type { DateSelectArg, EventClickArg, EventDropArg, EventInput } from '@fullcalendar/core';
 import { listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '../../api/calendar';
 import type { CalendarEvent, EventRepeat } from '../../types/calendar';
+import './CalendarPage.global.css';
 import styles from './CalendarPage.module.css';
 
 const { Title } = Typography;
@@ -151,6 +152,7 @@ export default function CalendarPage() {
         successCallback([]);
       }
     } catch {
+      message.error('加载日历事件失败');
       successCallback([]);
     }
   }, []);

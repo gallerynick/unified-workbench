@@ -153,7 +153,7 @@ export default function NoteManagement() {
     Modal.confirm({
       title: '确认删除',
       content: hasChildren
-        ? `确定要删除笔记「${note.title}」吗？此操作将同时删除其所有子笔记。`
+        ? `确定要删除笔记「${note.title}」吗？其子笔记将变为根笔记。`
         : `确定要删除笔记「${note.title}」吗？`,
       okText: '删除', okType: 'danger', cancelText: '取消',
       onOk: async () => {
@@ -232,7 +232,14 @@ export default function NoteManagement() {
 
   const onDrop: TreeProps['onDrop'] = async (info) => {
     const dragKey = info.dragNode.key as string;
-    const dropKey = info.node.key as string;
+    let dropKey: string | null;
+    if (info.dropToGap) {
+      const dropNoteId = info.node.key as string;
+      const dropNote = notes.find((n) => n.id === dropNoteId);
+      dropKey = dropNote?.parent_id ?? null;
+    } else {
+      dropKey = info.node.key as string;
+    }
     try {
       const res = await moveNote(dragKey, dropKey);
       if (res.code === 0) {

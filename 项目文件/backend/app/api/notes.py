@@ -17,7 +17,7 @@ router = APIRouter()
 
 @router.get("/", response_model=UnifiedResponse[NoteListResponse])
 async def list_notes_endpoint(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), search: str | None = Query(None), category: str | None = Query(None), parent_id: uuid.UUID | None = Query(None), current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    notes, total = await list_notes(db, current_user.id, page, page_size, search, category)
+    notes, total = await list_notes(db, current_user.id, page, page_size, search, category, parent_id)
     return UnifiedResponse(data=NoteListResponse(items=[NoteResponse.model_validate(n) for n in notes], total=total))
 
 

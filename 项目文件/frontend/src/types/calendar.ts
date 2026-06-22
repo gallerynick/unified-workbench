@@ -10,9 +10,9 @@ export interface CalendarEvent {
   location: string | null;
   repeat: EventRepeat;
   color: string | null;
-  owner_id: string;
-  created_at: string;
-  updated_at: string;
+  owner_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CalendarEventCreate {
