@@ -8,4 +8,51 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.noteTree {
+  background: var(--tree-bg, #fff);
+  border-radius: 8px;
+  border: 1px solid var(--tree-border, #e8e8e8);
+  padding: 12px;
+}
+
+.treeNode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.treeNodeTitle {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.treeNodeActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.treeNode:hover .treeNodeActions {
+  opacity: 1;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--tree-empty-color, #999);
+  font-size: 14px;
+  background: var(--tree-bg, #fff);
+  border-radius: 8px;
+  border: 1px dashed var(--tree-border, #e8e8e8);
 }

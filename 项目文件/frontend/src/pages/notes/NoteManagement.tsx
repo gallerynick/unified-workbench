@@ -1,70 +1,252 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Input, Tag, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, PushpinOutlined, SearchOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
-import { listNotes, createNote, updateNote, deleteNote } from '../../api/notes';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Tree, Button, Typography, Modal, message, Space, Input, Tag, Tooltip, TreeSelect, Switch } from 'antd';
+import { PlusOutlined, DeleteOutlined, PushpinOutlined, SearchOutlined, EditOutlined, FileOutlined, FolderOutlined } from '@ant-design/icons';
+import type { DataNode, TreeProps } from 'antd/es/tree';
+import { listAllNotes, createNote, updateNote, deleteNote, moveNote } from '../../api/notes';
 import type { Note } from '../../types/note';
 import styles from './NoteManagement.module.css';
 
 const { Title } = Typography;
 
+interface TreeNodeData extends DataNode {
+  note: Note;
+  children?: TreeNodeData[];
+}
+
+function buildTree(notes: Note[]): TreeNodeData[] {
+  const map = new Map<string, TreeNodeData>();
+  const roots: TreeNodeData[] = [];
+
+  // First pass: create all nodes
+  notes.forEach((note) => {
+    map.set(note.id, {
+      key: note.id,
+      note,
+      title: '', // will be set in second pass
+      children: [],
+    });
+  });
+
+  // Second pass: build hierarchy
+  notes.forEach((note) => {
+    const node = map.get(note.id)!;
+    if (note.parent_id && map.has(note.parent_id)) {
+      const parent = map.get(note.parent_id)!;
+      if (!parent.children) parent.children = [];
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  // Sort: pinned first, then by updated_at desc
+  const sortNodes = (nodes: TreeNodeData[]) => {
+    nodes.sort((a, b) => {
+      if (a.note.is_pinned !== b.note.is_pinned) return a.note.is_pinned ? -1 : 1;
+      return new Date(b.note.updated_at).getTime() - new Date(a.note.updated_at).getTime();
+    });
+    nodes.forEach((n) => { if (n.children) sortNodes(n.children); });
+  };
+  sortNodes(roots);
+
+  return roots;
+}
+
+function renderTreeTitle(node: TreeNodeData, onPin: (note: Note) => void, onEdit: (note: Note) => void, onDelete: (note: Note) => void): React.ReactNode {
+  const { note } = node;
+  const hasChildren = node.children && node.children.length > 0;
+  return (
+    <span className={styles.treeNode}>
+      <span className={styles.treeNodeTitle}>
+        {hasChildren ? <FolderOutlined style={{ marginRight: 6 }} /> : <FileOutlined style={{ marginRight: 6 }} />}
+        {note.is_pinned && <PushpinOutlined style={{ marginRight: 4, color: '#fa8c16' }} />}
+        {note.title}
+        {note.category && <Tag style={{ marginLeft: 8 }}>{note.category}</Tag>}
+      </span>
+      <span className={styles.treeNodeActions}>
+        <Tooltip title={note.is_pinned ? '取消置顶' : '置顶'}>
+          <Button type="link" size="small" icon={<PushpinOutlined />} onClick={(e) => { e.stopPropagation(); onPin(note); }} />
+        </Tooltip>
+        <Tooltip title="编辑">
+          <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); onEdit(note); }} />
+        </Tooltip>
+        <Tooltip title="删除">
+          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); onDelete(note); }} />
+        </Tooltip>
+      </span>
+    </span>
+  );
+}
+
+function filterTree(nodes: TreeNodeData[], search: string): TreeNodeData[] {
+  const lower = search.toLowerCase();
+  const result: TreeNodeData[] = [];
+  nodes.forEach((node) => {
+    const matchedChildren = node.children ? filterTree(node.children, search) : [];
+    const selfMatch = node.note.title.toLowerCase().includes(lower) ||
+      (node.note.content?.toLowerCase().includes(lower) ?? false) ||
+      (node.note.category?.toLowerCase().includes(lower) ?? false);
+    if (selfMatch || matchedChildren.length > 0) {
+      const newNode: TreeNodeData = { ...node };
+      if (matchedChildren.length > 0) newNode.children = matchedChildren;
+      else delete (newNode as TreeNodeData & { children?: unknown }).children;
+      result.push(newNode);
+    }
+  });
+  return result;
+}
+
+function collectAllNodes(nodes: TreeNodeData[]): TreeNodeData[] {
+  const result: TreeNodeData[] = [];
+  nodes.forEach((n) => {
+    result.push(n);
+    if (n.children) result.push(...collectAllNodes(n.children));
+  });
+  return result;
+}
+
 export default function NoteManagement() {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formContent, setFormContent] = useState('');
   const [formCategory, setFormCategory] = useState('');
+  const [formParentId, setFormParentId] = useState<string | null>(null);
+  const [formPinned, setFormPinned] = useState(false);
 
   const fetchNotes = useCallback(async () => {
     setLoading(true);
-    try { const params: { page: number; page_size: number; search?: string } = { page, page_size: 20 }; if (search) params.search = search; const res = await listNotes(params); if (res.code === 0) { setNotes(res.data.items); setTotal(res.data.total); } }
-    catch { message.error('获取笔记列表失败'); }
+    try {
+      const res = await listAllNotes();
+      if (res.code === 0) setNotes(res.data.items);
+    } catch { message.error('获取笔记列表失败'); }
     finally { setLoading(false); }
-  }, [page, search]);
+  }, []);
 
   useEffect(() => { fetchNotes(); }, [fetchNotes]);
+
+  const openCreateModal = useCallback(() => {
+    setEditingNote(null);
+    setFormTitle('');
+    setFormContent('');
+    setFormCategory('');
+    setFormParentId(null);
+    setFormPinned(false);
+    setModalVisible(true);
+  }, []);
+
+  const openEditModal = useCallback((note: Note) => {
+    setEditingNote(note);
+    setFormTitle(note.title);
+    setFormContent(note.content || '');
+    setFormCategory(note.category || '');
+    setFormParentId(note.parent_id);
+    setFormPinned(note.is_pinned);
+    setModalVisible(true);
+  }, []);
+
+  const handleDelete = useCallback((note: Note) => {
+    const hasChildren = notes.some((n) => n.parent_id === note.id);
+    Modal.confirm({
+      title: '确认删除',
+      content: hasChildren
+        ? `确定要删除笔记「${note.title}」吗？此操作将同时删除其所有子笔记。`
+        : `确定要删除笔记「${note.title}」吗？`,
+      okText: '删除', okType: 'danger', cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await deleteNote(note.id);
+          if (res.code === 0) { message.success('笔记已删除'); fetchNotes(); }
+        } catch { message.error('删除失败'); }
+      },
+    });
+  }, [notes, fetchNotes]);
+
+  const handleTogglePin = useCallback(async (note: Note) => {
+    try {
+      const res = await updateNote(note.id, { is_pinned: !note.is_pinned });
+      if (res.code === 0) { message.success(note.is_pinned ? '已取消置顶' : '已置顶'); fetchNotes(); }
+    } catch { message.error('操作失败'); }
+  }, [fetchNotes]);
+
+  const treeData = useMemo(() => {
+    const tree = buildTree(notes);
+    const allNodes = collectAllNodes(tree);
+    const pinHandler = (note: Note) => handleTogglePin(note);
+    const editHandler = (note: Note) => openEditModal(note);
+    const deleteHandler = (note: Note) => handleDelete(note);
+    allNodes.forEach((n) => { n.title = renderTreeTitle(n, pinHandler, editHandler, deleteHandler); });
+    return search ? filterTree(tree, search) : tree;
+  }, [notes, search, handleTogglePin, openEditModal, handleDelete]);
+
+  const treeSelectData = useMemo(() => {
+    const tree = buildTree(notes);
+    type SelectNode = { value: string; title: string; children: SelectNode[]; selectable: boolean };
+    const buildSelectNodes = (nodes: TreeNodeData[]): SelectNode[] =>
+      nodes.map((n) => {
+        const node: SelectNode = {
+          value: n.key as string,
+          title: n.note.title,
+          children: [],
+          selectable: !editingNote || n.key !== editingNote.id,
+        };
+        if (n.children) node.children = buildSelectNodes(n.children);
+        return node;
+      });
+    return buildSelectNodes(tree);
+  }, [notes, editingNote]);
 
   const handleCreate = async () => {
     if (!formTitle.trim()) { message.warning('请输入笔记标题'); return; }
     try {
-      const payload: { title: string; content: string; category?: string } = { title: formTitle, content: formContent };
-      if (formCategory) payload.category = formCategory;
+      const payload = {
+        title: formTitle,
+        content: formContent || undefined,
+        category: formCategory || undefined,
+        parent_id: formParentId,
+        is_pinned: formPinned,
+      };
       const res = await createNote(payload);
-      if (res.code === 0) { message.success('笔记已创建'); setModalVisible(false); setFormTitle(''); setFormContent(''); setFormCategory(''); fetchNotes(); }
+      if (res.code === 0) { message.success('笔记已创建'); setModalVisible(false); fetchNotes(); }
     } catch { message.error('创建失败'); }
   };
 
-  const handleDelete = (note: Note) => {
-    Modal.confirm({ title: '确认删除', content: `确定要删除笔记「${note.title}」吗？`, okText: '删除', okType: 'danger', cancelText: '取消',
-      onOk: async () => { try { const res = await deleteNote(note.id); if (res.code === 0) { message.success('笔记已删除'); fetchNotes(); } } catch { message.error('删除失败'); } },
-    });
+  const handleUpdate = async () => {
+    if (!editingNote) return;
+    if (!formTitle.trim()) { message.warning('请输入笔记标题'); return; }
+    try {
+      const payload = {
+        title: formTitle,
+        content: formContent || undefined,
+        category: formCategory || undefined,
+        parent_id: formParentId,
+        is_pinned: formPinned,
+      };
+      const res = await updateNote(editingNote.id, payload);
+      if (res.code === 0) { message.success('笔记已更新'); setModalVisible(false); fetchNotes(); }
+    } catch { message.error('更新失败'); }
   };
 
-  const handleTogglePin = async (note: Note) => {
-    try { const res = await updateNote(note.id, { is_pinned: !note.is_pinned }); if (res.code === 0) { message.success(note.is_pinned ? '已取消置顶' : '已置顶'); fetchNotes(); } }
-    catch { message.error('操作失败'); }
+  const onDrop: TreeProps['onDrop'] = async (info) => {
+    const dragKey = info.dragNode.key as string;
+    const dropKey = info.node.key as string;
+    try {
+      const res = await moveNote(dragKey, dropKey);
+      if (res.code === 0) {
+        message.success('移动成功');
+        fetchNotes();
+      } else {
+        message.error('移动失败');
+        fetchNotes();
+      }
+    } catch {
+      message.error('移动失败: 不能移动到子节点下');
+      fetchNotes();
+    }
   };
-
-  const columns: ColumnsType<Note> = [
-    { title: '标题', dataIndex: 'title', key: 'title', render: (t: string, r) => <>{r.is_pinned && <PushpinOutlined style={{ marginRight: 4 }} />}{t}</> },
-    { title: '分类', dataIndex: 'category', key: 'category', render: (c: string | null) => c ? <Tag>{c}</Tag> : '-' },
-    { title: '标签', dataIndex: 'tags', key: 'tags', render: (tags: string[] | null) => tags?.map((t) => <Tag key={t}>{t}</Tag>) ?? '-' },
-    { title: '更新时间', dataIndex: 'updated_at', key: 'updated_at', render: (d: string) => new Date(d).toLocaleString('zh-CN') },
-    { title: '操作', key: 'action', width: 140, render: (_, record) => (
-      <Space size="small">
-        <Tooltip title={record.is_pinned ? '取消置顶' : '置顶'}>
-          <Button type="link" size="small" icon={<PushpinOutlined />} onClick={() => handleTogglePin(record)}>{record.is_pinned ? '取消置顶' : '置顶'}</Button>
-        </Tooltip>
-        <Tooltip title="删除">
-          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
-        </Tooltip>
-      </Space>
-    ) },
-  ];
 
   return (
     <div className={styles.container ?? ''}>
@@ -72,15 +254,45 @@ export default function NoteManagement() {
         <Title level={4}>笔记知识库</Title>
         <Space>
           <Input placeholder="搜索笔记" prefix={<SearchOutlined />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 200 }} />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建笔记</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>新建笔记</Button>
         </Space>
       </div>
-      <Table<Note> columns={columns} dataSource={notes} rowKey="id" loading={loading}
-        pagination={{ current: page, pageSize: 20, total, onChange: (p) => setPage(p) }} />
-      <Modal title="新建笔记" open={modalVisible} onOk={handleCreate} onCancel={() => setModalVisible(false)} okText="创建" cancelText="取消" width={600}>
+
+      {notes.length === 0 && !loading ? (
+        <div className={styles.emptyState}>还没有笔记，点击「新建笔记」创建一个吧</div>
+      ) : (
+        <Tree
+          treeData={treeData}
+          draggable
+          blockNode
+          showLine={{ showLeafIcon: false }}
+          onDrop={onDrop}
+          className={styles.noteTree ?? ''}
+        />
+      )}
+
+      <Modal
+        title={editingNote ? '编辑笔记' : '新建笔记'}
+        open={modalVisible}
+        onOk={editingNote ? handleUpdate : handleCreate}
+        onCancel={() => setModalVisible(false)}
+        okText={editingNote ? '保存' : '创建'}
+        cancelText="取消"
+        width={600}
+      >
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <Input placeholder="笔记标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
           <Input placeholder="分类（可选）" value={formCategory} onChange={(e) => setFormCategory(e.target.value)} />
+          <TreeSelect
+            placeholder="父笔记（可选，不选则为根节点）"
+            style={{ width: '100%' }}
+            value={formParentId}
+            onChange={setFormParentId}
+            treeData={treeSelectData}
+            allowClear
+            treeDefaultExpandAll
+          />
+          <Switch checked={formPinned} onChange={setFormPinned} checkedChildren="置顶" unCheckedChildren="普通" />
           <Input.TextArea placeholder="笔记内容" value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={8} />
         </Space>
       </Modal>

@@ -17,24 +17,24 @@ export interface CalendarEvent {
 
 export interface CalendarEventCreate {
   title: string;
-  description?: string;
+  description?: string | undefined;
   start_time: string;
-  end_time?: string;
-  all_day?: boolean;
-  location?: string;
-  repeat?: EventRepeat;
-  color?: string;
+  end_time?: string | undefined;
+  all_day?: boolean | undefined;
+  location?: string | undefined;
+  repeat?: EventRepeat | undefined;
+  color?: string | undefined;
 }
 
 export interface CalendarEventUpdate {
-  title?: string;
-  description?: string;
-  start_time?: string;
-  end_time?: string;
-  all_day?: boolean;
-  location?: string;
-  repeat?: EventRepeat;
-  color?: string;
+  title?: string | undefined;
+  description?: string | undefined;
+  start_time?: string | undefined;
+  end_time?: string | undefined;
+  all_day?: boolean | undefined;
+  location?: string | undefined;
+  repeat?: EventRepeat | undefined;
+  color?: string | undefined;
 }
 
 export interface CalendarEventListResponse {

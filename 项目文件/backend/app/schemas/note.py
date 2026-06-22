@@ -14,6 +14,7 @@ class NoteCreate(BaseModel):
     category: str | None = None
     tags: list[str] | None = None
     is_pinned: bool = False
+    parent_id: uuid.UUID | None = None
 
 
 class NoteUpdate(BaseModel):
@@ -22,6 +23,7 @@ class NoteUpdate(BaseModel):
     category: str | None = None
     tags: list[str] | None = None
     is_pinned: bool | None = None
+    parent_id: uuid.UUID | None = None
 
 
 class NoteResponse(BaseModel):
@@ -33,6 +35,7 @@ class NoteResponse(BaseModel):
     category: str | None
     tags: list[str] | None
     is_pinned: bool
+    parent_id: uuid.UUID | None
     owner_id: uuid.UUID
     created_at: datetime
     updated_at: datetime

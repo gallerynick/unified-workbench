@@ -1,89 +1,109 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Button, Typography, Modal, message, Space, Input, Card, Tag } from 'antd';
-import { PlusOutlined, LeftOutlined, RightOutlined, DeleteOutlined, EditOutlined, CalendarOutlined } from '@ant-design/icons';
+import { useState, useRef, useCallback } from 'react';
+import { Button, Typography, Modal, message, Space, Input, Switch, Select } from 'antd';
+import { PlusOutlined, DeleteOutlined, CalendarOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import zhLocale from '@fullcalendar/core/locales/zh-cn';
+import type { DateSelectArg, EventClickArg, EventDropArg, EventInput } from '@fullcalendar/core';
 import { listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '../../api/calendar';
-import type { CalendarEvent } from '../../types/calendar';
+import type { CalendarEvent, EventRepeat } from '../../types/calendar';
 import styles from './CalendarPage.module.css';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
+const { Option } = Select;
 
-const DAYS = ['日', '一', '二', '三', '四', '五', '六'];
+const REPEAT_OPTIONS: { label: string; value: EventRepeat }[] = [
+  { label: '不重复', value: 'none' },
+  { label: '每天', value: 'daily' },
+  { label: '每周', value: 'weekly' },
+  { label: '每月', value: 'monthly' },
+  { label: '每年', value: 'yearly' },
+];
+
+const PRESET_COLORS = ['#1677ff', '#52c41a', '#fa8c16', '#f5222d', '#722ed1', '#13c2c2', '#eb2f96', '#fa541c'];
+
+function formatDateTimeLocal(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const calendarRef = useRef<FullCalendar>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
-  const [formDate, setFormDate] = useState('');
-  const [formTime, setFormTime] = useState('');
+  const [formStartTime, setFormStartTime] = useState('');
+  const [formEndTime, setFormEndTime] = useState('');
+  const [formAllDay, setFormAllDay] = useState(false);
+  const [formLocation, setFormLocation] = useState('');
+  const [formColor, setFormColor] = useState(PRESET_COLORS[0]);
+  const [formRepeat, setFormRepeat] = useState<EventRepeat>('none');
   const [saving, setSaving] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
-
-  const fetchEvents = useCallback(async () => {
-    try {
-      const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-      const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${daysInMonth}`;
-      const res = await listCalendarEvents({ start_date: startDate, end_date: endDate, page_size: 100 });
-      if (res.code === 0) {
-        setEvents(res.data.items);
-      }
-    } catch {
-      message.error('获取事件失败');
-    }
-  }, [year, month, daysInMonth]);
-
-  useEffect(() => { fetchEvents(); }, [fetchEvents]);
-
-  const getEventsForDate = (day: number) => {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return events.filter((e) => e.start_time.startsWith(dateStr));
-  };
-
-  const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
-
-  const handleCreate = (date: string = today) => {
-    setEditingEvent(null);
+  const resetForm = useCallback(() => {
     setFormTitle('');
     setFormDescription('');
-    setFormDate(date ?? today);
-    setFormTime('09:00');
-    setModalVisible(true);
-  };
+    setFormStartTime('');
+    setFormEndTime('');
+    setFormAllDay(false);
+    setFormLocation('');
+    setFormColor(PRESET_COLORS[0]);
+    setFormRepeat('none');
+    setEditingEvent(null);
+  }, []);
 
-  const handleEdit = (event: CalendarEvent) => {
+  const openCreateModal = useCallback((startStr?: string) => {
+    resetForm();
+    const start = startStr ? new Date(startStr) : new Date();
+    start.setMinutes(0, 0, 0);
+    start.setHours(start.getHours() + 1);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    setFormStartTime(formatDateTimeLocal(start));
+    setFormEndTime(formatDateTimeLocal(end));
+    setModalVisible(true);
+  }, [resetForm]);
+
+  const openEditModal = useCallback((event: CalendarEvent) => {
     setEditingEvent(event);
     setFormTitle(event.title);
     setFormDescription(event.description || '');
-    setFormDate(event.start_time.split('T')[0] ?? '');
-    setFormTime(event.start_time.split('T')[1]?.substring(0, 5) ?? '09:00');
+    setFormStartTime(event.start_time ? event.start_time.slice(0, 16) : '');
+    setFormEndTime(event.end_time ? event.end_time.slice(0, 16) : '');
+    setFormAllDay(event.all_day);
+    setFormLocation(event.location || '');
+    setFormColor(event.color || PRESET_COLORS[0]);
+    setFormRepeat(event.repeat || 'none');
     setModalVisible(true);
-  };
+  }, []);
 
   const handleSave = async () => {
     if (!formTitle.trim()) { message.warning('请输入事件标题'); return; }
-    if (!formDate) { message.warning('请选择日期'); return; }
+    if (!formStartTime) { message.warning('请选择开始时间'); return; }
     setSaving(true);
     try {
-      const start_time = `${formDate}T${formTime}:00`;
+      const payload = {
+        title: formTitle,
+        description: formDescription || undefined,
+        start_time: new Date(formStartTime).toISOString(),
+        end_time: formEndTime ? new Date(formEndTime).toISOString() : undefined,
+        all_day: formAllDay,
+        location: formLocation || undefined,
+        color: formColor,
+        repeat: formRepeat,
+      };
       if (editingEvent) {
-        const res = await updateCalendarEvent(editingEvent.id, { title: formTitle, description: formDescription, start_time });
-        if (res.code === 0) { message.success('事件已更新'); setModalVisible(false); fetchEvents(); }
+        const res = await updateCalendarEvent(editingEvent.id, payload);
+        if (res.code === 0) { message.success('事件已更新'); setModalVisible(false); resetForm(); }
       } else {
-        const res = await createCalendarEvent({ title: formTitle, description: formDescription, start_time });
-        if (res.code === 0) { message.success('事件已创建'); setModalVisible(false); fetchEvents(); }
+        const res = await createCalendarEvent(payload);
+        if (res.code === 0) { message.success('事件已创建'); setModalVisible(false); resetForm(); }
       }
+      // Refresh calendar events
+      const api = calendarRef.current?.getApi();
+      if (api) api.refetchEvents();
     } catch { message.error('操作失败'); }
     finally { setSaving(false); }
   };
@@ -96,106 +116,149 @@ export default function CalendarPage() {
       onOk: async () => {
         try {
           const res = await deleteCalendarEvent(event.id);
-          if (res.code === 0) { message.success('事件已删除'); fetchEvents(); }
+          if (res.code === 0) { message.success('事件已删除');
+            const api = calendarRef.current?.getApi();
+            if (api) api.refetchEvents();
+          }
         } catch { message.error('删除失败'); }
       },
     });
   };
 
-  const renderCalendarDays = () => {
-    const days = [];
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className={styles.emptyDay} />);
+  const fetchEvents = useCallback(async (fetchInfo: { startStr: string; endStr: string }, successCallback: (events: EventInput[]) => void) => {
+    try {
+      const res = await listCalendarEvents({ start_date: fetchInfo.startStr, end_date: fetchInfo.endStr, page_size: 100 });
+      if (res.code === 0) {
+        const mapped: EventInput[] = res.data.items.map((e: CalendarEvent) => {
+          const event: EventInput = {
+            id: e.id,
+            title: e.title,
+            start: e.start_time,
+            allDay: e.all_day,
+            backgroundColor: e.color || '#1677ff',
+            borderColor: e.color || '#1677ff',
+            extendedProps: {
+              description: e.description,
+              location: e.location,
+              repeat: e.repeat,
+            },
+          };
+          if (e.end_time) event.end = e.end_time;
+          return event;
+        });
+        successCallback(mapped);
+      } else {
+        successCallback([]);
+      }
+    } catch {
+      successCallback([]);
     }
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayEvents = getEventsForDate(day);
-      const isToday = dateStr === today;
-      const isSelected = dateStr === selectedDate;
-      const classNames = [
-        styles.day,
-        isToday ? styles.today : '',
-        isSelected ? styles.selected : '',
-      ].filter(Boolean).join(' ');
+  }, []);
 
-      days.push(
-        <button
-          key={day}
-          type="button"
-          className={classNames}
-          onClick={() => setSelectedDate(dateStr)}
-          onDoubleClick={() => handleCreate(dateStr)}
-        >
-          <div className={styles.dayNumber}>{day}</div>
-          <div className={styles.dayEvents}>
-            {dayEvents.slice(0, 2).map((e) => (
-              <div key={e.id} className={styles.eventDot} style={{ background: e.color || '#1677ff' }}>
-                {e.title}
-              </div>
-            ))}
-            {dayEvents.length > 2 && <div className={styles.moreEvents}>+{dayEvents.length - 2}</div>}
-          </div>
-        </button>
-      );
+  const handleEventDrop = useCallback(async (dropInfo: EventDropArg) => {
+    const event = dropInfo.event;
+    try {
+      const res = await updateCalendarEvent(event.id, {
+        start_time: event.start ? event.start.toISOString() : undefined,
+        end_time: event.end ? event.end.toISOString() : undefined,
+      });
+      if (res.code !== 0) {
+        dropInfo.revert();
+        message.error('移动失败');
+      }
+    } catch {
+      dropInfo.revert();
+      message.error('移动失败');
     }
-    return days;
-  };
-
-  const selectedEvents = selectedDate ? events.filter((e) => e.start_time.startsWith(selectedDate)) : [];
+  }, []);
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <Title level={4}><CalendarOutlined /> 日历</Title>
-        <Space>
-          <Button icon={<LeftOutlined />} onClick={handlePrevMonth} />
-          <Text strong style={{ fontSize: 16, minWidth: 120, textAlign: 'center' }}>
-            {year}年{month + 1}月
-          </Text>
-          <Button icon={<RightOutlined />} onClick={handleNextMonth} />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => handleCreate()}>新建事件</Button>
-        </Space>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreateModal()}>新建事件</Button>
       </div>
 
-      <div className={styles.calendar}>
-        <div className={styles.weekdays}>
-          {DAYS.map((d) => <div key={d} className={styles.weekday}>{d}</div>)}
-        </div>
-        <div className={styles.days}>
-          {renderCalendarDays()}
-        </div>
-      </div>
-
-      {selectedDate && (
-        <Card title={`${selectedDate} 的事件`} className={styles.eventList ?? ''}>
-          {selectedEvents.length === 0 ? (
-            <Text type="secondary">暂无事件</Text>
-          ) : (
-            selectedEvents.map((e) => (
-              <div key={e.id} className={styles.eventItem}>
-                <div className={styles.eventInfo}>
-                  <Tag color={e.color || 'blue'}>{e.start_time.split('T')[1]?.substring(0, 5)}</Tag>
-                  <Text strong>{e.title}</Text>
-                  {e.description && <Text type="secondary"> - {e.description}</Text>}
-                </div>
-                <Space size="small">
-                  <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(e)} />
-                  <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(e)} />
-                </Space>
-              </div>
-            ))
-          )}
-        </Card>
-      )}
+      <FullCalendar
+        ref={calendarRef}
+        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        initialView="dayGridMonth"
+        locale={zhLocale}
+        headerToolbar={{
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay',
+        }}
+        height="auto"
+        selectable
+        selectMirror
+        editable
+        dayMaxEvents
+        events={fetchEvents}
+        select={(selectInfo: DateSelectArg) => {
+          openCreateModal(selectInfo.startStr);
+        }}
+        eventClick={(clickInfo: EventClickArg) => {
+          const ev = clickInfo.event;
+          const calEvent: CalendarEvent = {
+            id: ev.id,
+            title: ev.title,
+            description: ev.extendedProps?.description || null,
+            start_time: ev.start ? ev.start.toISOString() : '',
+            end_time: ev.end ? ev.end.toISOString() : null,
+            all_day: ev.allDay,
+            location: ev.extendedProps?.location || null,
+            repeat: ev.extendedProps?.repeat || 'none',
+            color: ev.backgroundColor || null,
+            owner_id: '',
+            created_at: '',
+            updated_at: '',
+          };
+          openEditModal(calEvent);
+        }}
+        eventDrop={handleEventDrop}
+      />
 
       <Modal title={editingEvent ? '编辑事件' : '新建事件'} open={modalVisible} onOk={handleSave}
-        onCancel={() => setModalVisible(false)} okText="保存" cancelText="取消"
-        okButtonProps={{ loading: saving }} confirmLoading={saving}>
+        onCancel={() => { setModalVisible(false); resetForm(); }} okText="保存" cancelText="取消"
+        okButtonProps={{ loading: saving }} confirmLoading={saving} width={560}>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <Input placeholder="事件标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
-          <Input.TextArea placeholder="事件描述（可选）" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} rows={3} />
-          <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-          <Input type="time" value={formTime} onChange={(e) => setFormTime(e.target.value)} />
+          <Input.TextArea placeholder="事件描述（可选）" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} rows={2} />
+          <Space style={{ width: '100%' }}>
+            <Input type="datetime-local" value={formStartTime} onChange={(e) => setFormStartTime(e.target.value)} style={{ width: 200 }} />
+            <span>至</span>
+            <Input type="datetime-local" value={formEndTime} onChange={(e) => setFormEndTime(e.target.value)} style={{ width: 200 }} />
+          </Space>
+          <Space style={{ width: '100%' }}>
+            <Switch checked={formAllDay} onChange={setFormAllDay} checkedChildren="全天" unCheckedChildren="非全天" />
+            <Input placeholder="地点（可选）" prefix={<EnvironmentOutlined />} value={formLocation} onChange={(e) => setFormLocation(e.target.value)} style={{ width: 220 }} />
+          </Space>
+          <Space style={{ width: '100%' }} align="center">
+            <span>颜色:</span>
+            {PRESET_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setFormColor(c)}
+                style={{
+                  width: 24, height: 24, borderRadius: '50%', border: formColor === c ? '2px solid #000' : '2px solid transparent',
+                  backgroundColor: c, cursor: 'pointer', padding: 0,
+                }}
+              />
+            ))}
+          </Space>
+          <Space style={{ width: '100%' }}>
+            <span>重复:</span>
+            <Select value={formRepeat} onChange={(v) => setFormRepeat(v as EventRepeat)} style={{ width: 160 }}>
+              {REPEAT_OPTIONS.map((o) => <Option key={o.value} value={o.value}>{o.label}</Option>)}
+            </Select>
+          </Space>
+          {editingEvent && (
+            <Button danger onClick={() => { setModalVisible(false); handleDelete(editingEvent); }} icon={<DeleteOutlined />}>
+              删除此事件
+            </Button>
+          )}
         </Space>
       </Modal>
     </div>
