@@ -27,8 +27,18 @@ class Note(Base):
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
     tags: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     is_pinned: Mapped[bool] = mapped_column(default=False)
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("note.id", ondelete="SET NULL", use_alter=True, name="fk_note_parent"),
+        nullable=True,
+    )
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     owner: Mapped[User] = relationship("User", lazy="selectin")
+    children: Mapped[list["Note"]] = relationship(
+        "Note", foreign_keys=[parent_id], back_populates="parent"
+    )
+    parent: Mapped["Note | None"] = relationship(
+        "Note", foreign_keys=[parent_id], back_populates="children", remote_side="Note.id"
+    )
