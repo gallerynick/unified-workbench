@@ -1,16 +1,29 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, message, Avatar, Divider } from 'antd';
-import { UserOutlined, SaveOutlined, LockOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Typography, message, Avatar, Divider, Upload } from 'antd';
+import { UserOutlined, SaveOutlined, LockOutlined, CameraOutlined } from '@ant-design/icons';
+import ImgCrop from 'antd-img-crop';
+import type { RcFile } from 'antd/es/upload/interface';
+import type { UploadProps } from 'antd';
 import { getMe, updateMe, changePassword } from '../../api/auth';
 import type { User } from '../../types/user';
 import styles from './Profile.module.css';
 
 const { Title, Text } = Typography;
 
+function readFileAsDataURL(file: RcFile): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
@@ -25,10 +38,7 @@ export default function Profile() {
       const res = await getMe();
       if (res.code === 0) {
         setUser(res.data);
-        profileForm.setFieldsValue({
-          nickname: res.data.nickname,
-          avatar: res.data.avatar || '',
-        });
+        profileForm.setFieldsValue({ nickname: res.data.nickname });
       }
     } catch {
       message.error('获取用户信息失败');
@@ -41,10 +51,7 @@ export default function Profile() {
     try {
       const values = await profileForm.validateFields();
       setSaving(true);
-      const res = await updateMe({
-        nickname: values.nickname,
-        avatar: values.avatar || undefined,
-      });
+      const res = await updateMe({ nickname: values.nickname });
       if (res.code === 0) {
         message.success('个人资料已更新');
         setUser(res.data);
@@ -79,6 +86,25 @@ export default function Profile() {
     }
   };
 
+  const handleAvatarChange: UploadProps['beforeUpload'] = async (file) => {
+    setAvatarSaving(true);
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      const res = await updateMe({ avatar: dataUrl });
+      if (res.code === 0) {
+        message.success('头像已更新');
+        setUser(res.data);
+      } else {
+        message.error(res.msg || '头像更新失败');
+      }
+    } catch {
+      message.error('头像上传失败');
+    } finally {
+      setAvatarSaving(false);
+    }
+    return false;
+  };
+
   if (loading) {
     return <div>加载中...</div>;
   }
@@ -89,7 +115,48 @@ export default function Profile() {
 
       <Card className={styles.card ?? ''}>
         <div className={styles.header ?? ''}>
-          <Avatar size={64} icon={<UserOutlined />} src={user?.avatar} />
+          <ImgCrop
+            rotationSlider
+            aspectSlider
+            quality={0.8}
+            cropShape="round"
+            zoomSlider
+            minZoom={0.5}
+            maxZoom={3}
+          >
+            <Upload
+              showUploadList={false}
+              beforeUpload={handleAvatarChange}
+              accept="image/*"
+              disabled={avatarSaving}
+            >
+              <div style={{ position: 'relative', cursor: 'pointer', display: 'inline-block' }}>
+                <Avatar
+                  size={80}
+                  icon={<UserOutlined />}
+                  src={user?.avatar}
+                  style={{ border: '2px solid var(--border-color, #e2e8f0)' }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    background: '#6366f1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid #fff',
+                  }}
+                >
+                  <CameraOutlined style={{ color: '#fff', fontSize: 13 }} />
+                </div>
+              </div>
+            </Upload>
+          </ImgCrop>
           <div className={styles.userInfo}>
             <Title level={4} style={{ margin: 0 }}>{user?.nickname}</Title>
             <Text type="secondary">@{user?.username}</Text>
@@ -100,10 +167,7 @@ export default function Profile() {
 
         <Form form={profileForm} layout="vertical">
           <Form.Item label="姓名" name="nickname" rules={[{ required: true, message: '请输入姓名' }]}>
-            <Input placeholder="请输入姓名" />
-          </Form.Item>
-          <Form.Item label="头像 URL" name="avatar">
-            <Input placeholder="https://example.com/avatar.png" />
+            <Input placeholder="请输入姓名" variant="filled" />
           </Form.Item>
           <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleUpdateProfile}>
             保存资料
@@ -114,7 +178,7 @@ export default function Profile() {
       <Card title={<><LockOutlined /> 修改密码</>} className={styles.card ?? ''}>
         <Form form={passwordForm} layout="vertical">
           <Form.Item label="当前密码" name="oldPassword" rules={[{ required: true, message: '请输入当前密码' }]}>
-            <Input.Password placeholder="请输入当前密码" />
+            <Input.Password placeholder="请输入当前密码" variant="filled" />
           </Form.Item>
           <Form.Item
             label="新密码"
@@ -125,7 +189,7 @@ export default function Profile() {
               { pattern: /^(?=.*[a-zA-Z])(?=.*\d)/, message: '密码需包含字母和数字' },
             ]}
           >
-            <Input.Password placeholder="请输入新密码（至少 8 位，包含字母和数字）" />
+            <Input.Password placeholder="请输入新密码（至少 8 位，包含字母和数字）" variant="filled" />
           </Form.Item>
           <Form.Item
             label="确认新密码"
@@ -143,7 +207,7 @@ export default function Profile() {
               }),
             ]}
           >
-            <Input.Password placeholder="请再次输入新密码" />
+            <Input.Password placeholder="请再次输入新密码" variant="filled" />
           </Form.Item>
           <Button type="primary" icon={<LockOutlined />} loading={changingPassword} onClick={handleChangePassword}>
             修改密码

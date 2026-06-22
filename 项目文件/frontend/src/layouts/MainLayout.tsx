@@ -80,6 +80,11 @@ function getMenuItems(): MenuProps['items'] {
   items.push(
     { type: 'divider' },
     {
+      key: '/profile',
+      icon: <UserOutlined />,
+      label: '个人资料',
+    },
+    {
       key: '/settings/personalization',
       icon: <BgColorsOutlined />,
       label: '用户个性化',
