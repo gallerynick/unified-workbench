@@ -33,7 +33,6 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
   const graphRef = useRef<ForceGraphMethods<NodeObject<GraphNodeData>, GraphLinkData> | undefined>(undefined);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [loading, setLoading] = useState(true);
-  const initialized = useRef(false);
 
   // 响应式尺寸调整
   useEffect(() => {
@@ -87,9 +86,8 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
 
   // 力模拟配置
   useEffect(() => {
-    if (initialized.current || !graphRef.current) return;
-    initialized.current = true;
     const fg = graphRef.current;
+    if (!fg) return;
     fg.d3Force('charge')?.strength(-300);
     fg.d3Force('link')?.distance(60);
     fg.d3ReheatSimulation();
@@ -107,11 +105,9 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
 
   // 初始化完成
   useEffect(() => {
-    if (graphData.nodes.length >= 0) {
-      const timer = setTimeout(() => setLoading(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [graphData]);
+    const timer = setTimeout(() => setLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   // 自定义 Canvas 节点渲染
   const nodeCanvasObject = useCallback((node: NodeObject<GraphNodeData>, ctx: CanvasRenderingContext2D, globalScale: number) => {

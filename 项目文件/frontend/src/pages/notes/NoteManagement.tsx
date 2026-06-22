@@ -291,11 +291,7 @@ export default function NoteManagement() {
       ) : (
         <div style={{ height: 'calc(100vh - 220px)', minHeight: 400 }}>
           <GraphView
-            notes={search ? notes.filter((n) =>
-              n.title.toLowerCase().includes(search.toLowerCase()) ||
-              (n.content?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-              (n.category?.toLowerCase().includes(search.toLowerCase()) ?? false)
-            ) : notes}
+            notes={notes}
             onNodeClick={openEditModal}
             isDark={isDark}
             search={search}

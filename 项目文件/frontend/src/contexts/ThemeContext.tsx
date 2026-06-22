@@ -34,6 +34,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState(readThemeFromStorage);
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
+  useEffect(() => {
     const handleStorageChange = () => {
       setIsDark(readThemeFromStorage());
     };
