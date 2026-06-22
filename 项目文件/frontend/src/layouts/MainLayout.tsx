@@ -147,14 +147,11 @@ export default function MainLayout() {
   const { isDark } = useTheme();
 
   const handleMenuOpenChange = useCallback((openKeys: string[]) => {
-    if (openKeys.includes('/settings') && siderRef.current) {
+    if (openKeys.includes('/settings')) {
       setTimeout(() => {
-        const sider = siderRef.current;
-        if (sider) {
-          sider.scrollTo({
-            top: sider.scrollHeight,
-            behavior: 'smooth',
-          });
+        const settingsItem = document.querySelector('[data-menu-id="/settings"]');
+        if (settingsItem) {
+          settingsItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       }, 350);
     }
