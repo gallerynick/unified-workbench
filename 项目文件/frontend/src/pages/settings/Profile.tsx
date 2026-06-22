@@ -15,6 +15,7 @@ function readFileAsDataURL(file: RcFile): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
+    reader.onabort = () => reject(new Error('文件读取已取消'));
     reader.readAsDataURL(file);
   });
 }
@@ -87,6 +88,12 @@ export default function Profile() {
   };
 
   const handleAvatarChange: UploadProps['beforeUpload'] = async (file) => {
+    const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
+    if (file.size > MAX_AVATAR_SIZE) {
+      message.error('头像图片不能超过 2MB');
+      return false;
+    }
+
     setAvatarSaving(true);
     try {
       const dataUrl = await readFileAsDataURL(file);
@@ -97,7 +104,8 @@ export default function Profile() {
       } else {
         message.error(res.msg || '头像更新失败');
       }
-    } catch {
+    } catch (err) {
+      console.error('头像上传失败:', err);
       message.error('头像上传失败');
     } finally {
       setAvatarSaving(false);
@@ -117,7 +125,6 @@ export default function Profile() {
         <div className={styles.header ?? ''}>
           <ImgCrop
             rotationSlider
-            aspectSlider
             quality={0.8}
             cropShape="round"
             zoomSlider
