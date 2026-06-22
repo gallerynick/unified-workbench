@@ -60,10 +60,10 @@ function renderTreeTitle(node: TreeNodeData, onPin: (note: Note) => void, onEdit
   return (
     <span className={styles.treeNode}>
       <span className={styles.treeNodeTitle}>
-        {hasChildren ? <FolderOutlined style={{ marginRight: 8, color: '#64748b' }} /> : <FileOutlined style={{ marginRight: 8, color: '#94a3b8' }} />}
+        {hasChildren ? <FolderOutlined style={{ marginRight: 8, color: 'var(--tree-icon-folder, #64748b)' }} /> : <FileOutlined style={{ marginRight: 8, color: 'var(--tree-icon-file, #94a3b8)' }} />}
         {note.is_pinned && <PushpinOutlined style={{ marginRight: 4, color: '#f59e0b', fontSize: 12 }} />}
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{note.title}</span>
-        {note.category && <Tag style={{ marginLeft: 8, fontSize: 12, lineHeight: '18px', padding: '0 6px', borderRadius: 3, color: '#64748b', background: 'transparent', border: '1px solid #e2e8f0' }}>{note.category}</Tag>}
+        {note.category && <Tag style={{ marginLeft: 8, fontSize: 12, lineHeight: '18px', padding: '0 6px', borderRadius: 3, color: 'var(--tree-tag-text, #64748b)', background: 'transparent', border: '1px solid var(--tree-border, #e2e8f0)' }}>{note.category}</Tag>}
       </span>
       <span className={styles.treeNodeActions}>
         <Tooltip title={note.is_pinned ? '取消置顶' : '置顶'}>
@@ -120,6 +120,7 @@ export default function NoteManagement() {
   const [formCategory, setFormCategory] = useState('');
   const [formParentId, setFormParentId] = useState<string | null>(null);
   const [formPinned, setFormPinned] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
 
   const fetchNotes = useCallback(async () => {
     setLoading(true);
@@ -149,6 +150,7 @@ export default function NoteManagement() {
     setFormCategory(note.category || '');
     setFormParentId(note.parent_id);
     setFormPinned(note.is_pinned);
+    setSelectedKeys([note.id]);
     setModalVisible(true);
   }, []);
 
@@ -214,7 +216,7 @@ export default function NoteManagement() {
         is_pinned: formPinned,
       };
       const res = await createNote(payload);
-      if (res.code === 0) { message.success('笔记已创建'); setModalVisible(false); fetchNotes(); }
+      if (res.code === 0) { message.success('笔记已创建'); setModalVisible(false); setSelectedKeys([]); fetchNotes(); }
     } catch { message.error('创建失败'); }
   };
 
@@ -230,7 +232,7 @@ export default function NoteManagement() {
         is_pinned: formPinned,
       };
       const res = await updateNote(editingNote.id, payload);
-      if (res.code === 0) { message.success('笔记已更新'); setModalVisible(false); fetchNotes(); }
+      if (res.code === 0) { message.success('笔记已更新'); setModalVisible(false); setSelectedKeys([]); fetchNotes(); }
     } catch { message.error('更新失败'); }
   };
 
@@ -279,7 +281,7 @@ export default function NoteManagement() {
 
       {notes.length === 0 && !loading ? (
         <div className={styles.emptyState}>
-          <FileOutlined style={{ fontSize: 40, marginBottom: 12, color: '#cbd5e1' }} />
+          <FileOutlined style={{ fontSize: 40, marginBottom: 12, color: 'var(--tree-empty-color)' }} />
           <div>还没有笔记，点击「新建笔记」创建一个吧</div>
         </div>
       ) : viewMode === 'tree' ? (
@@ -289,6 +291,7 @@ export default function NoteManagement() {
           blockNode
           showLine={{ showLeafIcon: false }}
           onDrop={onDrop}
+          selectedKeys={selectedKeys}
           className={styles.noteTree ?? ''}
         />
       ) : (
@@ -306,7 +309,7 @@ export default function NoteManagement() {
         title={editingNote ? '编辑笔记' : '新建笔记'}
         open={modalVisible}
         onOk={editingNote ? handleUpdate : handleCreate}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => { setModalVisible(false); setSelectedKeys([]); }}
         okText={editingNote ? '保存' : '创建'}
         cancelText="取消"
         width={640}
