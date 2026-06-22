@@ -1,7 +1,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .header {
@@ -9,14 +9,14 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
 }
 
 .noteTree {
   background: var(--tree-bg, #fff);
-  border-radius: 8px;
+  border-radius: 4px;
   border: 1px solid var(--tree-border, #e8e8e8);
-  padding: 12px;
+  padding: 16px 12px;
 }
 
 .treeNode {
@@ -25,6 +25,7 @@
   justify-content: space-between;
   width: 100%;
   gap: 8px;
+  padding: 4px 0;
 }
 
 .treeNodeTitle {
@@ -33,14 +34,16 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  font-size: 14px;
+  color: var(--tree-text, #1e293b);
 }
 
 .treeNodeActions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.15s ease;
 }
 
 .treeNode:hover .treeNodeActions {
@@ -49,17 +52,25 @@
 
 .emptyState {
   text-align: center;
-  padding: 60px 20px;
-  color: var(--tree-empty-color, #999);
+  padding: 80px 20px;
+  color: var(--tree-empty-color, #94a3b8);
   font-size: 14px;
   background: var(--tree-bg, #fff);
-  border-radius: 8px;
-  border: 1px dashed var(--tree-border, #e8e8e8);
+  border-radius: 4px;
+  border: 1px solid var(--tree-border, #e8e8e8);
+}
+
+:root {
+  --tree-bg: #fff;
+  --tree-border: #e2e8f0;
+  --tree-text: #1e293b;
+  --tree-empty-color: #94a3b8;
 }
 
 :root[data-theme="dark"],
 :root.ant-dark {
-  --tree-bg: #1f1f1f;
-  --tree-border: #303030;
-  --tree-empty-color: #666;
+  --tree-bg: #1e293b;
+  --tree-border: #334155;
+  --tree-text: #e2e8f0;
+  --tree-empty-color: #64748b;
 }

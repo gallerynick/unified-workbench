@@ -60,20 +60,20 @@ function renderTreeTitle(node: TreeNodeData, onPin: (note: Note) => void, onEdit
   return (
     <span className={styles.treeNode}>
       <span className={styles.treeNodeTitle}>
-        {hasChildren ? <FolderOutlined style={{ marginRight: 6 }} /> : <FileOutlined style={{ marginRight: 6 }} />}
-        {note.is_pinned && <PushpinOutlined style={{ marginRight: 4, color: '#fa8c16' }} />}
-        {note.title}
-        {note.category && <Tag style={{ marginLeft: 8 }}>{note.category}</Tag>}
+        {hasChildren ? <FolderOutlined style={{ marginRight: 8, color: '#64748b' }} /> : <FileOutlined style={{ marginRight: 8, color: '#94a3b8' }} />}
+        {note.is_pinned && <PushpinOutlined style={{ marginRight: 4, color: '#f59e0b', fontSize: 12 }} />}
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{note.title}</span>
+        {note.category && <Tag style={{ marginLeft: 8, fontSize: 12, lineHeight: '18px', padding: '0 6px', borderRadius: 3, color: '#64748b', background: 'transparent', border: '1px solid #e2e8f0' }}>{note.category}</Tag>}
       </span>
       <span className={styles.treeNodeActions}>
         <Tooltip title={note.is_pinned ? '取消置顶' : '置顶'}>
-          <Button type="link" size="small" icon={<PushpinOutlined />} onClick={(e) => { e.stopPropagation(); onPin(note); }} />
+          <Button type="text" size="small" icon={<PushpinOutlined style={{ fontSize: 13 }} />} onClick={(e) => { e.stopPropagation(); onPin(note); }} />
         </Tooltip>
         <Tooltip title="编辑">
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); onEdit(note); }} />
+          <Button type="text" size="small" icon={<EditOutlined style={{ fontSize: 13 }} />} onClick={(e) => { e.stopPropagation(); onEdit(note); }} />
         </Tooltip>
         <Tooltip title="删除">
-          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); onDelete(note); }} />
+          <Button type="text" size="small" danger icon={<DeleteOutlined style={{ fontSize: 13 }} />} onClick={(e) => { e.stopPropagation(); onDelete(note); }} />
         </Tooltip>
       </span>
     </span>
@@ -262,7 +262,7 @@ export default function NoteManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4}>笔记知识库</Title>
+        <Title level={4} style={{ fontWeight: 600, margin: 0 }}>笔记知识库</Title>
         <Space>
           <Segmented
             value={viewMode}
@@ -272,13 +272,16 @@ export default function NoteManagement() {
               { label: '图形视图', value: 'graph', icon: <ShareAltOutlined /> },
             ]}
           />
-          <Input placeholder="搜索笔记" prefix={<SearchOutlined />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 200 }} />
+          <Input placeholder="搜索笔记" prefix={<SearchOutlined style={{ color: '#94a3b8' }} />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 220 }} variant="filled" />
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>新建笔记</Button>
         </Space>
       </div>
 
       {notes.length === 0 && !loading ? (
-        <div className={styles.emptyState}>还没有笔记，点击「新建笔记」创建一个吧</div>
+        <div className={styles.emptyState}>
+          <FileOutlined style={{ fontSize: 40, marginBottom: 12, color: '#cbd5e1' }} />
+          <div>还没有笔记，点击「新建笔记」创建一个吧</div>
+        </div>
       ) : viewMode === 'tree' ? (
         <Tree
           treeData={treeData}
@@ -306,22 +309,26 @@ export default function NoteManagement() {
         onCancel={() => setModalVisible(false)}
         okText={editingNote ? '保存' : '创建'}
         cancelText="取消"
-        width={600}
+        width={640}
       >
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Input placeholder="笔记标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
-          <Input placeholder="分类（可选）" value={formCategory} onChange={(e) => setFormCategory(e.target.value)} />
-          <TreeSelect
-            placeholder="父笔记（可选，不选则为根节点）"
-            style={{ width: '100%' }}
-            value={formParentId}
-            onChange={setFormParentId}
-            treeData={treeSelectData}
-            allowClear
-            treeDefaultExpandAll
-          />
-          <Switch checked={formPinned} onChange={setFormPinned} checkedChildren="置顶" unCheckedChildren="普通" />
-          <Input.TextArea placeholder="笔记内容" value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={8} />
+          <Input placeholder="笔记标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} variant="filled" size="large" />
+          <Space style={{ width: '100%' }} size="middle">
+            <Input placeholder="分类" value={formCategory} onChange={(e) => setFormCategory(e.target.value)} variant="filled" style={{ flex: 1 }} />
+            <TreeSelect
+              placeholder="父笔记（可选）"
+              style={{ flex: 1 }}
+              value={formParentId}
+              onChange={setFormParentId}
+              treeData={treeSelectData}
+              allowClear
+              treeDefaultExpandAll
+            />
+          </Space>
+          <Space>
+            <Switch checked={formPinned} onChange={setFormPinned} checkedChildren="置顶" unCheckedChildren="普通" size="small" />
+          </Space>
+          <Input.TextArea placeholder="笔记内容" value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={8} variant="filled" style={{ fontSize: 14, lineHeight: 1.6 }} />
         </Space>
       </Modal>
     </div>
