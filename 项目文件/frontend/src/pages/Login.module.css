@@ -5,6 +5,11 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #e8f0fe 0%, #f0f2f5 50%, #e6f4ff 100%);
   padding: 24px;
+  transition: background 0.3s;
+}
+
+[data-theme="dark"] .container {
+  background: linear-gradient(135deg, #111827 0%, #0f172a 50%, #111827 100%);
 }
 
 .card {
@@ -12,6 +17,10 @@
   max-width: 400px;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .card {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .header {
