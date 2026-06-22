@@ -56,3 +56,10 @@
   border-radius: 8px;
   border: 1px dashed var(--tree-border, #e8e8e8);
 }
+
+:root[data-theme="dark"],
+:root.ant-dark {
+  --tree-bg: #1f1f1f;
+  --tree-border: #303030;
+  --tree-empty-color: #666;
+}

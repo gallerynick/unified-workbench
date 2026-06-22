@@ -1,0 +1,39 @@
+.graphContainer {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--graph-border, #e8e8e8);
+  background: var(--graph-bg, #fff);
+  min-height: 400px;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: var(--graph-empty-color, #999);
+}
+
+/* 主题变量 */
+:root {
+  --graph-bg: #fff;
+  --graph-border: #e8e8e8;
+  --graph-empty-color: #999;
+}
+
+:root[data-theme="dark"],
+:root.ant-dark {
+  --graph-bg: #1f1f1f;
+  --graph-border: #303030;
+  --graph-empty-color: #666;
+}

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Tree, Button, Typography, Modal, message, Space, Input, Tag, Tooltip, TreeSelect, Switch } from 'antd';
-import { PlusOutlined, DeleteOutlined, PushpinOutlined, SearchOutlined, EditOutlined, FileOutlined, FolderOutlined } from '@ant-design/icons';
+import { Tree, Button, Typography, Modal, message, Space, Input, Tag, Tooltip, TreeSelect, Switch, Segmented } from 'antd';
+import { PlusOutlined, DeleteOutlined, PushpinOutlined, SearchOutlined, EditOutlined, FileOutlined, FolderOutlined, ApartmentOutlined, ShareAltOutlined } from '@ant-design/icons';
 import type { DataNode, TreeProps } from 'antd/es/tree';
 import { listAllNotes, createNote, updateNote, deleteNote, moveNote } from '../../api/notes';
 import type { Note } from '../../types/note';
+import { useTheme } from '../../contexts/ThemeContext';
+import GraphView from './GraphView';
 import styles from './NoteManagement.module.css';
 
 const { Title } = Typography;
@@ -109,6 +111,8 @@ export default function NoteManagement() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'tree' | 'graph'>('tree');
+  const { isDark } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [formTitle, setFormTitle] = useState('');
@@ -260,6 +264,14 @@ export default function NoteManagement() {
       <div className={styles.header ?? ''}>
         <Title level={4}>笔记知识库</Title>
         <Space>
+          <Segmented
+            value={viewMode}
+            onChange={(value) => setViewMode(value as 'tree' | 'graph')}
+            options={[
+              { label: '树形浏览', value: 'tree', icon: <ApartmentOutlined /> },
+              { label: '图形视图', value: 'graph', icon: <ShareAltOutlined /> },
+            ]}
+          />
           <Input placeholder="搜索笔记" prefix={<SearchOutlined />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 200 }} />
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>新建笔记</Button>
         </Space>
@@ -267,7 +279,7 @@ export default function NoteManagement() {
 
       {notes.length === 0 && !loading ? (
         <div className={styles.emptyState}>还没有笔记，点击「新建笔记」创建一个吧</div>
-      ) : (
+      ) : viewMode === 'tree' ? (
         <Tree
           treeData={treeData}
           draggable
@@ -276,6 +288,19 @@ export default function NoteManagement() {
           onDrop={onDrop}
           className={styles.noteTree ?? ''}
         />
+      ) : (
+        <div style={{ height: 'calc(100vh - 220px)', minHeight: 400 }}>
+          <GraphView
+            notes={search ? notes.filter((n) =>
+              n.title.toLowerCase().includes(search.toLowerCase()) ||
+              (n.content?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
+              (n.category?.toLowerCase().includes(search.toLowerCase()) ?? false)
+            ) : notes}
+            onNodeClick={openEditModal}
+            isDark={isDark}
+            search={search}
+          />
+        </div>
       )}
 
       <Modal
