@@ -102,6 +102,7 @@ function getMenuItems(): MenuProps['items'] {
         key: '/settings',
         icon: <SettingOutlined />,
         label: '系统设置与管理',
+        'data-menu-id': '/settings',
         children: [
           { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
           { key: '/settings/tags', label: '标签管理', icon: <TagOutlined /> },
