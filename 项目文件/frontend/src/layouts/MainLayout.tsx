@@ -162,19 +162,7 @@ export default function MainLayout() {
     <TagProvider>
       <Layout style={{ minHeight: '100vh', background: colorBgLayout }}>
         {!isMobile && (
-        <div ref={siderRef} className="sider-scroll-container" style={{ overflow: 'auto', height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240 }}>
-        <Sider
-          width={240}
-          collapsible
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-          trigger={null}
-          theme={isDark ? 'dark' : 'light'}
-          style={{
-            height: '100%',
-            borderRight: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
-          }}
-        >
+        <div className="sider-scroll-container" style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240, display: 'flex', flexDirection: 'column' }}>
           <div
             style={{
               height: 64,
@@ -184,6 +172,7 @@ export default function MainLayout() {
               justifyContent: 'center',
               borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
               gap: 2,
+              flexShrink: 0,
             }}
           >
             {collapsed ? (
@@ -205,15 +194,29 @@ export default function MainLayout() {
               </>
             )}
           </div>
-          <Menu
-            mode="inline"
-            selectedKeys={[location.pathname]}
-            items={getMenuItems() ?? []}
-            onClick={({ key }) => navigate(key)}
-            onOpenChange={handleMenuOpenChange}
-            style={{ borderRight: 0 }}
-          />
-        </Sider>
+          <div ref={siderRef} className="sider-menu-scroll" style={{ flex: 1, overflow: 'auto' }}>
+          <Sider
+            width={240}
+            collapsible
+            collapsed={collapsed}
+            onCollapse={setCollapsed}
+            trigger={null}
+            theme={isDark ? 'dark' : 'light'}
+            style={{
+              height: 'auto',
+              borderRight: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+            }}
+          >
+            <Menu
+              mode="inline"
+              selectedKeys={[location.pathname]}
+              items={getMenuItems() ?? []}
+              onClick={({ key }) => navigate(key)}
+              onOpenChange={handleMenuOpenChange}
+              style={{ borderRight: 0 }}
+            />
+          </Sider>
+          </div>
         </div>
       )}
 
@@ -259,7 +262,7 @@ export default function MainLayout() {
         </Drawer>
       )}
 
-      <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 240), transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 240), transition: 'margin-left 0.2s', background: colorBgLayout }}>
         <Header
           style={{
             padding: isMobile ? '0 16px' : '0 24px',
