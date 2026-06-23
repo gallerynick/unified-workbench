@@ -265,7 +265,7 @@ export default function CategoryDetail({ categoryId, onBack }: CategoryDetailPro
             返回
           </Button>
           <div>
-            <Title level={4} className={styles.title ?? ''}>
+            <Title level={4} style={{ margin: 0 }}>
               {category?.name || '加载中...'}
             </Title>
             <Paragraph type="secondary" className={styles.categoryDesc ?? ''}>
