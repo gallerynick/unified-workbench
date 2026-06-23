@@ -12,5 +12,6 @@
 
 .title {
   margin: 0 !important;
+  font-weight: 600;
   white-space: nowrap;
 }

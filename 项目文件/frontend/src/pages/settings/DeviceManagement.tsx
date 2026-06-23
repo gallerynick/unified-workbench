@@ -144,7 +144,7 @@ export default function DeviceManagement() {
 
   return (
     <div style={{ maxWidth: 1000 }}>
-      <Title level={4} style={{ margin: 0 }}>设备管理</Title>
+      <Title level={4} style={{ fontWeight: 600, margin: 0 }}>设备管理</Title>
       <Alert
         message="设备管理"
         description="查看和管理已登录的设备。撤销设备将强制该设备重新登录。"

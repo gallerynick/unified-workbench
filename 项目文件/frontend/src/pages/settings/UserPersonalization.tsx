@@ -28,7 +28,7 @@ export default function UserPersonalization() {
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <Title level={4} style={{ margin: 0 }}>用户个性化</Title>
+      <Title level={4} style={{ fontWeight: 600, margin: 0 }}>用户个性化</Title>
       <Alert
         message="这些设置仅影响当前浏览器，不会同步到其他设备或其他用户。"
         type="info"

@@ -145,7 +145,7 @@ export default function ProjectDetailPage() {
           >
             返回
           </Button>
-          <Title level={4} style={{ margin: 0 }}>
+          <Title level={4} style={{ fontWeight: 600, margin: 0 }}>
             {project.title}
           </Title>
           <Tag color={visibilityCfg.color}>{visibilityCfg.text}</Tag>

@@ -76,7 +76,7 @@ export default function SiteSettings() {
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <Title level={4} style={{ margin: 0 }}>站点访问配置</Title>
+      <Title level={4} style={{ fontWeight: 600, margin: 0 }}>站点访问配置</Title>
       <Alert
         message="管理员专属"
         description="这些配置影响整个站点的访问方式。修改后可能需要重启服务才能生效。"
