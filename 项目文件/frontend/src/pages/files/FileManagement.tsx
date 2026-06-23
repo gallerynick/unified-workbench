@@ -380,36 +380,38 @@ export default function FileManagement() {
   ];
 
   return (
-    <div className={styles.container ?? ''}>
-      <div className={styles.sidebar ?? ''}>
-        <FolderTree
-          selectedFolderId={selectedFolderId}
-          onSelect={handleFolderSelect}
-        />
+    <div className={styles.pageWrapper ?? ''}>
+      <div className={styles.pageHeader ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>
+          文件管理
+        </Title>
+        <Space>
+          <Input
+            placeholder="搜索文件名"
+            prefix={<SearchOutlined />}
+            allowClear
+            className={styles.searchInput ?? ''}
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+          <Button
+            type="primary"
+            icon={<UploadOutlined />}
+            onClick={() => setUploadModalVisible(true)}
+          >
+            上传文件
+          </Button>
+        </Space>
       </div>
 
-      <div className={styles.main ?? ''}>
-        <div className={styles.header ?? ''}>
-          <Title level={4} className={styles.title ?? ''}>
-            文件管理
-          </Title>
-          <Space>
-            <Input
-              placeholder="搜索文件名"
-              prefix={<SearchOutlined />}
-              allowClear
-              className={styles.searchInput ?? ''}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
-            <Button
-              type="primary"
-              icon={<UploadOutlined />}
-              onClick={() => setUploadModalVisible(true)}
-            >
-              上传文件
-            </Button>
-          </Space>
+      <div className={styles.container ?? ''}>
+        <div className={styles.sidebar ?? ''}>
+          <FolderTree
+            selectedFolderId={selectedFolderId}
+            onSelect={handleFolderSelect}
+          />
         </div>
+
+        <div className={styles.main ?? ''}>
 
         <Table<FileRecord>
           className={styles.table ?? ''}
@@ -476,6 +478,7 @@ export default function FileManagement() {
           />
         </div>
       </Modal>
+      </div>
     </div>
   );
 }

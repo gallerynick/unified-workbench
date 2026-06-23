@@ -1,7 +1,22 @@
+.pageWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .container {
   display: flex;
   gap: 16px;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .sidebar {
@@ -60,21 +75,24 @@
 }
 
 @media (max-width: 767px) {
+  .pageWrapper {
+    padding: 8px;
+  }
+
   .container {
     flex-direction: column;
-    padding: 8px;
   }
 
   .sidebar {
     width: 100%;
   }
 
-  .header {
+  .pageHeader {
     flex-direction: column;
     gap: 8px;
   }
 
-  .header > * {
+  .pageHeader > * {
     width: 100%;
   }
 
