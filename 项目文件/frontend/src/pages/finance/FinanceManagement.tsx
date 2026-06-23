@@ -227,7 +227,7 @@ export default function FinanceManagement() {
 
   return (
     <div>
-      <Title level={4}>财务管理</Title>
+      <Title level={4} style={{ margin: 0 }}>财务管理</Title>
       <Tabs
         items={[
           {

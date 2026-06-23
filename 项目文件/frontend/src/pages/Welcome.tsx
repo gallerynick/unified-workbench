@@ -66,7 +66,7 @@ export default function Welcome() {
       icon: <SettingOutlined />,
       content: (
         <div className={styles.stepContent}>
-          <Title level={4}>基本设置</Title>
+          <Title level={4} className={styles.title ?? ''}>基本设置</Title>
           <div className={styles.formItem}>
             <Text strong>工作台名称</Text>
             <Input

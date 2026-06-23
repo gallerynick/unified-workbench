@@ -212,7 +212,7 @@ export default function CustomizationSettings() {
 
   return (
     <div className={styles.container}>
-      <Title level={4}>应用配置</Title>
+      <Title level={4} className={styles.title ?? ''}>应用配置</Title>
       <Alert
         message="管理员专属"
         description="只有管理员可以修改应用配置。修改后需刷新页面才能看到效果。"

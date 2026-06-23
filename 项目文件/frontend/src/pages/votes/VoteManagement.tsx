@@ -82,7 +82,7 @@ export default function VoteManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4}>投票决策</Title>
+        <Title level={4} className={styles.title ?? ''}>投票决策</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建投票</Button>
       </div>
       <Table<Vote> columns={columns} dataSource={votes} rowKey="id" loading={loading}

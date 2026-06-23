@@ -12,6 +12,11 @@
   gap: 12px;
 }
 
+.title {
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
 /* Event list below calendar */
 .eventList {
   margin-top: 20px;

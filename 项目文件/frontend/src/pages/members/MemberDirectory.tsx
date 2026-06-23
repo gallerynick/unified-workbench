@@ -32,7 +32,7 @@ export default function MemberDirectory() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4}>成员目录</Title>
+        <Title level={4} className={styles.title ?? ''}>成员目录</Title>
       </div>
       <Table<User> columns={columns} dataSource={users} rowKey="id" loading={loading} pagination={false} />
     </div>

@@ -177,7 +177,7 @@ export default function CalendarPage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <Title level={4}><CalendarOutlined /> 日历</Title>
+        <Title level={4} className={styles.title ?? ''}><CalendarOutlined /> 日历</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreateModal()}>新建事件</Button>
       </div>
 

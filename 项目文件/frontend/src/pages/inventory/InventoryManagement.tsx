@@ -164,7 +164,7 @@ export default function InventoryManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4}>物品管理</Title>
+        <Title level={4} className={styles.title ?? ''}>物品管理</Title>
         <Space>
           <Input placeholder="搜索物品" allowClear style={{ width: 160 }}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}

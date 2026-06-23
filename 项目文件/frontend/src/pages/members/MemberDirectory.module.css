@@ -9,3 +9,8 @@
   align-items: center;
   justify-content: space-between;
 }
+
+.title {
+  margin: 0 !important;
+  white-space: nowrap;
+}

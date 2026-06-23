@@ -132,7 +132,7 @@ export default function Profile() {
 
   return (
     <div className={styles.container}>
-      <Title level={4}>个人资料</Title>
+      <Title level={4} className={styles.title ?? ''}>个人资料</Title>
 
       {/* 用户信息卡片 */}
       <Card className={styles.card ?? ''}>

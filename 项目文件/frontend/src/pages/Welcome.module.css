@@ -45,6 +45,11 @@
   border-top: 1px solid #f0f0f0;
 }
 
+.title {
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
 @media (max-width: 767px) {
   .container {
     padding: 16px;

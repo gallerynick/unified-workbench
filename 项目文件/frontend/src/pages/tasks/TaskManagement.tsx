@@ -150,7 +150,7 @@ export default function TaskManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4}>任务管理</Title>
+        <Title level={4} className={styles.title ?? ''}>任务管理</Title>
         <Space>
           <Select value={statusFilter} onChange={setStatusFilter} placeholder="状态筛选" allowClear style={{ width: 120 }}
             options={[{ value: '', label: '全部' }, ...Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}

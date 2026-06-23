@@ -136,7 +136,7 @@ export default function ContactManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4}>客户管理</Title>
+        <Title level={4} className={styles.title ?? ''}>客户管理</Title>
         <Space>
           <Input placeholder="搜索姓名/公司/邮箱" prefix={<SearchOutlined />} allowClear value={search}
             onChange={(e) => setSearch(e.target.value)} style={{ width: 200 }} />
