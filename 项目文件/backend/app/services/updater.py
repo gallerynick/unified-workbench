@@ -29,19 +29,22 @@ async def set_github_repo(db: AsyncSession, repo: str) -> None:
 async def validate_repo(repo: str) -> dict:
     """验证仓库是否为本应用仓库"""
     async with httpx.AsyncClient() as client:
-        # 1. 检查标识文件是否存在
-        url = f"https://raw.githubusercontent.com/{repo}/main/.unified-workbench"
-        resp = await client.get(url, timeout=10)
-        if resp.status_code != 200:
+        # 1. 检查标识文件是否存在（尝试 main 和 master 分支）
+        marker = None
+        for branch in ["main", "master"]:
+            url = f"https://raw.githubusercontent.com/{repo}/{branch}/.unified-workbench"
+            resp = await client.get(url, timeout=10)
+            if resp.status_code == 200:
+                try:
+                    marker = resp.json()
+                    break
+                except json.JSONDecodeError:
+                    return {"valid": False, "error": "标识文件格式错误"}
+        
+        if marker is None:
             return {"valid": False, "error": "该仓库不是一站式工作台应用（缺少标识文件）"}
 
-        # 2. 解析标识文件
-        try:
-            marker = resp.json()
-        except json.JSONDecodeError:
-            return {"valid": False, "error": "标识文件格式错误"}
-
-        # 3. 验证 app_id
+        # 2. 验证 app_id
         if marker.get("app_id") != APP_ID:
             return {
                 "valid": False,
@@ -75,10 +78,18 @@ async def check_update(db: AsyncSession) -> dict:
         download_url = data.get("html_url", "")
 
         # 确保版本比当前高
-        available = version_compare(remote_version, __version__) > 0
+        cmp = version_compare(remote_version, __version__)
+        if cmp <= 0:
+            return {
+                "available": False,
+                "current": __version__,
+                "remote": remote_version,
+                "repo": repo,
+                "error": "当前已是最新版本" if cmp == 0 else f"本地版本（{__version__}）高于远程版本（{remote_version}），无需更新",
+            }
 
         return {
-            "available": available,
+            "available": True,
             "current": __version__,
             "remote": remote_version,
             "release_notes": release_notes,
