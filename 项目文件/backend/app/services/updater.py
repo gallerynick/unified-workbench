@@ -13,6 +13,19 @@ DEFAULT_GITHUB_REPO = "gallerynick/unified-workbench"
 APP_ID = "unified-workbench"
 
 
+async def get_github_token(db: AsyncSession) -> str:
+    """获取配置的 GitHub Token"""
+    value = await get_config(db, "github_token")
+    if value and isinstance(value, dict):
+        return value.get("token", "")
+    return ""
+
+
+async def set_github_token(db: AsyncSession, token: str) -> None:
+    """设置 GitHub Token"""
+    await update_config(db, "github_token", {"token": token})
+
+
 async def get_github_repo(db: AsyncSession) -> str:
     """获取配置的 GitHub 仓库地址"""
     value = await get_config(db, "github_repo")
@@ -26,25 +39,29 @@ async def set_github_repo(db: AsyncSession, repo: str) -> None:
     await update_config(db, "github_repo", {"repo": repo})
 
 
-async def validate_repo(repo: str) -> dict:
+async def validate_repo(repo: str, token: str = "") -> dict:
     """验证仓库是否为本应用仓库"""
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    
     async with httpx.AsyncClient() as client:
-        # 1. 检查标识文件是否存在（尝试 main 和 master 分支）
         marker = None
         for branch in ["main", "master"]:
-            url = f"https://raw.githubusercontent.com/{repo}/{branch}/.unified-workbench"
-            resp = await client.get(url, timeout=10)
+            url = f"https://api.github.com/repos/{repo}/contents/.unified-workbench?ref={branch}"
+            resp = await client.get(url, headers=headers, timeout=10)
             if resp.status_code == 200:
+                import base64
                 try:
-                    marker = resp.json()
+                    content = base64.b64decode(resp.json()["content"]).decode("utf-8")
+                    marker = json.loads(content)
                     break
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, KeyError):
                     return {"valid": False, "error": "标识文件格式错误"}
         
         if marker is None:
             return {"valid": False, "error": "该仓库不是一站式工作台应用（缺少标识文件）"}
 
-        # 2. 验证 app_id
         if marker.get("app_id") != APP_ID:
             return {
                 "valid": False,
@@ -57,16 +74,19 @@ async def validate_repo(repo: str) -> dict:
 async def check_update(db: AsyncSession) -> dict:
     """检查是否有新版本"""
     repo = await get_github_repo(db)
+    token = await get_github_token(db)
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
 
-    # 验证仓库
-    validation = await validate_repo(repo)
+    validation = await validate_repo(repo, token)
     if not validation["valid"]:
         return {"available": False, "error": validation["error"]}
 
     async with httpx.AsyncClient() as client:
         resp = await client.get(
             f"https://api.github.com/repos/{repo}/releases/latest",
-            headers={"Accept": "application/vnd.github.v3+json"},
+            headers=headers,
             timeout=10,
         )
         if resp.status_code != 200:
@@ -113,9 +133,9 @@ def version_compare(v1: str, v2: str) -> int:
 async def perform_update(db: AsyncSession) -> dict:
     """执行更新"""
     repo = await get_github_repo(db)
+    token = await get_github_token(db)
 
-    # 再次验证仓库
-    validation = await validate_repo(repo)
+    validation = await validate_repo(repo, token)
     if not validation["valid"]:
         return {"success": False, "error": validation["error"]}
 

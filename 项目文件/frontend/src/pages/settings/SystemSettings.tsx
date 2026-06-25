@@ -6,6 +6,8 @@ import {
   performUpdate,
   getRepo,
   setRepo,
+  getToken,
+  setToken,
   type UpdateInfo,
   type RepoInfo,
 } from '../../api/system';
@@ -18,20 +20,27 @@ export default function SystemSettings() {
   const [repo, setRepoValue] = useState('');
   const [editingRepo, setEditingRepo] = useState('');
   const [savingRepo, setSavingRepo] = useState(false);
+  const [editingToken, setEditingToken] = useState('');
+  const [savingToken, setSavingToken] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
-    const loadRepo = async () => {
+    const loadConfig = async () => {
       try {
-        const res: UnifiedResponse<RepoInfo> = await getRepo();
-        if (res.code === 0) {
-          setRepoValue(res.data.repo);
-          setEditingRepo(res.data.repo);
+        const repoRes: UnifiedResponse<RepoInfo> = await getRepo();
+        if (repoRes.code === 0) {
+          setRepoValue(repoRes.data.repo);
+          setEditingRepo(repoRes.data.repo);
         }
-      } catch {
-        // 忽略加载失败
-      }
+      } catch {}
+      try {
+        const tokenRes = await getToken();
+        if (tokenRes.code === 0) {
+          setHasToken(tokenRes.data.has_token);
+        }
+      } catch {}
     };
-    loadRepo();
+    loadConfig();
   }, []);
 
   const handleSaveRepo = async () => {
@@ -52,6 +61,28 @@ export default function SystemSettings() {
       message.error('保存失败');
     } finally {
       setSavingRepo(false);
+    }
+  };
+
+  const handleSaveToken = async () => {
+    if (!editingToken.trim()) {
+      message.warning('请输入 GitHub Token');
+      return;
+    }
+    setSavingToken(true);
+    try {
+      const res = await setToken(editingToken);
+      if (res.code === 0) {
+        setHasToken(true);
+        setEditingToken('');
+        message.success('GitHub Token 已保存');
+      } else {
+        message.error(res.msg || '保存失败');
+      }
+    } catch {
+      message.error('保存失败');
+    } finally {
+      setSavingToken(false);
     }
   };
 
@@ -124,6 +155,30 @@ export default function SystemSettings() {
             </Space>
             <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
               默认地址：gallerynick/unified-workbench
+            </div>
+          </div>
+          <div>
+            <div style={{ marginBottom: 8 }}>
+              GitHub Token（私有仓库必须）：
+              {hasToken && <Tag color="green" style={{ marginLeft: 8 }}>已配置</Tag>}
+            </div>
+            <Space>
+              <Input.Password
+                value={editingToken}
+                onChange={(e) => setEditingToken(e.target.value)}
+                placeholder="ghp_xxxxxxxxxxxx"
+                style={{ width: 300 }}
+              />
+              <Button
+                icon={<SaveOutlined />}
+                onClick={handleSaveToken}
+                loading={savingToken}
+              >
+                保存
+              </Button>
+            </Space>
+            <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
+              用于访问私有仓库，需要 repo 权限。生成地址：GitHub → Settings → Developer settings → Personal access tokens
             </div>
           </div>
         </Space>

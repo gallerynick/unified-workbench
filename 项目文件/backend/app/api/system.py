@@ -8,8 +8,10 @@ from app.core.database import get_db
 from app.services.updater import (
     check_update,
     get_github_repo,
+    get_github_token,
     perform_update,
     set_github_repo,
+    set_github_token,
     validate_repo,
 )
 
@@ -18,6 +20,10 @@ router = APIRouter(prefix="/system", tags=["system"])
 
 class RepoConfig(BaseModel):
     repo: str
+
+
+class TokenConfig(BaseModel):
+    token: str
 
 
 @router.get("/check-update")
@@ -40,15 +46,27 @@ async def api_get_repo(db: AsyncSession = Depends(get_db)):
 
 @router.put("/repo")
 async def api_set_repo(config: RepoConfig, db: AsyncSession = Depends(get_db)):
-    # 验证仓库格式
     parts = config.repo.split("/")
     if len(parts) != 2:
         return {"code": 1, "msg": "仓库地址格式错误，应为 owner/repo", "data": None}
 
-    # 验证仓库是否为本应用
-    validation = await validate_repo(config.repo)
+    token = await get_github_token(db)
+    validation = await validate_repo(config.repo, token)
     if not validation["valid"]:
         return {"code": 1, "msg": validation["error"], "data": None}
 
     await set_github_repo(db, config.repo)
     return {"code": 0, "msg": "仓库地址已更新", "data": {"repo": config.repo}}
+
+
+@router.get("/token")
+async def api_get_token(db: AsyncSession = Depends(get_db)):
+    token = await get_github_token(db)
+    masked = token[:4] + "****" + token[-4:] if len(token) > 8 else ""
+    return {"code": 0, "msg": "", "data": {"token": masked, "has_token": bool(token)}}
+
+
+@router.put("/token")
+async def api_set_token(config: TokenConfig, db: AsyncSession = Depends(get_db)):
+    await set_github_token(db, config.token)
+    return {"code": 0, "msg": "GitHub Token 已保存", "data": None}

@@ -35,3 +35,11 @@ export async function getRepo() {
 export async function setRepo(repo: string) {
   return request<RepoInfo>('/system/repo', { method: 'PUT', body: { repo } });
 }
+
+export async function getToken() {
+  return request<{ token: string; has_token: boolean }>('/system/token');
+}
+
+export async function setToken(token: string) {
+  return request<null>('/system/token', { method: 'PUT', body: { token } });
+}
