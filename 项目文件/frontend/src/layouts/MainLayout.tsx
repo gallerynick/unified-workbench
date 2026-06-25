@@ -32,17 +32,20 @@ import {
   BookOutlined,
   TagOutlined,
   BgColorsOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
 import { useTheme } from '../contexts/ThemeContext';
+import { useUser } from '../contexts/UserContext';
 import { clearTokens, isAdmin } from '../utils/auth';
 import { getVisibleSidebarItems } from '../pages/settings/SidebarManagement';
 import { TagProvider } from '../contexts/TagContext';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
+import VotePopup from '../components/VotePopup';
 import { getRouteTitle } from '../config/routeTitles';
 
 const { Header, Sider, Content } = Layout;
@@ -67,6 +70,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   BookOutlined: <BookOutlined />,
   SettingOutlined: <SettingOutlined />,
   AuditOutlined: <AuditOutlined />,
+  ApartmentOutlined: <ApartmentOutlined />,
 };
 
 function getMenuItems(): MenuProps['items'] {
@@ -113,6 +117,7 @@ function getMenuItems(): MenuProps['items'] {
           { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
           { key: '/settings/backups', label: '备份管理', icon: <CloudServerOutlined /> },
           { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
+          { key: '/settings/system', label: '系统更新', icon: <CloudServerOutlined /> },
         ],
       },
     );
@@ -146,6 +151,7 @@ export default function MainLayout() {
   const { isMobile } = useResponsive();
   const customization = useCustomization();
   const { isDark } = useTheme();
+  const { user } = useUser();
 
   const handleMenuOpenChange = useCallback((openKeys: string[]) => {
     if (openKeys.includes('/settings')) {
@@ -296,6 +302,7 @@ export default function MainLayout() {
                   border: 'none',
                   padding: 0,
                   lineHeight: 1,
+                  color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.88)',
                 }}
               >
                 {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -318,8 +325,8 @@ export default function MainLayout() {
               if (key === 'logout') { clearTokens(); navigate('/login'); }
             } }} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
-                <Avatar icon={<UserOutlined />} />
-                {!isMobile && <span>管理员</span>}
+                <Avatar src={user?.avatar || undefined} icon={!user?.avatar ? <UserOutlined /> : undefined} />
+                {!isMobile && <span>{user?.nickname || '管理员'}</span>}
               </Space>
             </Dropdown>
           </Space>
@@ -342,6 +349,7 @@ export default function MainLayout() {
           onMarkAsRead={markAsRead}
           onMarkAllAsRead={markAllAsRead}
         />
+        <VotePopup />
       </Layout>
       </Layout>
     </TagProvider>

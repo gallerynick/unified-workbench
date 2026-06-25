@@ -8,7 +8,7 @@ export interface Contact {
   phone: string | null;
   address: string | null;
   contact_type: ContactType;
-  tags: string[] | null;
+  tags: Record<string, unknown> | string[] | null;
   notes: string | null;
   owner_id: string;
   created_at: string;
@@ -22,7 +22,7 @@ export interface ContactCreate {
   phone?: string;
   address?: string;
   contact_type?: ContactType;
-  tags?: string[];
+  tags?: Record<string, unknown> | string[] | null;
   notes?: string;
 }
 
@@ -33,7 +33,7 @@ export interface ContactUpdate {
   phone?: string;
   address?: string;
   contact_type?: ContactType;
-  tags?: string[];
+  tags?: Record<string, unknown> | string[] | null;
   notes?: string;
 }
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Button, Typography, Modal, message, Space, Input, Switch, Select } from 'antd';
+import { Button, Typography, Modal, message, Space, Input, Switch, Select, Form } from 'antd';
 import { PlusOutlined, DeleteOutlined, CalendarOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -34,6 +34,7 @@ export default function CalendarPage() {
   const calendarRef = useRef<FullCalendar>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [form] = Form.useForm();
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formStartTime, setFormStartTime] = useState('');
@@ -224,44 +225,56 @@ export default function CalendarPage() {
       <Modal title={editingEvent ? '编辑事件' : '新建事件'} open={modalVisible} onOk={handleSave}
         onCancel={() => { setModalVisible(false); resetForm(); }} okText="保存" cancelText="取消"
         okButtonProps={{ loading: saving }} confirmLoading={saving} width={560}>
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Input placeholder="事件标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
-          <Input.TextArea placeholder="事件描述（可选）" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} rows={2} />
+        <Form form={form} layout="vertical">
+          <Form.Item label="事件标题" required>
+            <Input placeholder="请输入事件标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
+          </Form.Item>
+          <Form.Item label="事件描述">
+            <Input.TextArea placeholder="请输入事件描述（可选）" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} rows={2} />
+          </Form.Item>
           <Space style={{ width: '100%' }}>
-            <Input type="datetime-local" value={formStartTime} onChange={(e) => setFormStartTime(e.target.value)} style={{ width: 200 }} />
-            <span>至</span>
-            <Input type="datetime-local" value={formEndTime} onChange={(e) => setFormEndTime(e.target.value)} style={{ width: 200 }} />
+            <Form.Item label="开始时间">
+              <Input type="datetime-local" value={formStartTime} onChange={(e) => setFormStartTime(e.target.value)} style={{ width: 200 }} />
+            </Form.Item>
+            <span style={{ marginTop: 30 }}>至</span>
+            <Form.Item label="结束时间">
+              <Input type="datetime-local" value={formEndTime} onChange={(e) => setFormEndTime(e.target.value)} style={{ width: 200 }} />
+            </Form.Item>
           </Space>
           <Space style={{ width: '100%' }}>
-            <Switch checked={formAllDay} onChange={setFormAllDay} checkedChildren="全天" unCheckedChildren="非全天" />
-            <Input placeholder="地点（可选）" prefix={<EnvironmentOutlined />} value={formLocation} onChange={(e) => setFormLocation(e.target.value)} style={{ width: 220 }} />
+            <Form.Item label="全天事件">
+              <Switch checked={formAllDay} onChange={setFormAllDay} checkedChildren="全天" unCheckedChildren="非全天" />
+            </Form.Item>
+            <Form.Item label="地点">
+              <Input placeholder="请输入地点（可选）" prefix={<EnvironmentOutlined />} value={formLocation} onChange={(e) => setFormLocation(e.target.value)} style={{ width: 220 }} />
+            </Form.Item>
           </Space>
-          <Space style={{ width: '100%' }} align="center">
-            <span>颜色:</span>
-            {PRESET_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setFormColor(c)}
-                style={{
-                  width: 24, height: 24, borderRadius: '50%', border: formColor === c ? '2px solid #000' : '2px solid transparent',
-                  backgroundColor: c, cursor: 'pointer', padding: 0,
-                }}
-              />
-            ))}
-          </Space>
-          <Space style={{ width: '100%' }}>
-            <span>重复:</span>
+          <Form.Item label="颜色">
+            <Space align="center">
+              {PRESET_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setFormColor(c)}
+                  style={{
+                    width: 24, height: 24, borderRadius: '50%', border: formColor === c ? '2px solid #000' : '2px solid transparent',
+                    backgroundColor: c, cursor: 'pointer', padding: 0,
+                  }}
+                />
+              ))}
+            </Space>
+          </Form.Item>
+          <Form.Item label="重复">
             <Select value={formRepeat} onChange={(v) => setFormRepeat(v as EventRepeat)} style={{ width: 160 }}>
               {REPEAT_OPTIONS.map((o) => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
-          </Space>
+          </Form.Item>
           {editingEvent && (
             <Button danger onClick={() => { setModalVisible(false); handleDelete(editingEvent); }} icon={<DeleteOutlined />}>
               删除此事件
             </Button>
           )}
-        </Space>
+        </Form>
       </Modal>
     </div>
   );

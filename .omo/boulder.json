@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "active_work_id": "topology-view-edit-mode-e220015b",
+  "works": {
+    "topology-view-edit-mode-e220015b": {
+      "work_id": "topology-view-edit-mode-e220015b",
+      "active_plan": "/Users/gallerynick/Documents/Project/Project_UnifiedWorkbench/.omo/plans/topology-view-edit-mode.md",
+      "plan_name": "topology-view-edit-mode",
+      "status": "completed",
+      "started_at": "2026-06-25T10:02:51.883Z",
+      "updated_at": "2026-06-25T10:11:51.586Z",
+      "session_ids": [
+        "opencode:ses_12bd25dfeffeZwmukGl9Wn5eYW"
+      ],
+      "session_origins": {
+        "opencode:ses_12bd25dfeffeZwmukGl9Wn5eYW": "direct"
+      },
+      "agent": "atlas",
+      "task_sessions": {},
+      "ended_at": "2026-06-25T10:11:51.586Z",
+      "elapsed_ms": 539703
+    }
+  },
+  "active_plan": "/Users/gallerynick/Documents/Project/Project_UnifiedWorkbench/.omo/plans/topology-view-edit-mode.md",
+  "started_at": "2026-06-25T10:02:51.883Z",
+  "status": "completed",
+  "updated_at": "2026-06-25T10:11:51.586Z",
+  "session_ids": [
+    "opencode:ses_12bd25dfeffeZwmukGl9Wn5eYW"
+  ],
+  "session_origins": {
+    "opencode:ses_12bd25dfeffeZwmukGl9Wn5eYW": "direct"
+  },
+  "plan_name": "topology-view-edit-mode",
+  "task_sessions": {},
+  "agent": "atlas",
+  "ended_at": "2026-06-25T10:11:51.586Z",
+  "elapsed_ms": 539703
+}

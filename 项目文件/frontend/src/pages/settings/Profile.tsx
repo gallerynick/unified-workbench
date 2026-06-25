@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, message, Avatar, Divider, Upload, Tag, Descriptions, Space } from 'antd';
-import { UserOutlined, SaveOutlined, LockOutlined, CameraOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Typography, message, Avatar, Divider, Upload, Tag, Descriptions, Space, Modal } from 'antd';
+import { UserOutlined, SaveOutlined, LockOutlined, CameraOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined } from '@ant-design/icons';
 import ImgCrop from 'antd-img-crop';
 import type { RcFile } from 'antd/es/upload/interface';
 import type { UploadProps } from 'antd';
-import { getMe, updateMe, changePassword } from '../../api/auth';
+import { getMe, updateMe, changePassword, deleteMe } from '../../api/auth';
 import type { User } from '../../types/user';
+import { useUser } from '../../contexts/UserContext';
 import styles from './Profile.module.css';
 
 const { Title, Text } = Typography;
@@ -31,11 +32,15 @@ const STATUS_MAP: Record<string, { label: string; icon: React.ReactNode; color: 
 };
 
 export default function Profile() {
+  const { setUser: setGlobalUser } = useUser();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
 
@@ -97,6 +102,29 @@ export default function Profile() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      message.warning('请输入密码');
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await deleteMe(deletePassword);
+      if (res.code === 0) {
+        message.success('账户已删除');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+      } else {
+        message.error(res.msg || '删除失败');
+      }
+    } catch {
+      message.error('删除失败，请重试');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleAvatarChange: UploadProps['beforeUpload'] = async (file) => {
     const MAX_SIZE = 2 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
@@ -111,6 +139,7 @@ export default function Profile() {
       if (res.code === 0) {
         message.success('头像已更新');
         setUser(res.data);
+        setGlobalUser(res.data);
       } else {
         message.error(res.msg || '头像更新失败');
       }
@@ -269,6 +298,50 @@ export default function Profile() {
           </Button>
         </Form>
       </Card>
+
+      {/* 危险区域 */}
+      <Card
+        title={<><DeleteOutlined /> 危险操作</>}
+        className={styles.card ?? ''}
+        style={{ borderColor: '#ff4d4f' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <Typography.Text strong>删除账户</Typography.Text>
+            <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+              此操作不可恢复，删除后所有数据将被永久移除
+            </Typography.Paragraph>
+          </div>
+          <Button danger icon={<DeleteOutlined />} onClick={() => setDeleteModalVisible(true)}>
+            删除我的账户
+          </Button>
+        </div>
+      </Card>
+
+      <Modal
+        title="确认删除账户"
+        open={deleteModalVisible}
+        onCancel={() => { setDeleteModalVisible(false); setDeletePassword(''); }}
+        footer={null}
+      >
+        <Typography.Paragraph type="danger">
+          此操作不可逆！请输入您的登录密码以确认删除。
+        </Typography.Paragraph>
+        <Input.Password
+          placeholder="请输入登录密码"
+          value={deletePassword}
+          onChange={(e) => setDeletePassword(e.target.value)}
+          onPressEnter={handleDeleteAccount}
+        />
+        <div style={{ marginTop: 16, textAlign: 'right' }}>
+          <Button onClick={() => { setDeleteModalVisible(false); setDeletePassword(''); }} style={{ marginRight: 8 }}>
+            取消
+          </Button>
+          <Button type="primary" danger loading={deleting} onClick={handleDeleteAccount}>
+            确认删除
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

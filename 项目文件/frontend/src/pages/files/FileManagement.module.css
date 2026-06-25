@@ -1,3 +1,13 @@
+:root {
+  --file-sidebar-bg: #fff;
+  --file-sidebar-border: #f0f0f0;
+}
+
+:root[data-theme="dark"] {
+  --file-sidebar-bg: #1f1f1f;
+  --file-sidebar-border: #303030;
+}
+
 .pageWrapper {
   display: flex;
   flex-direction: column;
@@ -22,9 +32,9 @@
 .sidebar {
   width: 260px;
   flex-shrink: 0;
-  background: #fff;
+  background: var(--file-sidebar-bg, #fff);
   border-radius: 8px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--file-sidebar-border, #f0f0f0);
   overflow: hidden;
   display: flex;
   flex-direction: column;

@@ -11,8 +11,10 @@ from app.models.announcement import Announcement
 from app.schemas.announcement import AnnouncementCreate, AnnouncementUpdate
 
 
-async def list_announcements(db: AsyncSession, page: int = 1, page_size: int = 20) -> tuple[list[Announcement], int]:
+async def list_announcements(db: AsyncSession, page: int = 1, page_size: int = 20, owner_id: uuid.UUID | None = None) -> tuple[list[Announcement], int]:
     query = select(Announcement).where(Announcement.is_published == True)
+    if owner_id is not None:
+        query = query.where(Announcement.owner_id == owner_id)
     count_query = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_query)).scalar() or 0
     query = query.order_by(Announcement.is_pinned.desc(), Announcement.created_at.desc()).offset((page - 1) * page_size).limit(page_size)

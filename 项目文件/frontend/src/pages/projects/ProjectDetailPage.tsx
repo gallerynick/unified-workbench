@@ -22,6 +22,7 @@ import { getVisibilityConfig } from '../../utils/visibility';
 import ProjectInfoTab from './tabs/ProjectInfoTab';
 import ProjectProgressTab from './tabs/ProjectProgressTab';
 import ProjectDocumentTab from './tabs/ProjectDocumentTab';
+import styles from './ProjectDetailPage.module.css';
 
 const { Title } = Typography;
 
@@ -145,7 +146,7 @@ export default function ProjectDetailPage() {
           >
             返回
           </Button>
-          <Title level={4} style={{ fontWeight: 600, margin: 0 }}>
+          <Title level={4} className={styles.title ?? ''}>
             {project.title}
           </Title>
           <Tag color={visibilityCfg.color}>{visibilityCfg.text}</Tag>

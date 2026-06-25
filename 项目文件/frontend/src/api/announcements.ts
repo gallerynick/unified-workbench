@@ -2,10 +2,11 @@ import { request } from '../utils/request';
 import type { Announcement, AnnouncementCreate, AnnouncementUpdate, AnnouncementListResponse } from '../types/announcement';
 import type { UnifiedResponse } from '../types/user';
 
-export async function listAnnouncements(params?: { page?: number; page_size?: number }): Promise<UnifiedResponse<AnnouncementListResponse>> {
+export async function listAnnouncements(params?: { page?: number; page_size?: number; owner_id?: string }): Promise<UnifiedResponse<AnnouncementListResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page) searchParams.set('page', String(params.page));
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
+  if (params?.owner_id) searchParams.set('owner_id', params.owner_id);
   const query = searchParams.toString();
   return request<AnnouncementListResponse>(`/announcements/${query ? `?${query}` : ''}`);
 }

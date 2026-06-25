@@ -1,6 +1,9 @@
 """认证 API 路由。"""
 
-from fastapi import APIRouter, Depends, Request, Response
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -111,3 +114,17 @@ async def mark_setup_complete_endpoint(
     """标记系统初始化完成（任何已认证用户可调用，替代仅管理员的 system-config PUT）。"""
     config = await update_config(db, SETUP_COMPLETE_KEY, {"complete": True})
     return UnifiedResponse(data={"complete": config.value.get("complete", True) if config else True})
+
+
+@router.delete("/me", response_model=UnifiedResponse[None])
+async def delete_me_endpoint(
+    request: PasswordVerifyRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """删除当前用户账户（需验证密码）。"""
+    if not verify_password(request.password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="密码错误")
+    await db.execute(delete(User).where(User.id == current_user.id))
+    await db.flush()
+    return UnifiedResponse(msg="账户已删除")

@@ -5,13 +5,16 @@ import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { router } from './router';
 import { ThemeProvider, useTheme, getAntdThemeConfig } from './contexts/ThemeContext';
+import { UserProvider } from './contexts/UserContext';
 import './global.css';
 
 function AppWithTheme() {
   const { isDark } = useTheme();
   return (
     <ConfigProvider locale={zhCN} theme={getAntdThemeConfig(isDark)}>
-      <RouterProvider router={router} />
+      <UserProvider>
+        <RouterProvider router={router} />
+      </UserProvider>
     </ConfigProvider>
   );
 }

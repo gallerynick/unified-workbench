@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Typography, message, Space, Switch, List, Modal, Input, Alert } from 'antd';
+import { Card, Button, Typography, message, Space, Switch, List, Modal, Input, Alert, Form } from 'antd';
 import { PlusOutlined, DeleteOutlined, LockOutlined, MenuOutlined } from '@ant-design/icons';
 import { isAdmin } from '../../utils/auth';
 import { Result } from 'antd';
+import styles from './SidebarManagement.module.css';
 
 const { Title, Text } = Typography;
 
@@ -19,8 +20,8 @@ interface SidebarItem {
 
 const DEFAULT_ITEMS: SidebarItem[] = [
   { key: '/', label: '首页', icon: 'HomeOutlined', visible: true, hasData: false, builtin: true },
-  { key: '/tasks', label: '任务管理', icon: 'CheckSquareOutlined', visible: true, hasData: false, builtin: true },
-  { key: '/contacts', label: '客户管理', icon: 'ContactsOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/tasks', label: '待办事项', icon: 'CheckSquareOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/contacts', label: '联系人管理', icon: 'ContactsOutlined', visible: true, hasData: false, builtin: true },
   { key: '/calendar', label: '日历', icon: 'CalendarOutlined', visible: true, hasData: false, builtin: true },
   { key: '/votes', label: '投票决策', icon: 'LikeOutlined', visible: true, hasData: false, builtin: true },
   { key: '/forms', label: '表单收集', icon: 'FormOutlined', visible: true, hasData: false, builtin: true },
@@ -34,6 +35,7 @@ const DEFAULT_ITEMS: SidebarItem[] = [
   { key: '/finance', label: '财务管理', icon: 'MoneyCollectOutlined', visible: true, hasData: false, builtin: true },
   { key: '/secrets', label: '密钥管理', icon: 'KeyOutlined', visible: true, hasData: true, builtin: true },
   { key: '/reminders', label: '提醒管理', icon: 'BellOutlined', visible: true, hasData: true, builtin: true },
+  { key: '/topology', label: '拓扑管理', icon: 'ApartmentOutlined', visible: true, hasData: false, builtin: true },
 ];
 
 function mergeWithDefaults(storedItems: SidebarItem[]): SidebarItem[] {
@@ -74,8 +76,7 @@ export function getVisibleSidebarItems(): SidebarItem[] {
 export default function SidebarManagement() {
   const [items, setItems] = useState<SidebarItem[]>([]);
   const [addModalVisible, setAddModalVisible] = useState(false);
-  const [newItemKey, setNewItemKey] = useState('');
-  const [newItemLabel, setNewItemLabel] = useState('');
+  const [form] = Form.useForm();
 
   useEffect(() => {
     setItems(getSidebarConfig());
@@ -130,34 +131,34 @@ export default function SidebarManagement() {
     });
   };
 
-  const handleAdd = () => {
-    if (!newItemKey.trim() || !newItemLabel.trim()) {
+  const handleAdd = async () => {
+    try {
+      const values = await form.validateFields();
+      if (items.some((i) => i.key === values.key)) {
+        message.warning('菜单项已存在');
+        return;
+      }
+      const newItem: SidebarItem = {
+        key: values.key,
+        label: values.label,
+        visible: true,
+        hasData: false,
+        builtin: false,
+      };
+      const updated = [...items, newItem];
+      setItems(updated);
+      saveSidebarConfig(updated);
+      setAddModalVisible(false);
+      form.resetFields();
+      message.success('已添加');
+    } catch {
       message.warning('请填写完整信息');
-      return;
     }
-    if (items.some((i) => i.key === newItemKey)) {
-      message.warning('菜单项已存在');
-      return;
-    }
-    const newItem: SidebarItem = {
-      key: newItemKey,
-      label: newItemLabel,
-      visible: true,
-      hasData: false,
-      builtin: false,
-    };
-    const updated = [...items, newItem];
-    setItems(updated);
-    saveSidebarConfig(updated);
-    setAddModalVisible(false);
-    setNewItemKey('');
-    setNewItemLabel('');
-    message.success('已添加');
   };
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <Title level={4} style={{ fontWeight: 600, margin: 0 }}>侧边栏管理</Title>
+      <Title level={4} className={styles.title ?? ''}>侧边栏管理</Title>
       <Alert
         message="管理员专属"
         description="管理侧边栏菜单项的显示和隐藏。删除菜单项时，数据将保留在数据库中。"
@@ -218,22 +219,18 @@ export default function SidebarManagement() {
         title="添加自定义菜单项"
         open={addModalVisible}
         onOk={handleAdd}
-        onCancel={() => setAddModalVisible(false)}
+        onCancel={() => { setAddModalVisible(false); form.resetFields(); }}
         okText="添加"
         cancelText="取消"
       >
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Input
-            placeholder="菜单项名称（如：项目档案）"
-            value={newItemLabel}
-            onChange={(e) => setNewItemLabel(e.target.value)}
-          />
-          <Input
-            placeholder="路径（如：/archives）"
-            value={newItemKey}
-            onChange={(e) => setNewItemKey(e.target.value)}
-          />
-        </Space>
+        <Form form={form} layout="vertical">
+          <Form.Item name="label" label="菜单项名称" rules={[{ required: true, message: '请输入菜单项名称' }]}>
+            <Input placeholder="请输入菜单项名称（如：项目档案）" />
+          </Form.Item>
+          <Form.Item name="key" label="路径" rules={[{ required: true, message: '请输入路径' }]}>
+            <Input placeholder="请输入路径（如：/archives）" />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

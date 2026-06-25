@@ -55,3 +55,15 @@
   color: rgba(0, 0, 0, 0.85);
   margin: 0;
 }
+
+[data-theme="dark"] .progressLabel {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"] .fileName {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="dark"] .sectionLabel {
+  color: rgba(255, 255, 255, 0.85);
+}

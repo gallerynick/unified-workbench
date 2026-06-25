@@ -38,6 +38,8 @@ const TagManagement = lazy(() => import('@/pages/settings/TagManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
 const ProjectDetailPage = lazy(() => import('@/pages/projects/ProjectDetailPage'));
+const SystemSettings = lazy(() => import('@/pages/settings/SystemSettings'));
+const TopologyManagement = lazy(() => import('@/pages/topology/TopologyManagement'));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -188,8 +190,16 @@ export const router = createBrowserRouter([
             element: <LazyPage><DeviceManagement /></LazyPage>,
           },
           {
+            path: 'settings/system',
+            element: <LazyPage><SystemSettings /></LazyPage>,
+          },
+          {
             path: 'profile',
             element: <LazyPage><Profile /></LazyPage>,
+          },
+          {
+            path: 'topology',
+            element: <LazyPage><TopologyManagement /></LazyPage>,
           },
           {
             path: '404',

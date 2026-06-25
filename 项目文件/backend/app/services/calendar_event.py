@@ -12,6 +12,17 @@ from app.models.calendar_event import CalendarEvent, EventRepeat
 from app.schemas.calendar_event import CalendarEventCreate, CalendarEventUpdate
 
 
+def _parse_datetime(s: str) -> datetime:
+    """解析 ISO 格式日期字符串，兼容 'Z' 后缀。返回 naive datetime。"""
+    if s.endswith('Z'):
+        s = s[:-1] + '+00:00'
+    dt = datetime.fromisoformat(s)
+    # 数据库列是 TIMESTAMP WITHOUT TIME ZONE，需剥离时区信息
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
+    return dt
+
+
 async def list_events(
     db: AsyncSession,
     owner_id: uuid.UUID,
@@ -22,9 +33,9 @@ async def list_events(
 ) -> tuple[list[CalendarEvent], int]:
     query = select(CalendarEvent).where(CalendarEvent.owner_id == owner_id)
     if start_date:
-        query = query.where(CalendarEvent.start_time >= datetime.fromisoformat(start_date))
+        query = query.where(CalendarEvent.start_time >= _parse_datetime(start_date))
     if end_date:
-        query = query.where(CalendarEvent.start_time <= datetime.fromisoformat(end_date))
+        query = query.where(CalendarEvent.start_time <= _parse_datetime(end_date))
     count_query = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_query)).scalar() or 0
     query = query.order_by(CalendarEvent.start_time.asc())
@@ -44,8 +55,8 @@ async def create_event(db: AsyncSession, owner_id: uuid.UUID, request: CalendarE
     event = CalendarEvent(
         title=request.title,
         description=request.description,
-        start_time=datetime.fromisoformat(request.start_time),
-        end_time=datetime.fromisoformat(request.end_time) if request.end_time else None,
+        start_time=_parse_datetime(request.start_time),
+        end_time=_parse_datetime(request.end_time) if request.end_time else None,
         all_day=request.all_day,
         location=request.location,
         repeat=EventRepeat(request.repeat),
@@ -67,9 +78,9 @@ async def update_event(db: AsyncSession, event_id: uuid.UUID, owner_id: uuid.UUI
     if request.description is not None:
         event.description = request.description
     if request.start_time is not None:
-        event.start_time = datetime.fromisoformat(request.start_time)
+        event.start_time = _parse_datetime(request.start_time)
     if request.end_time is not None:
-        event.end_time = datetime.fromisoformat(request.end_time) if request.end_time else None  # type: ignore[assignment]
+        event.end_time = _parse_datetime(request.end_time) if request.end_time else None  # type: ignore[assignment]
     if request.all_day is not None:
         event.all_day = request.all_day
     if request.location is not None:

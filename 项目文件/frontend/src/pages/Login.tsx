@@ -6,6 +6,7 @@ import { login } from '../api/auth';
 import { setTokens, isAuthenticated } from '../utils/auth';
 import { HttpError } from '../utils/request';
 import { useCustomization } from '../hooks/useCustomization';
+import { useUser } from '../contexts/UserContext';
 import type { LoginRequest } from '../types/user';
 import styles from './Login.module.css';
 
@@ -15,6 +16,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const customization = useCustomization();
+  const { refreshUser } = useUser();
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -28,6 +30,7 @@ export default function Login() {
       const response = await login(values);
       if (response.code === 0) {
         setTokens(response.data);
+        await refreshUser();
         message.success('登录成功');
         navigate('/', { replace: true });
       } else {

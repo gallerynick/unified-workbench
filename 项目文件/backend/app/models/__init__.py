@@ -12,6 +12,7 @@ from app.models.folder import Folder
 from app.models.inventory import Inventory
 from app.models.form import Form, FormResponse
 from app.models.note import Note
+from app.models.notification import Notification
 from app.models.record import Record, RecordStatus, RecordType
 from app.models.reminder import Reminder, ReminderStatus, TriggerType
 from app.models.secret import Secret
@@ -21,6 +22,7 @@ from app.models.system_config import SystemConfig
 from app.models.tag import Tag
 from app.models.task import Task, TaskPriority, TaskStatus
 from app.models.template import Template
+from app.models.topology import Topology
 from app.models.user import User, UserRole, UserStatus
 from app.models.user_tag import UserTag
 from app.models.vote import Vote, VoteRecord, VoteStatus
@@ -43,6 +45,7 @@ __all__ = [
     "Inventory",
     "FormResponse",
     "Note",
+    "Notification",
     "Tag",
     "User",
     "UserRole",
@@ -64,6 +67,7 @@ __all__ = [
     "Task",
     "TaskStatus",
     "TaskPriority",
+    "Topology",
     "Vote",
     "VoteRecord",
     "VoteStatus",

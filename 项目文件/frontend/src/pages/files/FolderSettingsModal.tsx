@@ -119,48 +119,52 @@ export default function FolderSettingsModal({
           )}
         </div>
 
-        <Divider className={styles.divider ?? ''} />
+        {unifiedManagement && (
+          <>
+            <Divider className={styles.divider ?? ''} />
 
-        {/* 可见性设置 */}
-        <div className={styles.section}>
-          <Text strong className={styles.sectionTitle ?? ''}>可见性设置</Text>
-          <div className={styles.settingContent}>
-            <VisibilitySetting
-              value={visibility}
-              restrictedUsers={restrictedUsers}
-              restrictedTags={restrictedTags}
-              onChange={setVisibility}
-              onRestrictedUsersChange={setRestrictedUsers}
-              onRestrictedTagsChange={setRestrictedTags}
-              showDescription
-              layout="vertical"
-            />
-          </div>
-        </div>
+            {/* 可见性设置 */}
+            <div className={styles.section}>
+              <Text strong className={styles.sectionTitle ?? ''}>可见性设置</Text>
+              <div className={styles.settingContent}>
+                <VisibilitySetting
+                  value={visibility}
+                  restrictedUsers={restrictedUsers}
+                  restrictedTags={restrictedTags}
+                  onChange={setVisibility}
+                  onRestrictedUsersChange={setRestrictedUsers}
+                  onRestrictedTagsChange={setRestrictedTags}
+                  showDescription
+                  layout="vertical"
+                />
+              </div>
+            </div>
 
-        <Divider className={styles.divider ?? ''} />
+            <Divider className={styles.divider ?? ''} />
 
-        {/* 过期时间设置 */}
-        <div className={styles.section}>
-          <Text strong className={styles.sectionTitle ?? ''}>过期时间</Text>
-          <div className={styles.settingContent}>
-            <Space direction="vertical" size={8} style={{ width: '100%' }}>
-              <Text type="secondary" className={styles.hint ?? ''}>
-                设置后，{unifiedManagement ? '文件夹及其所有文件' : '文件夹'}将在到期后自动标记为过期
-              </Text>
-              <DatePicker
-                showTime
-                format="YYYY-MM-DD HH:mm"
-                value={expiresAt}
-                onChange={(date) => setExpiresAt(date)}
-                placeholder="选择过期时间（可选）"
-                style={{ width: '100%' }}
-                allowClear
-                disabledDate={(current) => current && current < dayjs().startOf('day')}
-              />
-            </Space>
-          </div>
-        </div>
+            {/* 过期时间设置 */}
+            <div className={styles.section}>
+              <Text strong className={styles.sectionTitle ?? ''}>过期时间</Text>
+              <div className={styles.settingContent}>
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <Text type="secondary" className={styles.hint ?? ''}>
+                    设置后，文件夹及其所有文件将在到期后自动标记为过期
+                  </Text>
+                  <DatePicker
+                    showTime
+                    format="YYYY-MM-DD HH:mm"
+                    value={expiresAt}
+                    onChange={(date) => setExpiresAt(date)}
+                    placeholder="选择过期时间（可选）"
+                    style={{ width: '100%' }}
+                    allowClear
+                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                  />
+                </Space>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

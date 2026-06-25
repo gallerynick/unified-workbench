@@ -42,17 +42,17 @@ export function useCustomization(): CustomizationConfig {
           app: {
             ...DEFAULT_CONFIG.app,
             ...fileConfig.app,
-            name: stored.name ?? fileConfig.app?.name ?? DEFAULT_CONFIG.app.name,
-            shortName: stored.shortName ?? fileConfig.app?.shortName ?? DEFAULT_CONFIG.app.shortName,
-            description: stored.description ?? fileConfig.app?.description ?? DEFAULT_CONFIG.app.description,
+            name: stored.name !== undefined ? stored.name : (fileConfig.app?.name ?? DEFAULT_CONFIG.app.name),
+            shortName: stored.shortName !== undefined ? stored.shortName : (fileConfig.app?.shortName ?? DEFAULT_CONFIG.app.shortName),
+            description: stored.description !== undefined ? stored.description : (fileConfig.app?.description ?? DEFAULT_CONFIG.app.description),
           },
           branding: {
             ...DEFAULT_CONFIG.branding,
             ...fileConfig.branding,
-            favicon: stored.favicon ?? fileConfig.branding?.favicon ?? DEFAULT_CONFIG.branding.favicon,
-            logoExpanded: stored.logoExpanded ?? fileConfig.branding?.logoExpanded ?? DEFAULT_CONFIG.branding.logoExpanded,
-            logoCollapsed: stored.logoCollapsed ?? fileConfig.branding?.logoCollapsed ?? DEFAULT_CONFIG.branding.logoCollapsed,
-            displayMode: stored.displayMode ?? fileConfig.branding?.displayMode ?? DEFAULT_CONFIG.branding.displayMode,
+            favicon: stored.favicon !== undefined ? stored.favicon : (fileConfig.branding?.favicon ?? DEFAULT_CONFIG.branding.favicon),
+            logoExpanded: stored.logoExpanded !== undefined ? stored.logoExpanded : (fileConfig.branding?.logoExpanded ?? DEFAULT_CONFIG.branding.logoExpanded),
+            logoCollapsed: stored.logoCollapsed !== undefined ? stored.logoCollapsed : (fileConfig.branding?.logoCollapsed ?? DEFAULT_CONFIG.branding.logoCollapsed),
+            displayMode: stored.displayMode !== undefined ? stored.displayMode : (fileConfig.branding?.displayMode ?? DEFAULT_CONFIG.branding.displayMode),
           },
         };
 

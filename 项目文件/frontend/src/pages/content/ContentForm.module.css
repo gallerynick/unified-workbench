@@ -46,3 +46,11 @@
   font-size: 12px;
   color: #8c8c8c;
 }
+
+[data-theme="dark"] .visibilityOption {
+  border-color: #434343;
+}
+
+[data-theme="dark"] .visibilityOptionSelected {
+  background: #111a2c;
+}

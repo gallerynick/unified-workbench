@@ -1,3 +1,13 @@
+:root {
+  --folder-toolbar-border: #f0f0f0;
+  --folder-create-border: #f0f0f0;
+}
+
+:root[data-theme="dark"] {
+  --folder-toolbar-border: #303030;
+  --folder-create-border: #303030;
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -24,12 +34,12 @@
   align-items: center;
   justify-content: flex-end;
   padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--folder-toolbar-border, #f0f0f0);
 }
 
 .inlineCreate {
   padding: 4px 12px 8px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--folder-create-border, #f0f0f0);
 }
 
 .treeWrapper {

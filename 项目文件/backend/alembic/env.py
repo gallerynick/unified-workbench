@@ -14,6 +14,7 @@ from app.core.database import Base
 # 导入所有模型以确保它们被注册到 Base.metadata
 from app.models import User, Tag, UserTag  # noqa: F401
 from app.models import File, Folder, Content, ContentFile, AuditLog  # noqa: F401
+from app.models import Topology, Notification  # noqa: F401
 
 # Alembic Config 对象
 config = context.config

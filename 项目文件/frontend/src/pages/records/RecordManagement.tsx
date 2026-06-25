@@ -141,6 +141,15 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
 
   // 打开新建流程：先选择模板
   const handleCreate = () => {
+    if (defaultType === 'project') {
+      setCurrentTemplateSnapshot([]);
+      setCurrentTemplateId('');
+      setCurrentRecordType('project');
+      setFormMode('create');
+      setEditingRecord(null);
+      setFormVisible(true);
+      return;
+    }
     setSelectedTemplateId('');
     fetchTemplates();
     setTemplateModalVisible(true);

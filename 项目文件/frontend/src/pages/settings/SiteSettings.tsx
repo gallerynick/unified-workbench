@@ -3,6 +3,7 @@ import { Card, Form, Input, Switch, Button, Typography, message, Alert, Space } 
 import { SaveOutlined, GlobalOutlined, SafetyOutlined, LockOutlined } from '@ant-design/icons';
 import { isAdmin } from '../../utils/auth';
 import { Result } from 'antd';
+import styles from './SiteSettings.module.css';
 
 const { Title } = Typography;
 
@@ -76,7 +77,7 @@ export default function SiteSettings() {
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <Title level={4} style={{ fontWeight: 600, margin: 0 }}>站点访问配置</Title>
+      <Title level={4} className={styles.title ?? ''}>站点访问配置</Title>
       <Alert
         message="管理员专属"
         description="这些配置影响整个站点的访问方式。修改后可能需要重启服务才能生效。"
@@ -88,8 +89,11 @@ export default function SiteSettings() {
       <Form form={form} layout="vertical">
         <Card title={<><GlobalOutlined /> 访问配置</>} style={{ marginBottom: 24 }}>
           <Form.Item label="站点端口" name="site_port">
-            <Input placeholder="80" />
+            <Input placeholder="80" disabled />
           </Form.Item>
+          <Typography.Text type="secondary" style={{ display: 'block', marginTop: -16, marginBottom: 16 }}>
+            端口修改需修改 docker-compose.yml 与 nginx.conf 后重启容器
+          </Typography.Text>
           <Form.Item label="站点 IP/域名" name="site_ip">
             <Input placeholder="localhost" />
           </Form.Item>

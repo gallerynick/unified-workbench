@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Tree, Button, Typography, Modal, message, Space, Input, Tag, Tooltip, TreeSelect, Switch, Segmented } from 'antd';
+import { Tree, Button, Typography, Modal, message, Space, Input, Tag, Tooltip, TreeSelect, Switch, Segmented, Form } from 'antd';
 import { PlusOutlined, DeleteOutlined, PushpinOutlined, SearchOutlined, EditOutlined, FileOutlined, FolderOutlined, ApartmentOutlined, ShareAltOutlined } from '@ant-design/icons';
 import type { DataNode, TreeProps } from 'antd/es/tree';
 import { listAllNotes, createNote, updateNote, deleteNote, moveNote } from '../../api/notes';
@@ -115,6 +115,7 @@ export default function NoteManagement() {
   const { isDark } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [form] = Form.useForm();
   const [formTitle, setFormTitle] = useState('');
   const [formContent, setFormContent] = useState('');
   const [formCategory, setFormCategory] = useState('');
@@ -264,7 +265,7 @@ export default function NoteManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4} style={{ fontWeight: 600, margin: 0 }}>笔记知识库</Title>
+        <Title level={4} className={styles.title ?? ''}>笔记知识库</Title>
         <Space>
           <Segmented
             value={viewMode}
@@ -309,30 +310,38 @@ export default function NoteManagement() {
         title={editingNote ? '编辑笔记' : '新建笔记'}
         open={modalVisible}
         onOk={editingNote ? handleUpdate : handleCreate}
-        onCancel={() => { setModalVisible(false); setSelectedKeys([]); }}
+        onCancel={() => { setModalVisible(false); setSelectedKeys([]); form.resetFields(); }}
         okText={editingNote ? '保存' : '创建'}
         cancelText="取消"
         width={640}
       >
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Input placeholder="笔记标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} variant="filled" size="large" />
+        <Form form={form} layout="vertical">
+          <Form.Item label="笔记标题" required>
+            <Input placeholder="请输入笔记标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} variant="filled" size="large" />
+          </Form.Item>
           <Space style={{ width: '100%' }} size="middle">
-            <Input placeholder="分类" value={formCategory} onChange={(e) => setFormCategory(e.target.value)} variant="filled" style={{ flex: 1 }} />
-            <TreeSelect
-              placeholder="父笔记（可选）"
-              style={{ flex: 1 }}
-              value={formParentId}
-              onChange={setFormParentId}
-              treeData={treeSelectData}
-              allowClear
-              treeDefaultExpandAll
-            />
+            <Form.Item label="分类">
+              <Input placeholder="请输入分类" value={formCategory} onChange={(e) => setFormCategory(e.target.value)} variant="filled" style={{ width: 200 }} />
+            </Form.Item>
+            <Form.Item label="父笔记">
+              <TreeSelect
+                placeholder="选择父笔记（可选）"
+                style={{ width: 200 }}
+                value={formParentId}
+                onChange={setFormParentId}
+                treeData={treeSelectData}
+                allowClear
+                treeDefaultExpandAll
+              />
+            </Form.Item>
           </Space>
-          <Space>
+          <Form.Item label="置顶">
             <Switch checked={formPinned} onChange={setFormPinned} checkedChildren="置顶" unCheckedChildren="普通" size="small" />
-          </Space>
-          <Input.TextArea placeholder="笔记内容" value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={8} variant="filled" style={{ fontSize: 14, lineHeight: 1.6 }} />
-        </Space>
+          </Form.Item>
+          <Form.Item label="笔记内容">
+            <Input.TextArea placeholder="请输入笔记内容" value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={8} variant="filled" style={{ fontSize: 14, lineHeight: 1.6 }} />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

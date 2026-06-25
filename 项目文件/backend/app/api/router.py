@@ -24,6 +24,9 @@ from app.api.system_config import router as system_config_router
 from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
 from app.api.templates import router as templates_router
+from app.api.topology import router as topology_router
+from app.api.notifications import router as notifications_router
+from app.api.system import router as system_router
 from app.api.users import router as users_router
 from app.api.votes import router as votes_router
 
@@ -53,3 +56,6 @@ api_router.include_router(announcements_router, prefix="/announcements", tags=["
 api_router.include_router(notes_router, prefix="/notes", tags=["笔记"])
 api_router.include_router(project_documents_router, prefix="/project-documents", tags=["项目文档"])
 api_router.include_router(tags_router, prefix="/tags", tags=["标签管理"])
+api_router.include_router(topology_router, prefix="/topologies", tags=["拓扑管理"])
+api_router.include_router(notifications_router, prefix="/notifications", tags=["通知"])
+api_router.include_router(system_router)

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip } from 'antd';
+import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip, Form } from 'antd';
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listContacts, createContact, updateContact, deleteContact } from '../../api/contacts';
@@ -25,11 +25,13 @@ export default function ContactManagement() {
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [form] = Form.useForm();
   const [formName, setFormName] = useState('');
   const [formCompany, setFormCompany] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formType, setFormType] = useState<ContactType>('customer');
+  const [customFields, setCustomFields] = useState<{ key: string; value: string }[]>([]);
 
   const fetchContacts = useCallback(async () => {
     setLoading(true);
@@ -61,6 +63,7 @@ export default function ContactManagement() {
     setFormEmail('');
     setFormPhone('');
     setFormType('customer');
+    setCustomFields([]);
     setModalVisible(true);
   };
 
@@ -71,6 +74,12 @@ export default function ContactManagement() {
     setFormEmail(contact.email || '');
     setFormPhone(contact.phone || '');
     setFormType(contact.contact_type);
+    const tags = contact.tags as Record<string, unknown> | null;
+    setCustomFields(
+      tags?.customFields && Array.isArray(tags.customFields)
+        ? tags.customFields as { key: string; value: string }[]
+        : []
+    );
     setModalVisible(true);
   };
 
@@ -80,11 +89,13 @@ export default function ContactManagement() {
       if (editingContact) {
         const res = await updateContact(editingContact.id, {
           name: formName, company: formCompany, email: formEmail, phone: formPhone, contact_type: formType,
+          tags: formType === 'other' && customFields.length > 0 ? { customFields } : null,
         });
         if (res.code === 0) { message.success('联系人已更新'); setModalVisible(false); fetchContacts(); }
       } else {
         const res = await createContact({
           name: formName, company: formCompany, email: formEmail, phone: formPhone, contact_type: formType,
+          tags: formType === 'other' && customFields.length > 0 ? { customFields } : null,
         });
         if (res.code === 0) { message.success('联系人已创建'); setModalVisible(false); fetchContacts(); }
       }
@@ -136,7 +147,7 @@ export default function ContactManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4} className={styles.title ?? ''}>客户管理</Title>
+        <Title level={4} className={styles.title ?? ''}>联系人管理</Title>
         <Space>
           <Input placeholder="搜索姓名/公司/邮箱" prefix={<SearchOutlined />} allowClear value={search}
             onChange={(e) => setSearch(e.target.value)} style={{ width: 200 }} />
@@ -154,16 +165,41 @@ export default function ContactManagement() {
       />
 
       <Modal title={editingContact ? '编辑联系人' : '新建联系人'} open={modalVisible} onOk={handleSave}
-        onCancel={() => setModalVisible(false)} okText="保存" cancelText="取消">
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Input placeholder="姓名 *" value={formName} onChange={(e) => setFormName(e.target.value)} />
-          <Input placeholder="公司" value={formCompany} onChange={(e) => setFormCompany(e.target.value)} />
-          <Input placeholder="邮箱" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
-          <Input placeholder="电话" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
-          <Select value={formType} onChange={(v) => setFormType(v as ContactType)} style={{ width: '100%' }}
-            options={Object.entries(TYPE_MAP).map(([k, v]) => ({ value: k, label: v.text }))}
-          />
-        </Space>
+        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消">
+        <Form form={form} layout="vertical">
+          <Form.Item label="姓名" required>
+            <Input placeholder="请输入姓名" value={formName} onChange={(e) => setFormName(e.target.value)} />
+          </Form.Item>
+          <Form.Item label="公司">
+            <Input placeholder="请输入公司" value={formCompany} onChange={(e) => setFormCompany(e.target.value)} />
+          </Form.Item>
+          <Form.Item label="邮箱">
+            <Input placeholder="请输入邮箱" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
+          </Form.Item>
+          <Form.Item label="电话">
+            <Input placeholder="请输入电话" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
+          </Form.Item>
+          <Form.Item label="类型">
+            <Select value={formType} onChange={(v) => setFormType(v as ContactType)} options={Object.entries(TYPE_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
+          </Form.Item>
+          {formType === 'other' && (
+            <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, padding: 12 }}>
+              <div style={{ marginBottom: 8, fontWeight: 500 }}>自定义字段</div>
+              {customFields.map((f, i) => (
+                <Space key={i} style={{ marginBottom: 8, display: 'flex' }}>
+                  <Input placeholder="字段名" value={f.key} style={{ width: 120 }}
+                    onChange={(e) => { const n = [...customFields]; n[i]!.key = e.target.value; setCustomFields(n); }} />
+                  <Input placeholder="值" value={f.value} style={{ width: 160 }}
+                    onChange={(e) => { const n = [...customFields]; n[i]!.value = e.target.value; setCustomFields(n); }} />
+                  <Button type="link" danger size="small" onClick={() => setCustomFields(customFields.filter((_, idx) => idx !== i))}>删除</Button>
+                </Space>
+              ))}
+              <Button type="dashed" size="small" onClick={() => setCustomFields([...customFields, { key: '', value: '' }])}>
+                添加字段
+              </Button>
+            </div>
+          )}
+        </Form>
       </Modal>
     </div>
   );

@@ -46,6 +46,18 @@ export function getUserRole(): string | null {
   }
 }
 
+export function getUserId(): string | null {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function isAdmin(): boolean {
   return getUserRole() === 'admin';
 }

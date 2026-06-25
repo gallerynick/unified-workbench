@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch, Tooltip } from 'antd';
+import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch, Tooltip, Form } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listForms, createForm, deleteForm } from '../../api/forms';
 import type { FormItem, FormField } from '../../types/form';
+import type { Visibility } from '../../utils/visibility';
+import VisibilitySetting from '../files/VisibilitySetting';
 import styles from './FormManagement.module.css';
 
 const { Title } = Typography;
@@ -14,9 +16,11 @@ export default function FormManagement() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [formTitle, setFormTitle] = useState('');
-  const [formDesc, setFormDesc] = useState('');
+  const [form] = Form.useForm();
   const [formFields, setFormFields] = useState<FormField[]>([{ key: 'field_1', type: 'text', label: '', required: false }]);
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
+  const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
 
   const fetchForms = useCallback(async () => {
     setLoading(true);
@@ -28,10 +32,17 @@ export default function FormManagement() {
   useEffect(() => { fetchForms(); }, [fetchForms]);
 
   const handleCreate = async () => {
-    if (!formTitle.trim()) { message.warning('请输入表单标题'); return; }
     try {
-      const res = await createForm({ title: formTitle, description: formDesc, fields: formFields });
-      if (res.code === 0) { message.success('表单已创建'); setModalVisible(false); fetchForms(); }
+      const values = await form.validateFields();
+      const res = await createForm({
+        title: values.title,
+        description: values.description ?? '',
+        fields: formFields,
+        visibility,
+        restricted_users: visibility === 'restricted' ? restrictedUsers : undefined,
+        restricted_tags: visibility === 'restricted' ? restrictedTags : undefined,
+      });
+      if (res.code === 0) { message.success('表单已创建'); handleCloseModal(); fetchForms(); }
     } catch { message.error('创建失败'); }
   };
 
@@ -39,6 +50,15 @@ export default function FormManagement() {
     Modal.confirm({ title: '确认删除', content: `确定要删除表单「${form.title}」吗？`, okText: '删除', okType: 'danger', cancelText: '取消',
       onOk: async () => { try { const res = await deleteForm(form.id); if (res.code === 0) { message.success('表单已删除'); fetchForms(); } } catch { message.error('删除失败'); } },
     });
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    form.resetFields();
+    setFormFields([{ key: 'field_1', type: 'text', label: '', required: false }]);
+    setVisibility('private');
+    setRestrictedUsers([]);
+    setRestrictedTags([]);
   };
 
   const addField = () => setFormFields([...formFields, { key: `field_${formFields.length + 1}`, type: 'text', label: '', required: false }]);
@@ -59,10 +79,14 @@ export default function FormManagement() {
       </div>
       <Table<FormItem> columns={columns} dataSource={forms} rowKey="id" loading={loading}
         pagination={{ current: page, pageSize: 20, total, onChange: (p) => setPage(p) }} />
-      <Modal title="新建表单" open={modalVisible} onOk={handleCreate} onCancel={() => setModalVisible(false)} okText="创建" cancelText="取消" width={600}>
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Input placeholder="表单标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
-          <Input.TextArea placeholder="描述（可选）" value={formDesc} onChange={(e) => setFormDesc(e.target.value)} rows={2} />
+      <Modal title="新建表单" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={600}>
+        <Form form={form} layout="vertical">
+          <Form.Item name="title" label="表单标题" rules={[{ required: true, message: '请输入表单标题' }]}>
+            <Input placeholder="请输入表单标题" />
+          </Form.Item>
+          <Form.Item name="description" label="描述">
+            <Input.TextArea placeholder="请输入描述（可选）" rows={2} />
+          </Form.Item>
           {formFields.map((f, i) => (
             <Space key={i}>
               <Input placeholder="字段标签" value={f.label} onChange={(e) => { const n = [...formFields]; n[i]!.label = e.target.value; setFormFields(n); }} />
@@ -70,7 +94,18 @@ export default function FormManagement() {
             </Space>
           ))}
           <Button type="dashed" onClick={addField} block>添加字段</Button>
-        </Space>
+          <div style={{ marginTop: 16 }}>
+            <VisibilitySetting
+              value={visibility}
+              restrictedUsers={restrictedUsers}
+              restrictedTags={restrictedTags}
+              onChange={setVisibility}
+              onRestrictedUsersChange={setRestrictedUsers}
+              onRestrictedTagsChange={setRestrictedTags}
+              showDescription
+            />
+          </div>
+        </Form>
       </Modal>
     </div>
   );

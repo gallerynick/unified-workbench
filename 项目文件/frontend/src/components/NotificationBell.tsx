@@ -1,6 +1,8 @@
 import { Badge, Dropdown, List, Typography, Button, Empty } from 'antd';
 import { BellOutlined, CheckOutlined, ExpandOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { Notification } from '../hooks/useWebSocket';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface NotificationBellProps {
   notifications: Notification[];
@@ -17,6 +19,8 @@ export default function NotificationBell({
   onMarkAllAsRead,
   onOpenDrawer,
 }: NotificationBellProps) {
+  const { isDark } = useTheme();
+  const navigate = useNavigate();
   const recentNotifications = notifications.slice(0, 10);
 
   const dropdownContent = (
@@ -25,7 +29,7 @@ export default function NotificationBell({
         width: 320,
         maxHeight: 400,
         overflow: 'auto',
-        background: '#fff',
+        background: isDark ? '#1f1f1f' : '#fff',
         borderRadius: 8,
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       }}
@@ -33,7 +37,7 @@ export default function NotificationBell({
       <div
         style={{
           padding: '12px 16px',
-          borderBottom: '1px solid #f0f0f0',
+          borderBottom: `1px solid ${isDark ? '#303030' : '#f0f0f0'}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -62,9 +66,18 @@ export default function NotificationBell({
                 style={{
                   padding: '12px 16px',
                   cursor: 'pointer',
-                  background: item.read ? 'transparent' : '#f6ffed',
+                  background: item.read ? 'transparent' : (isDark ? '#162312' : '#f6ffed'),
                 }}
-                onClick={() => onMarkAsRead(item.id)}
+                onClick={() => {
+                  onMarkAsRead(item.id);
+                  if (item.title.includes('投票') || item.content.includes('投票')) {
+                    navigate('/votes');
+                  } else if (item.title.includes('表单') || item.content.includes('表单')) {
+                    navigate('/forms');
+                  } else if (item.title.includes('公告') || item.content.includes('公告')) {
+                    navigate('/announcements');
+                  }
+                }}
               >
                 <List.Item.Meta
                   title={
@@ -90,7 +103,7 @@ export default function NotificationBell({
             )}
           />
           {notifications.length > 10 && (
-            <div style={{ padding: '8px 16px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+            <div style={{ padding: '8px 16px', borderTop: `1px solid ${isDark ? '#303030' : '#f0f0f0'}`, textAlign: 'center' }}>
               <Button type="link" size="small" icon={<ExpandOutlined />} onClick={onOpenDrawer}>
                 查看全部通知
               </Button>

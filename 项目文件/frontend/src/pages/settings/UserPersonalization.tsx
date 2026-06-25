@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, Switch, Button, Typography, message, Alert, Space } from 'antd';
 import { BgColorsOutlined, SaveOutlined } from '@ant-design/icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import styles from './UserPersonalization.module.css';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -28,7 +29,7 @@ export default function UserPersonalization() {
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <Title level={4} style={{ fontWeight: 600, margin: 0 }}>用户个性化</Title>
+      <Title level={4} className={styles.title ?? ''}>用户个性化</Title>
       <Alert
         message="这些设置仅影响当前浏览器，不会同步到其他设备或其他用户。"
         type="info"

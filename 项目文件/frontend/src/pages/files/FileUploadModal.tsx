@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Upload, Progress, Select, DatePicker, message } from 'antd';
+import { Modal, Upload, Progress, TreeSelect, DatePicker, message } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import type { UploadFile, RcFile } from 'antd/es/upload';
 import type { Dayjs } from 'dayjs';
@@ -10,6 +10,26 @@ import type { Folder } from '../../types/file';
 import styles from './FileUploadModal.module.css';
 
 const { Dragger } = Upload;
+
+function buildFolderTree(folders: Folder[]): Array<{ value: string; title: string; children?: Array<{ value: string; title: string }> }> {
+  const map = new Map<string, { value: string; title: string; children: Array<{ value: string; title: string }> }>();
+  const roots: Array<{ value: string; title: string; children?: Array<{ value: string; title: string }> }> = [];
+
+  for (const f of folders) {
+    map.set(f.id, { value: f.id, title: f.name, children: [] });
+  }
+
+  for (const f of folders) {
+    const node = map.get(f.id)!;
+    if (f.parent_id && map.has(f.parent_id)) {
+      map.get(f.parent_id)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  return roots;
+}
 
 interface FileUploadModalProps {
   visible: boolean;
@@ -193,16 +213,16 @@ export default function FileUploadModal({
 
         <div className={styles.formItem ?? ''}>
           <p className={styles.sectionLabel ?? ''}>目标文件夹</p>
-          <Select
+          <TreeSelect
             placeholder="选择文件夹（可选）"
             value={selectedFolderId}
             onChange={setSelectedFolderId}
             allowClear
+            treeLine
             style={{ width: '100%' }}
-            options={folders.map((f) => ({
-              value: f.id,
-              label: f.name,
-            }))}
+            treeData={[
+              { value: '', title: '根目录', children: buildFolderTree(folders) },
+            ]}
           />
         </div>
 

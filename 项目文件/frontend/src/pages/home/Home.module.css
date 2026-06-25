@@ -1,0 +1,85 @@
+.homeContainer {
+  padding-bottom: 24px;
+}
+
+.headerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.widgetGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .widgetGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .widgetGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.widgetWrapper {
+  position: relative;
+  background: var(--widget-bg, #fff);
+  border: 1px solid var(--widget-border, #f0f0f0);
+  border-radius: 8px;
+  transition: box-shadow 0.2s ease;
+}
+
+.widgetWrapper:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.widgetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 0;
+}
+
+.dragHandle {
+  cursor: grab;
+  color: var(--text-secondary, #8c8c8c);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.removeBtn {
+  color: var(--text-secondary, #8c8c8c);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.widgetWrapper:hover .removeBtn {
+  opacity: 1;
+}
+
+.widgetBody {
+  padding: 0 12px 12px;
+}
+
+
+[data-theme='dark'] .widgetWrapper {
+  --widget-bg: #1f1f1f;
+  --widget-border: #434343;
+  --text-secondary: #a6a6a6;
+}
+
+@media (max-width: 767px) {
+  .removeBtn {
+    opacity: 1;
+  }
+}

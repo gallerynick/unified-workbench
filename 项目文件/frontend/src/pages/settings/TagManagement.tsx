@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Table, Button, Input, Typography, Modal, message, Space, Tag, Tooltip, Result } from 'antd';
+import { Table, Button, Input, Typography, Modal, message, Space, Tag, Tooltip, Result, Form } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useTagContext } from '../../contexts/TagContext';
@@ -25,7 +25,7 @@ export default function TagManagement() {
   const { tags, refresh } = useTagContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTag, setEditingTag] = useState<TagType | null>(null);
-  const [formName, setFormName] = useState('');
+  const [form] = Form.useForm();
   const [formColor, setFormColor] = useState('blue');
 
   if (!isAdmin()) {
@@ -34,33 +34,30 @@ export default function TagManagement() {
 
   const handleCreate = () => {
     setEditingTag(null);
-    setFormName('');
+    form.resetFields();
     setFormColor('blue');
     setModalVisible(true);
   };
 
   const handleEdit = (tag: TagType) => {
     setEditingTag(tag);
-    setFormName(tag.name);
+    form.setFieldsValue({ name: tag.name });
     setFormColor(tag.color || 'blue');
     setModalVisible(true);
   };
 
   const handleSave = async () => {
-    if (!formName.trim()) {
-      message.warning('请输入标签名称');
-      return;
-    }
     try {
+      const values = await form.validateFields();
       if (editingTag) {
-        const res = await updateTag(editingTag.id, { name: formName, color: formColor });
+        const res = await updateTag(editingTag.id, { name: values.name, color: formColor });
         if (res.code === 0) {
           message.success('标签已更新');
           setModalVisible(false);
           refresh();
         }
       } else {
-        const res = await createTag({ name: formName, color: formColor });
+        const res = await createTag({ name: values.name, color: formColor });
         if (res.code === 0) {
           message.success('标签已创建');
           setModalVisible(false);
@@ -151,18 +148,15 @@ export default function TagManagement() {
         title={editingTag ? '编辑标签' : '新建标签'}
         open={modalVisible}
         onOk={handleSave}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => { setModalVisible(false); form.resetFields(); }}
         okText="保存"
         cancelText="取消"
       >
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Input
-            placeholder="标签名称"
-            value={formName}
-            onChange={(e) => setFormName(e.target.value)}
-          />
-          <div>
-            <p style={{ marginBottom: 8, fontSize: 13, color: 'rgba(0, 0, 0, 0.65)' }}>选择颜色</p>
+        <Form form={form} layout="vertical">
+          <Form.Item name="name" label="标签名称" rules={[{ required: true, message: '请输入标签名称' }]}>
+            <Input placeholder="请输入标签名称" />
+          </Form.Item>
+          <Form.Item label="选择颜色">
             <Space wrap>
               {COLOR_OPTIONS.map((opt) => (
                 <Tag
@@ -175,8 +169,8 @@ export default function TagManagement() {
                 </Tag>
               ))}
             </Space>
-          </div>
-        </Space>
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

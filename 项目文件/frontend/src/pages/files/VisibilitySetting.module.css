@@ -47,3 +47,15 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+[data-theme="dark"] .restrictedSection {
+  background: #1f1f1f;
+}
+
+[data-theme="dark"] .visibilityOptionDesc {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="dark"] .sectionLabel {
+  color: rgba(255, 255, 255, 0.65);
+}

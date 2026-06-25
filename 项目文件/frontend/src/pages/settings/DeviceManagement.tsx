@@ -4,6 +4,7 @@ import { Card, Table, Button, Typography, message, Space, Tag, Alert, Modal, Res
 import { DesktopOutlined, MobileOutlined, TabletOutlined, DeleteOutlined, LogoutOutlined, LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { clearTokens, isAdmin } from '../../utils/auth';
+import styles from './DeviceManagement.module.css';
 
 const { Title, Text } = Typography;
 
@@ -144,7 +145,7 @@ export default function DeviceManagement() {
 
   return (
     <div style={{ maxWidth: 1000 }}>
-      <Title level={4} style={{ fontWeight: 600, margin: 0 }}>设备管理</Title>
+      <Title level={4} className={styles.title ?? ''}>设备管理</Title>
       <Alert
         message="设备管理"
         description="查看和管理已登录的设备。撤销设备将强制该设备重新登录。"

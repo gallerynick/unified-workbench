@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  tileserver:
+    image: maptiler/tileserver-gl:latest
+    container_name: tileserver-gl
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - NODE_ENV=production
+
+  web:
+    image: nginx:alpine
+    container_name: map-web
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    volumes:
+      - ./www:/usr/share/nginx/html:ro
+    depends_on:
+      - tileserver

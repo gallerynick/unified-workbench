@@ -6,6 +6,7 @@ import { listBudgets, createBudget, updateBudget, deleteBudget } from '../../api
 import { listSubscriptions, createSubscription, updateSubscription, deleteSubscription } from '../../api/subscriptions';
 import type { Budget } from '../../types/budget';
 import type { Subscription } from '../../types/subscription';
+import styles from './FinanceManagement.module.css';
 
 const { Title } = Typography;
 
@@ -227,7 +228,7 @@ export default function FinanceManagement() {
 
   return (
     <div>
-      <Title level={4} style={{ fontWeight: 600, margin: 0 }}>财务管理</Title>
+      <Title level={4} className={styles.title ?? ''}>财务管理</Title>
       <Tabs
         items={[
           {

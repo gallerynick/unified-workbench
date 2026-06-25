@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip } from 'antd';
+import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip, Form } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listTasks, createTask, updateTask, deleteTask } from '../../api/tasks';
@@ -32,9 +32,7 @@ export default function TaskManagement() {
   const [priorityFilter, setPriorityFilter] = useState<string>('');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [formTitle, setFormTitle] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formPriority, setFormPriority] = useState<TaskPriority>('medium');
+  const [form] = Form.useForm();
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -61,28 +59,24 @@ export default function TaskManagement() {
 
   const handleCreate = () => {
     setEditingTask(null);
-    setFormTitle('');
-    setFormDescription('');
-    setFormPriority('medium');
+    form.resetFields();
     setModalVisible(true);
   };
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
-    setFormTitle(task.title);
-    setFormDescription(task.description || '');
-    setFormPriority(task.priority);
+    form.setFieldsValue({ title: task.title, description: task.description ?? '', priority: task.priority });
     setModalVisible(true);
   };
 
   const handleSave = async () => {
-    if (!formTitle.trim()) { message.warning('请输入任务标题'); return; }
     try {
+      const values = await form.validateFields();
       if (editingTask) {
-        const res = await updateTask(editingTask.id, { title: formTitle, description: formDescription, priority: formPriority });
+        const res = await updateTask(editingTask.id, { title: values.title, description: values.description, priority: values.priority });
         if (res.code === 0) { message.success('任务已更新'); setModalVisible(false); fetchTasks(); }
       } else {
-        const res = await createTask({ title: formTitle, description: formDescription, priority: formPriority });
+        const res = await createTask({ title: values.title, description: values.description, priority: values.priority });
         if (res.code === 0) { message.success('任务已创建'); setModalVisible(false); fetchTasks(); }
       }
     } catch { message.error('操作失败'); }
@@ -150,7 +144,7 @@ export default function TaskManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4} className={styles.title ?? ''}>任务管理</Title>
+        <Title level={4} className={styles.title ?? ''}>待办事项</Title>
         <Space>
           <Select value={statusFilter} onChange={setStatusFilter} placeholder="状态筛选" allowClear style={{ width: 120 }}
             options={[{ value: '', label: '全部' }, ...Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
@@ -158,7 +152,7 @@ export default function TaskManagement() {
           <Select value={priorityFilter} onChange={setPriorityFilter} placeholder="优先级筛选" allowClear style={{ width: 120 }}
             options={[{ value: '', label: '全部' }, ...Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建任务</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建待办</Button>
         </Space>
       </div>
 
@@ -168,15 +162,19 @@ export default function TaskManagement() {
         }}
       />
 
-      <Modal title={editingTask ? '编辑任务' : '新建任务'} open={modalVisible} onOk={handleSave}
-        onCancel={() => setModalVisible(false)} okText="保存" cancelText="取消">
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Input placeholder="任务标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
-          <Input.TextArea placeholder="任务描述（可选）" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} rows={3} />
-          <Select value={formPriority} onChange={(v) => setFormPriority(v as TaskPriority)} style={{ width: '100%' }}
-            options={Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))}
-          />
-        </Space>
+      <Modal title={editingTask ? '编辑待办' : '新建待办'} open={modalVisible} onOk={handleSave}
+        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消">
+        <Form form={form} layout="vertical" initialValues={{ priority: 'medium' }}>
+          <Form.Item name="title" label="待办标题" rules={[{ required: true, message: '请输入待办标题' }]}>
+            <Input placeholder="请输入待办标题" />
+          </Form.Item>
+          <Form.Item name="description" label="待办描述">
+            <Input.TextArea placeholder="请输入待办描述（可选）" rows={3} />
+          </Form.Item>
+          <Form.Item name="priority" label="优先级">
+            <Select options={Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

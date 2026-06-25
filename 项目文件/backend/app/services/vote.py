@@ -10,10 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.vote import Vote, VoteRecord, VoteStatus
 from app.schemas.vote import VoteCreate, VoteSubmit
+from app.services.visibility import check_visibility as visibility_filter
+from app.services.notification_crud import create_notification
+from app.models.user import User
 
 
 async def list_votes(db: AsyncSession, owner_id: uuid.UUID, page: int = 1, page_size: int = 20) -> tuple[list[Vote], int]:
-    query = select(Vote).where(Vote.owner_id == owner_id)
+    query = select(Vote).where(visibility_filter(Vote, owner_id))
     count_query = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_query)).scalar() or 0
     query = query.order_by(Vote.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
@@ -32,9 +35,22 @@ async def create_vote(db: AsyncSession, owner_id: uuid.UUID, request: VoteCreate
         allow_multiple=request.allow_multiple,
         deadline=datetime.fromisoformat(request.deadline) if request.deadline else None,
         owner_id=owner_id,
+        visibility=request.visibility,
+        restricted_users=request.restricted_users,
+        restricted_tags=request.restricted_tags,
     )
     db.add(vote)
     await db.flush()
+
+    if request.visibility in ("public", "restricted"):
+        result = await db.execute(select(User).where(User.id != owner_id))
+        all_users = list(result.scalars().all())
+        for user in all_users:
+            if request.visibility == "public":
+                await create_notification(db, user.id, f"新投票：{request.title}", "info")
+            elif request.restricted_users and str(user.id) in request.restricted_users:
+                await create_notification(db, user.id, f"您被邀请参与投票：{request.title}", "info")
+
     await db.refresh(vote)
     return vote
 

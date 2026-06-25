@@ -7,6 +7,9 @@ export interface Vote {
   status: string;
   deadline: string | null;
   owner_id: string;
+  visibility: string;
+  restricted_users: string[] | null;
+  restricted_tags: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -17,6 +20,9 @@ export interface VoteCreate {
   options: string[];
   allow_multiple?: boolean;
   deadline?: string;
+  visibility?: 'public' | 'private' | 'restricted';
+  restricted_users?: string[] | undefined;
+  restricted_tags?: string[] | undefined;
 }
 
 export interface VoteListResponse {

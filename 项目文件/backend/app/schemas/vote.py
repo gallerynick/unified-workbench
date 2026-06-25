@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,6 +15,9 @@ class VoteCreate(BaseModel):
     options: list[str]
     allow_multiple: bool = False
     deadline: str | None = None
+    visibility: Literal["public", "private", "restricted"] = "private"
+    restricted_users: list[str] | None = None
+    restricted_tags: list[str] | None = None
 
 
 class VoteResponse(BaseModel):
@@ -27,6 +31,9 @@ class VoteResponse(BaseModel):
     status: str
     deadline: datetime | None
     owner_id: uuid.UUID
+    visibility: str
+    restricted_users: list[str] | None = None
+    restricted_tags: list[str] | None = None
     created_at: datetime
     updated_at: datetime
 

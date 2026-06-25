@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Input, Select, Typography, Modal, message, Space, Tooltip, InputNumber } from 'antd';
+import { Table, Button, Input, Select, Typography, Modal, message, Space, Tooltip, InputNumber, Form } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listInventories, createInventory, updateInventory, deleteInventory } from '../../api/inventory';
@@ -25,11 +25,8 @@ export default function InventoryManagement() {
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<Inventory | null>(null);
-  const [formName, setFormName] = useState('');
-  const [formCategory, setFormCategory] = useState('');
+  const [form] = Form.useForm();
   const [formQuantity, setFormQuantity] = useState<number>(1);
-  const [formLocation, setFormLocation] = useState('');
-  const [formDescription, setFormDescription] = useState('');
   const [formStatus, setFormStatus] = useState<InventoryStatus>('available');
 
   const fetchInventories = useCallback(async () => {
@@ -57,29 +54,23 @@ export default function InventoryManagement() {
 
   const handleCreate = () => {
     setEditingItem(null);
-    setFormName('');
-    setFormCategory('');
+    form.resetFields();
     setFormQuantity(1);
-    setFormLocation('');
-    setFormDescription('');
     setFormStatus('available');
     setModalVisible(true);
   };
 
   const handleEdit = (item: Inventory) => {
     setEditingItem(item);
-    setFormName(item.name);
-    setFormCategory(item.category || '');
+    form.setFieldsValue({ name: item.name, category: item.category ?? '', location: item.location ?? '', description: item.description ?? '' });
     setFormQuantity(item.quantity);
-    setFormLocation(item.location || '');
-    setFormDescription(item.description || '');
     setFormStatus(item.status);
     setModalVisible(true);
   };
 
   const handleSave = async () => {
-    if (!formName.trim()) { message.warning('请输入物品名称'); return; }
     try {
+      const values = await form.validateFields();
       const data: {
         name: string;
         category?: string;
@@ -88,13 +79,13 @@ export default function InventoryManagement() {
         description?: string;
         status: InventoryStatus;
       } = {
-        name: formName,
+        name: values.name,
         quantity: formQuantity,
         status: formStatus,
       };
-      if (formCategory) data.category = formCategory;
-      if (formLocation) data.location = formLocation;
-      if (formDescription) data.description = formDescription;
+      if (values.category) data.category = values.category;
+      if (values.location) data.location = values.location;
+      if (values.description) data.description = values.description;
       if (editingItem) {
         const res = await updateInventory(editingItem.id, data);
         if (res.code === 0) { message.success('物品已更新'); setModalVisible(false); fetchInventories(); }
@@ -183,17 +174,27 @@ export default function InventoryManagement() {
       />
 
       <Modal title={editingItem ? '编辑物品' : '新增物品'} open={modalVisible} onOk={handleSave}
-        onCancel={() => setModalVisible(false)} okText="保存" cancelText="取消">
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Input placeholder="物品名称" value={formName} onChange={(e) => setFormName(e.target.value)} />
-          <Input placeholder="分类（可选）" value={formCategory} onChange={(e) => setFormCategory(e.target.value)} />
-          <InputNumber placeholder="数量" min={0} value={formQuantity} onChange={(v) => setFormQuantity(v ?? 1)} style={{ width: '100%' }} />
-          <Input placeholder="存放位置（可选）" value={formLocation} onChange={(e) => setFormLocation(e.target.value)} />
-          <Input.TextArea placeholder="描述（可选）" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} rows={3} />
-          <Select value={formStatus} onChange={(v) => setFormStatus(v as InventoryStatus)} style={{ width: '100%' }}
-            options={Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))}
-          />
-        </Space>
+        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消">
+        <Form form={form} layout="vertical" initialValues={{ quantity: 1, status: 'available' }}>
+          <Form.Item name="name" label="物品名称" rules={[{ required: true, message: '请输入物品名称' }]}>
+            <Input placeholder="请输入物品名称" />
+          </Form.Item>
+          <Form.Item name="category" label="分类">
+            <Input placeholder="请输入分类（可选）" />
+          </Form.Item>
+          <Form.Item label="数量">
+            <InputNumber min={0} value={formQuantity} onChange={(v) => setFormQuantity(v ?? 1)} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="location" label="存放位置">
+            <Input placeholder="请输入存放位置（可选）" />
+          </Form.Item>
+          <Form.Item name="description" label="描述">
+            <Input.TextArea placeholder="请输入描述（可选）" rows={3} />
+          </Form.Item>
+          <Form.Item label="状态">
+            <Select value={formStatus} onChange={(v) => setFormStatus(v as InventoryStatus)} options={Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

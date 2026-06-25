@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -21,6 +22,9 @@ class FormCreate(BaseModel):
     title: str
     description: str | None = None
     fields: list[FormField]
+    visibility: Literal["public", "private", "restricted"] = "private"
+    restricted_users: list[str] | None = None
+    restricted_tags: list[str] | None = None
 
 
 class FormResponse(BaseModel):
@@ -32,6 +36,9 @@ class FormResponse(BaseModel):
     fields: list[dict]
     is_active: bool
     owner_id: uuid.UUID
+    visibility: str
+    restricted_users: list[str] | None = None
+    restricted_tags: list[str] | None = None
     created_at: datetime
     updated_at: datetime
 
