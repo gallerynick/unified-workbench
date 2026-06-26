@@ -203,7 +203,7 @@ export const router = createBrowserRouter([
             element: <LazyPage><TopologyManagement /></LazyPage>,
           },
           {
-            path: 'settings/stream',
+            path: 'stream',
             element: <LazyPage><StreamStudio /></LazyPage>,
           },
           {
