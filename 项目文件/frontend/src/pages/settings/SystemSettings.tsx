@@ -35,8 +35,9 @@ export default function SystemSettings() {
       } catch {}
       try {
         const tokenRes = await getToken();
-        if (tokenRes.code === 0) {
-          setHasToken(tokenRes.data.has_token);
+        if (tokenRes.code === 0 && tokenRes.data.has_token) {
+          setHasToken(true);
+          setEditingToken('••••••••••••••••');
         }
       } catch {}
     };
@@ -65,8 +66,8 @@ export default function SystemSettings() {
   };
 
   const handleSaveToken = async () => {
-    if (!editingToken.trim()) {
-      message.warning('请输入 GitHub Token');
+    if (!editingToken.trim() || editingToken === '••••••••••••••••') {
+      message.warning('请输入新的 GitHub Token');
       return;
     }
     setSavingToken(true);
@@ -74,7 +75,7 @@ export default function SystemSettings() {
       const res = await setToken(editingToken);
       if (res.code === 0) {
         setHasToken(true);
-        setEditingToken('');
+        setEditingToken('••••••••••••••••');
         message.success('GitHub Token 已保存');
       } else {
         message.error(res.msg || '保存失败');
@@ -84,6 +85,11 @@ export default function SystemSettings() {
     } finally {
       setSavingToken(false);
     }
+  };
+
+  const handleClearToken = () => {
+    setEditingToken('');
+    setHasToken(false);
   };
 
   const handleCheckUpdate = async () => {
@@ -166,8 +172,10 @@ export default function SystemSettings() {
               <Input.Password
                 value={editingToken}
                 onChange={(e) => setEditingToken(e.target.value)}
+                onFocus={() => { if (editingToken === '••••••••••••••••') setEditingToken(''); }}
                 placeholder="ghp_xxxxxxxxxxxx"
                 style={{ width: 300 }}
+                allowClear
               />
               <Button
                 icon={<SaveOutlined />}
@@ -176,6 +184,11 @@ export default function SystemSettings() {
               >
                 保存
               </Button>
+              {hasToken && (
+                <Button danger onClick={handleClearToken}>
+                  清除
+                </Button>
+              )}
             </Space>
             <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
               用于访问私有仓库，需要 repo 权限。生成地址：GitHub → Settings → Developer settings → Personal access tokens
