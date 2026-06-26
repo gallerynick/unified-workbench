@@ -26,6 +26,7 @@ from app.api.tasks import router as tasks_router
 from app.api.templates import router as templates_router
 from app.api.topology import router as topology_router
 from app.api.notifications import router as notifications_router
+from app.api.stream import router as stream_router
 from app.api.system import router as system_router
 from app.api.users import router as users_router
 from app.api.votes import router as votes_router
@@ -51,6 +52,7 @@ api_router.include_router(contacts_router, prefix="/contacts", tags=["客户管�
 api_router.include_router(inventory_router, prefix="/inventory", tags=["物品管理"])
 api_router.include_router(calendar_events_router, prefix="/calendar", tags=["日历"])
 api_router.include_router(votes_router, prefix="/votes", tags=["投票"])
+api_router.include_router(stream_router, prefix="/stream", tags=["推流配置"])
 api_router.include_router(forms_router, prefix="/forms", tags=["表单"])
 api_router.include_router(announcements_router, prefix="/announcements", tags=["公告"])
 api_router.include_router(notes_router, prefix="/notes", tags=["笔记"])

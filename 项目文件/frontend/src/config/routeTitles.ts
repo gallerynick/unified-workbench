@@ -31,6 +31,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/settings/backups': '数据备份',
   '/settings/customization': '应用配置',
   '/settings/system': '系统更新',
+  '/settings/stream': '推流配置',
   '/profile': '个人资料',
 };
 
