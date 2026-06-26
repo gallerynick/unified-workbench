@@ -1,3 +1,23 @@
+:root {
+  --stream-bg: #fff;
+  --stream-border: #e8e8e8;
+  --stream-text: #333;
+  --stream-text-secondary: #666;
+  --stream-item-bg: #f5f5f5;
+  --stream-item-active-bg: #e6f7ff;
+  --stream-section-bg: #fff;
+}
+
+:root[data-theme="dark"] {
+  --stream-bg: #1f1f1f;
+  --stream-border: #303030;
+  --stream-text: #e0e0e0;
+  --stream-text-secondary: #999;
+  --stream-item-bg: #2a2a2a;
+  --stream-item-active-bg: #177ddc;
+  --stream-section-bg: #1f1f1f;
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -27,8 +47,8 @@
 }
 
 .section {
-  background: var(--topo-palette-bg, #fff);
-  border: 1px solid var(--topo-border, #e8e8e8);
+  background: var(--stream-section-bg, #fff);
+  border: 1px solid var(--stream-border, #e8e8e8);
   border-radius: 8px;
   padding: 12px;
 }
@@ -38,7 +58,7 @@
   font-size: 14px;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--topo-border, #e8e8e8);
+  border-bottom: 1px solid var(--stream-border, #e8e8e8);
 }
 
 .sceneList,
@@ -56,7 +76,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border: 1px solid var(--topo-border, #e8e8e8);
+  border: 1px solid var(--stream-border, #e8e8e8);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
@@ -64,11 +84,11 @@
 
 .sceneItem:hover,
 .sourceItem:hover {
-  background: var(--topo-item-bg, #f5f5f5);
+  background: var(--stream-item-bg, #f5f5f5);
 }
 
 .sceneItemActive {
-  background: var(--topo-item-active-bg, #e6f7ff);
+  background: var(--stream-item-active-bg, #e6f7ff);
   border-color: #1677ff;
 }
 
@@ -116,7 +136,7 @@
   justify-content: center;
   height: 100%;
   gap: 16px;
-  color: #999;
+  color: var(--stream-text-secondary, #999);
 }
 
 .sourceOverlay {
@@ -134,7 +154,7 @@
   display: flex;
   align-items: center;
   padding: 12px;
-  background: var(--topo-palette-bg, #fff);
-  border: 1px solid var(--topo-border, #e8e8e8);
+  background: var(--stream-section-bg, #fff);
+  border: 1px solid var(--stream-border, #e8e8e8);
   border-radius: 8px;
 }
