@@ -40,6 +40,7 @@ const TestModePage = lazy(() => import('@/pages/TestModePage'));
 const ProjectDetailPage = lazy(() => import('@/pages/projects/ProjectDetailPage'));
 const SystemSettings = lazy(() => import('@/pages/settings/SystemSettings'));
 const TopologyManagement = lazy(() => import('@/pages/topology/TopologyManagement'));
+const StreamStudio = lazy(() => import('@/pages/streaming/StreamStudio'));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -200,6 +201,10 @@ export const router = createBrowserRouter([
           {
             path: 'topology',
             element: <LazyPage><TopologyManagement /></LazyPage>,
+          },
+          {
+            path: 'settings/stream',
+            element: <LazyPage><StreamStudio /></LazyPage>,
           },
           {
             path: '404',

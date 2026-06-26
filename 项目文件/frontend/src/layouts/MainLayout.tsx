@@ -33,6 +33,7 @@ import {
   TagOutlined,
   BgColorsOutlined,
   ApartmentOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -71,6 +72,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   SettingOutlined: <SettingOutlined />,
   AuditOutlined: <AuditOutlined />,
   ApartmentOutlined: <ApartmentOutlined />,
+  VideoCameraOutlined: <VideoCameraOutlined />,
 };
 
 function getMenuItems(): MenuProps['items'] {
@@ -100,24 +102,25 @@ function getMenuItems(): MenuProps['items'] {
       {
         key: '/audit',
         icon: <AuditOutlined />,
-        label: '审计日志',
+        label: '审计',
       },
       {
         key: '/settings',
         icon: <SettingOutlined />,
-        label: '系统设置与管理',
+        label: '系统设置',
         'data-menu-id': '/settings',
         children: [
-          { key: '/settings/users', label: '用户管理', icon: <TeamOutlined /> },
-          { key: '/settings/tags', label: '标签管理', icon: <TagOutlined /> },
-          { key: '/settings/templates', label: '模板管理', icon: <FormOutlined /> },
+          { key: '/settings/users', label: '用户', icon: <TeamOutlined /> },
+          { key: '/settings/tags', label: '标签', icon: <TagOutlined /> },
+          { key: '/settings/templates', label: '模板', icon: <FormOutlined /> },
           { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
-          { key: '/settings/sidebar', label: '侧边栏管理', icon: <LayoutOutlined /> },
-          { key: '/settings/devices', label: '设备管理', icon: <DesktopOutlined /> },
+          { key: '/settings/sidebar', label: '侧边栏', icon: <LayoutOutlined /> },
+          { key: '/settings/devices', label: '设备', icon: <DesktopOutlined /> },
           { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
-          { key: '/settings/backups', label: '备份管理', icon: <CloudServerOutlined /> },
+          { key: '/settings/backups', label: '备份', icon: <CloudServerOutlined /> },
           { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
           { key: '/settings/system', label: '系统更新', icon: <CloudServerOutlined /> },
+          { key: '/settings/stream', label: '直播', icon: <VideoCameraOutlined /> },
         ],
       },
     );

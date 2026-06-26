@@ -338,47 +338,31 @@ src/components/SignaturePad/
 9. 不支持签名模板
 10. 不支持签名批注功能
 
-## Open questions
+## Open questions（已全部解决）
 
 1. 是否使用现有的签名库（如signature_pad）还是从头实现？
-   - 推荐：使用signature_pad库，成熟稳定，支持压力感应
-   - 风险：可能需要定制化修改
-   - 决策：使用signature_pad库，通过React wrapper集成
+   - 决策：使用signature_pad库，通过React wrapper集成（Todo 1, 4）
 
 2. 如何检测设备类型（鼠标、触控板、数位板）？
-   - 方案：使用Pointer Events的pointerType属性
-   - 风险：可能不准确，需要手动切换作为备选
-   - 决策：自动检测 + 手动切换，提供降级方案
+   - 决策：自动检测pointerType + 手动切换，提供降级方案（Todo 9, 10）
 
 3. 压力感应的精度要求是什么？
-   - 推荐：支持0-1的压力范围，精度0.01
-   - 风险：不同设备压力感应精度不同
-   - 决策：支持0-1范围，提供压力敏感度配置
+   - 决策：支持0-1范围，使用VelocityPressureBehavior配置（Todo 2, 8）
 
 4. 签名数据的存储格式（PNG、SVG、JSON路径）？
-   - 推荐：同时支持PNG和JSON，SVG可选
-   - 风险：JSON格式可能较大
-   - 决策：同时支持PNG和JSON，SVG作为可选功能
+   - 决策：同时支持PNG和JSON，SVG作为可选功能（Todo 14）
 
 5. 是否需要支持签名回放功能？
-   - 推荐：支持基本回放，用于验证签名过程
-   - 风险：增加实现复杂度
-   - 决策：支持基本回放功能，使用JSON数据格式
+   - 决策：支持基本回放功能，使用JSON数据格式（Todo 14）
 
 6. 如何处理不同浏览器的兼容性？
-   - 方案：使用Pointer Events polyfill
-   - 风险：旧浏览器可能不支持
-   - 决策：使用Pointer Events polyfill，提供降级方案
+   - 决策：使用Pointer Events polyfill，提供Mouse/Touch降级方案（Todo 6）
 
 7. 如何处理压力感应模式下的误触问题？
-   - 方案：提供压力阈值设置，低于阈值不绘制
-   - 风险：可能影响用户体验
-   - 决策：提供可配置的压力阈值，默认值0.1
+   - 决策：提供可配置的压力阈值，默认值0.1（Todo 8）
 
 8. 如何优化绘图性能？
-   - 方案：使用requestAnimationFrame和防抖
-   - 风险：可能影响绘图精度
-   - 决策：使用requestAnimationFrame，提供防抖配置
+   - 决策：使用requestAnimationFrame和防抖，通过Performance API测量60fps（Todo 19）
 
 ## Approval gate
 status: approved
@@ -397,3 +381,13 @@ status: approved
 2. 启动Metis进行差距分析（已完成）
 3. 添加详细的todo批次（已完成）
 4. 填写人类可读的TL;DR（已完成）
+5. 运行Momus高精度审查（已完成）
+6. 根据Momus审查结果修复3个阻塞性问题（已完成）：
+   - QA场景：添加具体工具+可执行命令+明确预期结果
+   - 验收标准：改为具体验证命令+可测量结果
+   - 参考引用：指向草稿具体章节或项目具体文件
+7. 修复4个重要问题（已完成）：
+   - 草稿与计划不一致：同步更新Open questions
+   - Wave分配与依赖矩阵不一致：重新对齐Wave分配
+   - Metis风险未体现在验收标准中：在Todo 2和6中添加风险验证
+   - 性能指标缺乏测量方法：在Todo 19中定义Performance API测量方法
