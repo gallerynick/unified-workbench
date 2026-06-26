@@ -162,7 +162,7 @@ export default function AnnouncementManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
-          公告中心
+          公告通知
         </Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
           发布公告

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Button, Typography, Modal, message, Space, Input, Switch, Select, Form } from 'antd';
-import { PlusOutlined, DeleteOutlined, CalendarOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -178,7 +178,7 @@ export default function CalendarPage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <Title level={4} className={styles.title ?? ''}><CalendarOutlined /> 日历</Title>
+        <Title level={4} className={styles.title ?? ''}>日程日历</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreateModal()}>新建事件</Button>
       </div>
 

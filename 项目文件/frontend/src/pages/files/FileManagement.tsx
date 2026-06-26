@@ -383,7 +383,7 @@ export default function FileManagement() {
     <div className={styles.pageWrapper ?? ''}>
       <div className={styles.pageHeader ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
-          文件管理
+          文件中心
         </Title>
         <Space>
           <Input

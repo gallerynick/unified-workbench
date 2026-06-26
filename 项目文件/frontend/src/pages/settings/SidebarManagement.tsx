@@ -30,12 +30,12 @@ const DEFAULT_ITEMS: SidebarItem[] = [
   { key: '/notes', label: '笔记知识库', icon: 'BookOutlined', visible: true, hasData: false, builtin: true },
   { key: '/files', label: '文件中心', icon: 'FileOutlined', visible: true, hasData: true, builtin: true },
   { key: '/content', label: '内容编辑', icon: 'FileTextOutlined', visible: true, hasData: true, builtin: true },
-  { key: '/projects', label: '项目看板', icon: 'ProjectOutlined', visible: true, hasData: true, builtin: true },
-  { key: '/inventory', label: '库存盘点', icon: 'AppstoreOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/projects', label: '项目管理', icon: 'ProjectOutlined', visible: true, hasData: true, builtin: true },
+  { key: '/inventory', label: '物品管理', icon: 'AppstoreOutlined', visible: true, hasData: false, builtin: true },
   { key: '/finance', label: '财务中心', icon: 'MoneyCollectOutlined', visible: true, hasData: false, builtin: true },
   { key: '/secrets', label: '密钥保险箱', icon: 'KeyOutlined', visible: true, hasData: true, builtin: true },
   { key: '/reminders', label: '提醒事项', icon: 'BellOutlined', visible: true, hasData: true, builtin: true },
-  { key: '/topology', label: '网络拓扑', icon: 'ApartmentOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/topology', label: '拓扑结构', icon: 'ApartmentOutlined', visible: true, hasData: false, builtin: true },
   { key: '/stream', label: '直播工作室', icon: 'VideoCameraOutlined', visible: true, hasData: false, builtin: true },
 ];
 

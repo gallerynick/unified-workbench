@@ -366,7 +366,7 @@ export default function TopologyManagement() {
       {contextHolder}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <Title level={4} className={styles.title ?? ''}>拓扑管理</Title>
+          <Title level={4} className={styles.title ?? ''}>拓扑结构</Title>
           {isEditing && (
             <>
               <Input value={topologyName} onChange={(e) => setTopologyName(e.target.value)} style={{ width: 160 }} placeholder="拓扑名称" />

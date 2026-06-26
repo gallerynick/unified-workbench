@@ -116,7 +116,7 @@ export default function SecretManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
-          密钥管理
+          密钥保险箱
         </Title>
         <Space>
           <Input

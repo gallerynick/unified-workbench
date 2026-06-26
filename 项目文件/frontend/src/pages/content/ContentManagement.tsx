@@ -259,7 +259,7 @@ export default function ContentManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
-          内容管理
+          内容编辑
         </Title>
         <Space>
           <Input

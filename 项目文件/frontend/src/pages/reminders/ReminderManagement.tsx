@@ -233,7 +233,7 @@ export default function ReminderManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
-          提醒管理
+          提醒事项
         </Title>
         <Space>
           <Input
