@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Button, Card, Tag, message, Modal, Input, Space } from 'antd';
+import { Button, Card, Tag, message, Modal, Input, Space, Typography } from 'antd';
+import styles from './SystemSettings.module.css';
 import { ReloadOutlined, CloudDownloadOutlined, SaveOutlined } from '@ant-design/icons';
 import {
   checkUpdate,
@@ -12,6 +13,8 @@ import {
   type RepoInfo,
 } from '../../api/system';
 import type { UnifiedResponse } from '../../types/user';
+
+const { Title } = Typography;
 
 export default function SystemSettings() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -140,6 +143,7 @@ export default function SystemSettings() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Title level={4} className={styles.title ?? ''}>系统更新</Title>
       <Card title="更新仓库配置">
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <div>

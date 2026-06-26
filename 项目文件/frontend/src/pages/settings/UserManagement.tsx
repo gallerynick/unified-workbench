@@ -209,7 +209,7 @@ export default function UserManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
-          用户管理
+          用户账号
         </Title>
         <Space>
           <Input

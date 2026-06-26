@@ -159,7 +159,7 @@ export default function SidebarManagement() {
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <Title level={4} className={styles.title ?? ''}>侧边栏管理</Title>
+      <Title level={4} className={styles.title ?? ''}>侧边栏配置</Title>
       <Alert
         message="管理员专属"
         description="管理侧边栏菜单项的显示和隐藏。删除菜单项时，数据将保留在数据库中。"

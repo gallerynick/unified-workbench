@@ -303,7 +303,7 @@ export default function TemplateManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
-          模板管理
+          模板库
         </Title>
         <Space wrap>
           <Input

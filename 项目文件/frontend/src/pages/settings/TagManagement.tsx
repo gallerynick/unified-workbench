@@ -133,7 +133,7 @@ export default function TagManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4} className={styles.title ?? ''}>标签管理</Title>
+        <Title level={4} className={styles.title ?? ''}>标签分类</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建标签</Button>
       </div>
 
