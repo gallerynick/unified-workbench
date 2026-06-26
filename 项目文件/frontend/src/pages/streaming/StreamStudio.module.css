@@ -25,6 +25,12 @@
   gap: 16px;
 }
 
+.title {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .header {
   display: flex;
   align-items: center;

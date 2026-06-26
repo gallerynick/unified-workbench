@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Button, Space, Input, Tag, message, Modal, Tooltip, Dropdown } from 'antd';
+import { Button, Space, Input, Tag, message, Modal, Tooltip, Dropdown, Typography } from 'antd';
 import {
   VideoCameraOutlined, DesktopOutlined,
   PlayCircleOutlined, StopOutlined, PlusOutlined,
@@ -8,6 +8,8 @@ import {
   FontSizeOutlined,
 } from '@ant-design/icons';
 import styles from './StreamStudio.module.css';
+
+const { Title } = Typography;
 
 type SourceType = 'camera' | 'screen' | 'network' | 'image' | 'text';
 
@@ -262,7 +264,7 @@ export default function StreamStudio() {
     <div className={styles.container}>
       <div className={styles.header}>
         <Space>
-          <span style={{ fontWeight: 600, fontSize: 16 }}>直播工作室</span>
+          <Title level={4} className={styles.title ?? ''}>直播工作室</Title>
           {isStreaming && <Tag color="red">推流中</Tag>}
           {isRecording && <Tag color="orange">录制中</Tag>}
         </Space>
