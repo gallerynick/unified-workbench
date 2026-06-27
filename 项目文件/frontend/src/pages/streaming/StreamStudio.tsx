@@ -306,7 +306,7 @@ export default function StreamStudio() {
     canvas.height = 720;
     const ctx = canvas.getContext('2d')!;
     document.body.appendChild(canvas);
-    canvas.style.display = 'none';
+    canvas.style.cssText = 'position:fixed;left:-9999px;top:0;width:1280px;height:720px';
     const canvasStream = canvas.captureStream(30);
     
     // 混音音频轨道（合并所有源的音频轨）
@@ -332,8 +332,9 @@ export default function StreamStudio() {
       v.muted = true;
       v.autoplay = true;
       v.playsInline = true;
-      v.style.display = 'none';
+      v.style.cssText = 'position:fixed;left:-9999px;top:0;width:320px;height:240px';
       document.body.appendChild(v);
+      v.play().catch(() => {});
       videoEls.push({ el: v, src: s });
     });
 
