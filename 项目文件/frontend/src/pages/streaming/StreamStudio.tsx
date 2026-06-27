@@ -278,9 +278,21 @@ export default function StreamStudio() {
     message.info(`已切换到 ${scenes.find((s) => s.id === sceneId)?.name}`);
   };
 
-  const startStream = () => {
+  const startStream = async () => {
     if (!pushUrl) {
       message.warning('请先在设置中配置推流地址');
+      return;
+    }
+    // 推流时获取最新密钥和地址
+    try {
+      const keyRes = await getStreamKey();
+      if (keyRes.code === 0 && keyRes.data) {
+        setStreamKey(keyRes.data.stream_key);
+        setPushUrl(keyRes.data.push_url);
+        setWatchUrl(keyRes.data.watch_url || '');
+      }
+    } catch {
+      message.error('获取推流密钥失败');
       return;
     }
     // 获取第一个可见源的 MediaStream
@@ -290,7 +302,7 @@ export default function StreamStudio() {
       return;
     }
 
-    const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/stream/${streamKey}`);
+    const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/stream/${streamKey}`);
     wsRef.current = ws;
 
     ws.onopen = () => {

@@ -27,7 +27,7 @@ export default function StreamWatch() {
     setStatus('connecting');
 
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${proto}//${window.location.host}/stream/${streamKey}`);
+    const ws = new WebSocket(`${proto}//${window.location.host}/ws/stream/${streamKey}`);
     wsRef.current = ws;
     ws.binaryType = 'arraybuffer';
 

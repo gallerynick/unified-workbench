@@ -63,7 +63,7 @@ class StreamRelay:
 relay = StreamRelay()
 
 
-@router.websocket("/stream/{stream_key}")
+@router.websocket("/ws/stream/{stream_key}")
 async def stream_websocket(websocket: WebSocket, stream_key: str):
     """WebSocket 流中继端点
 
