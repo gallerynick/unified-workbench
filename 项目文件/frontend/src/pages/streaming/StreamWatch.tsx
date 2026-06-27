@@ -9,71 +9,44 @@ export default function StreamWatch() {
   const { key: streamKey } = useParams<{ key: string }>();
   const videoRef = useRef<HTMLVideoElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const mediaSourceRef = useRef<MediaSource | null>(null);
-  const sourceBufferRef = useRef<SourceBuffer | null>(null);
-  const queueRef = useRef<Uint8Array[]>([]);
+  const chunkRef = useRef<Blob[]>([]);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'playing' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
-
-  const appendBuffer = (data: Uint8Array) => {
-    const sb = sourceBufferRef.current;
-    if (!sb) { queueRef.current.push(data); return; }
-    if (sb.updating) { queueRef.current.push(data); return; }
-    try { sb.appendBuffer(data); } catch (e) { setErrorMsg(`解码失败: ${e}`); }
-  };
-
-  const processQueue = () => {
-    const sb = sourceBufferRef.current;
-    if (!sb || sb.updating || queueRef.current.length === 0) return;
-    const chunk = queueRef.current.shift()!;
-    try { sb.appendBuffer(chunk); } catch (e) { setErrorMsg(`解码错误: ${e}`); }
-  };
 
   useEffect(() => {
     if (!streamKey) return;
     setStatus('connecting');
+    chunkRef.current = [];
 
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${proto}//${window.location.host}/ws/stream/${streamKey}`);
     wsRef.current = ws;
-    ws.binaryType = 'arraybuffer';
 
     ws.onopen = () => ws.send(JSON.stringify({ type: 'subscribe' }));
 
     ws.onmessage = (e) => {
-      if (typeof e.data === 'string') {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'ack' && msg.role === 'subscriber') {
-          if (!videoRef.current) return;
-          const ms = new MediaSource();
-          mediaSourceRef.current = ms;
-          videoRef.current.src = URL.createObjectURL(ms);
-          ms.onsourceopen = () => {
-            try {
-              const sb = ms.addSourceBuffer('video/webm; codecs="vp8,opus"');
-              try { sb.mode = 'sequence'; } catch {}
-              sb.onupdateend = () => processQueue();
-              sourceBufferRef.current = sb;
-              for (const chunk of queueRef.current) appendBuffer(chunk);
-              queueRef.current = [];
-            } catch (e) { setErrorMsg(`Codec 错误: ${e}`); }
-            setStatus('playing');
-          };
-        }
-        return;
+      if (typeof e.data === 'string') return;
+
+      // 收集 Blob chunk
+      const blob = e.data instanceof Blob ? e.data : new Blob([e.data], { type: 'video/webm' });
+      chunkRef.current.push(blob);
+
+      // 每 10 个 chunk 更新一次视频源
+      if (chunkRef.current.length >= 10 && videoRef.current) {
+        const full = new Blob(chunkRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(full);
+        const wasPlaying = !videoRef.current.paused;
+        videoRef.current.src = url;
+        videoRef.current.currentTime = videoRef.current.duration;
+        if (wasPlaying) videoRef.current.play().catch(() => {});
+        if (status !== 'playing') setStatus('playing');
       }
-      const buf = new Uint8Array(e.data);
-      if (mediaSourceRef.current?.readyState === 'open') appendBuffer(buf);
-      else queueRef.current.push(buf);
     };
 
     ws.onerror = () => { setStatus('error'); setErrorMsg('无法连接到直播服务器'); };
-    ws.onclose = () => { if (status === 'playing') { setStatus('error'); setErrorMsg('直播已结束'); } };
+    ws.onclose = () => { if (status === 'playing') setStatus('idle'); };
 
-    return () => {
-      ws.close();
-      if (mediaSourceRef.current?.readyState === 'open') mediaSourceRef.current.endOfStream();
-    };
+    return () => { ws.close(); };
   }, [streamKey]);
 
   const copyUrl = () => { navigator.clipboard.writeText(window.location.href); message.success('地址已复制'); };
@@ -99,18 +72,11 @@ export default function StreamWatch() {
             <Text style={{ color: '#ff4d4f' }}>{errorMsg}</Text>
           </div>
         )}
-        {status === 'idle' && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-            <VideoCameraOutlined style={{ fontSize: 64, color: '#333' }} />
-            <Text style={{ color: '#666' }}>等待推流...</Text>
-          </div>
-        )}
       </div>
 
       <Space style={{ marginTop: 16 }}>
         <Button icon={<CopyOutlined />} onClick={copyUrl}>复制观看地址</Button>
       </Space>
-      <Text type="secondary" style={{ color: '#666', fontSize: 12, marginTop: 8 }}>打开此页面的其他用户也能看到同一直播画面，无需安装任何软件</Text>
     </div>
   );
 }
