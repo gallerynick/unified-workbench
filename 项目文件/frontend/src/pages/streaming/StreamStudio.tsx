@@ -26,7 +26,7 @@ const FPS_OPTIONS = [
   { label: '15 fps', value: 15 },
 ];
 
-type SourceType = 'camera' | 'screen' | 'network' | 'image' | 'text';
+type SourceType = 'camera' | 'screen' | 'network' | 'image' | 'text' | 'audio';
 
 interface SceneSource {
   id: string;
@@ -54,6 +54,7 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   network: '网络流',
   image: '图片',
   text: '文字',
+  audio: '音频',
 };
 
 export default function StreamStudio() {
@@ -196,6 +197,10 @@ export default function StreamStudio() {
         case 'image':
           name = '图片';
           break;
+        case 'audio':
+          stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          name = '麦克风';
+          break;
       }
 
       const newSource: SceneSource = {
@@ -206,8 +211,8 @@ export default function StreamStudio() {
         url,
         x: 0,
         y: 0,
-        width: type === 'text' ? 200 : 320,
-        height: type === 'text' ? 50 : 240,
+        width: type === 'text' ? 200 : type === 'audio' ? 200 : 320,
+        height: type === 'text' ? 50 : type === 'audio' ? 40 : 240,
         visible: true,
         muted: false,
       };
@@ -221,7 +226,7 @@ export default function StreamStudio() {
       );
       message.success(`已添加 ${SOURCE_TYPE_LABELS[type]}`);
     } catch (err) {
-      if (type === 'camera' || type === 'screen') {
+      if (type === 'camera' || type === 'screen' || type === 'audio') {
         message.error(`无法访问${SOURCE_TYPE_LABELS[type]}：${err instanceof Error ? err.message : '权限被拒绝'}`);
       }
     }
@@ -296,7 +301,7 @@ export default function StreamStudio() {
       return;
     }
     // 获取第一个可见源的 MediaStream
-    const visibleSource = activeScene.sources.find((s) => s.visible && (s.stream || s.type === 'camera' || s.type === 'screen'));
+    const visibleSource = activeScene.sources.find((s) => s.visible && (s.stream || s.type === 'camera' || s.type === 'screen' || s.type === 'audio'));
     if (!visibleSource) {
       message.warning('请先添加摄像头或屏幕共享源');
       return;
@@ -326,7 +331,7 @@ export default function StreamStudio() {
               e.data.arrayBuffer().then((buf) => ws.send(buf));
             }
           };
-          recorder.start(1000); // 每秒一个 chunk
+          recorder.start(200); // 每 200ms 一个 chunk，降低延迟
           setIsStreaming(true);
           message.success('开始推流');
         } catch (err) {
@@ -376,6 +381,14 @@ export default function StreamStudio() {
   };
 
   const getVideoElement = (source: SceneSource) => {
+    if (source.type === 'audio' && source.stream) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#1677ff', borderRadius: 4 }}>
+          <audio ref={(el) => { if (el && source.stream) el.srcObject = source.stream; }} autoPlay muted playsInline />
+          <SoundOutlined style={{ fontSize: 18, color: '#fff' }} />
+        </div>
+      );
+    }
     if (source.stream) {
       return (
         <video
@@ -492,6 +505,7 @@ export default function StreamStudio() {
                     {source.type === 'screen' && <DesktopOutlined />}
                     {source.type === 'network' && <GlobalOutlined />}
                     {source.type === 'text' && <FontSizeOutlined />}
+                    {source.type === 'audio' && <SoundOutlined />}
                     <span style={{ opacity: source.visible ? 1 : 0.5 }}>
                       {source.name}
                     </span>
@@ -539,6 +553,7 @@ export default function StreamStudio() {
                     icon: <GlobalOutlined />,
                   },
                   { key: 'text', label: '文字', icon: <FontSizeOutlined /> },
+                  { key: 'audio', label: '麦克风', icon: <SoundOutlined /> },
                 ],
                 onClick: ({ key }) => {
                   if (key === 'network' || key === 'text') {
@@ -570,7 +585,13 @@ export default function StreamStudio() {
                     type="text"
                     size="small"
                     icon={audioEnabled ? <SoundOutlined /> : <MutedOutlined />}
-                    onClick={() => setAudioEnabled(!audioEnabled)}
+                    onClick={() => {
+                      const next = !audioEnabled;
+                      setAudioEnabled(next);
+                      activeScene.sources.forEach((s) => {
+                        s.stream?.getAudioTracks().forEach((t) => { t.enabled = next; });
+                      });
+                    }}
                   />
                 </Tooltip>
                 <Tooltip title="全屏">
