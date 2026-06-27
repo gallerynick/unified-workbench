@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,11 +34,14 @@ class StreamConfigUpdate(BaseModel):
 
 @router.get("/config")
 async def api_get_stream_config(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """获取推流配置"""
     config = await get_stream_config(db)
+    if "server_url" not in config or not config["server_url"]:
+        config["server_url"] = f"rtmp://{request.url.hostname}:1935/live"
     return {"code": 0, "msg": "", "data": config}
 
 
@@ -55,29 +58,33 @@ async def api_update_stream_config(
 
 @router.get("/key")
 async def api_get_stream_key(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """获取当前用户的推流密钥"""
     key = await get_user_stream_key(db, current_user.id)
     config = await get_stream_config(db)
+    server_url = config.get("server_url") or f"rtmp://{request.url.hostname}:1935/live"
     return {
         "code": 0,
         "msg": "",
-        "data": {"stream_key": key, "push_url": f"{config['server_url']}/{key}"},
+        "data": {"stream_key": key, "push_url": f"{server_url}/{key}"},
     }
 
 
 @router.post("/key/reset")
 async def api_reset_stream_key(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """重置当前用户的推流密钥"""
     new_key = await reset_user_stream_key(db, current_user.id)
     config = await get_stream_config(db)
+    server_url = config.get("server_url") or f"rtmp://{request.url.hostname}:1935/live"
     return {
         "code": 0,
         "msg": "推流密钥已重置",
-        "data": {"stream_key": new_key, "push_url": f"{config['server_url']}/{new_key}"},
+        "data": {"stream_key": new_key, "push_url": f"{server_url}/{new_key}"},
     }
