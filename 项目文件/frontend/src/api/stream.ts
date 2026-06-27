@@ -15,6 +15,7 @@ export interface StreamConfig {
 export interface StreamKey {
   stream_key: string;
   push_url: string;
+  watch_url?: string;
 }
 
 export async function getStreamConfig(): Promise<UnifiedResponse<StreamConfig>> {

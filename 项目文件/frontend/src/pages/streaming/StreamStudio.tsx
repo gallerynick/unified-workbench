@@ -78,6 +78,7 @@ export default function StreamStudio() {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [streamKey, setStreamKey] = useState('');
   const [pushUrl, setPushUrl] = useState('');
+  const [watchUrl, setWatchUrl] = useState('');
 
   const activeScene = scenes.find((s) => s.id === activeSceneId) || scenes[0]!;
 
@@ -94,6 +95,7 @@ export default function StreamStudio() {
       if (keyRes.code === 0 && keyRes.data) {
         setStreamKey(keyRes.data.stream_key);
         setPushUrl(keyRes.data.push_url);
+        setWatchUrl(keyRes.data.watch_url || '');
       }
     } catch {
       message.error('加载推流配置失败');
@@ -138,6 +140,7 @@ export default function StreamStudio() {
           if (res.code === 0 && res.data) {
             setStreamKey(res.data.stream_key);
             setPushUrl(res.data.push_url);
+            setWatchUrl(res.data.watch_url || '');
             message.success(res.msg || '推流密钥已重置');
           }
         } catch {
@@ -724,6 +727,20 @@ export default function StreamStudio() {
                 </Tooltip>
               </div>
             </div>
+            {watchUrl && (
+              <div style={{ marginTop: 12 }}>
+                <Text strong>局域网观看地址：</Text>
+                <div style={{ marginTop: 4 }}>
+                  <Input value={watchUrl} readOnly style={{ width: 360 }} />
+                  <Tooltip title="复制观看地址">
+                    <Button icon={<CopyOutlined />} style={{ marginLeft: 8 }} onClick={() => copyToClipboard(watchUrl, '观看地址')} />
+                  </Tooltip>
+                </div>
+                <Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>
+                  同一局域网内其他设备可用此地址观看直播（需配合 HLS/HTTP-FLV 流媒体服务器）
+                </Text>
+              </div>
+            )}
           </div>
         )}
       </Modal>

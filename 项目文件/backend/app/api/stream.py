@@ -40,8 +40,11 @@ async def api_get_stream_config(
 ):
     """获取推流配置"""
     config = await get_stream_config(db)
-    if "server_url" not in config or not config["server_url"]:
-        config["server_url"] = f"rtmp://{request.url.hostname}:1935/live"
+    host = request.url.hostname
+    if not config.get("server_url"):
+        config["server_url"] = f"rtmp://{host}:1935/live"
+    if not config.get("watch_url"):
+        config["watch_url"] = f"http://{host}/live"
     return {"code": 0, "msg": "", "data": config}
 
 
@@ -65,11 +68,17 @@ async def api_get_stream_key(
     """获取当前用户的推流密钥"""
     key = await get_user_stream_key(db, current_user.id)
     config = await get_stream_config(db)
-    server_url = config.get("server_url") or f"rtmp://{request.url.hostname}:1935/live"
+    host = request.url.hostname
+    server_url = config.get("server_url") or f"rtmp://{host}:1935/live"
+    watch_url = config.get("watch_url") or f"http://{host}/live"
     return {
         "code": 0,
         "msg": "",
-        "data": {"stream_key": key, "push_url": f"{server_url}/{key}"},
+        "data": {
+            "stream_key": key,
+            "push_url": f"{server_url}/{key}",
+            "watch_url": f"{watch_url}/{key}",
+        },
     }
 
 
@@ -82,9 +91,15 @@ async def api_reset_stream_key(
     """重置当前用户的推流密钥"""
     new_key = await reset_user_stream_key(db, current_user.id)
     config = await get_stream_config(db)
-    server_url = config.get("server_url") or f"rtmp://{request.url.hostname}:1935/live"
+    host = request.url.hostname
+    server_url = config.get("server_url") or f"rtmp://{host}:1935/live"
+    watch_url = config.get("watch_url") or f"http://{host}/live"
     return {
         "code": 0,
         "msg": "推流密钥已重置",
-        "data": {"stream_key": new_key, "push_url": f"{server_url}/{new_key}"},
+        "data": {
+            "stream_key": new_key,
+            "push_url": f"{server_url}/{new_key}",
+            "watch_url": f"{watch_url}/{new_key}",
+        },
     }
