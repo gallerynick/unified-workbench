@@ -380,7 +380,7 @@ export default function StreamStudio() {
             e.data.arrayBuffer().then((buf) => ws.send(buf));
           }
         };
-        recorder.start(100);
+        recorder.start(50);
         (recorder as any).__canvas = canvas;
         (recorder as any).__animId = animId;
         setIsStreaming(true);

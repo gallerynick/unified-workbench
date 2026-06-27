@@ -9,45 +9,64 @@ export default function StreamWatch() {
   const { key: streamKey } = useParams<{ key: string }>();
   const videoRef = useRef<HTMLVideoElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const chunkRef = useRef<Blob[]>([]);
+  const msRef = useRef<MediaSource | null>(null);
+  const sbRef = useRef<SourceBuffer | null>(null);
+  const pendingRef = useRef<ArrayBuffer[]>([]);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'playing' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+
+  const flushPending = () => {
+    const sb = sbRef.current;
+    if (!sb || sb.updating || pendingRef.current.length === 0) return;
+    const chunk = pendingRef.current.shift()!;
+    try { sb.appendBuffer(chunk); } catch (e) { setErrorMsg(`解码: ${e}`); }
+  };
 
   useEffect(() => {
     if (!streamKey) return;
     setStatus('connecting');
-    chunkRef.current = [];
+    pendingRef.current = [];
 
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const proto = window.location.protocol === 'https?' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${proto}//${window.location.host}/ws/stream/${streamKey}`);
     wsRef.current = ws;
+    ws.binaryType = 'arraybuffer';
 
     ws.onopen = () => ws.send(JSON.stringify({ type: 'subscribe' }));
 
     ws.onmessage = (e) => {
       if (typeof e.data === 'string') return;
 
-      // 收集 Blob chunk
-      const blob = e.data instanceof Blob ? e.data : new Blob([e.data], { type: 'video/webm' });
-      chunkRef.current.push(blob);
-
-      // 每 3 个 chunk 更新一次视频源
-      if (chunkRef.current.length >= 3 && videoRef.current) {
-        const full = new Blob(chunkRef.current, { type: 'video/webm' });
-        const url = URL.createObjectURL(full);
-        videoRef.current.src = url;
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current && videoRef.current.duration > 0) {
-            videoRef.current.currentTime = videoRef.current.duration;
-            videoRef.current.play().catch(() => {});
-          }
+      const buf = e.data as ArrayBuffer;
+      if (!msRef.current && videoRef.current) {
+        const ms = new MediaSource();
+        msRef.current = ms;
+        videoRef.current.src = URL.createObjectURL(ms);
+        ms.onsourceopen = () => {
+          try {
+            const sb = ms.addSourceBuffer('video/webm; codecs="vp8"');
+            try { sb.mode = 'sequence'; } catch {}
+            sb.onupdateend = () => flushPending();
+            sbRef.current = sb;
+            for (const chunk of pendingRef.current) {
+              if (!sb.updating) sb.appendBuffer(chunk);
+              else break;
+            }
+            pendingRef.current = [];
+          } catch (e) { setErrorMsg(`Codec: ${e}`); }
         };
-        videoRef.current.play().catch(() => {});
-        if (status !== 'playing') setStatus('playing');
       }
+
+      if (sbRef.current && !sbRef.current.updating) {
+        try { sbRef.current.appendBuffer(buf); } catch { pendingRef.current.push(buf); }
+      } else {
+        pendingRef.current.push(buf);
+      }
+
+      if (status !== 'playing') setStatus('playing');
     };
 
-    ws.onerror = () => { setStatus('error'); setErrorMsg('无法连接到直播服务器'); };
+    ws.onerror = () => { setStatus('error'); setErrorMsg('无法连接'); };
     ws.onclose = () => { if (status === 'playing') setStatus('idle'); };
 
     return () => { ws.close(); };
