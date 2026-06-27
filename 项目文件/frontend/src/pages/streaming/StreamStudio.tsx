@@ -655,11 +655,18 @@ export default function StreamStudio() {
                 {isRecording ? '停止录制' : '开始录制'}
               </Button>
             </Space>
-            {isStreaming && (
-              <Tag color="red" style={{ marginLeft: 16 }}>
-                推流地址: {pushUrl}
-              </Tag>
-            )}
+          </div>
+          <div style={{ display: 'flex', gap: 16, padding: '8px 12px', borderTop: '1px solid var(--stream-border, #e8e8e8)', fontSize: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>推流:</Text>
+              <code style={{ color: '#1677ff', fontSize: 12, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pushUrl || '设置中配置'}</code>
+              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(pushUrl, '推流地址')} /></Tooltip>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>观看:</Text>
+              <code style={{ color: '#52c41a', fontSize: 12, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{watchUrl || '设置中配置'}</code>
+              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(watchUrl, '观看地址')} /></Tooltip>
+            </div>
           </div>
         </div>
       </div>
@@ -782,29 +789,6 @@ export default function StreamStudio() {
               </Tooltip>
               <Button danger icon={<ReloadOutlined />} onClick={handleResetKey}>重置</Button>
             </Space>
-            <div style={{ marginTop: 12 }}>
-              <Text strong>推流地址：</Text>
-              <div style={{ marginTop: 4 }}>
-                <Input value={pushUrl} readOnly style={{ width: 360 }} />
-                <Tooltip title="复制推流地址">
-                  <Button icon={<CopyOutlined />} style={{ marginLeft: 8 }} onClick={() => copyToClipboard(pushUrl, '推流地址')} />
-                </Tooltip>
-              </div>
-            </div>
-            {watchUrl && (
-              <div style={{ marginTop: 12 }}>
-                <Text strong>局域网观看地址：</Text>
-                <div style={{ marginTop: 4 }}>
-                  <Input value={watchUrl} readOnly style={{ width: 360 }} />
-                  <Tooltip title="复制观看地址">
-                    <Button icon={<CopyOutlined />} style={{ marginLeft: 8 }} onClick={() => copyToClipboard(watchUrl, '观看地址')} />
-                  </Tooltip>
-                </div>
-                <Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>
-                  同一局域网内其他设备可用此地址观看直播（需配合 HLS/HTTP-FLV 流媒体服务器）
-                </Text>
-              </div>
-            )}
           </div>
         )}
       </Modal>
