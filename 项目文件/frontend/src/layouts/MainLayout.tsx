@@ -120,7 +120,6 @@ function getMenuItems(): MenuProps['items'] {
           { key: '/settings/backups', label: '数据备份', icon: <CloudServerOutlined /> },
           { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
           { key: '/settings/system', label: '系统更新', icon: <CloudServerOutlined /> },
-          { key: '/settings/stream', label: '推流配置', icon: <VideoCameraOutlined /> },
         ],
       },
     );

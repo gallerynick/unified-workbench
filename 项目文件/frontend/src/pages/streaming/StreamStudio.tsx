@@ -1,15 +1,30 @@
-import { useState, useRef } from 'react';
-import { Button, Space, Input, Tag, message, Modal, Tooltip, Dropdown, Typography } from 'antd';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Button, Space, Input, Tag, message, Modal, Tooltip, Dropdown, Typography, Form, InputNumber, Select, Slider, Switch, Spin } from 'antd';
 import {
   VideoCameraOutlined, DesktopOutlined,
   PlayCircleOutlined, StopOutlined, PlusOutlined,
   DeleteOutlined, SettingOutlined, FullscreenOutlined,
   SoundOutlined, MutedOutlined, EyeOutlined, GlobalOutlined,
-  FontSizeOutlined,
+  FontSizeOutlined, CopyOutlined, ReloadOutlined, ExclamationCircleOutlined,
 } from '@ant-design/icons';
+import { getStreamConfig, updateStreamConfig, getStreamKey, resetStreamKey } from '../../api/stream';
 import styles from './StreamStudio.module.css';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
+
+const RESOLUTION_OPTIONS = [
+  { label: '1920×1080 (1080p)', value: '1920x1080' },
+  { label: '1280×720 (720p)', value: '1280x720' },
+  { label: '854×480 (480p)', value: '854x480' },
+  { label: '640×360 (360p)', value: '640x360' },
+];
+
+const FPS_OPTIONS = [
+  { label: '60 fps', value: 60 },
+  { label: '30 fps', value: 30 },
+  { label: '25 fps', value: 25 },
+  { label: '15 fps', value: 15 },
+];
 
 type SourceType = 'camera' | 'screen' | 'network' | 'image' | 'text';
 
@@ -53,12 +68,91 @@ export default function StreamStudio() {
   const [textInput, setTextInput] = useState('');
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [showStreamModal, setShowStreamModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const [settingsForm] = Form.useForm();
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [streamKey, setStreamKey] = useState('');
+  const [pushUrl, setPushUrl] = useState('');
 
   const activeScene = scenes.find((s) => s.id === activeSceneId) || scenes[0]!;
+
+  const loadSettings = useCallback(async () => {
+    setSettingsLoading(true);
+    try {
+      const [configRes, keyRes] = await Promise.all([
+        getStreamConfig(),
+        getStreamKey(),
+      ]);
+      if (configRes.code === 0 && configRes.data) {
+        settingsForm.setFieldsValue(configRes.data);
+      }
+      if (keyRes.code === 0 && keyRes.data) {
+        setStreamKey(keyRes.data.stream_key);
+        setPushUrl(keyRes.data.push_url);
+      }
+    } catch {
+      message.error('加载推流配置失败');
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, [settingsForm]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  const handleSaveSettings = async () => {
+    try {
+      const values = await settingsForm.validateFields();
+      setSettingsSaving(true);
+      const res = await updateStreamConfig(values);
+      if (res.code === 0) {
+        message.success(res.msg || '推流配置已更新');
+        if (res.data) {
+          settingsForm.setFieldsValue(res.data);
+        }
+      }
+    } catch {
+      message.error('保存失败');
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const handleResetKey = () => {
+    Modal.confirm({
+      title: '重置推流密钥',
+      icon: <ExclamationCircleOutlined />,
+      content: '重置后旧的推流密钥将立即失效，正在进行的推流将被中断。确定要继续吗？',
+      okText: '确认重置',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await resetStreamKey();
+          if (res.code === 0 && res.data) {
+            setStreamKey(res.data.stream_key);
+            setPushUrl(res.data.push_url);
+            message.success(res.msg || '推流密钥已重置');
+          }
+        } catch {
+          message.error('重置失败');
+        }
+      },
+    });
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(
+      () => message.success(`${label}已复制到剪贴板`),
+      () => message.error('复制失败'),
+    );
+  };
 
   const addSource = async (type: SourceType) => {
     let stream: MediaStream | undefined;
@@ -269,7 +363,7 @@ export default function StreamStudio() {
           {isRecording && <Tag color="orange">录制中</Tag>}
         </Space>
         <Space>
-          <Button icon={<SettingOutlined />}>设置</Button>
+          <Button icon={<SettingOutlined />} onClick={() => { loadSettings(); setShowSettingsModal(true); }}>设置</Button>
         </Space>
       </div>
 
@@ -557,6 +651,81 @@ export default function StreamStudio() {
             协议，可配合 SRS、Nginx-RTMP、mediamtx 等服务器使用
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        title="推流设置"
+        open={showSettingsModal}
+        onCancel={() => setShowSettingsModal(false)}
+        width={560}
+        footer={
+          <Space>
+            <Button onClick={() => setShowSettingsModal(false)}>关闭</Button>
+            <Button type="primary" onClick={handleSaveSettings} loading={settingsSaving}>保存配置</Button>
+          </Space>
+        }
+      >
+        {settingsLoading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}><Spin /></div>
+        ) : (
+          <div style={{ maxHeight: 500, overflow: 'auto' }}>
+            <Form form={settingsForm} layout="vertical">
+              <div style={{ fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--stream-border, #e8e8e8)' }}>服务器设置</div>
+              <Form.Item name="server_url" label="推流服务器地址" rules={[{ required: true, message: '请输入推流服务器地址' }]}>
+                <Input placeholder="rtmp://localhost:1935/live" />
+              </Form.Item>
+              <Form.Item name="server_port" label="服务器端口" rules={[{ required: true, message: '请输入服务器端口' }]}>
+                <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item name="enable_auth" label="启用推流认证" valuePropName="checked">
+                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+              </Form.Item>
+
+              <div style={{ fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--stream-border, #e8e8e8)', marginTop: 16 }}>编码参数</div>
+              <Form.Item name="default_resolution" label="默认分辨率" rules={[{ required: true, message: '请选择默认分辨率' }]}>
+                <Select options={RESOLUTION_OPTIONS} />
+              </Form.Item>
+              <Form.Item name="default_fps" label="默认帧率" rules={[{ required: true, message: '请选择默认帧率' }]}>
+                <Select options={FPS_OPTIONS} />
+              </Form.Item>
+              <Form.Item label="码率范围 (kbps)">
+                <Space style={{ width: '100%' }} align="start">
+                  <Form.Item name="min_bitrate" noStyle rules={[{ required: true }]}>
+                    <InputNumber min={100} placeholder="最小" addonAfter="kbps" />
+                  </Form.Item>
+                  <Text style={{ lineHeight: '32px' }}>—</Text>
+                  <Form.Item name="max_bitrate" noStyle rules={[{ required: true }]}>
+                    <InputNumber placeholder="最大" addonAfter="kbps" />
+                  </Form.Item>
+                </Space>
+              </Form.Item>
+              <Form.Item name="default_bitrate" label="默认码率 (kbps)">
+                <Slider min={500} max={10000} step={100} marks={{ 500: '500', 2500: '2500', 5000: '5000', 10000: '10000' }} />
+              </Form.Item>
+            </Form>
+
+            <div style={{ fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--stream-border, #e8e8e8)', marginTop: 16 }}>推流密钥</div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
+              推流密钥用于身份验证，请勿泄露给他人。如怀疑泄露，请立即重置。
+            </Text>
+            <Space style={{ width: '100%' }}>
+              <Input.Password value={streamKey} readOnly style={{ width: 240 }} />
+              <Tooltip title="复制密钥">
+                <Button icon={<CopyOutlined />} onClick={() => copyToClipboard(streamKey, '推流密钥')} />
+              </Tooltip>
+              <Button danger icon={<ReloadOutlined />} onClick={handleResetKey}>重置</Button>
+            </Space>
+            <div style={{ marginTop: 12 }}>
+              <Text strong>推流地址：</Text>
+              <div style={{ marginTop: 4 }}>
+                <Input value={pushUrl} readOnly style={{ width: 360 }} />
+                <Tooltip title="复制推流地址">
+                  <Button icon={<CopyOutlined />} style={{ marginLeft: 8 }} onClick={() => copyToClipboard(pushUrl, '推流地址')} />
+                </Tooltip>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
