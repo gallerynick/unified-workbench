@@ -69,6 +69,9 @@ export default function StreamStudio() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
+  const [dragSourceId, setDragSourceId] = useState<string | null>(null);
+  const [resizeSourceId, setResizeSourceId] = useState<string | null>(null);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, sourceX: 0, sourceY: 0, sourceW: 0, sourceH: 0 });
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [settingsForm] = Form.useForm();
@@ -509,7 +512,24 @@ export default function StreamStudio() {
                 </Tooltip>
               </Space>
             </div>
-            <div className={styles.previewVideo}>
+            <div className={styles.previewVideo}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                if (dragSourceId) {
+                  const dx = e.clientX - rect.left - dragStart.x;
+                  const dy = e.clientY - rect.top - dragStart.y;
+                  setScenes((prev) => prev.map((s) => s.id === activeSceneId ? { ...s, sources: s.sources.map((src) => src.id === dragSourceId ? { ...src, x: Math.max(0, dragStart.sourceX + dx), y: Math.max(0, dragStart.sourceY + dy) } : src) } : s));
+                  return;
+                }
+                if (resizeSourceId) {
+                  const dx = e.clientX - rect.left - dragStart.x;
+                  const dy = e.clientY - rect.top - dragStart.y;
+                  setScenes((prev) => prev.map((s) => s.id === activeSceneId ? { ...s, sources: s.sources.map((src) => src.id === resizeSourceId ? { ...src, width: Math.max(50, dragStart.sourceW + dx), height: Math.max(30, dragStart.sourceH + dy) } : src) } : s));
+                }
+              }}
+              onMouseUp={() => { setDragSourceId(null); setResizeSourceId(null); }}
+              onMouseLeave={() => { setDragSourceId(null); setResizeSourceId(null); }}
+            >
               {activeScene.sources.length === 0 ? (
                 <div className={styles.emptyPreview}>
                   <VideoCameraOutlined
@@ -524,14 +544,25 @@ export default function StreamStudio() {
                     <div
                       key={source.id}
                       className={styles.sourceOverlay}
-                      style={{
-                        left: source.x,
-                        top: source.y,
-                        width: source.width,
-                        height: source.height,
+                      style={{ left: source.x, top: source.y, width: source.width, height: source.height }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        const rect = e.currentTarget.parentElement?.getBoundingClientRect();
+                        if (!rect) return;
+                        setDragSourceId(source.id);
+                        setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height });
                       }}
                     >
                       {getVideoElement(source)}
+                      <div style={{ position: 'absolute', right: 0, bottom: 0, width: 16, height: 16, background: '#1677ff', cursor: 'nwse-resize', borderTopLeftRadius: 4 }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect();
+                          if (!rect) return;
+                          setResizeSourceId(source.id);
+                          setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height });
+                        }}
+                      />
                     </div>
                   ))
               )}
