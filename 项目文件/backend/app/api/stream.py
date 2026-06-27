@@ -65,7 +65,7 @@ async def api_get_stream_config(
     if not config.get("server_url"):
         config["server_url"] = f"rtmp://{host}:1935/live"
     if not config.get("watch_url"):
-        config["watch_url"] = f"http://{host}/live"
+        config["watch_url"] = f"http://{host}/stream/watch"
     return {"code": 0, "msg": "", "data": config}
 
 
@@ -91,7 +91,7 @@ async def api_get_stream_key(
     config = await get_stream_config(db)
     host = _get_host(request)
     server_url = config.get("server_url") or f"rtmp://{host}:1935/live"
-    watch_url = config.get("watch_url") or f"http://{host}/live"
+    watch_url = config.get("watch_url") or f"http://{host}/stream/watch"
     return {
         "code": 0,
         "msg": "",
@@ -114,7 +114,7 @@ async def api_reset_stream_key(
     config = await get_stream_config(db)
     host = _get_host(request)
     server_url = config.get("server_url") or f"rtmp://{host}:1935/live"
-    watch_url = config.get("watch_url") or f"http://{host}/live"
+    watch_url = config.get("watch_url") or f"http://{host}/stream/watch"
     return {
         "code": 0,
         "msg": "推流密钥已重置",
