@@ -302,11 +302,11 @@ export default function StreamStudio() {
     }
     // 创建合成画布（可见但很小，确保浏览器渲染）
     const canvas = document.createElement('canvas');
-    canvas.width = 640;
-    canvas.height = 360;
+    canvas.width = 1280;
+    canvas.height = 720;
     const ctx = canvas.getContext('2d')!;
     document.body.appendChild(canvas);
-    canvas.style.cssText = 'position:fixed;right:8px;bottom:8px;width:160px;height:90px;z-index:99999;border:1px solid #f00;opacity:0.3';
+    canvas.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:720px;z-index:1;opacity:0;pointer-events:none';
     const canvasStream = canvas.captureStream(30);
     
     // 混音音频轨道（合并所有源的音频轨）
@@ -343,8 +343,8 @@ export default function StreamStudio() {
     const composite = () => {
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const scaleX = canvas.width / 800;
-      const scaleY = canvas.height / 600;
+      const scaleX = canvas.width / 960;
+      const scaleY = canvas.height / 540;
       activeScene.sources.filter((s) => s.visible).forEach((s) => {
         const vEl = videoEls.find((ve) => ve.src.id === s.id);
         if (vEl && vEl.el.readyState >= 2) {
