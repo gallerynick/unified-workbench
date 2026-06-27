@@ -300,64 +300,82 @@ export default function StreamStudio() {
       message.error('获取推流密钥失败');
       return;
     }
-    // 获取第一个可见源的 MediaStream
-    const visibleSource = activeScene.sources.find((s) => s.visible && (s.stream || s.type === 'camera' || s.type === 'screen' || s.type === 'audio'));
-    if (!visibleSource) {
-      message.warning('请先添加摄像头或屏幕共享源');
-      return;
+    // 创建合成画布
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    const ctx = canvas.getContext('2d')!;
+    document.body.appendChild(canvas);
+    canvas.style.display = 'none';
+    const canvasStream = canvas.captureStream(30);
+    
+    // 混音音频轨道（合并所有源的音频轨）
+    const audioTracks: MediaStreamTrack[] = [];
+    activeScene.sources.forEach((s) => {
+      s.stream?.getAudioTracks().forEach((t) => audioTracks.push(t));
+    });
+    if (audioTracks.length > 0) {
+      const audioCtx = new AudioContext();
+      const dest = audioCtx.createMediaStreamDestination();
+      audioTracks.forEach((t) => {
+        const src = audioCtx.createMediaStreamSource(new MediaStream([t]));
+        src.connect(dest);
+      });
+      dest.stream.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
     }
+
+    // 合成循环：把所有可见源绘制到 canvas
+    let animId = 0;
+    const composite = () => {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      activeScene.sources.filter((s) => s.visible).forEach((s) => {
+        if (s.type === 'text' && s.url) {
+          ctx.fillStyle = '#fff';
+          ctx.font = '24px sans-serif';
+          ctx.fillText(s.url, s.x * canvas.width / 960, s.y * canvas.height / 540 + 30);
+        }
+      });
+      animId = requestAnimationFrame(composite);
+    };
+    composite();
 
     const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/stream/${streamKey}`);
     wsRef.current = ws;
-
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: 'publish' }));
-      // 使用可见源的 MediaStream
-      let inputStream: MediaStream | null = null;
-      if (visibleSource.stream) {
-        inputStream = visibleSource.stream;
-      }
-
-      if (inputStream) {
-        streamRef.current = inputStream;
-        try {
-          const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
-            ? 'video/webm;codecs=vp8,opus'
-            : 'video/webm';
-          const recorder = new MediaRecorder(inputStream, { mimeType, videoBitsPerSecond: 2500000 });
-          mediaRecorderRef.current = recorder;
-          recorder.ondataavailable = (e) => {
-            if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-              e.data.arrayBuffer().then((buf) => ws.send(buf));
-            }
-          };
-          recorder.start(100);
-          setIsStreaming(true);
-          message.success('开始推流');
-        } catch (err) {
-          message.error(`启动推流失败: ${err instanceof Error ? err.message : '未知错误'}`);
-        }
-      } else {
-        message.warning('未找到可用的媒体源');
+      streamRef.current = canvasStream;
+      try {
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm';
+        const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond: 2500000 });
+        mediaRecorderRef.current = recorder;
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            e.data.arrayBuffer().then((buf) => ws.send(buf));
+          }
+        };
+        recorder.start(100);
+        (recorder as any).__canvas = canvas;
+        (recorder as any).__animId = animId;
+        setIsStreaming(true);
+        message.success('开始推流');
+      } catch (err) {
+        message.error(`启动推流失败: ${err instanceof Error ? err.message : '未知错误'}`);
       }
     };
-
-    ws.onerror = () => {
-      message.error('推流连接失败，请确认服务器已运行');
-    };
-
+    ws.onerror = () => { message.error('推流连接失败'); };
     ws.onclose = () => {
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current = null;
-      }
-      setIsStreaming(false);
-      streamRef.current = null;
+      cancelAnimationFrame(animId);
+      canvas.remove();
+      if (mediaRecorderRef.current) { mediaRecorderRef.current.stop(); mediaRecorderRef.current = null; }
+      setIsStreaming(false); streamRef.current = null;
     };
   };
 
   const stopStream = () => {
     if (mediaRecorderRef.current) {
+      cancelAnimationFrame((mediaRecorderRef.current as any).__animId || 0);
+      (mediaRecorderRef.current as any).__canvas?.remove();
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
     }
@@ -537,26 +555,16 @@ export default function StreamStudio() {
             <Dropdown
               menu={{
                 items: [
-                  {
-                    key: 'camera',
-                    label: '摄像头',
-                    icon: <VideoCameraOutlined />,
-                  },
-                  {
-                    key: 'audio',
-                    label: '麦克风',
-                    icon: <SoundOutlined />,
-                  },
-                  {
-                    key: 'screen',
-                    label: '屏幕共享',
-                    icon: <DesktopOutlined />,
-                  },
-                  {
-                    key: 'network',
-                    label: '网络流',
-                    icon: <GlobalOutlined />,
-                  },
+                  { type: 'group', label: '视频源', children: [
+                    { key: 'camera', label: '摄像头', icon: <VideoCameraOutlined /> },
+                    { key: 'screen', label: '屏幕共享', icon: <DesktopOutlined /> },
+                  ]},
+                  { type: 'divider' },
+                  { type: 'group', label: '音频源', children: [
+                    { key: 'audio', label: '麦克风', icon: <SoundOutlined /> },
+                  ]},
+                  { type: 'divider' },
+                  { key: 'network', label: '网络流', icon: <GlobalOutlined /> },
                   { key: 'text', label: '文字', icon: <FontSizeOutlined /> },
                 ],
                 onClick: ({ key }) => {

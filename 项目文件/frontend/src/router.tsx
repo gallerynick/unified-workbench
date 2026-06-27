@@ -65,6 +65,10 @@ export const router = createBrowserRouter([
     element: <TestModePage />,
   },
   {
+    path: '/stream/watch/:key',
+    element: <LazyPage><StreamWatch /></LazyPage>,
+  },
+  {
     element: <AuthGuard />,
     children: [
       {
@@ -206,10 +210,6 @@ export const router = createBrowserRouter([
           {
             path: 'stream',
             element: <LazyPage><StreamStudio /></LazyPage>,
-          },
-          {
-            path: 'stream/watch/:key',
-            element: <LazyPage><StreamWatch /></LazyPage>,
           },
           {
             path: '404',
