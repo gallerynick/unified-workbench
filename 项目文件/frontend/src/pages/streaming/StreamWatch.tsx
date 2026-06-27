@@ -55,6 +55,7 @@ export default function StreamWatch() {
             sbRef.current = sb;
             flush();
             setStatus('playing');
+            videoRef.current?.play().catch(() => {});
           } catch {}
         };
         return;
@@ -78,7 +79,7 @@ export default function StreamWatch() {
         {status === 'playing' && <Tag color="green">播放中</Tag>}
       </Space>
       <div style={{ position: 'relative', width: '100%', maxWidth: 960, aspectRatio: '16/9', background: '#111', borderRadius: 8, overflow: 'hidden' }}>
-        <video ref={videoRef} controls autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <video ref={videoRef} muted autoPlay playsInline controls style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         {status === 'connecting' && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)' }}>
             <Space direction="vertical" align="center"><Spin /><div>等待推流端...</div></Space>
