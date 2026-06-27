@@ -42,7 +42,7 @@ export default function StreamWatch() {
       if (typeof e.data === 'string') return;
       bufRef.current.push(e.data as ArrayBuffer);
 
-      if (!msRef.current && bufRef.current.length >= 5) {
+      if (!msRef.current && bufRef.current.length > 0) {
         const ms = new MediaSource();
         msRef.current = ms;
         videoRef.current!.src = URL.createObjectURL(ms);
