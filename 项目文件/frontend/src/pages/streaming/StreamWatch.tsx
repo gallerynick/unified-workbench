@@ -9,23 +9,14 @@ export default function StreamWatch() {
   const { key: streamKey } = useParams<{ key: string }>();
   const videoRef = useRef<HTMLVideoElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const msRef = useRef<MediaSource | null>(null);
-  const sbRef = useRef<SourceBuffer | null>(null);
-  const pendingRef = useRef<ArrayBuffer[]>([]);
+  const chunksRef = useRef<ArrayBuffer[]>([]);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'playing' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
-
-  const flushPending = () => {
-    const sb = sbRef.current;
-    if (!sb || sb.updating || pendingRef.current.length === 0) return;
-    const chunk = pendingRef.current.shift()!;
-    try { sb.appendBuffer(chunk); } catch (e) { setErrorMsg(`解码: ${e}`); }
-  };
 
   useEffect(() => {
     if (!streamKey) return;
     setStatus('connecting');
-    pendingRef.current = [];
+    chunksRef.current = [];
 
     const proto = window.location.protocol === 'https?' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${proto}//${window.location.host}/ws/stream/${streamKey}`);
@@ -36,34 +27,21 @@ export default function StreamWatch() {
 
     ws.onmessage = (e) => {
       if (typeof e.data === 'string') return;
-
-      const buf = e.data as ArrayBuffer;
-      if (!msRef.current && videoRef.current) {
-        const ms = new MediaSource();
-        msRef.current = ms;
-        videoRef.current.src = URL.createObjectURL(ms);
-        ms.onsourceopen = () => {
-          try {
-            const sb = ms.addSourceBuffer('video/webm; codecs="vp8"');
-            try { sb.mode = 'sequence'; } catch {}
-            sb.onupdateend = () => flushPending();
-            sbRef.current = sb;
-            for (const chunk of pendingRef.current) {
-              if (!sb.updating) sb.appendBuffer(chunk);
-              else break;
-            }
-            pendingRef.current = [];
-          } catch (e) { setErrorMsg(`Codec: ${e}`); }
+      chunksRef.current.push(e.data as ArrayBuffer);
+      if (chunksRef.current.length % 10 === 0 && videoRef.current) {
+        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const v = videoRef.current;
+        v.src = url;
+        v.onloadedmetadata = () => {
+          if (v.duration > 0.5) {
+            v.currentTime = v.duration - 0.3;
+            v.play().catch(() => {});
+          }
         };
+        v.play().catch(() => {});
+        if (status !== 'playing') setStatus('playing');
       }
-
-      if (sbRef.current && !sbRef.current.updating) {
-        try { sbRef.current.appendBuffer(buf); } catch { pendingRef.current.push(buf); }
-      } else {
-        pendingRef.current.push(buf);
-      }
-
-      if (status !== 'playing') setStatus('playing');
     };
 
     ws.onerror = () => { setStatus('error'); setErrorMsg('无法连接'); };
