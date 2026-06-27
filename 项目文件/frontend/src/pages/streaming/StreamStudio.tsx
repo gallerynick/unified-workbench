@@ -74,6 +74,8 @@ export default function StreamStudio() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, sourceX: 0, sourceY: 0, sourceW: 0, sourceH: 0 });
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [settingsForm] = Form.useForm();
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -281,16 +283,73 @@ export default function StreamStudio() {
       message.warning('请先在设置中配置推流地址');
       return;
     }
-    setIsStreaming(true);
-    message.success(`开始推流: ${pushUrl}`);
+    // 获取第一个可见源的 MediaStream
+    const visibleSource = activeScene.sources.find((s) => s.visible && (s.stream || s.type === 'camera' || s.type === 'screen'));
+    if (!visibleSource) {
+      message.warning('请先添加摄像头或屏幕共享源');
+      return;
+    }
+
+    const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/stream/${streamKey}`);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'publish' }));
+      // 使用可见源的 MediaStream
+      let inputStream: MediaStream | null = null;
+      if (visibleSource.stream) {
+        inputStream = visibleSource.stream;
+      }
+
+      if (inputStream) {
+        streamRef.current = inputStream;
+        try {
+          const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+            ? 'video/webm;codecs=vp8,opus'
+            : 'video/webm';
+          const recorder = new MediaRecorder(inputStream, { mimeType, videoBitsPerSecond: 2500000 });
+          mediaRecorderRef.current = recorder;
+          recorder.ondataavailable = (e) => {
+            if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+              e.data.arrayBuffer().then((buf) => ws.send(buf));
+            }
+          };
+          recorder.start(1000); // 每秒一个 chunk
+          setIsStreaming(true);
+          message.success('开始推流');
+        } catch (err) {
+          message.error(`启动推流失败: ${err instanceof Error ? err.message : '未知错误'}`);
+        }
+      } else {
+        message.warning('未找到可用的媒体源');
+      }
+    };
+
+    ws.onerror = () => {
+      message.error('推流连接失败，请确认服务器已运行');
+    };
+
+    ws.onclose = () => {
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current = null;
+      }
+      setIsStreaming(false);
+      streamRef.current = null;
+    };
   };
 
   const stopStream = () => {
-    setIsStreaming(false);
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
     }
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    streamRef.current = null;
+    setIsStreaming(false);
     message.info('已停止推流');
   };
 
