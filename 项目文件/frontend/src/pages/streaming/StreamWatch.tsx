@@ -50,8 +50,8 @@ export default function StreamWatch() {
           videoRef.current.src = URL.createObjectURL(ms);
           ms.onsourceopen = () => {
             try {
-              const sb = ms.addSourceBuffer('video/webm;codecs=vp8,opus');
-              sb.mode = 'sequence';
+              const sb = ms.addSourceBuffer('video/webm; codecs="vp8,opus"');
+              try { sb.mode = 'sequence'; } catch {}
               sb.onupdateend = () => processQueue();
               sourceBufferRef.current = sb;
               for (const chunk of queueRef.current) appendBuffer(chunk);
