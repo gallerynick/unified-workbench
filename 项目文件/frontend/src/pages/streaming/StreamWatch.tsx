@@ -31,14 +31,18 @@ export default function StreamWatch() {
       const blob = e.data instanceof Blob ? e.data : new Blob([e.data], { type: 'video/webm' });
       chunkRef.current.push(blob);
 
-      // 每 10 个 chunk 更新一次视频源
-      if (chunkRef.current.length >= 10 && videoRef.current) {
+      // 每 3 个 chunk 更新一次视频源
+      if (chunkRef.current.length >= 3 && videoRef.current) {
         const full = new Blob(chunkRef.current, { type: 'video/webm' });
         const url = URL.createObjectURL(full);
-        const wasPlaying = !videoRef.current.paused;
         videoRef.current.src = url;
-        videoRef.current.currentTime = videoRef.current.duration;
-        if (wasPlaying) videoRef.current.play().catch(() => {});
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current && videoRef.current.duration > 0) {
+            videoRef.current.currentTime = videoRef.current.duration;
+            videoRef.current.play().catch(() => {});
+          }
+        };
+        videoRef.current.play().catch(() => {});
         if (status !== 'playing') setStatus('playing');
       }
     };
