@@ -290,7 +290,7 @@ export default function StreamStudio() {
       return;
     }
 
-    const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/stream/${streamKey}`);
+    const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/stream/${streamKey}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
