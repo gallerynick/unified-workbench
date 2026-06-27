@@ -300,80 +300,21 @@ export default function StreamStudio() {
       message.error('获取推流密钥失败');
       return;
     }
-    // 创建合成画布（可见但很小，确保浏览器渲染）
-    const canvas = document.createElement('canvas');
-    canvas.width = 1280;
-    canvas.height = 720;
-    const ctx = canvas.getContext('2d')!;
-    document.body.appendChild(canvas);
-    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none';
-    // 将 canvas 插入到预览区域以确保浏览器渲染
-    const previewEl = document.querySelector('[class*="previewContainer"]') || document.body;
-    previewEl.appendChild(canvas);
-    const canvasStream = canvas.captureStream(30);
-    
-    // 混音音频轨道（合并所有源的音频轨）
-    const audioTracks: MediaStreamTrack[] = [];
-    activeScene.sources.forEach((s) => {
-      s.stream?.getAudioTracks().forEach((t) => audioTracks.push(t));
-    });
-    if (audioTracks.length > 0) {
-      const audioCtx = new AudioContext();
-      const dest = audioCtx.createMediaStreamDestination();
-      audioTracks.forEach((t) => {
-        const src = audioCtx.createMediaStreamSource(new MediaStream([t]));
-        src.connect(dest);
-      });
-      dest.stream.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
+    // 获取第一个带视频流的源
+    const videoSource = activeScene.sources.find((s) => s.visible && s.stream?.getVideoTracks().length);
+    if (!videoSource?.stream) {
+      message.warning('请先添加摄像头或屏幕共享源');
+      return;
     }
-
-    // 为每个视频源创建隐藏 video 元素用于画布绘制
-    const videoEls: { el: HTMLVideoElement; src: SceneSource }[] = [];
-    activeScene.sources.filter((s) => s.visible && s.stream).forEach((s) => {
-      const v = document.createElement('video');
-      v.srcObject = s.stream!;
-      v.muted = true;
-      v.autoplay = true;
-      v.playsInline = true;
-      v.disablePictureInPicture = true;
-      v.style.cssText = 'position:fixed;left:-9999px;top:0;width:320px;height:240px';
-      document.body.appendChild(v);
-      v.play().catch(() => {});
-      videoEls.push({ el: v, src: s });
-    });
-
-    // 合成循环：把所有可见源绘制到 canvas
-    let animId = 0;
-    const composite = () => {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const scaleX = canvas.width / 960;
-      const scaleY = canvas.height / 540;
-      activeScene.sources.filter((s) => s.visible).forEach((s) => {
-        const vEl = videoEls.find((ve) => ve.src.id === s.id);
-        if (vEl && vEl.el.readyState >= 2) {
-          ctx.drawImage(vEl.el, s.x * scaleX, s.y * scaleY, s.width * scaleX, s.height * scaleY);
-        } else if (s.type === 'text' && s.url) {
-          ctx.fillStyle = '#fff';
-          ctx.font = '24px sans-serif';
-          ctx.fillText(s.url, s.x * scaleX + 10, s.y * scaleY + 30);
-        } else if (s.type === 'audio') {
-          ctx.fillStyle = '#1677ff';
-          ctx.fillRect(s.x * scaleX, s.y * scaleY, s.width * scaleX, s.height * scaleY);
-        }
-      });
-      animId = requestAnimationFrame(composite);
-    };
-    composite();
 
     const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/stream/${streamKey}`);
     wsRef.current = ws;
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: 'publish' }));
-      streamRef.current = canvasStream;
+      streamRef.current = videoSource.stream!;
       try {
         const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm';
-        const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond: 2500000 });
+        const recorder = new MediaRecorder(videoSource.stream!, { mimeType, videoBitsPerSecond: 2500000 });
         mediaRecorderRef.current = recorder;
         recorder.ondataavailable = (e) => {
           if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
@@ -381,8 +322,6 @@ export default function StreamStudio() {
           }
         };
         recorder.start(50);
-        (recorder as any).__canvas = canvas;
-        (recorder as any).__animId = animId;
         setIsStreaming(true);
         message.success('开始推流');
       } catch (err) {
@@ -391,9 +330,6 @@ export default function StreamStudio() {
     };
     ws.onerror = () => { message.error('推流连接失败'); };
     ws.onclose = () => {
-      cancelAnimationFrame(animId);
-      videoEls.forEach((v) => v.el.remove());
-      canvas.remove();
       if (mediaRecorderRef.current) { mediaRecorderRef.current.stop(); mediaRecorderRef.current = null; }
       setIsStreaming(false); streamRef.current = null;
     };
@@ -401,8 +337,6 @@ export default function StreamStudio() {
 
   const stopStream = () => {
     if (mediaRecorderRef.current) {
-      cancelAnimationFrame((mediaRecorderRef.current as any).__animId || 0);
-      (mediaRecorderRef.current as any).__canvas?.remove();
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
     }
