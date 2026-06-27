@@ -324,16 +324,37 @@ export default function StreamStudio() {
       dest.stream.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
     }
 
+    // 为每个视频源创建隐藏 video 元素用于画布绘制
+    const videoEls: { el: HTMLVideoElement; src: SceneSource }[] = [];
+    activeScene.sources.filter((s) => s.visible && s.stream).forEach((s) => {
+      const v = document.createElement('video');
+      v.srcObject = s.stream!;
+      v.muted = true;
+      v.autoplay = true;
+      v.playsInline = true;
+      v.style.display = 'none';
+      document.body.appendChild(v);
+      videoEls.push({ el: v, src: s });
+    });
+
     // 合成循环：把所有可见源绘制到 canvas
     let animId = 0;
     const composite = () => {
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const scaleX = canvas.width / 960;
+      const scaleY = canvas.height / 540;
       activeScene.sources.filter((s) => s.visible).forEach((s) => {
-        if (s.type === 'text' && s.url) {
+        const vEl = videoEls.find((ve) => ve.src.id === s.id);
+        if (vEl && vEl.el.readyState >= 2) {
+          ctx.drawImage(vEl.el, s.x * scaleX, s.y * scaleY, s.width * scaleX, s.height * scaleY);
+        } else if (s.type === 'text' && s.url) {
           ctx.fillStyle = '#fff';
           ctx.font = '24px sans-serif';
-          ctx.fillText(s.url, s.x * canvas.width / 960, s.y * canvas.height / 540 + 30);
+          ctx.fillText(s.url, s.x * scaleX + 10, s.y * scaleY + 30);
+        } else if (s.type === 'audio') {
+          ctx.fillStyle = '#1677ff';
+          ctx.fillRect(s.x * scaleX, s.y * scaleY, s.width * scaleX, s.height * scaleY);
         }
       });
       animId = requestAnimationFrame(composite);
@@ -366,6 +387,7 @@ export default function StreamStudio() {
     ws.onerror = () => { message.error('推流连接失败'); };
     ws.onclose = () => {
       cancelAnimationFrame(animId);
+      videoEls.forEach((v) => v.el.remove());
       canvas.remove();
       if (mediaRecorderRef.current) { mediaRecorderRef.current.stop(); mediaRecorderRef.current = null; }
       setIsStreaming(false); streamRef.current = null;
