@@ -63,11 +63,9 @@ export default function StreamStudio() {
   const [activeSceneId, setActiveSceneId] = useState('scene_1');
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [streamUrl, setStreamUrl] = useState('');
   const [networkUrl, setNetworkUrl] = useState('');
   const [textInput, setTextInput] = useState('');
   const [showSourceModal, setShowSourceModal] = useState(false);
-  const [showStreamModal, setShowStreamModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
@@ -276,12 +274,12 @@ export default function StreamStudio() {
   };
 
   const startStream = () => {
-    if (!streamUrl.trim()) {
-      message.warning('请输入推流地址');
+    if (!pushUrl) {
+      message.warning('请先在设置中配置推流地址');
       return;
     }
     setIsStreaming(true);
-    message.success('开始推流');
+    message.success(`开始推流: ${pushUrl}`);
   };
 
   const stopStream = () => {
@@ -551,7 +549,7 @@ export default function StreamStudio() {
                 onClick={
                   isStreaming
                     ? stopStream
-                    : () => setShowStreamModal(true)
+                    : startStream
                 }
               >
                 {isStreaming ? '停止推流' : '开始推流'}
@@ -569,7 +567,7 @@ export default function StreamStudio() {
             </Space>
             {isStreaming && (
               <Tag color="red" style={{ marginLeft: 16 }}>
-                推流地址: {streamUrl}
+                推流地址: {pushUrl}
               </Tag>
             )}
           </div>
@@ -630,30 +628,6 @@ export default function StreamStudio() {
             </Space>
           </div>
         </Space>
-      </Modal>
-
-      <Modal
-        title="推流设置"
-        open={showStreamModal}
-        onCancel={() => setShowStreamModal(false)}
-        onOk={() => {
-          startStream();
-          setShowStreamModal(false);
-        }}
-        okText="开始推流"
-      >
-        <div>
-          <div style={{ marginBottom: 8 }}>推流地址（RTMP/RTMPS）：</div>
-          <Input
-            value={streamUrl}
-            onChange={(e) => setStreamUrl(e.target.value)}
-            placeholder="rtmp://your-server/live/stream-key"
-          />
-          <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-            支持 RTMP、RTMPS
-            协议，可配合 SRS、Nginx-RTMP、mediamtx 等服务器使用
-          </div>
-        </div>
       </Modal>
 
       <Modal

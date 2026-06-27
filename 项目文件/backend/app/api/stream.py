@@ -16,6 +16,25 @@ from app.services.stream import (
     update_stream_config,
 )
 
+
+def _get_host(request: Request) -> str:
+    """从请求中获取客户端可访问的主机地址"""
+    host = request.headers.get("host")
+    if host:
+        return host.split(":")[0]
+    hostname = request.url.hostname
+    return hostname if hostname else "localhost"
+
+from app.core.database import get_db
+from app.core.deps import get_current_user
+from app.models.user import User
+from app.services.stream import (
+    get_stream_config,
+    get_user_stream_key,
+    reset_user_stream_key,
+    update_stream_config,
+)
+
 router = APIRouter(prefix="/stream", tags=["推流配置"])
 
 
@@ -40,7 +59,9 @@ async def api_get_stream_config(
 ):
     """获取推流配置"""
     config = await get_stream_config(db)
-    host = request.url.hostname
+    host = request.headers.get("host", request.url.hostname)
+    if ":" in host:
+        host = host.split(":")[0]
     if not config.get("server_url"):
         config["server_url"] = f"rtmp://{host}:1935/live"
     if not config.get("watch_url"):
@@ -68,7 +89,7 @@ async def api_get_stream_key(
     """获取当前用户的推流密钥"""
     key = await get_user_stream_key(db, current_user.id)
     config = await get_stream_config(db)
-    host = request.url.hostname
+    host = _get_host(request)
     server_url = config.get("server_url") or f"rtmp://{host}:1935/live"
     watch_url = config.get("watch_url") or f"http://{host}/live"
     return {
@@ -91,7 +112,7 @@ async def api_reset_stream_key(
     """重置当前用户的推流密钥"""
     new_key = await reset_user_stream_key(db, current_user.id)
     config = await get_stream_config(db)
-    host = request.url.hostname
+    host = _get_host(request)
     server_url = config.get("server_url") or f"rtmp://{host}:1935/live"
     watch_url = config.get("watch_url") or f"http://{host}/live"
     return {
