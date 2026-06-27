@@ -54,7 +54,7 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   network: '网络流',
   image: '图片',
   text: '文字',
-  audio: '音频',
+  audio: '麦克风',
 };
 
 export default function StreamStudio() {
@@ -331,7 +331,7 @@ export default function StreamStudio() {
               e.data.arrayBuffer().then((buf) => ws.send(buf));
             }
           };
-          recorder.start(200); // 每 200ms 一个 chunk，降低延迟
+          recorder.start(100);
           setIsStreaming(true);
           message.success('开始推流');
         } catch (err) {
@@ -543,6 +543,11 @@ export default function StreamStudio() {
                     icon: <VideoCameraOutlined />,
                   },
                   {
+                    key: 'audio',
+                    label: '麦克风',
+                    icon: <SoundOutlined />,
+                  },
+                  {
                     key: 'screen',
                     label: '屏幕共享',
                     icon: <DesktopOutlined />,
@@ -553,7 +558,6 @@ export default function StreamStudio() {
                     icon: <GlobalOutlined />,
                   },
                   { key: 'text', label: '文字', icon: <FontSizeOutlined /> },
-                  { key: 'audio', label: '麦克风', icon: <SoundOutlined /> },
                 ],
                 onClick: ({ key }) => {
                   if (key === 'network' || key === 'text') {
@@ -689,6 +693,7 @@ export default function StreamStudio() {
               </Button>
             </Space>
           </div>
+          {isStreaming && (
           <div style={{ display: 'flex', gap: 16, padding: '8px 12px', borderTop: '1px solid var(--stream-border, #e8e8e8)', fontSize: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>推流:</Text>
@@ -701,6 +706,7 @@ export default function StreamStudio() {
               <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(watchUrl, '观看地址')} /></Tooltip>
             </div>
           </div>
+          )}
         </div>
       </div>
 
