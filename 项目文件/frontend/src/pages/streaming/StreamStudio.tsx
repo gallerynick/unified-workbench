@@ -300,13 +300,13 @@ export default function StreamStudio() {
       message.error('获取推流密钥失败');
       return;
     }
-    // 创建合成画布
+    // 创建合成画布（可见但很小，确保浏览器渲染）
     const canvas = document.createElement('canvas');
-    canvas.width = 1280;
-    canvas.height = 720;
+    canvas.width = 640;
+    canvas.height = 360;
     const ctx = canvas.getContext('2d')!;
     document.body.appendChild(canvas);
-    canvas.style.cssText = 'position:fixed;left:-9999px;top:0;width:1280px;height:720px';
+    canvas.style.cssText = 'position:fixed;right:8px;bottom:8px;width:160px;height:90px;z-index:99999;border:1px solid #f00;opacity:0.3';
     const canvasStream = canvas.captureStream(30);
     
     // 混音音频轨道（合并所有源的音频轨）
@@ -343,8 +343,8 @@ export default function StreamStudio() {
     const composite = () => {
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const scaleX = canvas.width / 960;
-      const scaleY = canvas.height / 540;
+      const scaleX = canvas.width / 800;
+      const scaleY = canvas.height / 600;
       activeScene.sources.filter((s) => s.visible).forEach((s) => {
         const vEl = videoEls.find((ve) => ve.src.id === s.id);
         if (vEl && vEl.el.readyState >= 2) {

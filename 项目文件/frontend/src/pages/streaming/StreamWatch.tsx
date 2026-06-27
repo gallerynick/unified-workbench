@@ -19,7 +19,14 @@ export default function StreamWatch() {
     const sb = sourceBufferRef.current;
     if (!sb) { queueRef.current.push(data); return; }
     if (sb.updating) { queueRef.current.push(data); return; }
-    try { sb.appendBuffer(data); } catch { /* 跳过 */ }
+    try { sb.appendBuffer(data); } catch (e) { setErrorMsg(`解码失败: ${e}`); }
+  };
+
+  const processQueue = () => {
+    const sb = sourceBufferRef.current;
+    if (!sb || sb.updating || queueRef.current.length === 0) return;
+    const chunk = queueRef.current.shift()!;
+    try { sb.appendBuffer(chunk); } catch (e) { setErrorMsg(`解码错误: ${e}`); }
   };
 
   useEffect(() => {
@@ -44,10 +51,12 @@ export default function StreamWatch() {
           ms.onsourceopen = () => {
             try {
               const sb = ms.addSourceBuffer('video/webm;codecs=vp8,opus');
+              sb.mode = 'sequence';
+              sb.onupdateend = () => processQueue();
               sourceBufferRef.current = sb;
               for (const chunk of queueRef.current) appendBuffer(chunk);
               queueRef.current = [];
-            } catch { /* codec 不支持 */ }
+            } catch (e) { setErrorMsg(`Codec 错误: ${e}`); }
             setStatus('playing');
           };
         }
