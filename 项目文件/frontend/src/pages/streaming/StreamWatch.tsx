@@ -36,10 +36,11 @@ export default function StreamWatch() {
     const ws = new WebSocket(`${proto}//${window.location.host}/ws/stream/${streamKey}`);
     wsRef.current = ws;
     ws.binaryType = 'arraybuffer';
-    ws.onopen = () => ws.send(JSON.stringify({ type: 'subscribe' }));
+    ws.onopen = () => { console.log('[WATCH] WS open:', streamKey); ws.send(JSON.stringify({ type: 'subscribe' })); };
 
     ws.onmessage = (e) => {
       if (typeof e.data === 'string') return;
+      console.log(`[WATCH] chunk ${e.data.byteLength}B, total ${bufRef.current.length + 1}`);
       bufRef.current.push(e.data as ArrayBuffer);
 
       if (!msRef.current && bufRef.current.length > 0) {
@@ -62,7 +63,7 @@ export default function StreamWatch() {
     };
 
     ws.onerror = () => setStatus('error');
-    ws.onclose = () => { if (status === 'playing') setStatus('idle'); };
+    ws.onclose = () => { console.log('[WATCH] WS closed'); if (status === 'playing') setStatus('idle'); };
     return () => ws.close();
   }, [streamKey]);
 

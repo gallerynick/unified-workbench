@@ -310,6 +310,7 @@ export default function StreamStudio() {
     const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/stream/${streamKey}`);
     wsRef.current = ws;
     ws.onopen = () => {
+      console.log('[PUSH] WS open:', streamKey);
       ws.send(JSON.stringify({ type: 'publish' }));
       streamRef.current = videoSource.stream!;
       try {
@@ -318,10 +319,12 @@ export default function StreamStudio() {
         mediaRecorderRef.current = recorder;
         recorder.ondataavailable = (e) => {
           if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            console.log(`[PUSH] chunk ${e.data.size}B`);
             e.data.arrayBuffer().then((buf) => ws.send(buf));
           }
         };
         recorder.start(50);
+        console.log('[PUSH] MediaRecorder started, key:', streamKey);
         setIsStreaming(true);
         message.success('开始推流');
       } catch (err) {
