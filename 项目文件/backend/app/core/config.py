@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     MAX_IMAGE_SIZE: int = 20 * 1024 * 1024  # 20MB
     THUMBNAIL_SIZE: int = 200  # 200x200
 
+    # MediaMTX 配置
+    MEDIAMTX_HTTP_PORT: int = 8889
+    MEDIAMTX_RTMP_PORT: int = 1935
+
     # 加密配置
     ENCRYPTION_MASTER_KEY: str = "7433947cd794fc1c74ca1a2063baf5defd908128356ac1f6e36b6861a1d283eb"
 

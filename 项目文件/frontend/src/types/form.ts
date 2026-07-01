@@ -13,12 +13,14 @@ export interface FormItem {
   description: string | null;
   fields: FormField[];
   is_active: boolean;
+  allow_anonymous: boolean;
   owner_id: string;
   visibility: string;
   restricted_users: string[] | null;
   restricted_tags: string[] | null;
   created_at: string;
   updated_at: string;
+  response_count?: number;
 }
 
 export interface FormCreate {
@@ -26,6 +28,7 @@ export interface FormCreate {
   description?: string;
   fields: FormField[];
   visibility?: 'public' | 'private' | 'restricted';
+  allow_anonymous?: boolean;
   restricted_users?: string[] | undefined;
   restricted_tags?: string[] | undefined;
 }
@@ -33,4 +36,11 @@ export interface FormCreate {
 export interface FormListResponse {
   items: FormItem[];
   total: number;
+}
+
+export interface FormResponseItem {
+  id: string;
+  data: Record<string, unknown>;
+  respondent_id: string | null;
+  created_at: string;
 }

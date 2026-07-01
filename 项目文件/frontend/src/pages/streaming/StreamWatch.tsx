@@ -1,72 +1,65 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Typography, Tag, Space, Button, Spin, message } from 'antd';
 import { VideoCameraOutlined, CopyOutlined } from '@ant-design/icons';
+import { WhepClient } from '../../utils/WhepClient';
 
 const { Title, Text } = Typography;
+const MEDIAMTX_PORT = 8889;
+const RETRY_DELAY = 3000;
 
 export default function StreamWatch() {
   const { key: streamKey } = useParams<{ key: string }>();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const msRef = useRef<MediaSource | null>(null);
-  const sbRef = useRef<SourceBuffer | null>(null);
-  const bufRef = useRef<ArrayBuffer[]>([]);
-  const [status, setStatus] = useState<'idle' | 'connecting' | 'playing' | 'error'>('idle');
+  const clientRef = useRef<WhepClient | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [status, setStatus] = useState<'connecting' | 'playing' | 'error'>('connecting');
 
-  const feed = (sb: SourceBuffer, q: ArrayBuffer[]) => {
-    if (sb.updating) return;
-    const next = q.find((_) => true);
-    if (!next) return;
-    try { sb.appendBuffer(next); q.shift(); } catch {}
-  };
-
-  const flush = () => {
-    const sb = sbRef.current;
-    if (!sb) return;
-    while (!sb.updating && bufRef.current.length > 0) feed(sb, bufRef.current);
-  };
+  const startConnection = useCallback((whepUrl: string, video: HTMLVideoElement) => {
+    const client = new WhepClient();
+    clientRef.current = client;
+    client.onStateChange = (s) => {
+      if (s === 'playing') setStatus('playing');
+      else if (s === 'error') setStatus('error');
+      else if (s === 'reconnecting') setStatus('connecting');
+      else setStatus('connecting');
+    };
+    client.onError = (err) => {
+      const msg = err.message || String(err);
+      if (msg.includes('404')) {
+        // 推流端未上线，3s 后重试
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => startConnection(whepUrl, video), RETRY_DELAY);
+        return;
+      }
+      console.error('[WATCH]', err);
+      setStatus('error');
+    };
+    client.start(whepUrl, video).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!streamKey) return;
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+    clientRef.current?.stop();
     setStatus('connecting');
-    bufRef.current = [];
-
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${proto}//${window.location.host}/ws/stream/${streamKey}`);
-    wsRef.current = ws;
-    ws.binaryType = 'arraybuffer';
-    ws.onopen = () => { console.log('[WATCH] WS open:', streamKey); ws.send(JSON.stringify({ type: 'subscribe' })); };
-
-    ws.onmessage = (e) => {
-      if (typeof e.data === 'string') return;
-      console.log(`[WATCH] chunk ${e.data.byteLength}B, total ${bufRef.current.length + 1}`);
-      bufRef.current.push(e.data as ArrayBuffer);
-
-      if (!msRef.current && bufRef.current.length > 0) {
-        const ms = new MediaSource();
-        msRef.current = ms;
-        videoRef.current!.src = URL.createObjectURL(ms);
-        ms.onsourceopen = () => {
-          try {
-            const sb = ms.addSourceBuffer('video/webm; codecs="vp8"');
-            sb.mode = 'sequence';
-            sb.onupdateend = () => flush();
-            sbRef.current = sb;
-            flush();
-            setStatus('playing');
-            videoRef.current?.play().catch(() => {});
-          } catch {}
-        };
-        return;
-      }
-      flush();
+    const url = `http://${window.location.hostname}:${MEDIAMTX_PORT}/${streamKey}/whep`;
+    console.log('[WATCH] connecting:', url);
+    startConnection(url, videoRef.current!);
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      clientRef.current?.stop();
     };
+  }, [streamKey, startConnection]);
 
-    ws.onerror = () => setStatus('error');
-    ws.onclose = () => { console.log('[WATCH] WS closed'); if (status === 'playing') setStatus('idle'); };
-    return () => ws.close();
-  }, [streamKey]);
+  const handleRetry = () => {
+    if (!streamKey) return;
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+    clientRef.current?.stop();
+    setStatus('connecting');
+    const url = `http://${window.location.hostname}:${MEDIAMTX_PORT}/${streamKey}/whep`;
+    startConnection(url, videoRef.current!);
+  };
 
   const copyUrl = () => { navigator.clipboard.writeText(window.location.href); message.success('地址已复制'); };
 
@@ -77,6 +70,7 @@ export default function StreamWatch() {
         <Title level={3} style={{ color: '#fff', margin: 0 }}>直播播放</Title>
         {streamKey && <Tag color="blue">密钥: {streamKey.slice(0, 8)}...</Tag>}
         {status === 'playing' && <Tag color="green">播放中</Tag>}
+        {status === 'connecting' && <Tag color="orange">连接中...</Tag>}
       </Space>
       <div style={{ position: 'relative', width: '100%', maxWidth: 960, aspectRatio: '16/9', background: '#111', borderRadius: 8, overflow: 'hidden' }}>
         <video ref={videoRef} muted autoPlay playsInline controls style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -87,7 +81,10 @@ export default function StreamWatch() {
         )}
         {status === 'error' && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)' }}>
-            <Text style={{ color: '#ff4d4f' }}>连接断开</Text>
+            <Space direction="vertical" align="center">
+              <Text style={{ color: '#ff4d4f' }}>连接失败</Text>
+              <Button size="small" onClick={handleRetry}>重试</Button>
+            </Space>
           </div>
         )}
       </div>

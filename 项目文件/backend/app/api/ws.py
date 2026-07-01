@@ -1,4 +1,4 @@
-"""WebSocket 端点：站内实时通知和流中继。"""
+"""WebSocket 端点：站内实时通知。"""
 
 from __future__ import annotations
 
@@ -9,10 +9,8 @@ from jose import JWTError, jwt
 
 from app.core.config import get_settings
 from app.core.websocket import manager
-from app.api.stream_ws import router as stream_ws_router
 
 router = APIRouter()
-router.include_router(stream_ws_router)
 
 
 @router.websocket("/ws")

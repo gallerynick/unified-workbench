@@ -21,7 +21,7 @@ export interface WorkRecord {
 }
 
 export interface RecordCreate {
-  template_id: string;
+  template_id?: string;
   title: string;
   data: Record<string, unknown>;
   type: RecordType;

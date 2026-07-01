@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Table, Button, Typography, message, Space, Tag, Alert, Modal, Result } from 'antd';
 import { DesktopOutlined, MobileOutlined, TabletOutlined, DeleteOutlined, LogoutOutlined, LockOutlined } from '@ant-design/icons';
@@ -29,15 +29,7 @@ export default function DeviceManagement() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchDevices();
-  }, []);
-
-  if (!isAdmin()) {
-    return <Result status="403" title="权限不足" subTitle="只有管理员可以管理设备" icon={<LockOutlined />} />;
-  }
-
-  const fetchDevices = async () => {
+  const fetchDevices = useCallback(async () => {
     setLoading(true);
     // Mock data for now - in production, this would call a backend API
     const mockDevices: Device[] = [
@@ -53,7 +45,15 @@ export default function DeviceManagement() {
     ];
     setDevices(mockDevices);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDevices();
+  }, [fetchDevices]);
+
+  if (!isAdmin()) {
+    return <Result status="403" title="权限不足" subTitle="只有管理员可以管理设备" icon={<LockOutlined />} />;
+  }
 
   const handleRevoke = (device: Device) => {
     if (device.is_current) {
@@ -144,8 +144,10 @@ export default function DeviceManagement() {
   ];
 
   return (
-    <div style={{ maxWidth: 1000 }}>
-      <Title level={4} className={styles.title ?? ''}>设备终端</Title>
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>设备终端</Title>
+      </div>
       <Alert
         message="设备管理"
         description="查看和管理已登录的设备。撤销设备将强制该设备重新登录。"

@@ -4,32 +4,30 @@ import {
   Button,
   Input,
   Select,
-  Tag,
   Typography,
   Modal,
   message,
   Space,
   Result,
+  Tabs,
 } from 'antd';
 import {
   PlusOutlined,
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
-  ExportOutlined,
-  ImportOutlined,
   LockOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
   listTemplates,
   deleteTemplate,
-  exportTemplate,
-  importTemplate,
+  createTemplate,
+  updateTemplate,
 } from '../../api/templates';
 import { isAdmin } from '../../utils/auth';
-import type { Template } from '../../types/template';
-import TemplateEditor from './TemplateEditor';
+import type { Template, TemplateField } from '../../types/template';
+import ContentEditor from '../content/ContentEditor';
 import styles from './TemplateManagement.module.css';
 
 const { Title } = Typography;
@@ -41,34 +39,37 @@ const CATEGORY_FILTER_OPTIONS = [
   { value: '表单模板', label: '表单模板' },
   { value: '报告模板', label: '报告模板' },
   { value: '其他', label: '其他' },
-];
+] as const;
 
-const LOCATION_FILTER_OPTIONS = [
-  { value: '', label: '全部位置' },
-  { value: 'project', label: '项目级' },
-  { value: 'record', label: '记录级' },
-  { value: 'global', label: '全局' },
-];
+function buildContentField(content: Record<string, unknown> | null): TemplateField {
+  return {
+    key: 'content',
+    type: 'richtext',
+    label: '内容',
+    required: false,
+    default_value: null,
+    sort_order: 0,
+    config: content ?? {},
+  };
+}
 
-const LOCATION_TAG_CONFIG: Record<string, { label: string; color: string }> = {
-  project: { label: '项目级', color: 'blue' },
-  record: { label: '记录级', color: 'green' },
-  global: { label: '全局', color: 'orange' },
-};
+// ==================== 项目文档 Tab ====================
 
-export default function TemplateManagement() {
+function ProjectDocsTab() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [editorVisible, setEditorVisible] = useState(false);
-  const [editorMode, setEditorMode] = useState<'create' | 'edit'>('create');
-  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [docName, setDocName] = useState('');
+  const [docCategory, setDocCategory] = useState('');
+  const [docContent, setDocContent] = useState<Record<string, unknown> | null>(null);
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -78,14 +79,9 @@ export default function TemplateManagement() {
         page_size: number;
         search?: string;
         category?: string;
-        location?: string;
-      } = {
-        page,
-        page_size: pageSize,
-      };
+      } = { page, page_size: pageSize };
       if (search) params.search = search;
       if (category) params.category = category;
-      if (location) params.location = location;
 
       const res = await listTemplates(params);
       if (res.code === 0) {
@@ -100,15 +96,11 @@ export default function TemplateManagement() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, category, location]);
+  }, [page, pageSize, search, category]);
 
   useEffect(() => {
     fetchTemplates();
   }, [fetchTemplates]);
-
-  if (!isAdmin()) {
-    return <Result status="403" title="权限不足" subTitle="只有管理员可以管理模板" icon={<LockOutlined />} />;
-  }
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -120,27 +112,29 @@ export default function TemplateManagement() {
     setPage(1);
   };
 
-  const handleLocationChange = (value: string) => {
-    setLocation(value);
-    setPage(1);
+  const openCreateModal = () => {
+    setModalMode('create');
+    setEditingId(null);
+    setDocName('');
+    setDocCategory('');
+    setDocContent(null);
+    setModalVisible(true);
   };
 
-  const handleCreate = () => {
-    setEditorMode('create');
-    setEditingTemplate(null);
-    setEditorVisible(true);
-  };
-
-  const handleEdit = (tpl: Template) => {
-    setEditorMode('edit');
-    setEditingTemplate(tpl);
-    setEditorVisible(true);
+  const openEditModal = (tpl: Template) => {
+    setModalMode('edit');
+    setEditingId(tpl.id);
+    setDocName(tpl.name);
+    setDocCategory(tpl.category);
+    const richtextField = tpl.schema.find((f) => f.type === 'richtext');
+    setDocContent(richtextField?.config ?? null);
+    setModalVisible(true);
   };
 
   const handleDelete = (tpl: Template) => {
     Modal.confirm({
       title: '确认删除',
-      content: `确定要删除模板「${tpl.name}」吗？此操作不可撤销。`,
+      content: `确定要删除文档「${tpl.name}」吗？此操作不可撤销。`,
       okText: '删除',
       okType: 'danger',
       cancelText: '取消',
@@ -148,7 +142,7 @@ export default function TemplateManagement() {
         try {
           const res = await deleteTemplate(tpl.id);
           if (res.code === 0) {
-            message.success('模板已删除');
+            message.success('文档已删除');
             fetchTemplates();
           } else {
             message.error(res.msg || '删除失败');
@@ -161,62 +155,53 @@ export default function TemplateManagement() {
     });
   };
 
-  const handleExport = async (tpl: Template) => {
+  const handleModalOk = async () => {
+    if (!docName.trim()) {
+      message.error('请输入文档名称');
+      return;
+    }
+
+    const schema = [buildContentField(docContent)];
+
     try {
-      const data = await exportTemplate(tpl.id);
-      const blob = new Blob([JSON.stringify(data, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${tpl.name}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-      message.success('导出成功');
+      if (modalMode === 'create') {
+        const res = await createTemplate({
+          name: docName.trim(),
+          category: docCategory.trim() || '未分类',
+          location: 'global',
+          schema,
+        });
+        if (res.code === 0) {
+          message.success('文档创建成功');
+          setModalVisible(false);
+          fetchTemplates();
+        } else {
+          message.error(res.msg || '创建失败');
+        }
+      } else if (editingId) {
+        const res = await updateTemplate(editingId, {
+          name: docName.trim(),
+          category: docCategory.trim() || '未分类',
+          location: 'global',
+          schema,
+        });
+        if (res.code === 0) {
+          message.success('文档更新成功');
+          setModalVisible(false);
+          fetchTemplates();
+        } else {
+          message.error(res.msg || '更新失败');
+        }
+      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '导出失败';
+      const msg = err instanceof Error ? err.message : '操作失败';
       message.error(msg);
     }
-  };
-
-  const handleImportFile = async (file: File) => {
-    try {
-      const content = await file.text();
-      const data = JSON.parse(content) as Record<string, unknown>;
-
-      if (!data.name || !data.category || !Array.isArray(data.schema)) {
-        message.error('无效的模板文件格式');
-        return;
-      }
-
-      const res = await importTemplate(data as unknown as Template);
-      if (res.code === 0) {
-        message.success('导入成功');
-        fetchTemplates();
-      } else {
-        message.error(res.msg || '导入失败');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '导入失败';
-      message.error(msg);
-    }
-  };
-
-  const handleEditorClose = () => {
-    setEditorVisible(false);
-    setEditingTemplate(null);
-  };
-
-  const handleEditorSuccess = () => {
-    setEditorVisible(false);
-    setEditingTemplate(null);
-    fetchTemplates();
   };
 
   const columns: ColumnsType<Template> = [
     {
-      title: '模板名称',
+      title: '名称',
       dataIndex: 'name',
       key: 'name',
       width: 200,
@@ -228,28 +213,6 @@ export default function TemplateManagement() {
       width: 120,
     },
     {
-      title: '位置',
-      dataIndex: 'location',
-      key: 'location',
-      width: 100,
-      render: (loc: string) => {
-        const cfg = LOCATION_TAG_CONFIG[loc];
-        return cfg ? <Tag color={cfg.color}>{cfg.label}</Tag> : <Tag>{loc}</Tag>;
-      },
-    },
-    {
-      title: '版本',
-      dataIndex: 'version',
-      key: 'version',
-      width: 80,
-    },
-    {
-      title: '字段数',
-      key: 'field_count',
-      width: 80,
-      render: (_: unknown, record: Template) => record.schema.length,
-    },
-    {
       title: '创建时间',
       dataIndex: 'created_at',
       key: 'created_at',
@@ -257,33 +220,18 @@ export default function TemplateManagement() {
       render: (text: string) => new Date(text).toLocaleString('zh-CN'),
     },
     {
-      title: '更新时间',
-      dataIndex: 'updated_at',
-      key: 'updated_at',
-      width: 180,
-      render: (text: string) => new Date(text).toLocaleString('zh-CN'),
-    },
-    {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 160,
       render: (_: unknown, record: Template) => (
         <Space size="small">
           <Button
             type="link"
             size="small"
             icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
+            onClick={() => openEditModal(record)}
           >
             编辑
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<ExportOutlined />}
-            onClick={() => void handleExport(record)}
-          >
-            导出
           </Button>
           <Button
             type="link"
@@ -302,53 +250,25 @@ export default function TemplateManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4} className={styles.title ?? ''}>
-          模板库
-        </Title>
         <Space wrap>
           <Input
-            placeholder="搜索模板名称"
+            placeholder="搜索文档名称"
             prefix={<SearchOutlined />}
             allowClear
             className={styles.searchInput ?? ''}
             onChange={(e) => handleSearch(e.target.value)}
           />
+          {/* @ts-expect-error Ant Design Select + exactOptionalPropertyTypes */}
           <Select
             placeholder="全部分类"
-            options={CATEGORY_FILTER_OPTIONS}
+            options={[...CATEGORY_FILTER_OPTIONS]}
             onChange={handleCategoryChange}
             className={styles.categorySelect ?? ''}
             allowClear
-            value={category || null}
+            value={category || undefined}
           />
-          <Select
-            placeholder="全部位置"
-            options={LOCATION_FILTER_OPTIONS}
-            onChange={handleLocationChange}
-            allowClear
-            value={location || null}
-          />
-          <Button
-            icon={<ImportOutlined />}
-            onClick={() => document.getElementById('template-import-input')?.click()}
-          >
-            导入 JSON
-          </Button>
-          <input
-            id="template-import-input"
-            type="file"
-            accept=".json"
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                void handleImportFile(file);
-                e.target.value = '';
-              }
-            }}
-          />
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            新建模板
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+            新建
           </Button>
         </Space>
       </div>
@@ -373,12 +293,87 @@ export default function TemplateManagement() {
         }}
       />
 
-      <TemplateEditor
-        visible={editorVisible}
-        mode={editorMode}
-        template={editingTemplate}
-        onClose={handleEditorClose}
-        onSuccess={handleEditorSuccess}
+      <Modal
+        title={modalMode === 'create' ? '新建文档' : '编辑文档'}
+        open={modalVisible}
+        onOk={handleModalOk}
+        onCancel={() => setModalVisible(false)}
+        destroyOnClose
+        width={860}
+        okText="保存"
+        cancelText="取消"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="doc-name" style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                文档名称 <span style={{ color: '#ff4d4f' }}>*</span>
+              </label>
+              <Input
+                id="doc-name"
+                value={docName}
+                onChange={(e) => setDocName(e.target.value)}
+                placeholder="请输入文档名称"
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="doc-category" style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                分类
+              </label>
+              <Input
+                id="doc-category"
+                value={docCategory}
+                onChange={(e) => setDocCategory(e.target.value)}
+                placeholder="请输入分类（可选）"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+              内容
+            </div>
+            <ContentEditor
+              value={docContent}
+              onChange={(val) => setDocContent(val)}
+              placeholder="请输入文档内容..."
+              minHeight={300}
+            />
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ==================== 主页面 ====================
+
+export default function TemplateManagement() {
+  if (!isAdmin()) {
+    return (
+      <Result
+        status="403"
+        title="权限不足"
+        subTitle="只有管理员可以管理模板库"
+        icon={<LockOutlined />}
+      />
+    );
+  }
+
+  return (
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>模板库</Title>
+      </div>
+      <Tabs
+        destroyInactiveTabPane
+        items={[
+          {
+            key: 'docs',
+            label: '项目文档',
+            children: <ProjectDocsTab />,
+          },
+        ]}
       />
     </div>
   );

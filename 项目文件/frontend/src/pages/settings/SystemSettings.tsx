@@ -142,8 +142,10 @@ export default function SystemSettings() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Title level={4} className={styles.title ?? ''}>系统更新</Title>
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>系统更新</Title>
+      </div>
       <Card title="更新仓库配置">
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <div>

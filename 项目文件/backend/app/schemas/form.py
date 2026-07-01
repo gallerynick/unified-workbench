@@ -23,6 +23,7 @@ class FormCreate(BaseModel):
     description: str | None = None
     fields: list[FormField]
     visibility: Literal["public", "private", "restricted"] = "private"
+    allow_anonymous: bool = False
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
 
@@ -35,10 +36,12 @@ class FormResponse(BaseModel):
     description: str | None
     fields: list[dict]
     is_active: bool
+    allow_anonymous: bool
     owner_id: uuid.UUID
     visibility: str
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
+    response_count: int = 0
     created_at: datetime
     updated_at: datetime
 

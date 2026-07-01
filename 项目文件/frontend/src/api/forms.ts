@@ -1,5 +1,5 @@
 import { request } from '../utils/request';
-import type { FormItem, FormCreate, FormListResponse } from '../types/form';
+import type { FormItem, FormCreate, FormListResponse, FormResponseItem, FormField } from '../types/form';
 import type { UnifiedResponse } from '../types/user';
 
 export async function listForms(params?: { page?: number; page_size?: number }): Promise<UnifiedResponse<FormListResponse>> {
@@ -24,4 +24,12 @@ export async function deleteForm(id: string): Promise<UnifiedResponse<null>> {
 
 export async function submitFormResponse(formId: string, data: Record<string, unknown>): Promise<UnifiedResponse<null>> {
   return request<null>(`/forms/${formId}/submit`, { method: 'POST', body: { data } });
+}
+
+export async function getFormPublic(id: string): Promise<{ code: number; data: { id: string; title: string; description: string; fields: FormField[]; allow_anonymous: boolean } | null }> {
+  return request(`/forms/${id}/public`);
+}
+
+export async function getFormResponses(id: string, page = 1, pageSize = 20): Promise<{ code: number; data: { items: FormResponseItem[]; total: number } | null }> {
+  return request(`/forms/${id}/responses?page=${page}&page_size=${pageSize}`);
 }

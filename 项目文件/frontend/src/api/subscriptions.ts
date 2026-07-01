@@ -15,7 +15,7 @@ export async function listSubscriptions(params?: {
 }
 
 export async function createSubscription(data: SubscriptionCreate): Promise<UnifiedResponse<Subscription>> {
-  return request<Subscription>('/finance/subscriptions/', { method: 'POST', body: data });
+  return request<Subscription>('/finance/subscriptions', { method: 'POST', body: data });
 }
 
 export async function updateSubscription(id: string, data: SubscriptionUpdate): Promise<UnifiedResponse<Subscription>> {

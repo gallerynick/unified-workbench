@@ -31,6 +31,8 @@ const ContactManagement = lazy(() => import('@/pages/contacts/ContactManagement'
 const CalendarPage = lazy(() => import('@/pages/calendar/CalendarPage'));
 const VoteManagement = lazy(() => import('@/pages/votes/VoteManagement'));
 const FormManagement = lazy(() => import('@/pages/forms/FormManagement'));
+const FormFill = lazy(() => import('@/pages/forms/FormFill'));
+const FormResponses = lazy(() => import('@/pages/forms/FormResponses'));
 const MemberDirectory = lazy(() => import('@/pages/members/MemberDirectory'));
 const AnnouncementManagement = lazy(() => import('@/pages/announcements/AnnouncementManagement'));
 const NoteManagement = lazy(() => import('@/pages/notes/NoteManagement'));
@@ -67,6 +69,10 @@ export const router = createBrowserRouter([
   {
     path: '/stream/watch/:key',
     element: <LazyPage><StreamWatch /></LazyPage>,
+  },
+  {
+    path: 'forms/:id/fill',
+    element: <FormFill />,
   },
   {
     element: <AuthGuard />,
@@ -122,6 +128,10 @@ export const router = createBrowserRouter([
           {
             path: 'forms',
             element: <LazyPage><FormManagement /></LazyPage>,
+          },
+          {
+    path: 'forms/:id/responses',
+    element: <FormResponses />,
           },
           {
             path: 'members',

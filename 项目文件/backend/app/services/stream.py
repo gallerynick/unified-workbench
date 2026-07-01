@@ -9,14 +9,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.system_config import get_config, update_config
 
 DEFAULT_STREAM_CONFIG: dict = {
-    "server_url": "rtmp://localhost:1935/live",
+    "server_url": "http://localhost:8889",
     "server_port": 1935,
-    "default_bitrate": 2500,
+    "default_bitrate": 8000,
     "default_resolution": "1920x1080",
     "default_fps": 30,
-    "max_bitrate": 10000,
+    "max_bitrate": 20000,
     "min_bitrate": 500,
     "enable_auth": True,
+    "audio_sample_rate": 48000,
+    "audio_channels": 2,
+    "audio_processing_mode": "standard",
+    "audio_noise_suppression": True,
+    "audio_echo_cancellation": True,
+    "audio_auto_gain_control": True,
+    "audio_highpass_freq": 80,
+    "audio_compressor_threshold": -24,
+    "audio_compressor_ratio": 12,
+    "audio_limiter_threshold": -3,
+    "audio_output_gain": 0.85,
 }
 
 
@@ -31,7 +42,8 @@ async def get_stream_config(db: AsyncSession) -> dict:
 async def update_stream_config(db: AsyncSession, updates: dict) -> dict:
     """更新推流配置"""
     current = await get_stream_config(db)
-    updated = {**current, **updates}
+    clean_updates = {k: v for k, v in updates.items() if v is not None}
+    updated = {**current, **clean_updates}
     await update_config(db, "stream_config", updated)
     return updated
 

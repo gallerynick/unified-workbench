@@ -26,6 +26,7 @@ class Form(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     fields: Mapped[list] = mapped_column(JSONB, nullable=False)  # [{key, type, label, required, options}]
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    allow_anonymous: Mapped[bool] = mapped_column(Boolean, default=False)
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
     visibility: Mapped[str] = mapped_column(
         String(20), default="private"

@@ -76,8 +76,10 @@ export default function SiteSettings() {
   };
 
   return (
-    <div style={{ maxWidth: 800 }}>
-      <Title level={4} className={styles.title ?? ''}>站点配置</Title>
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>站点配置</Title>
+      </div>
       <Alert
         message="管理员专属"
         description="这些配置影响整个站点的访问方式。修改后可能需要重启服务才能生效。"

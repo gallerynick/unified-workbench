@@ -25,16 +25,6 @@ def _get_host(request: Request) -> str:
     hostname = request.url.hostname
     return hostname if hostname else "localhost"
 
-from app.core.database import get_db
-from app.core.deps import get_current_user
-from app.models.user import User
-from app.services.stream import (
-    get_stream_config,
-    get_user_stream_key,
-    reset_user_stream_key,
-    update_stream_config,
-)
-
 router = APIRouter(prefix="/stream", tags=["推流配置"])
 
 
@@ -49,6 +39,17 @@ class StreamConfigUpdate(BaseModel):
     max_bitrate: int | None = None
     min_bitrate: int | None = None
     enable_auth: bool | None = None
+    audio_sample_rate: int | None = None
+    audio_channels: int | None = None
+    audio_processing_mode: str | None = None
+    audio_noise_suppression: bool | None = None
+    audio_echo_cancellation: bool | None = None
+    audio_auto_gain_control: bool | None = None
+    audio_highpass_freq: int | None = None
+    audio_compressor_threshold: int | None = None
+    audio_compressor_ratio: int | None = None
+    audio_limiter_threshold: int | None = None
+    audio_output_gain: float | None = None
 
 
 @router.get("/config")
@@ -59,13 +60,11 @@ async def api_get_stream_config(
 ):
     """获取推流配置"""
     config = await get_stream_config(db)
-    host = request.headers.get("host", request.url.hostname)
-    if ":" in host:
-        host = host.split(":")[0]
+    host = _get_host(request)
     if not config.get("server_url"):
-        config["server_url"] = f"rtmp://{host}:1935/live"
+        config["server_url"] = f"http://{host}:8889"
     if not config.get("watch_url"):
-        config["watch_url"] = f"http://{host}/stream/watch"
+        config["watch_url"] = f"http://{host}:8889"
     return {"code": 0, "msg": "", "data": config}
 
 
@@ -88,17 +87,14 @@ async def api_get_stream_key(
 ):
     """获取当前用户的推流密钥"""
     key = await get_user_stream_key(db, current_user.id)
-    config = await get_stream_config(db)
     host = _get_host(request)
-    server_url = config.get("server_url") or f"rtmp://{host}:1935/live"
-    watch_url = config.get("watch_url") or f"http://{host}/stream/watch"
     return {
         "code": 0,
         "msg": "",
         "data": {
             "stream_key": key,
-            "push_url": f"{server_url}/{key}",
-            "watch_url": f"{watch_url}/{key}",
+            "push_url": f"http://{host}:8889/{key}/whip",
+            "watch_url": f"http://{host}/stream/watch/{key}",
         },
     }
 
@@ -111,16 +107,36 @@ async def api_reset_stream_key(
 ):
     """重置当前用户的推流密钥"""
     new_key = await reset_user_stream_key(db, current_user.id)
-    config = await get_stream_config(db)
     host = _get_host(request)
-    server_url = config.get("server_url") or f"rtmp://{host}:1935/live"
-    watch_url = config.get("watch_url") or f"http://{host}/stream/watch"
     return {
         "code": 0,
         "msg": "推流密钥已重置",
         "data": {
             "stream_key": new_key,
-            "push_url": f"{server_url}/{new_key}",
-            "watch_url": f"{watch_url}/{new_key}",
+            "push_url": f"http://{host}:8889/{new_key}/whip",
+            "watch_url": f"http://{host}/stream/watch/{new_key}",
         },
     }
+
+
+@router.post("/speedtest")
+async def api_speedtest_upload(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """网络测速 — 接收上传数据并返回接收字节数"""
+    body = await request.body()
+    return {"code": 0, "msg": "ok", "data": {"received_bytes": len(body)}}
+
+
+@router.get("/speedtest/download")
+async def api_speedtest_download(
+    request: Request,
+    size: int = 1024 * 1024,
+    current_user: User = Depends(get_current_user),
+):
+    """网络测速 — 返回指定大小的随机数据"""
+    from fastapi.responses import Response
+    import os
+    actual_size = max(128 * 1024, min(size, 16 * 1024 * 1024))
+    return Response(content=os.urandom(actual_size), media_type="application/octet-stream")

@@ -109,6 +109,29 @@ services:
     networks:
       - workbench
 
+  # MediaMTX 流媒体服务器
+  mediamtx:
+    image: bluenviron/mediamtx:1
+    restart: unless-stopped
+    ports:
+      - "8889:8889"
+      - "8189:8189/udp"
+      - "8554:8554"
+      - "1935:1935"
+      - "8888:8888"
+      - "8890:8890/udp"
+    volumes:
+      - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
+    environment:
+      MTX_WEBRTCADDITIONALHOSTS: "${HOST_IP:-host.docker.internal,192.168.123.65}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-X", "OPTIONS", "http://localhost:8889/test/whip"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - workbench
+
   # Nginx 反向代理
   nginx:
     build:
@@ -117,6 +140,7 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - backend
       - frontend

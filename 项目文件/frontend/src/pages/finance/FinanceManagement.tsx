@@ -227,8 +227,10 @@ export default function FinanceManagement() {
   ];
 
   return (
-    <div>
-      <Title level={4} className={styles.title ?? ''}>财务中心</Title>
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>财务中心</Title>
+      </div>
       <Tabs
         items={[
           {

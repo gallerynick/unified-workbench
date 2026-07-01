@@ -15,7 +15,7 @@ export async function listBudgets(params?: {
 }
 
 export async function createBudget(data: BudgetCreate): Promise<UnifiedResponse<Budget>> {
-  return request<Budget>('/finance/budgets/', { method: 'POST', body: data });
+  return request<Budget>('/finance/budgets', { method: 'POST', body: data });
 }
 
 export async function updateBudget(id: string, data: BudgetUpdate): Promise<UnifiedResponse<Budget>> {

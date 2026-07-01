@@ -5,6 +5,8 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/calendar': '日程日历',
   '/votes': '投票决策',
   '/forms': '表单收集',
+  '/forms/:id/responses': '回复查看',
+  '/forms/:id/fill': '表单填写',
   '/members': '成员目录',
   '/announcements': '公告通知',
   '/notes': '笔记知识库',
@@ -31,7 +33,6 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/settings/backups': '数据备份',
   '/settings/customization': '应用配置',
   '/settings/system': '系统更新',
-  '/settings/stream': '推流配置',
   '/profile': '个人资料',
 };
 

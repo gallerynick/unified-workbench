@@ -122,7 +122,7 @@ export default function VoteManagement() {
       title: '操作', key: 'action', width: 200,
       render: (_, record) => (
         <Space size="small">
-          {record.status === 'active' && record.owner_id !== user?.id && (
+          {record.status === 'active' && (
             <Tooltip title="参与投票">
               <Button type="link" size="small" icon={<CheckCircleOutlined />} onClick={() => handleOpenVote(record)}>投票</Button>
             </Tooltip>

@@ -167,7 +167,9 @@ export default function BackupManagement() {
 
   return (
     <div className={styles.container ?? ''}>
-      <Title level={4} className={styles.title ?? ''}>数据备份</Title>
+      <div className={styles.header ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>数据备份</Title>
+      </div>
 
       <Card title="备份配置" className={styles.configCard ?? ''}>
         <Space direction="vertical" style={{ width: '100%' }}>

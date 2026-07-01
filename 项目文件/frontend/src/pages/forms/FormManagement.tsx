@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch, Tooltip, Form } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch, Tooltip, Form, Dropdown } from 'antd';
+import { PlusOutlined, DeleteOutlined, FormOutlined, BarChartOutlined, ShareAltOutlined, QrcodeOutlined, CopyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { listForms, createForm, deleteForm } from '../../api/forms';
 import type { FormItem, FormField } from '../../types/form';
 import type { Visibility } from '../../utils/visibility';
 import VisibilitySetting from '../files/VisibilitySetting';
 import styles from './FormManagement.module.css';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 export default function FormManagement() {
   const [forms, setForms] = useState<FormItem[]>([]);
@@ -21,6 +23,10 @@ export default function FormManagement() {
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrForm, setQrForm] = useState<FormItem | null>(null);
+
+  const navigate = useNavigate();
 
   const fetchForms = useCallback(async () => {
     setLoading(true);
@@ -39,6 +45,7 @@ export default function FormManagement() {
         description: values.description ?? '',
         fields: formFields,
         visibility,
+        allow_anonymous: values.allow_anonymous || false,
         restricted_users: visibility === 'restricted' ? restrictedUsers : undefined,
         restricted_tags: visibility === 'restricted' ? restrictedTags : undefined,
       });
@@ -68,7 +75,36 @@ export default function FormManagement() {
     { title: '字段数', key: 'fields', render: (_, r) => r.fields.length },
     { title: '状态', dataIndex: 'is_active', key: 'is_active', render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? '启用' : '关闭'}</Tag> },
     { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: (d: string) => new Date(d).toLocaleString('zh-CN') },
-    { title: '操作', key: 'action', width: 100, render: (_, record) => (<Space size="small"><Tooltip title="删除"><Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button></Tooltip></Space>) },
+    {
+      title: '操作',
+      key: 'actions',
+      render: (_: unknown, record: FormItem) => (
+        <Space>
+          {record.is_active && record.visibility === 'public' && (
+            <Tooltip title="填写表单">
+              <Button type="link" size="small" icon={<FormOutlined />}
+                onClick={() => window.open(`/forms/${record.id}/fill`, '_blank')}
+              >填写</Button>
+            </Tooltip>
+          )}
+          <Tooltip title="查看回复">
+            <Button type="link" size="small" icon={<BarChartOutlined />}
+              onClick={() => navigate(`/forms/${record.id}/responses`)}
+            >回复 {record.response_count || 0}</Button>
+          </Tooltip>
+          {record.is_active && record.visibility === 'public' && (
+            <Dropdown menu={{ items: [
+              { key: 'copy', label: '复制链接', icon: <CopyOutlined />, onClick: () => { navigator.clipboard.writeText(`${window.location.origin}/forms/${record.id}/fill`); message.success('链接已复制'); }},
+              { key: 'qr', label: '二维码', icon: <QrcodeOutlined />, onClick: () => { setQrForm(record); setShowQrModal(true); }},
+            ]}}>
+              <Button type="link" size="small" icon={<ShareAltOutlined />}>分享</Button>
+            </Dropdown>
+          )}
+          <Button type="link" size="small" danger icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record)} />
+        </Space>
+      )
+    },
   ];
 
   return (
@@ -95,6 +131,9 @@ export default function FormManagement() {
           ))}
           <Button type="dashed" onClick={addField} block>添加字段</Button>
           <div style={{ marginTop: 16 }}>
+            <Form.Item name="allow_anonymous" label="允许匿名提交" valuePropName="checked">
+              <Switch />
+            </Form.Item>
             <VisibilitySetting
               value={visibility}
               restrictedUsers={restrictedUsers}
@@ -106,6 +145,16 @@ export default function FormManagement() {
             />
           </div>
         </Form>
+      </Modal>
+      <Modal title="分享表单" open={showQrModal} onCancel={() => setShowQrModal(false)} footer={null} width={320}>
+        {qrForm && (
+          <div style={{ textAlign: 'center' }}>
+            <QRCodeSVG value={`${window.location.origin}/forms/${qrForm.id}/fill`} size={200} />
+            <div style={{ marginTop: 12 }}>
+              <Text copyable>{`${window.location.origin}/forms/${qrForm.id}/fill`}</Text>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -1,0 +1,17 @@
+webrtc: true
+webrtcAddress: :8889
+webrtcLocalUDPAddress: :8189
+webrtcAllowOrigins:
+  - "*"
+webrtcAdditionalHosts: []
+
+rtmp: true
+rtmpAddress: :1935
+
+hls: true
+hlsAddress: :8888
+hlsVariant: lowLatency
+
+paths:
+  all_others:
+    source: publisher

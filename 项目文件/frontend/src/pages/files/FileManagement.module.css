@@ -20,6 +20,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-height: 48px;
 }
 
 .container {
@@ -53,6 +54,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-height: 48px;
 }
 
 .title {

@@ -1,0 +1,1395 @@
+# UI 设计规范与术语定义
+
+> **文档定位**：本文档定义一站式工作台（Unified Workbench）前端界面中所有可称呼区域的正式名称、别名、DOM 定位、尺寸/间距规范及所属源码文件。用于统一人类与 AI 之间的 UI 指代语言，消除歧义，减少返工。
+>
+> **适用范围**：前端技术栈 React 18 + TypeScript 5 + Ant Design 5 + CSS Modules
+>
+> **版本**：v1.0.0
+
+---
+
+## 第1章 文档说明
+
+### 1.1 目的
+
+在项目迭代中，经常出现以下沟通问题：
+
+- "把标题改一下" → 顶栏标题？操作区标题？弹窗标题？表格列标题？
+- "header 加个按钮" → 顶栏 Header？操作区 Header？Card 的标题栏？
+- "间距调大" → 哪个间距？容器内 gap？外边距？表格单元格 padding？
+
+本文档通过为每个 UI 区域赋予**唯一、精确、可追溯**的术语定义，确保任何一句描述都能被准确理解。
+
+### 1.2 术语格式
+
+每个术语条目包含以下字段：
+
+| 字段 | 说明 |
+|------|------|
+| **正式名称** | 本文档规定的标准称呼 |
+| **别名** | 可接受的替代称呼（逗号分隔） |
+| **DOM 定位** | 在 HTML 结构中的位置描述或典型 className |
+| **尺寸/间距** | 具体数值（如已知） |
+| **所属文件** | 源码文件路径 |
+| **备注** | 特殊说明、常见误区 |
+
+### 1.3 命名约定
+
+- **区域**：页面上的大块空间（如"侧边栏"、"操作区"）
+- **组件**：Ant Design 组件或自定义组件（如"表格"、"弹窗"）
+- **元素**：组件内部的具体部位（如"表格行"、"按钮图标"）
+- **间距**：两个元素之间的空隙（如"容器内边距"、"表头间距"）
+
+---
+
+## 第2章 整体布局架构
+
+### 2.1 视口层级
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 视口 (Viewport) — 浏览器可视区域                              │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ 应用外壳 (App Shell) — MainLayout.tsx                  │  │
+│  │  ┌──────────┐  ┌─────────────────────────────────────┐│  │
+│  │  │          │  │ 顶栏 (Top Bar / Header)              ││  │
+│  │  │ 侧边栏   │  │ 高度: 64px, sticky, zIndex: 100     ││  │
+│  │  │ (Sider)  │  ├─────────────────────────────────────┤│  │
+│  │  │ 宽度:    │  │                                     ││  │
+│  │  │ 240px    │  │ 操作区 (Operation Area)              ││  │
+│  │  │ 可折叠   │  │ margin: 24px, padding: 24px         ││  │
+│  │  │          │  │ background, borderRadius: 8px       ││  │
+│  │  │          │  │                                     ││  │
+│  │  │          │  │ ┌─ 容器 (Container) ───────────────┐││  │
+│  │  │          │  │ │  ┌─ 头部 (Header) ─────────────┐ │││  │
+│  │  │          │  │ │  │  标题 (Title) + 工具栏      │ │││  │
+│  │  │          │  │ │  └──────────────────────────────┘ │││  │
+│  │  │          │  │ │  ┌─ 内容区 (Content Zone) ──────┐ │││  │
+│  │  │          │  │ │  │  表格/表单/卡片/树形...      │ │││  │
+│  │  │          │  │ │  └──────────────────────────────┘ │││  │
+│  │  │          │  │ └───────────────────────────────────┘││  │
+│  │  │          │  │                                     ││  │
+│  │  └──────────┘  └─────────────────────────────────────┘│  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 布局文件
+
+| 术语 | 文件 | 说明 |
+|------|------|------|
+| 应用外壳 | `frontend/src/layouts/MainLayout.tsx` | 唯一布局组件，包含 Sider + Header + Content |
+| 视口 | 浏览器窗口 | 100vw × 100vh |
+
+---
+
+## 第3章 区域术语定义
+
+### 3.1 侧边栏区域 (Sidebar)
+
+#### 3.1.1 侧边栏 / 侧边导航栏
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 侧边栏 |
+| **别名** | 侧边导航栏、左侧面板、Sider、菜单栏、导航抽屉（移动端） |
+| **DOM 定位** | `<div class="sider-scroll-container">` > `<div class="sider-menu-scroll">` > `<aside class="ant-layout-sider">`（桌面端）或 `<div class="ant-drawer">`（移动端） |
+| **尺寸/间距** | 桌面端宽度 240px（展开）/ 80px（折叠）；移动端 Drawer 宽度 250px |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | 无独立组件，直接在 MainLayout 中内联实现。可配置折叠状态。**注意**：侧边栏被两层自定义 div 包裹（`sider-scroll-container` 和 `sider-menu-scroll`），不在 `<aside>` 内 |
+
+#### 3.1.2 Logo 区
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | Logo 区 |
+| **别名** | 品牌区、应用标识区 |
+| **DOM 定位** | `<div class="sider-scroll-container">` 内部的固定高度 div，**在 `<Sider>` 组件外部** |
+| **尺寸/间距** | 高度 64px，与顶栏高度一致 |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | **重要**：Logo 区在 `<Sider>` 组件之外，位于 `sider-scroll-container` 包裹 div 内。折叠时可能只显示图标或缩略形式 |
+
+#### 3.1.3 侧边栏项 / 菜单项
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 侧边栏项 |
+| **别名** | 菜单项、导航项、侧边栏条目、Menu Item |
+| **DOM 定位** | `<li class="ant-menu-item">` 或 `<li class="ant-menu-submenu">` |
+| **尺寸/间距** | 高度由 Ant Design Menu 控制（默认 ~40px），含 16px 内边距 |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | 共 **22 项**：18 个可配置项 + 固定项（个人资料、用户个性化）+ 管理员专属（审计、系统设置子菜单） |
+
+#### 3.1.4 侧边栏项标题
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 侧边栏项标题 |
+| **别名** | 菜单文字、导航文字、项标签 |
+| **DOM 定位** | `<span class="ant-menu-title-content">文件中心</span>` |
+| **尺寸/间距** | 字体大小继承 Ant Design Menu 默认（14px） |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | **示例**：`<span class="ant-menu-title-content">文件中心</span>` 中的"文件中心"即为侧边栏项标题 |
+
+#### 3.1.5 侧边栏项图标
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 侧边栏项图标 |
+| **别名** | 菜单图标、导航图标 |
+| **DOM 定位** | `<span class="anticon anticon-xxx">`（Ant Design Icons） |
+| **尺寸/间距** | 图标大小由 Ant Design 控制 |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | 通过 `ICON_MAP` 映射字符串名称到 React 图标组件 |
+
+#### 3.1.6 系统设置子菜单
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 系统设置子菜单 |
+| **别名** | 设置子菜单、Settings 子菜单、嵌套菜单 |
+| **DOM 定位** | `<li class="ant-menu-submenu ant-menu-submenu-inline">` |
+| **尺寸/间距** | 父项高度同其他菜单项，子项缩进 24px |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | 唯一嵌套子菜单，含 10 个子项：用户账号、标签分类、模板库、站点配置、侧边栏配置、设备终端、通知配置、数据备份、应用配置、系统更新。仅管理员可见 |
+
+#### 3.1.7 侧边栏折叠按钮
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 侧边栏折叠按钮 |
+| **别名** | 展开/收起按钮、Sider Toggle |
+| **DOM 定位** | 顶栏左侧原生 `<button>` 元素（非 Ant Design `<Button>`），内含 `MenuFoldOutlined` / `MenuUnfoldOutlined` 图标切换 |
+| **尺寸/间距** | 原生 button，fontSize: 18，无额外 padding |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | 桌面端在顶栏左侧，移动端用汉堡菜单替代。**`<Sider trigger={null}>` 无底部触发器** |
+
+---
+
+### 3.2 顶栏区域 (Top Bar / Header)
+
+#### 3.2.1 顶栏 / 页头
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 顶栏 |
+| **别名** | 页头、Header、顶部导航栏、Top Bar |
+| **DOM 定位** | `<header class="ant-layout-header">` |
+| **尺寸/间距** | 高度 64px，sticky 定位，zIndex: 100，全宽 |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | 包含左（折叠按钮）、中（页面标题）、右（通知+用户）三部分 |
+
+#### 3.2.2 顶栏标题 / 页面标题（中央）
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 顶栏标题 |
+| **别名** | 页面标题（狭义）、Header Title、路由标题、中央标题 |
+| **DOM 定位** | 顶栏中央 `<Text strong style={{ fontSize: 16 }}>` 元素 |
+| **尺寸/间距** | 字体大小 **16px**，加粗，flex: 1，textAlign: 'center' |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx`、`frontend/src/config/routeTitles.ts` |
+| **备注** | 内容来自 `getRouteTitle(location.pathname)`，映射表在 `routeTitles.ts` 中定义。例如 `/settings/templates` → "模板库" |
+
+#### 3.2.3 汉堡菜单按钮
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 汉堡菜单按钮 |
+| **别名** | 移动端菜单按钮、Menu Button、Hamburger |
+| **DOM 定位** | 顶栏左侧，仅在移动端显示 `<Button icon={<MenuOutlined />}>` |
+| **尺寸/间距** | Button 默认大小 |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | 点击打开左侧 Drawer 菜单 |
+
+#### 3.2.4 通知铃铛
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 通知铃铛 |
+| **别名** | 通知图标、消息铃铛、Notification Bell |
+| **DOM 定位** | 顶栏右侧 `<Badge count={...}><BellOutlined style={{ fontSize: 20 }} /></Badge>` |
+| **尺寸/间距** | **图标大小 20px**，Badge 小红点 size="small" |
+| **所属文件** | `frontend/src/components/NotificationBell.tsx` |
+| **备注** | 点击展开通知下拉列表 |
+
+#### 3.2.5 用户头像下拉
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 用户头像下拉 |
+| **别名** | 用户菜单、个人中心入口、Avatar Dropdown |
+| **DOM 定位** | 顶栏右侧 `<Dropdown menu={{ items: userMenuItems }}><Space><Avatar /> <span>{username}</span></Space></Dropdown>` |
+| **尺寸/间距** | Avatar 默认 32px，下拉菜单宽度 ~160px |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | 下拉项仅含：**"个人资料"** 和 **"退出登录"** 两项。使用 `menu` prop（Ant Design 5 API），非 `overlay`。用户名用原生 `<span>` 渲染 |
+
+---
+
+### 3.3 操作区 (Operation Area / Content Area)
+
+#### 3.3.1 操作区 / 主内容区 / Content 区
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 操作区 |
+| **别名** | 主内容区、Content 区、页面主体、工作区、Main Content |
+| **DOM 定位** | `<main class="ant-layout-content" style="margin: 24px; padding: 24px; background: ...; border-radius: borderRadiusLG; min-height: 280px;">` |
+| **尺寸/间距** | 外边距 margin: 24px（桌面）/ 8px（移动端），内边距 padding: 24px（桌面）/ 8px（移动端），圆角 `borderRadiusLG`（主题 token，非硬编码），背景色根据主题变化 |
+| **所属文件** | `frontend/src/layouts/MainLayout.tsx` |
+| **备注** | **这是页面组件实际渲染的区域**。所有页面内容都在此区域内。暗色模式下背景为 `rgb(20, 20, 20)`，亮色模式下为白色 |
+
+#### 3.3.2 操作区标题 / 页面标题（h4）
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 操作区标题 |
+| **别名** | 页面标题（广义）、Section Title、操作区大标题、管理标题、内容区标题 |
+| **DOM 定位** | 操作区内 `<h4 class="ant-typography _title_xxx css-plsjn">设备终端</h4>`，通常位于 `.header` 内部 |
+| **尺寸/间距** | 字体大小：Ant Design Title level={4}（默认 20px），font-weight: 600，margin: 0 !important |
+| **所属文件** | 各页面的 `*.module.css`（如 `TemplateManagement.module.css`） |
+| **备注** | **关键区分**：这是操作区内的标题，与"顶栏标题"不同。示例：`<h4>设备终端</h4>` 是"设备终端"页面的操作区标题。几乎所有管理页面都有此标题，使用 `Title level={4}` 渲染 |
+
+#### 3.3.3 操作区头部 / Header 栏
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 操作区头部 |
+| **别名** | Header 栏、标题栏、操作栏、顶部工具栏、Page Header |
+| **DOM 定位** | 操作区内 `<div class="_header_xxx">`，通常位于 `.container` 内第一层 |
+| **尺寸/间距** | min-height: 48px，display: flex，align-items: center，justify-content: space-between。**注意：`.header` 在各页面的 CSS Module 中定义不一致，无统一的 gap 值** |
+| **所属文件** | 各页面的 `*.module.css` |
+| **备注** | **示例**：`<div class="_header_1jwpa_7"><h4 class="_title_1jwpa_14">设备终端</h4></div>` 中的 `_header_1jwpa_7` 即为操作区头部。注意 className 中的哈希值 `_1jwpa_7` 是 CSS Module 自动生成，每次构建会变，不可用做选择器。**各页面的 `.header` CSS 定义可能不同（如有的有 margin-bottom，有的有 gap: 12px，有的无 gap）** |
+
+#### 3.3.4 容器 (Container)
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 容器 |
+| **别名** | 页面容器、Wrapper、外层容器 |
+| **DOM 定位** | 操作区内第一层 `<div class="_container_xxx">` |
+| **尺寸/间距** | display: flex, flex-direction: column。**注意：`.container` 在各页面的 CSS Module 中定义不一致，无统一的 gap 值** |
+| **所属文件** | 各页面的 `*.module.css` |
+| **备注** | 几乎所有管理页面都有此容器包裹全部内容。它是页面内容的根节点。**各页面的 `.container` 定义可能不同（如有的有 gap，有的无 gap，有的有 padding）** |
+
+#### 3.3.5 工具栏 / 操作按钮区
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 工具栏 |
+| **别名** | 操作按钮区、按钮组、Action Bar、Controls |
+| **DOM 定位** | 操作区头部右侧，`<Space>` 或 `<div>` 包裹一组按钮/输入框 |
+| **尺寸/间距** | 位于 Header 栏内右侧，flex 布局，gap 视 Header 定义而定（大多数页面无统一 gap） |
+| **所属文件** | 各页面 TSX 文件 |
+| **备注** | 通常包含：搜索框、筛选下拉、新建按钮、导入/导出按钮等 |
+
+#### 3.3.6 筛选区 / 过滤器区
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 筛选区 |
+| **别名** | 过滤器区、查询条件区、Filter Bar、Search Bar |
+| **DOM 定位** | 头部内或头部下方独立一行，`<Space>` 或 `<div class="_filters_xxx">` 包裹 |
+| **尺寸/间距** | 通常 gap: 12px，搜索框 max-width: 320px，筛选下拉 min-width: 140px |
+| **所属文件** | `AuditLog.tsx`、`FileManagement.tsx` 等含复杂筛选的页面 |
+| **备注** | 简单页面筛选直接放在 Header 栏内；复杂页面（如审计日志）有独立筛选行 |
+
+#### 3.3.7 表格区
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 表格区 |
+| **别名** | 数据表格、Table、列表、数据列表 |
+| **DOM 定位** | `<div class="ant-table-wrapper">` → `<table>` |
+| **尺寸/间距** | 宽度 100%，占据容器剩余空间 |
+| **所属文件** | 25+ 个页面 |
+| **备注** | 最常用的数据展示方式。包含：表头（thead）、表体（tbody）、表行（tr）、表头单元格（th）、数据单元格（td） |
+
+#### 3.3.8 卡片区
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 卡片区 |
+| **别名** | Card、卡片容器、面板 |
+| **DOM 定位** | `<div class="ant-card">` |
+| **尺寸/间距** | 宽度自适应，含 24px padding（默认），圆角 8px |
+| **所属文件** | `ProjectDetailPage.tsx`、`SiteSettings.tsx` 等 |
+| **备注** | 用于详情页、设置页包裹内容块。可含标题栏（Card title） |
+
+#### 3.3.9 表单区
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 表单区 |
+| **别名** | Form、表单容器、输入区 |
+| **DOM 定位** | `<form class="ant-form">` |
+| **尺寸/间距** | 宽度自适应，Form.Item 垂直间距由 Ant Design 控制 |
+| **所属文件** | `SiteSettings.tsx`、`Profile.tsx` 等表单页面 |
+| **备注** | 通常使用 `layout="vertical"` 垂直布局 |
+
+#### 3.3.10 标签页区
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 标签页区 |
+| **别名** | Tabs、Tab 栏、标签栏、选项卡 |
+| **DOM 定位** | `<div class="ant-tabs">` → `<div class="ant-tabs-nav">` + `<div class="ant-tabs-content">` |
+| **尺寸/间距** | Tab 项高度 ~40px，内容区无额外 padding |
+| **所属文件** | `FinanceManagement.tsx`、`ProjectDetailPage.tsx`、`AnnouncementManagement.tsx` |
+| **备注** | 用于同一页面内切换不同视图 |
+
+#### 3.3.11 树形区
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 树形区 |
+| **别名** | Tree、树形控件、目录树 |
+| **DOM 定位** | `<div class="ant-tree">` |
+| **尺寸/间距** | 高度自适应，节点高度 ~28px |
+| **所属文件** | `NoteManagement.tsx`、`FolderTree.tsx` |
+| **备注** | 支持拖拽、展开/折叠 |
+
+#### 3.3.12 弹窗 / 模态框
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 弹窗 |
+| **别名** | 模态框、Modal、对话框、窗口 |
+| **DOM 定位** | `<div class="ant-modal-root">` → `<div class="ant-modal-wrap">` → `<div class="ant-modal">` |
+| **尺寸/间距** | 默认宽度 520px，也可自定义（如 860px、700px）。居中显示，zIndex: 1000 |
+| **所属文件** | 几乎所有页面 |
+| **备注** | 用于新建、编辑、确认等交互。包含：弹窗标题（Modal Title）、弹窗内容（Modal Body）、弹窗底部按钮（Modal Footer） |
+
+#### 3.3.13 弹窗标题
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 弹窗标题 |
+| **别名** | Modal Title、对话框标题 |
+| **DOM 定位** | `<div class="ant-modal-title">` |
+| **尺寸/间距** | 字体大小 16px，font-weight: 500 |
+| **所属文件** | 通用 |
+| **备注** | 通过 Modal 组件的 `title` 属性传入 |
+
+#### 3.3.14 警告提示条
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 警告提示条 |
+| **别名** | Alert、提示条、信息条、通知条 |
+| **DOM 定位** | `<div class="ant-alert">` |
+| **尺寸/间距** | 宽度 100%，margin-bottom: 24px（常见），padding 由 Ant Design 控制 |
+| **所属文件** | `DeviceManagement.tsx`、`SiteSettings.tsx` 等 |
+| **备注** | 通常放在操作区头部下方、表格/表单上方。含：图标、标题（alert-message）、描述（alert-description） |
+
+#### 3.3.15 空状态
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 空状态 |
+| **别名** | Empty、空数据、空白页、无数据提示 |
+| **DOM 定位** | `<div class="ant-empty">` |
+| **尺寸/间距** | 居中显示，padding: 80px（典型） |
+| **所属文件** | 含条件渲染的页面 |
+| **备注** | 当数据为空时显示。含：空图标、描述文字 |
+
+---
+
+### 3.4 页面内部通用结构
+
+#### 3.4.1 头部 (Header) — 页面级
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 头部（页面级） |
+| **别名** | Page Header、Header 栏 |
+| **DOM 定位** | 见 3.3.3 操作区头部 |
+| **尺寸/间距** | min-height: 48px |
+| **所属文件** | 各页面 CSS Module |
+| **备注** | **注意**：此"头部"指操作区内的标题栏，不是顶栏（Top Bar）。两者完全不同 |
+
+#### 3.4.2 标题 (Title) — 页面级
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 标题（页面级） |
+| **别名** | 页面标题、Section Title |
+| **DOM 定位** | 见 3.3.2 操作区标题 |
+| **尺寸/间距** | Title level={4}，20px，font-weight: 600 |
+| **所属文件** | 各页面 CSS Module |
+| **备注** | 几乎所有管理页面都使用 `Title level={4}` 作为页面标题 |
+
+#### 3.4.3 搜索框
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 搜索框 |
+| **别名** | Search Input、查询输入框 |
+| **DOM 定位** | `<input class="ant-input">` 含 prefix `<SearchOutlined />` |
+| **尺寸/间距** | 高度 32px，max-width: 320px（典型） |
+| **所属文件** | 各列表页面 |
+| **备注** | 通常带有 `allowClear` 和 `prefix={<SearchOutlined />}` |
+
+#### 3.4.4 分页器
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 分页器 |
+| **别名** | Pagination、页码、分页控件 |
+| **DOM 定位** | `<ul class="ant-pagination">` |
+| **尺寸/间距** | 位于表格底部，高度 ~32px |
+| **所属文件** | 含 Table 的页面 |
+| **备注** | 通常配置：`showSizeChanger: true`, `showQuickJumper: true`, `showTotal: (t) => 共 ${t} 条` |
+
+---
+
+## 第4章 组件术语定义
+
+### 4.1 按钮类
+
+#### 4.1.1 主按钮
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 主按钮 |
+| **别名** | Primary Button、新建按钮、确认按钮 |
+| **DOM 定位** | `<button class="ant-btn ant-btn-primary">` |
+| **尺寸/间距** | 高度 32px，padding: 4px 15px |
+| **所属文件** | 通用 |
+| **备注** | 蓝色背景（`#1677ff`），用于主要操作：新建、保存、确认 |
+
+#### 4.1.2 文字按钮
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 文字按钮 |
+| **别名** | Link Button、链接按钮 |
+| **DOM 定位** | `<button class="ant-btn ant-btn-link">` |
+| **尺寸/间距** | 同默认按钮，无边框无背景 |
+| **所属文件** | 表格操作列常用 |
+| **备注** | 用于次要操作：编辑、查看详情 |
+
+#### 4.1.3 图标按钮
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 图标按钮 |
+| **别名** | Icon Button |
+| **DOM 定位** | `<button class="ant-btn">` 内含 `<span class="ant-btn-icon">` |
+| **尺寸/间距** | 同默认按钮 |
+| **所属文件** | 通用 |
+| **备注** | 通过 `icon={<SomeIcon />}` 传入图标 |
+
+#### 4.1.4 危险按钮
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 危险按钮 |
+| **别名** | Danger Button、删除按钮、红色按钮 |
+| **DOM 定位** | `<button class="ant-btn ant-btn-dangerous">` |
+| **尺寸/间距** | 同默认按钮 |
+| **所属文件** | 删除操作 |
+| **备注** | 红色文字或红色边框，用于删除、撤销等危险操作 |
+
+### 4.2 输入类
+
+#### 4.2.1 输入框
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 输入框 |
+| **别名** | Input、文本框 |
+| **DOM 定位** | `<input class="ant-input">` |
+| **尺寸/间距** | 高度 32px，padding: 4px 11px |
+| **所属文件** | 通用 |
+| **备注** | 基础输入组件 |
+
+#### 4.2.2 下拉选择
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 下拉选择 |
+| **别名** | Select、下拉框、选择器 |
+| **DOM 定位** | `<div class="ant-select">` |
+| **尺寸/间距** | 高度 32px，min-width: 140px（典型） |
+| **所属文件** | 通用 |
+| **备注** | 用于分类筛选、状态筛选等 |
+
+#### 4.2.3 日期选择
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 日期选择 |
+| **别名** | DatePicker、日期选择器 |
+| **DOM 定位** | `<div class="ant-picker">` |
+| **尺寸/间距** | 高度 32px |
+| **所属文件** | `AuditLog.tsx`、`ReminderFormModal.tsx` 等 |
+| **备注** | 支持单日期、日期范围 |
+
+#### 4.2.4 开关
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 开关 |
+| **别名** | Switch、切换开关 |
+| **DOM 定位** | `<button class="ant-switch">` |
+| **尺寸/间距** | 宽度 44px，高度 22px |
+| **所属文件** | `SidebarManagement.tsx`、`NotificationConfig.tsx` 等 |
+| **备注** | 用于布尔值切换 |
+
+### 4.3 展示类
+
+#### 4.3.1 表格
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 表格 |
+| **别名** | Table、数据表、列表 |
+| **DOM 定位** | 见 3.3.7 表格区 |
+| **尺寸/间距** | 宽度 100% |
+| **所属文件** | 25+ 页面 |
+| **备注** | 包含：表头行（thead > tr）、表头单元格（th）、数据行（tbody > tr）、数据单元格（td）、操作列 |
+
+#### 4.3.2 标签
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 标签 |
+| **别名** | Tag、状态标签、分类标签 |
+| **DOM 定位** | `<span class="ant-tag">` |
+| **尺寸/间距** | 高度 24px，padding: 0 7px |
+| **所属文件** | 通用 |
+| **备注** | 用于状态显示（如"当前设备"）、分类标识。支持多种颜色：green、blue、orange、red 等 |
+
+#### 4.3.3 徽章
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 徽章 |
+| **别名** | Badge、红点、角标 |
+| **DOM 定位** | `<span class="ant-badge">` |
+| **尺寸/间距** | 小红点直径 8px |
+| **所属文件** | `NotificationBell.tsx` |
+| **备注** | 用于未读数量提示 |
+
+#### 4.3.4 进度条
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 进度条 |
+| **别名** | Progress |
+| **DOM 定位** | `<div class="ant-progress">` |
+| **尺寸/间距** | 默认宽度 100% |
+| **所属文件** | `VoteManagement.tsx` |
+| **备注** | 用于投票百分比展示 |
+
+### 4.4 反馈类
+
+#### 4.4.1 消息提示
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 消息提示 |
+| **别名** | Message、Toast、通知消息 |
+| **DOM 定位** | `<div class="ant-message">`（全局浮动） |
+| **尺寸/间距** | 固定顶部居中 |
+| **所属文件** | 通用 |
+| **备注** | 通过 `message.success()` / `message.error()` 调用。非 DOM 常驻元素 |
+
+#### 4.4.2 加载中
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 加载中 |
+| **别名** | Spin、Loading、加载动画 |
+| **DOM 定位** | `<div class="ant-spin">` |
+| **尺寸/间距** | 居中显示 |
+| **所属文件** | 含异步加载的页面 |
+| **备注** | 用于数据加载时的占位 |
+
+#### 4.4.3 结果页
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 结果页 |
+| **别名** | Result、状态页、空结果页 |
+| **DOM 定位** | `<div class="ant-result">` |
+| **尺寸/间距** | 居中显示，padding: 48px 32px |
+| **所属文件** | `NotFound.tsx`、`DeviceManagement.tsx`（403）等 |
+| **备注** | 用于 404、403、空数据等状态展示。含：图标、标题（result-title）、副标题（result-subtitle） |
+
+#### 4.4.4 气泡确认框
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 气泡确认框 |
+| **别名** | Popconfirm、确认气泡、二次确认 |
+| **DOM 定位** | `<div class="ant-popover">` |
+| **尺寸/间距** | 默认宽度 200px，含确认/取消按钮 |
+| **所属文件** | `SecretManagement.tsx`、`StreamStudio.tsx` 等 |
+| **备注** | 用于需要二次确认的操作（如删除），比 Modal 轻量 |
+
+#### 4.4.5 文字提示
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 文字提示 |
+| **别名** | Tooltip、悬停提示 |
+| **DOM 定位** | `<div class="ant-tooltip">` |
+| **尺寸/间距** | 自适应宽度，最大宽度 250px |
+| **所属文件** | 通用（几乎每个页面都有） |
+| **备注** | 鼠标悬停时显示提示文字，用于图标按钮、缩写等 |
+
+### 4.5 其他常用组件
+
+#### 4.5.1 文件上传
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 文件上传 |
+| **别名** | Upload、上传组件 |
+| **DOM 定位** | `<span class="ant-upload">` |
+| **尺寸/间距** | 高度 32px，支持拖拽上传 |
+| **所属文件** | `FileUploadModal.tsx`、`Profile.tsx` 等 |
+| **备注** | 用于上传文件、头像等 |
+
+#### 4.5.2 骨架屏
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 骨架屏 |
+| **别名** | Skeleton、加载占位 |
+| **DOM 定位** | `<div class="ant-skeleton">` |
+| **尺寸/间距** | 自适应，模拟内容结构 |
+| **所属文件** | `StatsWidget.tsx`、`CalendarWidget.tsx` 等 |
+| **备注** | 用于数据加载时的占位，比 Spin 更贴合内容结构 |
+
+#### 4.5.3 面包屑
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 面包屑 |
+| **别名** | Breadcrumb、路径导航 |
+| **DOM 定位** | `<nav class="ant-breadcrumb">` |
+| **尺寸/间距** | 高度 ~22px |
+| **所属文件** | `SecretCategoryPage.tsx` 等 |
+| **备注** | 用于层级导航，显示当前页面路径 |
+
+#### 4.5.4 步骤条
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 步骤条 |
+| **别名** | Steps、步骤导航 |
+| **DOM 定位** | `<div class="ant-steps">` |
+| **尺寸/间距** | 高度 ~48px/步 |
+| **所属文件** | `Welcome.tsx` |
+| **备注** | 用于多步骤流程引导 |
+
+#### 4.5.5 折叠面板
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 折叠面板 |
+| **别名** | Collapse、手风琴 |
+| **DOM 定位** | `<div class="ant-collapse">` |
+| **尺寸/间距** | 面板头高度 ~38px |
+| **所属文件** | `CategoryDetail.tsx` |
+| **备注** | 用于可展开/折叠的内容区域 |
+
+#### 4.5.6 描述列表
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 描述列表 |
+| **别名** | Descriptions、详情列表 |
+| **DOM 定位** | `<div class="ant-descriptions">` |
+| **尺寸/间距** | 两列或三列布局 |
+| **所属文件** | `Profile.tsx`、`PasswordVerifyModal.tsx` |
+| **备注** | 用于展示只读详情信息 |
+
+#### 4.5.7 滑动输入条
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 滑动输入条 |
+| **别名** | Slider、滑块 |
+| **DOM 定位** | `<div class="ant-slider">` |
+| **尺寸/间距** | 宽度 100%，高度 4px（轨道） |
+| **所属文件** | `StreamStudio.tsx` |
+| **备注** | 用于数值范围选择 |
+
+#### 4.5.8 分割线
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 分割线 |
+| **别名** | Divider、分隔线 |
+| **DOM 定位** | `<div class="ant-divider">` |
+| **尺寸/间距** | 水平：margin: 16px 0；垂直：margin: 0 8px |
+| **所属文件** | `Profile.tsx`、`FolderSettingsModal.tsx` 等 |
+| **备注** | 用于视觉分隔内容区域 |
+
+#### 4.5.9 列表
+
+| 字段 | 内容 |
+|------|------|
+| **正式名称** | 列表 |
+| **别名** | List、数据列表 |
+| **DOM 定位** | `<div class="ant-list">` |
+| **尺寸/间距** | 项高度 ~48px |
+| **所属文件** | `NotificationDrawer.tsx`、`NotificationBell.tsx` 等 |
+| **备注** | 用于展示有序或无序列表数据 |
+
+---
+
+## 第5章 间距与尺寸规范
+
+### 5.1 标准间距体系
+
+本项目遵循一套以 **16px** 为核心单元的间距体系：
+
+| 间距值 | 使用场景 | 出现频率 |
+|--------|----------|----------|
+| **4px** | 紧凑间距、标签内边距、列表项间隙 | 低 |
+| **8px** | 移动端内边距、紧凑内部间距、按钮组小间隙 | 中 |
+| **12px** | 筛选区间隙、中等内部间距 | 中 |
+| **16px** | **容器 gap（视页面而定）、Form gap、桌面端标准间距** | **极高（~90%）** |
+| **20px** | 较大容器间距（CalendarPage、NoteManagement） | 低 |
+| **24px** | 页面级内边距、Card 底部外边距、大间距 | 高 |
+| **48px** | **Header 栏 min-height**、Form 大间距 | 中 |
+| **80px** | 空状态内边距 | 低 |
+
+### 5.2 容器间距规范
+
+`.container` 在各页面的 CSS Module 中定义，常见模式：
+
+```css
+.container {
+  display: flex;
+  flex-direction: column;
+}
+```
+
+- **注意**：`.container` **无统一的 gap 值**。各页面可能：
+  - 无 gap（默认）
+  - 有 `gap: 12px`（如 FormResponses）
+  - 有 `gap: 16px`（部分页面）
+  - 有 `gap: 20px`（如 CalendarPage、NoteManagement）
+- **作用**：包裹页面全部内容，控制垂直方向元素间距
+- **文件**：几乎每个管理页面的 `*.module.css`
+
+### 5.3 头部高度规范
+
+`.header` 在各页面的 CSS Module 中定义，核心属性：
+
+```css
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;  /* 统一高度 — 关键修复（大多数页面） */
+}
+```
+
+- **注意**：`.header` **无统一的 gap 值**。各页面可能：
+  - 无 gap（最常见，如 DeviceManagement）
+  - 有 `gap: 12px`（如 FormResponses）
+  - 通过子元素 `<Space>` 控制间距
+- **作用**：确保无论左侧是否只有标题、右侧是否有按钮，Header 栏高度始终一致
+- **背景**：此前修复过标题"偏上"问题，根因是右侧无按钮时 Header 高度收缩至 ~28px，导致标题绝对位置偏高。`min-height: 48px` 统一了**大多数**页面的 Header 高度
+
+### 5.4 内边距规范
+
+| 场景 | 桌面端 | 移动端（< 767px） |
+|------|--------|-------------------|
+| 操作区（Content） | margin: 24px, padding: 24px | margin: 8px, padding: 8px |
+| Card 内部 | padding: 24px | padding: 16px |
+| Modal 内部 | padding: 24px | padding: 16px |
+| Form Item | 默认 Ant Design 间距 | 默认 Ant Design 间距 |
+
+### 5.5 表格与内容间距
+
+- 表格（Table）通常直接位于 Header 下方，无额外外边距
+- 表格上方如有 Alert，Alert 的 `margin-bottom: 24px`
+- 表格下方如有分页器，分页器与表格自然衔接
+
+---
+
+## 第6章 设计规范
+
+### 6.1 暗色/亮色模式切换机制
+
+| 项目 | 说明 |
+|------|------|
+| **切换方式** | 通过 `ThemeContext` 管理，存储于 `localStorage` 键 `user_personalization` |
+| **切换字段** | `theme: 'dark' \| 'light'` |
+| **应用方式** | 设置 `<html data-theme="dark">` 或 `<html data-theme="light">` |
+| **检测逻辑** | 仅从 localStorage 读取，**不匹配系统偏好** |
+| **主题配置** | `colorPrimary: '#1677ff'`（Ant Design 默认蓝色），其余使用 AntD 默认算法 |
+
+### 6.2 颜色规范
+
+| 类型 | 亮色模式 | 暗色模式 | 用途 |
+|------|----------|----------|------|
+| **主色** | `#1677ff` | `#1677ff` | 主按钮、链接、选中态 |
+| **成功** | `#52c41a` | `#49aa19` | 成功提示、通过状态 |
+| **错误** | `#ff4d4f` | `#d32029` | 错误提示、删除按钮、危险操作 |
+| **警告** | `#faad14` | `#d89614` | 警告提示 |
+| **信息** | `#1890ff` | `#177ddc` | 信息提示 |
+| **背景（操作区）** | `#ffffff` | `rgb(20, 20, 20)` | 操作区背景 |
+| **背景（页面）** | `#f5f5f5` | `#000000` 或 `#141414` | 页面底层背景 |
+| **边框** | `#f0f0f0` / `rgba(0,0,0,0.06)` | `#303030` / `rgba(255,255,255,0.08)` | 分割线、边框 |
+| **正文** | `rgba(0,0,0,0.88)` | `rgba(255,255,255,0.85)` | 主要文字 |
+| **次要文字** | `rgba(0,0,0,0.65)` | `#a6a6a6` / `#999` | 辅助说明文字 |
+
+### 6.3 字体层级
+
+| 层级 | 组件 | 默认大小 | 字重 | 使用场景 |
+|------|------|----------|------|----------|
+| **H2** | `Title level={2}` | 30px | Bold | 首页欢迎标题 |
+| **H3** | `Title level={3}` | 24px | Semibold | 登录页、欢迎页 |
+| **H4** | `Title level={4}` | 20px | **600（通过 CSS）** | **绝大多数管理页面标题** |
+| **H5** | `Title level={5}` | 16px | Semibold | 密钥管理分类名 |
+| **正文** | Typography.Text | 14px | Normal | 普通文本 |
+| **次要** | Text type="secondary" | 14px | Normal | 辅助说明、时间戳 |
+| **加粗正文** | Text strong | 14px | Bold | 强调文本 |
+
+**关键规范**：所有管理页面的操作区标题必须使用 `Title level={4}`，并附加 CSS `margin: 0 !important; font-weight: 600; white-space: nowrap;`
+
+### 6.4 圆角规范
+
+| 元素 | 圆角值 | 说明 |
+|------|--------|------|
+| 操作区（Content） | 8px | `border-radius: 8px` |
+| Card | 8px | Ant Design Card 默认 |
+| Button | 6px | Ant Design Button 默认 |
+| Input | 6px | Ant Design Input 默认 |
+| Modal | 8px | Ant Design Modal 默认 |
+| Tag | 4px | Ant Design Tag 默认 |
+| Alert | 8px | Ant Design Alert 默认 |
+
+### 6.5 响应式断点
+
+```css
+@media (max-width: 767px) {
+  /* 移动端样式 */
+}
+```
+
+| 断点 | 行为 |
+|------|------|
+| ≤ 767px | 侧边栏变为抽屉（Drawer），操作区 margin/padding 缩至 8px，Header 可能变为垂直排列 |
+| > 767px | 桌面端布局，侧边栏固定显示，操作区 margin/padding 24px |
+
+### 6.6 CSS 变量命名规范
+
+本项目使用**页面级 CSS 变量**（无全局共享变量）：
+
+```css
+/* 示例：StreamStudio.module.css */
+:root {
+  --stream-bg: #ffffff;
+  --stream-border: #e8e8e8;
+  --stream-text: #333333;
+}
+:root[data-theme="dark"] {
+  --stream-bg: #1f1f1f;
+  --stream-border: #303030;
+  --stream-text: #e0e0e0;
+}
+```
+
+**规范要求**：
+1. 变量名格式：`--<page-prefix>-<property>`（如 `--stream-bg`、`--file-sidebar-border`）
+2. 必须在 `:root` 中声明亮色值，在 `:root[data-theme="dark"]` 中覆盖暗色值
+3. 使用时必须带 fallback：`var(--variable, #default-value)`
+4. 各页面独立维护，**禁止跨页面引用其他页面的变量**
+
+### 6.7 顶栏 Padding 与边框
+
+| 属性 | 桌面端 | 移动端 | 说明 |
+|------|--------|--------|------|
+| **顶栏 padding** | `0 24px` | `0 16px` | 左右内边距 |
+| **顶栏 border-bottom** | `1px solid rgba(0,0,0,0.06)`（亮）/ `rgba(255,255,255,0.08)`（暗） | 同左 | 底部分隔线 |
+| **顶栏背景** | `colorBgContainer` 主题 token | 同左 | 跟随主题 |
+
+### 6.8 侧边栏边框与过渡
+
+| 属性 | 值 | 说明 |
+|------|-----|------|
+| **侧边栏 border-right** | `1px solid rgba(0,0,0,0.06)`（亮）/ `rgba(255,255,255,0.08)`（暗） | 右分隔线 |
+| **Logo 区 border-bottom** | 同 sidebar border-right | Logo 与菜单的分隔线 |
+| **过渡动画** | `transition: 'margin-left 0.2s'` | Sider 展开/折叠动画 |
+| **sider-scroll-container** | `position: fixed; left: 0; top: 0; bottom: 0; height: 100vh; width: 240px; display: flex; flex-direction: column`（折叠时 `width: 80px`） | 外层固定定位包裹 |
+| **sider-menu-scroll** | `flex: 1; overflow: auto` | 内层可滚动区域 |
+
+### 6.9 跨页面 CSS 不一致说明
+
+**重要**：以下 CSS 类在各页面中**定义不一致**，修改时必须先查看目标页面的 CSS Module：
+
+| 类名 | 不一致点 | 示例 |
+|------|----------|------|
+| `.container` | gap 值不同 | 有的无 gap，有的 12px/16px/20px |
+| `.container` | padding 不同 | 有的有 `padding: 24px`，有的无 |
+| `.header` | gap 值不同 | 大多数无 gap，少数有 `gap: 12px` |
+| `.header` | margin-bottom | 有的有 `margin-bottom: 16px`，有的无 |
+
+**规范**：永远不要在未查看目标页面 CSS Module 的情况下，假设其 `.container` 或 `.header` 与其他页面一致。
+
+---
+
+## 第7章 常见误区与避坑指南
+
+### 7.1 "页面标题"的歧义
+
+**问题**："把页面标题改一下"可能指：
+1. 顶栏中央的标题（来自 `routeTitles.ts`）
+2. 操作区内的 h4 标题
+3. 弹窗的标题
+4. 浏览器标签页标题
+
+**解决**：
+- 指顶栏 → 说"**顶栏标题**"或"**路由标题**"
+- 指操作区 → 说"**操作区标题**"或"**h4 标题**"
+- 指弹窗 → 说"**弹窗标题**"
+- 指浏览器 → 说"**浏览器标题**"或"**document.title**"
+
+### 7.2 "header"的歧义
+
+**问题**："header"可能指：
+1. 顶栏（`<header class="ant-layout-header">`）
+2. 操作区头部（`<div className={styles.header}>`）
+3. 表格表头（`<thead>`）
+4. Card 的标题栏（`Card title`）
+
+**解决**：
+- 指顶栏 → 说"**顶栏**"或"**Top Bar**"
+- 指操作区 → 说"**操作区头部**"或"**Page Header**"
+- 指表格 → 说"**表头**"或"**表格头部**"
+- 指 Card → 说"**卡片标题栏**"
+
+### 7.3 "容器"的层级混淆
+
+**问题**："容器"可能指：
+1. 视口（Viewport）
+2. 应用外壳（App Shell / Layout）
+3. 操作区（Content Area）
+4. 页面容器（`<div className={styles.container}>`）
+5. Card 容器
+6. Modal 容器
+
+**解决**：
+- 说"**页面容器**"指 `<div className={styles.container}>`
+- 说"**操作区**"指 `<main class="ant-layout-content">`
+- 说"**Card**"或"**卡片**"指卡片容器
+- 说"**弹窗**"指 Modal 容器
+
+### 7.4 暗色模式类名前缀不可作为选择器
+
+**严重误区**：`css-plsjn` 是 Ant Design 5 CSS-in-JS 自动生成的哈希前缀，**每次构建都会变化**。
+
+```html
+<!-- 错误：不能用这个类名做选择器 -->
+<div class="ant-layout-content css-plsjn">
+```
+
+**正确做法**：
+- 使用稳定的 Ant Design 类名（如 `ant-layout-content`、`ant-menu-item`）
+- 或 CSS Module 中自定义的类名（如 `styles.container`）
+- 绝不用 `css-xxx` 哈希类名
+
+### 7.5 CSS Module 哈希类名不可用于定位
+
+**严重误区**：`_header_1jwpa_7` 中的 `_1jwpa_7` 是构建时生成的哈希，**不同构建结果不同**。
+
+```html
+<!-- 错误：哈希部分会变化 -->
+<div class="_header_1jwpa_7">
+```
+
+**正确做法**：
+- 使用语义化的自定义类名（如 `className={styles.header}` 编译后的基础名 `_header_xxx`，但应在源码层面指代 `styles.header`）
+- 在沟通中直接说"操作区头部的 `.header` 类"，而不是具体的哈希值
+
+### 7.6 "间距"的精确指代
+
+**问题**："间距调大"过于模糊。
+
+**解决**：指明具体间距：
+- "容器内元素之间的 **gap**" → 查看该页面 CSS Module 中的 `.container { gap: ? }`
+- "操作区与浏览器边缘的 **margin**" → `margin: 24px`
+- "操作区内部边缘的 **padding**" → `padding: 24px`
+- "表格单元格内的 **padding**" → `.ant-table-cell { padding: 16px }`
+- "两个按钮之间的 **gap**" → `<Space gap={16}>` 或 CSS gap
+
+### 7.7 暗色模式值的不一致
+
+**已知问题**：项目中暗色模式的次要文字色存在混用：`#999` 和 `#a6a6a6` 同时出现。
+
+**规范**：统一使用 `#a6a6a6` 作为暗色模式次要文字色。
+
+### 7.8 "notification" 的歧义
+
+**问题**："notification" 可能指：
+1. 通知铃铛（顶栏右侧图标）
+2. 通知抽屉（右侧滑出的 Drawer）
+3. 通知列表（Drawer 内的 List）
+4. 消息提示（`message.success()` 全局 Toast）
+
+**解决**：
+- 指图标 → 说"**通知铃铛**"
+- 指抽屉 → 说"**通知抽屉**"或"**NotificationDrawer**"
+- 指列表 → 说"**通知列表**"
+- 指 Toast → 说"**消息提示**"或"**message**"
+
+### 7.9 "dropdown" 的歧义
+
+**问题**："dropdown" 可能指：
+1. 用户头像下拉（顶栏右侧）
+2. 通知铃铛下拉（点击铃铛展开）
+3. Select 下拉选择（表单中的选择器）
+4. Table 筛选下拉（表头筛选）
+
+**解决**：
+- 指用户菜单 → 说"**用户头像下拉**"
+- 指通知 → 说"**通知下拉列表**"
+- 指表单选择器 → 说"**下拉选择**"或"**Select**"
+- 指表格筛选 → 说"**表头筛选**"
+
+### 7.10 "modal" vs "drawer" 的歧义
+
+**问题**：两者都是覆盖层组件，容易混淆：
+- **Modal（弹窗）**：居中显示，有遮罩，用于新建/编辑/确认
+- **Drawer（抽屉）**：从右侧滑出，用于通知列表、移动端菜单
+
+**解决**：
+- 居中对话框 → 说"**弹窗**"或"**Modal**"
+- 侧滑面板 → 说"**抽屉**"或"**Drawer**"
+
+### 7.11 侧边栏包裹 div 结构陷阱
+
+**严重误区**：侧边栏不是直接的 `<aside>`，而是被两层 div 包裹：
+
+```html
+<div class="sider-scroll-container">     <!-- 外层：固定定位，控制宽度 -->
+  <div>                                   <!-- Logo 区：在 Sider 外部 -->
+    <!-- Logo / 应用名称 -->
+  </div>
+  <div class="sider-menu-scroll">        <!-- 内层：可滚动 -->
+    <aside class="ant-layout-sider">     <!-- 真正的 Sider -->
+      <!-- Menu -->
+    </aside>
+  </div>
+</div>
+```
+
+**注意**：Logo 区在 `<Sider>` 组件**外部**，如果在 DOM 中查找侧边栏元素，要定位到 `sider-scroll-container` 而非 `<aside>`。
+
+### 7.12 跨页面 CSS 不一致陷阱
+
+**严重误区**：文档中声称".container 有 gap: 16px"、".header 有 gap: 16px"，**这是错误的**。
+
+**实际情况**：
+- `.container`：有的页面有 gap，有的没有，值也不同（12px/16px/20px/无）
+- `.header`：大多数页面**无 gap**；少数有 `gap: 12px`（如 FormResponses），个别有 `gap: 16px`（如 NoteManagement）
+- `.container` 的 padding：有的页面有 `padding: 24px`，有的没有
+
+**规范**：在修改任何页面的间距时，**必须先查看该页面的具体 CSS Module**，不能假设与其他页面一致。
+
+### 7.13 Logo 区位置陷阱
+
+**严重误区**：直觉认为 Logo 区在 `<Sider>` 内部，因为它是"侧边栏的一部分"。
+
+**实际情况**：Logo 区在 `<Sider>` 组件**外部**的 `sider-scroll-container` div 中，与 `<Sider>` 同级。
+
+**影响**：
+- 修改 Logo 区样式时，选择器不应以 `.ant-layout-sider` 开头
+- 暗色模式下，Logo 区的边框色需单独设置（`borderBottom` 在 MainLayout.tsx 中硬编码）
+
+---
+
+## 第8章 术语速查表
+
+### 8.1 按区域分类
+
+| 区域 | 正式名称 | 别名 | 典型 DOM |
+|------|----------|------|----------|
+| **侧边栏** | 侧边栏 | 侧边导航栏、Sider | `<aside class="ant-layout-sider">` |
+| **侧边栏** | Logo 区 | 品牌区 | 侧边栏顶部固定区域 |
+| **侧边栏** | 侧边栏项 | 菜单项、导航项 | `<li class="ant-menu-item">` |
+| **侧边栏** | 侧边栏项标题 | 菜单文字 | `<span class="ant-menu-title-content">` |
+| **侧边栏** | 侧边栏项图标 | 菜单图标 | `<span class="anticon">` |
+| **侧边栏** | 系统设置子菜单 | 设置子菜单 | `<li class="ant-menu-submenu">` |
+| **侧边栏** | 侧边栏折叠按钮 | 展开/收起按钮 | 顶栏左侧原生 `<button>`（含 MenuFold/MenuUnfold 图标） |
+| **顶栏** | 顶栏 | 页头、Header | `<header class="ant-layout-header">` |
+| **顶栏** | 顶栏标题 | 路由标题、中央标题 | `<Text strong style={{ fontSize: 16 }}>`（顶栏中央） |
+| **顶栏** | 汉堡菜单按钮 | 移动端菜单按钮 | `<Button icon={<MenuOutlined />}>` |
+| **顶栏** | 通知铃铛 | 通知图标 | `<Badge><BellOutlined /></Badge>` |
+| **顶栏** | 用户头像下拉 | 用户菜单 | `<Dropdown menu={{ items }}><Space><Avatar /><span>{username}</span></Space></Dropdown>` |
+| **操作区** | 操作区 | 主内容区、Content 区 | `<main class="ant-layout-content">` |
+| **操作区** | 操作区标题 | 页面标题、h4 标题 | `<h4 class="ant-typography">` |
+| **操作区** | 操作区头部 | Header 栏、标题栏 | `<div className={styles.header}>` |
+| **操作区** | 容器 | 页面容器 | `<div className={styles.container}>` |
+| **操作区** | 工具栏 | 操作按钮区 | Header 栏右侧 `<Space>` |
+| **操作区** | 筛选区 | 过滤器区 | `<div className={styles.filters}>` |
+| **操作区** | 表格区 | 数据表格 | `<div class="ant-table-wrapper">` |
+| **操作区** | 卡片区 | Card、面板 | `<div class="ant-card">` |
+| **操作区** | 表单区 | Form | `<form class="ant-form">` |
+| **操作区** | 标签页区 | Tabs | `<div class="ant-tabs">` |
+| **操作区** | 树形区 | Tree | `<div class="ant-tree">` |
+| **操作区** | 弹窗 | 模态框、Modal | `<div class="ant-modal">` |
+| **操作区** | 弹窗标题 | Modal Title | `<div class="ant-modal-title">` |
+| **操作区** | 警告提示条 | Alert | `<div class="ant-alert">` |
+| **操作区** | 空状态 | Empty | `<div class="ant-empty">` |
+| **组件** | 气泡确认框 | Popconfirm | `<div class="ant-popover">` |
+| **组件** | 文字提示 | Tooltip | `<div class="ant-tooltip">` |
+| **组件** | 文件上传 | Upload | `<span class="ant-upload">` |
+| **组件** | 骨架屏 | Skeleton | `<div class="ant-skeleton">` |
+| **组件** | 面包屑 | Breadcrumb | `<nav class="ant-breadcrumb">` |
+| **组件** | 步骤条 | Steps | `<div class="ant-steps">` |
+| **组件** | 折叠面板 | Collapse | `<div class="ant-collapse">` |
+| **组件** | 描述列表 | Descriptions | `<div class="ant-descriptions">` |
+| **组件** | 滑动输入条 | Slider | `<div class="ant-slider">` |
+| **组件** | 分割线 | Divider | `<div class="ant-divider">` |
+| **组件** | 列表 | List | `<div class="ant-list">` |
+
+### 8.2 按字母排序索引
+
+| 术语 | 区域 | 见章节 |
+|------|------|--------|
+| Alert → 警告提示条 | 操作区 | 3.3.14 |
+| Badge → 徽章 | 顶栏 | 4.3.3 |
+| Card → 卡片区 | 操作区 | 3.3.8 |
+| Container → 容器 | 操作区 | 3.3.4 |
+| Content Area → 操作区 | 操作区 | 3.3.1 |
+| Danger Button → 危险按钮 | 组件 | 4.1.4 |
+| DatePicker → 日期选择 | 组件 | 4.2.3 |
+| Drawer → 侧边栏（移动端） | 侧边栏 | 3.1.1 |
+| Empty → 空状态 | 操作区 | 3.3.15 |
+| Filter Bar → 筛选区 | 操作区 | 3.3.6 |
+| Form → 表单区 | 操作区 | 3.3.9 |
+| Hamburger → 汉堡菜单按钮 | 顶栏 | 3.2.3 |
+| Header (Page) → 操作区头部 | 操作区 | 3.3.3 |
+| Header (Top) → 顶栏 | 顶栏 | 3.2.1 |
+| Icon Button → 图标按钮 | 组件 | 4.1.3 |
+| Input → 输入框 | 组件 | 4.2.1 |
+| Link Button → 文字按钮 | 组件 | 4.1.2 |
+| Logo 区 | 侧边栏 | 3.1.2 |
+| Main Content → 操作区 | 操作区 | 3.3.1 |
+| Menu Item → 侧边栏项 | 侧边栏 | 3.1.3 |
+| Message → 消息提示 | 组件 | 4.4.1 |
+| Modal → 弹窗 | 操作区 | 3.3.12 |
+| Notification Bell → 通知铃铛 | 顶栏 | 3.2.4 |
+| Operation Area → 操作区 | 操作区 | 3.3.1 |
+| Page Header → 操作区头部 | 操作区 | 3.3.3 |
+| Page Title (h4) → 操作区标题 | 操作区 | 3.3.2 |
+| Pagination → 分页器 | 操作区 | 3.4.4 |
+| Primary Button → 主按钮 | 组件 | 4.1.1 |
+| Result → 结果页 | 组件 | 4.4.3 |
+| Search Input → 搜索框 | 操作区 | 3.4.3 |
+| Select → 下拉选择 | 组件 | 4.2.2 |
+| Sider → 侧边栏 | 侧边栏 | 3.1.1 |
+| Sidebar Item → 侧边栏项 | 侧边栏 | 3.1.3 |
+| Sidebar Item Icon → 侧边栏项图标 | 侧边栏 | 3.1.5 |
+| Sidebar Item Title → 侧边栏项标题 | 侧边栏 | 3.1.4 |
+| Spin → 加载中 | 组件 | 4.4.2 |
+| Submenu → 系统设置子菜单 | 侧边栏 | 3.1.6 |
+| Switch → 开关 | 组件 | 4.2.4 |
+| Table → 表格区 | 操作区 | 3.3.7 |
+| Tabs → 标签页区 | 操作区 | 3.3.10 |
+| Tag → 标签 | 组件 | 4.3.2 |
+| Title (Route) → 顶栏标题 | 顶栏 | 3.2.2 |
+| Toggle Button → 侧边栏折叠按钮 | 侧边栏 | 3.1.7 |
+| Toolbar → 工具栏 | 操作区 | 3.3.5 |
+| Top Bar → 顶栏 | 顶栏 | 3.2.1 |
+| Tree → 树形区 | 操作区 | 3.3.11 |
+| User Dropdown → 用户头像下拉 | 顶栏 | 3.2.5 |
+| Breadcrumb → 面包屑 | 组件 | 4.5.3 |
+| Collapse → 折叠面板 | 组件 | 4.5.5 |
+| Descriptions → 描述列表 | 组件 | 4.5.6 |
+| Divider → 分割线 | 组件 | 4.5.8 |
+| List → 列表 | 组件 | 4.5.9 |
+| Popconfirm → 气泡确认框 | 组件 | 4.4.4 |
+| Skeleton → 骨架屏 | 组件 | 4.5.2 |
+| Slider → 滑动输入条 | 组件 | 4.5.7 |
+| Steps → 步骤条 | 组件 | 4.5.4 |
+| Tooltip → 文字提示 | 组件 | 4.4.5 |
+| Upload → 文件上传 | 组件 | 4.5.1 |
+
+---
+
+## 附录 A：页面布局模式速查
+
+### 模式 A：标准列表/表格页（60% 页面）
+
+```
+操作区
+└── 容器 (.container, gap: 视页面而定)
+    ├── 头部 (.header, min-height: 48px)
+    │   ├── 标题 (Title level={4}, .title)
+    │   └── 工具栏 (Space: 搜索框 + 筛选 + 新建按钮)
+    ├── [可选] 筛选区 (.filters)
+    └── 表格区 (Table + Pagination)
+        └── [可选] 弹窗 (Modal: 新建/编辑表单)
+```
+
+**典型页面**：任务中心、联系人管理、文件中心、审计日志、投票决策、财务管理、设备终端、提醒事项
+
+### 模式 B：详情页（含 Tabs）
+
+```
+操作区
+├── 返回按钮 + 标题 + 操作按钮
+└── 卡片 (Card)
+    └── 标签页 (Tabs)
+        ├── Tab 1: 信息页
+        ├── Tab 2: 进度页
+        └── Tab 3: 文档页
+```
+
+**典型页面**：项目详情页
+
+### 模式 C：表单设置页
+
+```
+操作区
+└── 容器 (.container, gap: 视页面而定)
+    ├── 头部 (.header)
+    │   └── 标题 (Title level={4})
+    ├── [可选] 警告提示条 (Alert)
+    └── 表单 (Form, layout="vertical")
+        ├── 卡片 (Card title="章节名")
+        │   └── 表单项 (Form.Item)
+        └── 保存按钮 (Button type="primary")
+```
+
+**典型页面**：站点配置、个人资料、系统设置子页面
+
+### 模式 D：仪表板/首页
+
+```
+操作区
+├── 头部栏 (.headerBar)
+│   ├── 欢迎标题 (Title level={2})
+│   └── 自定义布局按钮
+└── 部件网格 (.widgetGrid)
+    └── 可拖拽部件 (SortableWidget)
+        ├── 部件头部 (.widgetHeader: 标题 + 拖拽柄 + 删除按钮)
+        └── 部件内容 (.widgetBody)
+```
+
+**典型页面**：首页
+
+### 模式 E：直播工作室（独特布局）
+
+```
+操作区
+├── 头部 (.header)
+│   ├── 标题 (Title level={4}: 直播工作室)
+│   └── 操作按钮 (开始直播、设置)
+├── 视频预览区 (本地摄像头画面)
+├── 控制面板 (码率、分辨率、音频设置)
+└── 状态栏 (连接状态、时长、观众数)
+```
+
+**典型页面**：StreamStudio.tsx
+**备注**：不使用标准 .container/.header 结构，有独立的 CSS 变量体系
+
+### 模式 F：富文本编辑器（独立组件）
+
+```
+操作区
+└── ContentEditor 组件
+    ├── 工具栏 (Tiptap MenuBar: 加粗、斜体、列表、链接等)
+    ├── 编辑区 (ProseMirror 编辑器)
+    └── 状态栏 (字数统计)
+```
+
+**典型页面**：ContentManagement.tsx（编辑模式）
+**所属文件**：`frontend/src/pages/content/ContentEditor.tsx`
+**备注**：基于 Tiptap/ProseMirror，非 Ant Design 组件
+
+### 模式 G：登录/欢迎页（无 MainLayout）
+
+```
+视口 (100vw × 100vh)
+└── 居中容器 (flex居中)
+    └── 卡片 (Card, max-width: 400px)
+        ├── 头部 (text-align: center)
+        │   ├── 标题 (Title level={3}: 应用名称)
+        │   └── 副标题 (Text type="secondary")
+        ├── 表单 (Form)
+        │   └── 表单项 (Form.Item)
+        └── 底部链接
+```
+
+**典型页面**：Login.tsx、Welcome.tsx
+**备注**：这两个页面**不在 MainLayout 内**，无侧边栏和顶栏
+
+### 模式 H：图谱视图（独立布局）
+
+```
+操作区
+├── 头部 (.header)
+│   ├── 标题 (Title level={4}: 笔记知识库)
+│   └── Segmented 切换 (tree|graph)
+└── 图谱区 (GraphView 组件)
+    ├── 力导向图 (D3.js / Cytoscape)
+    └── 节点/边交互
+```
+
+**典型页面**：NoteManagement.tsx（graph 模式）
+**所属文件**：`frontend/src/pages/notes/GraphView.tsx`
+
+### 模式 I：拓扑管理（独特布局）
+
+```
+操作区
+├── 头部 (.header)
+│   ├── 标题 (Title level={4}: 拓扑结构)
+│   └── 操作按钮
+├── 画布区 (拓扑图编辑器)
+│   ├── 左侧工具栏 (节点类型选择)
+│   └── 中央画布 (SVG/Canvas 渲染)
+└── 属性面板 (选中节点属性编辑)
+```
+
+**典型页面**：TopologyManagement.tsx
+**备注**：有独立的 CSS 变量体系
+
+### 模式 J：日历页（第三方组件）
+
+```
+操作区
+├── 头部 (.header)
+│   ├── 标题 (Title level={4}: 日程日历)
+│   └── 新建事件按钮
+└── FullCalendar 组件
+    ├── 月视图/周视图/日视图
+    ├── 事件卡片
+    └── 点击弹出 Modal 表单
+```
+
+**典型页面**：CalendarPage.tsx
+**备注**：使用第三方 FullCalendar 库，非 Ant Design 组件
+
+---
+
+## 附录 B：文件路径速查
+
+| 术语相关文件 | 路径 |
+|-------------|------|
+| 布局外壳 | `frontend/src/layouts/MainLayout.tsx` |
+| 路由配置 | `frontend/src/router.tsx` |
+| 路由标题 | `frontend/src/config/routeTitles.ts` |
+| 主题配置 | `frontend/src/context/ThemeContext.tsx` |
+| 全局样式 | `frontend/src/styles/global.css` |
+| 通知组件 | `frontend/src/components/NotificationBell.tsx` |
+| 通知抽屉 | `frontend/src/components/NotificationDrawer.tsx` |
+| 权限守卫 | `frontend/src/components/AuthGuard.tsx` |
+| 投票弹窗 | `frontend/src/components/VotePopup.tsx` |
+| 页面 CSS Module | `frontend/src/pages/*/*.module.css` |
+
+---
+
+*本文档基于对 **78** 个 TSX 文件、**47** 个 CSS Module、**22** 个页面目录的全面代码分析生成。*

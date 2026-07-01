@@ -146,17 +146,15 @@ export default function RecordForm({
       setSubmitting(true);
 
       if (mode === 'create') {
-        if (!templateId) {
-          message.error('请先选择模板');
-          return;
-        }
         const payload: RecordCreate = {
-          template_id: templateId,
           title: values.title as string,
           data,
           type: recordType,
           visibility,
         };
+        if (templateId) {
+          payload.template_id = templateId;
+        }
         if (visibility === 'restricted') {
           if (restrictedUsers.length > 0) payload.restricted_users = restrictedUsers;
           if (restrictedTags.length > 0) payload.restricted_tags = restrictedTags;
