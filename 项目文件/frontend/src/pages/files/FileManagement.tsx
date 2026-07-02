@@ -380,8 +380,8 @@ export default function FileManagement() {
   ];
 
   return (
-    <div className={styles.pageWrapper ?? ''}>
-      <div className={styles.pageHeader ?? ''}>
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
           文件中心
         </Title>
@@ -403,7 +403,7 @@ export default function FileManagement() {
         </Space>
       </div>
 
-      <div className={styles.container ?? ''}>
+      <div className={styles.contentArea ?? ''}>
         <div className={styles.sidebar ?? ''}>
           <FolderTree
             selectedFolderId={selectedFolderId}
@@ -454,6 +454,8 @@ export default function FileManagement() {
         cancelText="取消"
         confirmLoading={editExpireSaving}
         destroyOnClose
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {editingFile?.expires_at && !isExpired(editingFile.expires_at) && (

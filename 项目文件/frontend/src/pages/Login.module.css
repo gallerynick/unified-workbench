@@ -39,3 +39,24 @@
 .submitItem {
   margin-bottom: 0;
 }
+
+/* ====== Login → app transition ====== */
+.containerLeaving {
+  transition: opacity 400ms ease-out;
+  opacity: 0;
+}
+
+.cardLeaving {
+  animation: loginCardOut 400ms ease-in forwards;
+}
+
+@keyframes loginCardOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}

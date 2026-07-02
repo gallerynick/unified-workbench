@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import ForceGraph2D, { type ForceGraphMethods, type NodeObject, type LinkObject } from 'react-force-graph-2d';
+import ForceGraph2D from 'react-force-graph-2d';
+import type { ForceGraphMethods, NodeObject, LinkObject } from 'react-force-graph-2d';
 import { Empty, Spin } from 'antd';
 import type { Note } from '../../types/note';
-import { notesToGraphData, type GraphNodeData, type GraphLinkData } from './notesToGraphData';
+import { notesToGraphData } from './notesToGraphData';
+import type { GraphNodeData, GraphLinkData } from './notesToGraphData';
 import styles from './GraphView.module.css';
 
 interface GraphViewProps {

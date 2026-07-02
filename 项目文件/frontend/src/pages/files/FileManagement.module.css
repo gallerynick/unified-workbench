@@ -8,14 +8,14 @@
   --file-sidebar-border: #303030;
 }
 
-.pageWrapper {
+.container {
   display: flex;
   flex-direction: column;
   gap: 16px;
   height: 100%;
 }
 
-.pageHeader {
+.header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -23,7 +23,7 @@
   min-height: 48px;
 }
 
-.container {
+.contentArea {
   display: flex;
   gap: 16px;
   flex: 1;
@@ -47,14 +47,6 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 48px;
 }
 
 .title {
@@ -88,11 +80,11 @@
 }
 
 @media (max-width: 767px) {
-  .pageWrapper {
+  .container {
     padding: 8px;
   }
 
-  .container {
+  .contentArea {
     flex-direction: column;
   }
 
@@ -100,12 +92,12 @@
     width: 100%;
   }
 
-  .pageHeader {
+  .header {
     flex-direction: column;
     gap: 8px;
   }
 
-  .pageHeader > * {
+  .header > * {
     width: 100%;
   }
 

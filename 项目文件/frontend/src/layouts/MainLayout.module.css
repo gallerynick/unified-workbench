@@ -1,0 +1,117 @@
+/* ====== Sidebar fly-in animation ====== */
+:global(.sider-scroll-container .ant-menu-item),
+:global(.sider-scroll-container .ant-menu-submenu-title),
+:global(.sider-scroll-container > div:first-child),
+:global(.sider-menu-scroll) {
+  opacity: 0;
+  filter: blur(6px);
+  transform: translateX(-16px);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+:global(.sidebar-entered .ant-menu-item),
+:global(.sidebar-entered .ant-menu-submenu-title),
+:global(.sidebar-entered > div:first-child),
+:global(.sidebar-entered .sider-menu-scroll) {
+  animation: menuItemFlyIn 300ms ease-out forwards;
+}
+
+:global(.sidebar-entered .ant-menu-item:nth-child(1)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(1)) { animation-delay: 0ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(2)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(2)) { animation-delay: 40ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(3)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(3)) { animation-delay: 80ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(4)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(4)) { animation-delay: 120ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(5)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(5)) { animation-delay: 160ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(6)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(6)) { animation-delay: 200ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(7)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(7)) { animation-delay: 240ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(8)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(8)) { animation-delay: 280ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(9)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(9)) { animation-delay: 320ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(10)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(10)) { animation-delay: 360ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(11)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(11)) { animation-delay: 400ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(12)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(12)) { animation-delay: 440ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(13)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(13)) { animation-delay: 480ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(14)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(14)) { animation-delay: 520ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(15)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(15)) { animation-delay: 560ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(16)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(16)) { animation-delay: 600ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(17)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(17)) { animation-delay: 640ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(18)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(18)) { animation-delay: 680ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(19)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(19)) { animation-delay: 720ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(20)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(20)) { animation-delay: 760ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(21)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(21)) { animation-delay: 800ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(22)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(22)) { animation-delay: 840ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(23)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(23)) { animation-delay: 880ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(24)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(24)) { animation-delay: 920ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(25)),
+:global(.sidebar-entered .ant-menu-submenu-title:nth-child(25)) { animation-delay: 960ms; }
+
+@keyframes menuItemFlyIn {
+  0% {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateX(-16px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0);
+  }
+}
+
+/* ====== Route transition ====== */
+.transitionWrapper {
+  animation: routeFadeIn 300ms ease-out;
+}
+
+@keyframes routeFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ====== App entrance (after login) ====== */
+.appLayout {
+  opacity: 0;
+}
+
+.appEntered {
+  animation: appFloatIn 500ms ease-out forwards;
+}
+
+@keyframes appFloatIn {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

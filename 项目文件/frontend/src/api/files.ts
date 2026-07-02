@@ -33,11 +33,11 @@ export async function deleteFile(id: string): Promise<UnifiedResponse<null>> {
 }
 
 export async function listFolders(): Promise<UnifiedResponse<Folder[]>> {
-  return request<Folder[]>('/files/folders/');
+  return request<Folder[]>('/files/folders');
 }
 
 export async function createFolder(data: FolderCreateRequest): Promise<UnifiedResponse<Folder>> {
-  return request<Folder>('/files/folders/', {
+  return request<Folder>('/files/folders', {
     method: 'POST',
     body: data,
   });

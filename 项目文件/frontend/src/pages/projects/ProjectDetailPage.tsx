@@ -101,7 +101,6 @@ export default function ProjectDetailPage() {
   }
 
   const visibilityCfg = getVisibilityConfig(project.visibility);
-
   const tabItems = [
     {
       key: 'info',
@@ -137,8 +136,8 @@ export default function ProjectDetailPage() {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
         <Space>
           <Button
             icon={<ArrowLeftOutlined />}
@@ -165,7 +164,6 @@ export default function ProjectDetailPage() {
         <Tabs
           defaultActiveKey="info"
           items={tabItems}
-          style={{ minHeight: 400 }}
         />
       </Card>
     </div>

@@ -165,7 +165,7 @@ export default function ContactManagement() {
       />
 
       <Modal title={editingContact ? '编辑联系人' : '新建联系人'} open={modalVisible} onOk={handleSave}
-        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消">
+        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical">
           <Form.Item label="姓名" required>
             <Input placeholder="请输入姓名" value={formName} onChange={(e) => setFormName(e.target.value)} />

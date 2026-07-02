@@ -174,7 +174,7 @@ export default function InventoryManagement() {
       />
 
       <Modal title={editingItem ? '编辑物品' : '新增物品'} open={modalVisible} onOk={handleSave}
-        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消">
+        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical" initialValues={{ quantity: 1, status: 'available' }}>
           <Form.Item name="name" label="物品名称" rules={[{ required: true, message: '请输入物品名称' }]}>
             <Input placeholder="请输入物品名称" />

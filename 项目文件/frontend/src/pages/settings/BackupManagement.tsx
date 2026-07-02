@@ -5,8 +5,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { createBackup, listBackups, deleteBackup, restoreBackup } from '../../api/backups';
 import { getConfig, updateConfig } from '../../api/system_config';
 import { isAdmin } from '../../utils/auth';
-import type { BackupInfo } from '../../types/backup';
-import type { BackupConfig } from '../../types/backup';
+import type { BackupInfo, BackupConfig } from '../../types/backup';
 import styles from './BackupManagement.module.css';
 
 const { Title } = Typography;

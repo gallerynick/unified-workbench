@@ -89,8 +89,9 @@ export default function FolderSettingsModal({
       okText="保存"
       cancelText="取消"
       confirmLoading={saving}
-      width={520}
+      width={560}
       destroyOnClose
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <div className={styles.content}>
         {/* 统一管理开关 */}

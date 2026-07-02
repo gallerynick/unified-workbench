@@ -1,18 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button, Card, Tag, message, Modal, Input, Space, Typography } from 'antd';
-import styles from './SystemSettings.module.css';
 import { ReloadOutlined, CloudDownloadOutlined, SaveOutlined } from '@ant-design/icons';
-import {
-  checkUpdate,
-  performUpdate,
-  getRepo,
-  setRepo,
-  getToken,
-  setToken,
-  type UpdateInfo,
-  type RepoInfo,
-} from '../../api/system';
+import { checkUpdate, performUpdate, getRepo, setRepo, getToken, setToken } from '../../api/system';
+import type { UpdateInfo, RepoInfo } from '../../api/system';
 import type { UnifiedResponse } from '../../types/user';
+import styles from './SystemSettings.module.css';
 
 const { Title } = Typography;
 
@@ -35,14 +27,14 @@ export default function SystemSettings() {
           setRepoValue(repoRes.data.repo);
           setEditingRepo(repoRes.data.repo);
         }
-      } catch {}
+      } catch (e) { console.warn('Failed to load settings:', e); }
       try {
         const tokenRes = await getToken();
         if (tokenRes.code === 0 && tokenRes.data.has_token) {
           setHasToken(true);
           setEditingToken('••••••••••••••••');
         }
-      } catch {}
+      } catch (e) { console.warn('Failed to load settings:', e); }
     };
     loadConfig();
   }, []);

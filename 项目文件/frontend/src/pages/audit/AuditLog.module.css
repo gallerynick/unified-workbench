@@ -43,10 +43,18 @@
   border-radius: 6px;
 }
 
+[data-theme="dark"] .detailContainer {
+  background: #1f1f1f;
+}
+
 .detailTitle {
   margin-bottom: 12px;
   font-weight: 600;
   color: rgba(0, 0, 0, 0.85);
+}
+
+[data-theme="dark"] .detailTitle {
+  color: #e8e8e8;
 }
 
 .detailJson {
@@ -61,6 +69,10 @@
   word-break: break-all;
 }
 
+[data-theme="dark"] .detailJson {
+  background: #262626;
+}
+
 .detailLabel {
   display: inline-block;
   min-width: 80px;
@@ -68,8 +80,16 @@
   font-weight: 500;
 }
 
+[data-theme="dark"] .detailLabel {
+  color: rgba(255, 255, 255, 0.65);
+}
+
 .detailValue {
   color: rgba(0, 0, 0, 0.85);
+}
+
+[data-theme="dark"] .detailValue {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .diffAdded {
@@ -79,11 +99,21 @@
   border-radius: 2px;
 }
 
+[data-theme="dark"] .diffAdded {
+  color: #73d13d;
+  background: #162312;
+}
+
 .diffRemoved {
   color: #ff4d4f;
   background: #fff2f0;
   padding: 2px 4px;
   border-radius: 2px;
+}
+
+[data-theme="dark"] .diffRemoved {
+  color: #ff7875;
+  background: #2a1215;
 }
 
 .actionTag {
@@ -95,6 +125,10 @@
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 13px;
   color: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="dark"] .ipText {
+  color: #a6a6a6;
 }
 
 @media (max-width: 767px) {

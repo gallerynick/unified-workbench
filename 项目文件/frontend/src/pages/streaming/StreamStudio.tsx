@@ -587,7 +587,7 @@ export default function StreamStudio() {
       pipVideoRef.current.pause(); pipVideoRef.current.srcObject = null; pipVideoRef.current = null;
     }
     if (document.pictureInPictureElement) {
-      document.exitPictureInPicture().catch(() => {});
+      document.exitPictureInPicture().catch((e) => { console.warn('Failed to exit PiP:', e); });
     }
     whipRef.current?.stop();
     whipRef.current = null;
@@ -1174,14 +1174,14 @@ export default function StreamStudio() {
               </Tooltip>
             </Space>
           </div>
-          <div style={{ display: 'flex', gap: 24, padding: '8px 12px', borderTop: '1px solid var(--stream-border, #e8e8e8)', fontSize: 12, flexShrink: 0, visibility: isStreaming ? 'visible' : 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>观看:</Text>
+          <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderTop: '1px solid var(--stream-border, #e8e8e8)', fontSize: 12, flexShrink: 0, visibility: isStreaming ? 'visible' : 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>观看:</Text>
               <code style={{ color: '#52c41a', fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{watchUrl || '设置中配置'}</code>
               <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(watchUrl, '观看地址')} /></Tooltip>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>拉流:</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>拉流:</Text>
               <code style={{ color: '#fa8c16', fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{`rtmp://${window.location.hostname}:1935/${streamKey}`}</code>
               <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(`rtmp://${window.location.hostname}:1935/${streamKey}`, '拉流地址')} /></Tooltip>
             </div>
@@ -1194,6 +1194,8 @@ export default function StreamStudio() {
         open={showSourceModal}
         onCancel={() => setShowSourceModal(false)}
         footer={null}
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Space
           direction="vertical"
@@ -1256,6 +1258,7 @@ export default function StreamStudio() {
             <Button type="primary" onClick={handleSaveSettings} loading={settingsSaving}>保存配置</Button>
           </Space>
         }
+        styles={{ body: { overflowY: 'auto', overflowX: 'hidden' } }}
       >
         {settingsLoading ? (
           <div style={{ textAlign: 'center', padding: 40 }}><Spin /></div>
@@ -1274,7 +1277,7 @@ export default function StreamStudio() {
               audio_limiter_threshold: -3,
               audio_output_gain: 0.85,
             }}>
-              <div style={{ fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--stream-border, #e8e8e8)' }}>服务器设置</div>
+              <div className={styles.sectionTitle}>服务器设置</div>
               <Form.Item name="server_url" label="推流服务器地址" rules={[{ required: true, message: '请输入推流服务器地址' }]}>
                 <Input placeholder="http://localhost:8889" />
               </Form.Item>
@@ -1285,7 +1288,7 @@ export default function StreamStudio() {
                 <Switch checkedChildren="开启" unCheckedChildren="关闭" />
               </Form.Item>
 
-              <div style={{ fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--stream-border, #e8e8e8)', marginTop: 16 }}>编码参数</div>
+              <div className={styles.sectionTitle} style={{ marginTop: 16 }}>编码参数</div>
               <Form.Item name="default_resolution" label="默认分辨率" rules={[{ required: true, message: '请选择默认分辨率' }]}>
                 <Select options={RESOLUTION_OPTIONS} />
               </Form.Item>
@@ -1307,7 +1310,7 @@ export default function StreamStudio() {
                 <Slider min={500} max={20000} step={500} marks={{ 500: '500', 5000: '5M', 10000: '10M', 20000: '20M' }} />
               </Form.Item>
 
-              <div style={{ fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--stream-border, #e8e8e8)', marginTop: 16 }}>音频配置</div>
+              <div className={styles.sectionTitle} style={{ marginTop: 16 }}>音频配置</div>
               <Form.Item name="audio_sample_rate" label="采样率 (Hz)">
                 <Select options={[
                   { label: '44100 Hz (CD音质)', value: 44100 },
@@ -1366,7 +1369,7 @@ export default function StreamStudio() {
               </Form.Item>
             </Form>
 
-            <div style={{ fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--stream-border, #e8e8e8)', marginTop: 16 }}>推流密钥</div>
+            <div className={styles.sectionTitle} style={{ marginTop: 16 }}>推流密钥</div>
             <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
               推流密钥用于身份验证，请勿泄露给他人。如怀疑泄露，请立即重置。
             </Text>
@@ -1386,8 +1389,9 @@ export default function StreamStudio() {
         open={showSpeedTestModal}
         onCancel={() => { setShowSpeedTestModal(false); setSpeedTestResults([]); setSpeedTestConcurrent([]); setDownloadMedKbps(null); }}
         footer={null}
-        width={520}
+        width={560}
         destroyOnClose
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         {!speedTestRunning && speedTestResults.length === 0 && (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
@@ -1407,7 +1411,7 @@ export default function StreamStudio() {
               <Text type="secondary">已测 {speedTestResults.length} 次</Text>
             </div>
             {speedTestResults.length > 0 && (
-              <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
+              <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
                 {speedTestResults.map((r, i) => (
                   <Tag key={i}>{Math.round(r / 1024 * 10) / 10} Mbps</Tag>
                 ))}

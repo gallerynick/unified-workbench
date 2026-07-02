@@ -35,7 +35,7 @@ export default function StreamWatch() {
       console.error('[WATCH]', err);
       setStatus('error');
     };
-    client.start(whepUrl, video).catch(() => {});
+    client.start(whepUrl, video).catch((e) => { console.warn('Failed to start WHEP:', e); });
   }, []);
 
   useEffect(() => {

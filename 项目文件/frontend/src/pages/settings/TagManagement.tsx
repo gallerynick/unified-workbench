@@ -151,6 +151,8 @@ export default function TagManagement() {
         onCancel={() => { setModalVisible(false); form.resetFields(); }}
         okText="保存"
         cancelText="取消"
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="标签名称" rules={[{ required: true, message: '请输入标签名称' }]}>

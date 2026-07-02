@@ -264,6 +264,8 @@ export default function AnnouncementManagement() {
         }}
         okText="发布"
         cancelText="取消"
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="公告标题" rules={[{ required: true, message: '请输入公告标题' }]}>
@@ -297,6 +299,8 @@ export default function AnnouncementManagement() {
         }}
         okText="保存"
         cancelText="取消"
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={editForm} layout="vertical">
           <Form.Item name="title" label="公告标题" rules={[{ required: true, message: '请输入公告标题' }]}>

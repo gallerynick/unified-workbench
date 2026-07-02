@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, theme, Avatar, Dropdown, Space, Drawer, Button, Typography } from 'antd';
 import {
@@ -48,6 +48,7 @@ import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
 import VotePopup from '../components/VotePopup';
 import { getRouteTitle } from '../config/routeTitles';
+import styles from './MainLayout.module.css';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -143,7 +144,13 @@ export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
+  const [sidebarEntered, setSidebarEntered] = useState(false);
   const siderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSidebarEntered(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -170,7 +177,7 @@ export default function MainLayout() {
     <TagProvider>
       <Layout style={{ minHeight: '100vh', background: colorBgLayout }}>
         {!isMobile && (
-        <div className="sider-scroll-container" style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240, display: 'flex', flexDirection: 'column' }}>
+        <div className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`} style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240, display: 'flex', flexDirection: 'column' }}>
           <div
             style={{
               height: 64,
@@ -270,7 +277,7 @@ export default function MainLayout() {
         </Drawer>
       )}
 
-      <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 240), transition: 'margin-left 0.2s', background: colorBgLayout }}>
+      <Layout className={`${styles.appLayout}${sidebarEntered ? ` ${styles.appEntered}` : ''}`} style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 240), transition: 'margin-left 0.2s', background: colorBgLayout }}>
         <Header
           style={{
             padding: isMobile ? '0 16px' : '0 24px',
@@ -340,9 +347,13 @@ export default function MainLayout() {
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
             minHeight: 280,
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <Outlet />
+          <div key={location.pathname} className={styles.transitionWrapper} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Outlet />
+          </div>
         </Content>
         <NotificationDrawer
           open={drawerOpen}

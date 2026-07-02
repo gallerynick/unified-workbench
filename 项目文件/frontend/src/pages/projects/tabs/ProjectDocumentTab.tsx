@@ -29,6 +29,7 @@ import {
 } from '@ant-design/icons';
 import type { WorkRecord } from '../../../types/record';
 import ContentEditor from '../../content/ContentEditor';
+import styles from './ProjectDocumentTab.module.css';
 
 const { Text } = Typography;
 
@@ -492,18 +493,9 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
 
   if (mode === 'preview' && activeDoc) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className={styles.flexColumnFill}>
         {/* 顶栏：返回 + 标题 + 操作按钮 */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 0',
-            borderBottom: '1px solid #f0f0f0',
-            marginBottom: 12,
-            flexShrink: 0,
-          }}
+        <div className={styles.previewToolbar}
         >
           <Button
             type="text"
@@ -530,17 +522,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         </div>
 
         {/* 文档元数据 */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 16,
-            flexWrap: 'wrap',
-            padding: '12px 16px',
-            background: '#fafafa',
-            borderRadius: 8,
-            marginBottom: 16,
-            flexShrink: 0,
-          }}
+        <div className={styles.metadataBar}
         >
           <div>
             <Text type="secondary" style={{ fontSize: 12 }}>分类</Text>
@@ -563,13 +545,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         </div>
 
         {/* 文档内容（只读） */}
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-            padding: '0 4px',
-          }}
+        <div className={styles.contentArea}
         >
           {activeDoc.content ? (
             <ContentEditor
@@ -582,7 +558,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
           ) : (
             <Empty
               description="暂无内容"
-              style={{ marginTop: 80 }}
+              className={styles.emptyState ?? ''}
             >
               <Button
                 type="primary"
@@ -602,18 +578,9 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
 
   if (mode === 'edit' && activeDoc) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className={styles.flexColumnFill}>
         {/* 顶栏：返回 + 可编辑标题 + 操作按钮 */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 0',
-            borderBottom: '1px solid #f0f0f0',
-            marginBottom: 12,
-            flexShrink: 0,
-          }}
+        <div className={styles.previewToolbar}
         >
           <Button
             type="text"
@@ -654,7 +621,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         </div>
 
         {/* 富文本编辑器 */}
-        <div style={{ flex: 1, minHeight: 0 }}>
+        <div className={styles.contentArea}>
           <ContentEditor
             value={activeDoc.content}
             onChange={handleContentChange}
@@ -672,6 +639,8 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
             <Button onClick={handleCloseTemplateModal}>关闭</Button>
           }
           destroyOnClose
+          width={560}
+          styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
         >
           <Empty description="暂无可用模板" />
         </Modal>
@@ -682,16 +651,9 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
   // ─── 渲染：列表模式 ──────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className={styles.flexColumnFill}>
       {/* 顶栏：搜索 + 新增分类 + 新增文档 */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 16,
-          flexShrink: 0,
-        }}
+      <div className={styles.listToolbar}
       >
         <Input
           prefix={<SearchOutlined />}
@@ -738,14 +700,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
             items={Object.entries(groupedDocs).map(([category, docs]) => ({
               key: category,
               label: (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                  }}
-                >
+                <div className={styles.categoryHeader}>
                   <Space>
                     <FolderOutlined style={{ color: '#1890ff' }} />
                     <Text strong>{category}</Text>
@@ -879,6 +834,8 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         okText="确定"
         cancelText="取消"
         destroyOnClose
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Input
           placeholder="请输入分类名称"
@@ -898,6 +855,8 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         okText="确定"
         cancelText="取消"
         destroyOnClose
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Input
           placeholder="请输入新的分类名称"
@@ -921,6 +880,8 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         okText="确定"
         cancelText="取消"
         destroyOnClose
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Input
           placeholder="请输入文档标题"

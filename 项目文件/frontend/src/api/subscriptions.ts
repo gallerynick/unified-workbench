@@ -11,7 +11,7 @@ export async function listSubscriptions(params?: {
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
 
   const query = searchParams.toString();
-  return request<SubscriptionListResponse>(`/finance/subscriptions/${query ? `?${query}` : ''}`);
+  return request<SubscriptionListResponse>(`/finance/subscriptions${query ? `?${query}` : ''}`);
 }
 
 export async function createSubscription(data: SubscriptionCreate): Promise<UnifiedResponse<Subscription>> {

@@ -11,7 +11,7 @@ export async function listBudgets(params?: {
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
 
   const query = searchParams.toString();
-  return request<BudgetListResponse>(`/finance/budgets/${query ? `?${query}` : ''}`);
+  return request<BudgetListResponse>(`/finance/budgets${query ? `?${query}` : ''}`);
 }
 
 export async function createBudget(data: BudgetCreate): Promise<UnifiedResponse<Budget>> {

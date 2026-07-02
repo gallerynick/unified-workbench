@@ -23,6 +23,7 @@
 }
 
 .header {
+  gap: 16px;
   margin-bottom: 24px;
 }
 

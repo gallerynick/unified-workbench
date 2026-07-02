@@ -107,9 +107,14 @@ export default function FinanceManagement() {
       okType: 'danger',
       cancelText: '取消',
       onOk: async () => {
-        await deleteBudget(item.id);
-        message.success('预算已删除');
-        fetchBudgets();
+        try {
+          await deleteBudget(item.id);
+          message.success('预算已删除');
+          fetchBudgets();
+        } catch (e) {
+          message.error('删除预算失败');
+          console.warn('Failed to delete budget:', e);
+        }
       },
     });
   };
@@ -157,9 +162,14 @@ export default function FinanceManagement() {
       okType: 'danger',
       cancelText: '取消',
       onOk: async () => {
-        await deleteSubscription(item.id);
-        message.success('订阅已删除');
-        fetchSubscriptions();
+        try {
+          await deleteSubscription(item.id);
+          message.success('订阅已删除');
+          fetchSubscriptions();
+        } catch (e) {
+          message.error('删除订阅失败');
+          console.warn('Failed to delete subscription:', e);
+        }
       },
     });
   };
@@ -264,7 +274,7 @@ export default function FinanceManagement() {
         ]}
       />
 
-      <Modal title={editingBudget ? '编辑预算' : '新增预算'} open={budgetModalVisible} onOk={handleSaveBudget} onCancel={() => setBudgetModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading}>
+        <Modal title={editingBudget ? '编辑预算' : '新增预算'} open={budgetModalVisible} onOk={handleSaveBudget} onCancel={() => setBudgetModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading} width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={budgetForm} layout="vertical">
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="预算名称" />
@@ -281,7 +291,7 @@ export default function FinanceManagement() {
         </Form>
       </Modal>
 
-      <Modal title={editingSub ? '编辑订阅' : '新增订阅'} open={subModalVisible} onOk={handleSaveSubscription} onCancel={() => setSubModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading}>
+        <Modal title={editingSub ? '编辑订阅' : '新增订阅'} open={subModalVisible} onOk={handleSaveSubscription} onCancel={() => setSubModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading} width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={subForm} layout="vertical">
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="订阅名称" />

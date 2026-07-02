@@ -1,6 +1,6 @@
-export type TopologyNodeType = 'router' | 'switch' | 'server' | 'firewall' | 'device' | 'cloud';
+export type TopologyNodeType = 'router' | 'switch' | 'server' | 'computer' | 'smartphone' | 'headphone' | 'internet' | 'keyboard' | 'mouse' | 'printer' | 'projector' | 'speaker' | 'television' | 'custom';
 export type TopologyNodeStatus = 'online' | 'offline' | 'warning';
-export type TopologyType = 'device' | 'network' | 'custom';
+export type TopologyShape = 'circle' | 'rectangle' | 'diamond' | 'hexagon' | 'triangle';
 
 export interface TopologyNode {
   id: string;
@@ -8,6 +8,8 @@ export interface TopologyNode {
   y: number;
   label: string;
   type: TopologyNodeType;
+  shape?: TopologyShape;
+  customColor?: string;
   ip?: string;
   status?: TopologyNodeStatus;
 }
@@ -23,7 +25,7 @@ export interface Topology {
   id: string;
   name: string;
   description: string | null;
-  topology_type: TopologyType;
+  category: string;
   nodes: TopologyNode[];
   edges: TopologyEdge[];
   owner_id: string;
@@ -34,7 +36,7 @@ export interface Topology {
 export interface TopologyCreate {
   name: string;
   description?: string;
-  topology_type: TopologyType;
+  category?: string;
   nodes?: TopologyNode[];
   edges?: TopologyEdge[];
 }
@@ -42,7 +44,7 @@ export interface TopologyCreate {
 export interface TopologyUpdate {
   name?: string;
   description?: string;
-  topology_type?: TopologyType;
+  category?: string;
   nodes?: TopologyNode[];
   edges?: TopologyEdge[];
 }

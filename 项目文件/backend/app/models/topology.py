@@ -24,7 +24,7 @@ class Topology(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(200), nullable=False, comment="拓扑名称")
     description: Mapped[str | None] = mapped_column(Text(), nullable=True, comment="描述")
-    topology_type: Mapped[str] = mapped_column(String(50), nullable=False, default="custom", comment="拓扑类型: device/network/custom")
+    category: Mapped[str] = mapped_column(String(100), nullable=False, default="", comment="用户自定义分类标签")
     # nodes: [{id, x, y, label, type, ip?, status?}]
     nodes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, comment="节点列表")
     # edges: [{id, source, target, label?}]

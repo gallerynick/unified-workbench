@@ -43,7 +43,7 @@ export default function FormResponses() {
         setResponses(res.data.items.map(r => ({ ...r.data, id: r.id, respondent_id: r.respondent_id, created_at: r.created_at })));
         setTotal(res.data.total);
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('Failed to load form responses:', e); }
     finally { setLoading(false); }
   }, [id, page]);
 
@@ -63,7 +63,7 @@ export default function FormResponses() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <Title level={4}>{title} - 回复</Title>
+<Title level={4} className={styles.title ?? ''}>{title} - 回复</Title>
         <Tag>{total} 条</Tag>
       </div>
       <Table columns={columns} dataSource={responses} rowKey="id" pagination={{ current: page, total, pageSize: 20, onChange: (p) => setPage(p) }} scroll={{ x: 'max-content' }} />

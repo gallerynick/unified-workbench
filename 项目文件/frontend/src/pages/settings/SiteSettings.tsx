@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Switch, Button, Typography, message, Alert, Space } from 'antd';
+import { Card, Form, Input, Switch, Button, Typography, message, Alert, Space, Result } from 'antd';
 import { SaveOutlined, GlobalOutlined, SafetyOutlined, LockOutlined } from '@ant-design/icons';
 import { isAdmin } from '../../utils/auth';
-import { Result } from 'antd';
 import styles from './SiteSettings.module.css';
 
 const { Title } = Typography;

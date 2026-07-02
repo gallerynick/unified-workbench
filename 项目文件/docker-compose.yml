@@ -123,7 +123,7 @@ services:
     volumes:
       - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
     environment:
-      MTX_WEBRTCADDITIONALHOSTS: "${HOST_IP:-host.docker.internal,192.168.123.65}"
+      MTX_WEBRTCADDITIONALHOSTS: "${HOST_IP:-host.docker.internal}"
     healthcheck:
       test: ["CMD", "curl", "-f", "-X", "OPTIONS", "http://localhost:8889/test/whip"]
       interval: 10s

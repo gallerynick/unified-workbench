@@ -108,6 +108,7 @@ export default function PasswordVerifyModal({
       }
       destroyOnClose
       width={decryptedData ? 560 : 420}
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       {!decryptedData ? (
         /* 密码输入阶段 */

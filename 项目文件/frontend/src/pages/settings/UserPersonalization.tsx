@@ -1,24 +1,30 @@
 import { useState, useEffect } from 'react';
-import { Card, Switch, Button, Typography, message, Alert, Space } from 'antd';
+import { Card, Segmented, Button, Typography, message, Alert, Space } from 'antd';
 import { BgColorsOutlined, SaveOutlined } from '@ant-design/icons';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme, type ThemeMode } from '../../contexts/ThemeContext';
 import styles from './UserPersonalization.module.css';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
+
+const THEME_OPTIONS: { label: string; value: ThemeMode }[] = [
+  { label: '浅色', value: 'light' },
+  { label: '深色', value: 'dark' },
+  { label: '跟随系统', value: 'system' },
+];
 
 export default function UserPersonalization() {
-  const { isDark, setDark } = useTheme();
-  const [localDark, setLocalDark] = useState(isDark);
+  const { themeMode, setTheme } = useTheme();
+  const [localTheme, setLocalTheme] = useState<ThemeMode>(themeMode);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setLocalDark(isDark);
-  }, [isDark]);
+    setLocalTheme(themeMode);
+  }, [themeMode]);
 
   const handleSave = () => {
     setSaving(true);
     try {
-      setDark(localDark);
+      setTheme(localTheme);
       message.success('个性化设置已保存');
     } catch {
       message.error('保存失败');
@@ -28,13 +34,14 @@ export default function UserPersonalization() {
   };
 
   return (
-    <div style={{ maxWidth: 800 }}>
-      <Title level={4} className={styles.title ?? ''}>用户个性化</Title>
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>用户个性化</Title>
+      </div>
       <Alert
         message="这些设置仅影响当前浏览器，不会同步到其他设备或其他用户。"
         type="info"
         showIcon
-        style={{ marginBottom: 24 }}
       />
 
       <Card
@@ -44,20 +51,17 @@ export default function UserPersonalization() {
             主题设置
           </Space>
         }
-        style={{ marginBottom: 24 }}
       >
         <div style={{ marginBottom: 16 }}>
-          <Switch
-            checked={localDark}
-            onChange={setLocalDark}
+          <Segmented
+            options={THEME_OPTIONS}
+            value={localTheme}
+            onChange={(val) => setLocalTheme(val as ThemeMode)}
           />
-          <Text style={{ marginLeft: 8 }}>
-            {localDark ? '深色主题' : '浅色主题'}
-          </Text>
         </div>
 
         <Paragraph type="secondary">
-          切换主题颜色模式。深色主题适合低光环境使用。
+          选择主题颜色模式。"跟随系统"将根据操作系统设置自动切换深色/浅色主题。
         </Paragraph>
       </Card>
 

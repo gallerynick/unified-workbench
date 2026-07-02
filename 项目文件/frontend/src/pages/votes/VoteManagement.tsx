@@ -148,7 +148,7 @@ export default function VoteManagement() {
       </div>
       <Table<Vote> columns={columns} dataSource={votes} rowKey="id" loading={loading}
         pagination={{ current: page, pageSize: 20, total, onChange: (p) => setPage(p) }} />
-      <Modal title="新建投票" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消">
+      <Modal title="新建投票" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="投票标题" rules={[{ required: true, message: '请输入投票标题' }]}>
             <Input placeholder="请输入投票标题" />
@@ -175,7 +175,7 @@ export default function VoteManagement() {
           </div>
         </Form>
       </Modal>
-      <Modal title="投票结果" open={resultsVisible} onCancel={() => setResultsVisible(false)} footer={null}>
+      <Modal title="投票结果" open={resultsVisible} onCancel={() => setResultsVisible(false)} footer={null} width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         {results.map((r) => (
           <div key={r.option} style={{ marginBottom: 8 }}>
             <Text>{r.option}</Text>
@@ -191,6 +191,8 @@ export default function VoteManagement() {
         okText="提交投票"
         cancelText="取消"
         confirmLoading={submitting}
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         {currentVote && (
           <div>

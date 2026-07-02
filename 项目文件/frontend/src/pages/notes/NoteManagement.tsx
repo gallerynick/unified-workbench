@@ -313,7 +313,8 @@ export default function NoteManagement() {
         onCancel={() => { setModalVisible(false); setSelectedKeys([]); form.resetFields(); }}
         okText={editingNote ? '保存' : '创建'}
         cancelText="取消"
-        width={640}
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">
           <Form.Item label="笔记标题" required>

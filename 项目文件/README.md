@@ -13,39 +13,53 @@
 | 实时推送 | WebSocket |
 | 部署 | Docker Desktop + Docker Compose |
 
-## 快速启动
+---
+
+## 快速启动（一步启动）
 
 ### 前置条件
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) 已安装并运行
-- Windows 10/11 或 macOS
+- Windows 10/11 或 macOS 10.15+
 
-### 启动步骤
+### 启动
 
-1. 复制环境配置文件：
+| 系统 | 命令 | 说明 |
+|------|------|------|
+| macOS / Linux | `bash start.sh` | 自动检测本机 IP，输出局域网访问地址 |
+| Windows | `start.bat` | 自动检测本机 IP，输出局域网访问地址 |
 
-   ```bash
-   copy .env.example .env
-   ```
+脚本会自动：
+1. 检测本机局域网 IP（用于 WebRTC 推流和局域网访问）
+2. 检查 Docker 运行状态
+3. 自动创建 .env（首次启动，从 .env.example 复制）
+4. 构建并启动所有服务
 
-2. （可选）编辑 `.env` 文件，配置数据库密码、存储路径等。
+### 访问
 
-3. 一键启动所有服务：
+| 地址 | 说明 |
+|------|------|
+| `http://localhost` | 本机 HTTP |
+| `https://localhost` | 本机 HTTPS（自签名证书，浏览器需信任） |
+| `http://<你的IP>` | 局域网 HTTP |
+| `https://<你的IP>` | 局域网 HTTPS |
+| `http://localhost/api/v1/docs` | API 文档 |
 
-   ```bash
-   start.bat
-   ```
+### 默认账号
 
-   或手动执行：
+| 角色 | 用户名 | 密码 |
+|------|--------|------|
+| 管理员 | admin | admin123456 |
 
-   ```bash
-   docker compose up -d --build
-   ```
+首次登录后建议立即修改密码。
 
-4. 访问系统：
-   - 前端界面：http://localhost
-   - 后端 API：http://localhost/api/v1
-   - API 文档：http://localhost/api/v1/docs
+### 停止
+
+```bash
+docker compose -p unified-workbench down
+```
+
+---
 
 ## 目录结构
 
@@ -73,8 +87,9 @@
 │   └── Dockerfile
 ├── nginx/                 # Nginx 反向代理配置
 ├── docker-compose.yml
-├── .env.example
-└── start.bat              # Windows 一键启动脚本
+├── .env.example           # 环境变量模板
+├── start.sh               # macOS/Linux 一键启动
+└── start.bat              # Windows 一键启动
 ```
 
 ## 开发规范
@@ -82,6 +97,7 @@
 - 后端：PEP8 + ruff + black + mypy
 - 前端：ESLint + Prettier + 严格 TypeScript
 - API：RESTful，统一响应 `{ "code": 0, "msg": "", "data": {} }`
+- 启动脚本：所有服务启停必须使用 `start.sh` / `start.bat`，不得手动运行 `docker compose` 命令
 
 ## 安全约束
 

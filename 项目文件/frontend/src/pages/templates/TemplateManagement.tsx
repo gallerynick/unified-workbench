@@ -299,9 +299,10 @@ function ProjectDocsTab() {
         onOk={handleModalOk}
         onCancel={() => setModalVisible(false)}
         destroyOnClose
-        width={860}
+        width={800}
         okText="保存"
         cancelText="取消"
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', gap: 16 }}>

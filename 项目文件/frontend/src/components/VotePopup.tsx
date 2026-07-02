@@ -30,7 +30,7 @@ export default function VotePopup() {
           setPendingVotes(activeVotes);
           setVisible(true);
         }
-      } catch {}
+      } catch (e) { console.warn('Failed to check pending votes:', e); }
     };
 
     const timer = setTimeout(checkPendingVotes, 1000);
@@ -81,7 +81,7 @@ export default function VotePopup() {
       open={visible}
       onCancel={() => setVisible(false)}
       footer={null}
-      width={480}
+      width={420}
       maskClosable={false}
     >
       {currentVote && (

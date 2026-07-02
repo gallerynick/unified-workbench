@@ -9,9 +9,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 # 允许的节点类型与状态，与前端 TopologyNode.type / status 对齐
-VALID_NODE_TYPES = {"router", "switch", "server", "firewall", "device", "cloud"}
+VALID_NODE_TYPES = {"router", "switch", "server", "computer", "smartphone", "headphone", "internet", "keyboard", "mouse", "printer", "projector", "speaker", "television", "custom"}
 VALID_NODE_STATUS = {"online", "offline", "warning"}
-VALID_TOPOLOGY_TYPES = {"device", "network", "custom"}
 
 
 class TopologyCreate(BaseModel):
@@ -19,7 +18,7 @@ class TopologyCreate(BaseModel):
 
     name: str = Field(min_length=1, max_length=200)
     description: str | None = None
-    topology_type: str = Field(default="custom", pattern="^(device|network|custom)$")
+    category: str = Field(default="", max_length=100)
     nodes: list[dict] = Field(default_factory=list)
     edges: list[dict] = Field(default_factory=list)
     visibility: Literal["public", "private", "restricted"] = "private"
@@ -32,7 +31,7 @@ class TopologyUpdate(BaseModel):
 
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
-    topology_type: str | None = Field(default=None, pattern="^(device|network|custom)$")
+    category: str | None = Field(default=None, max_length=100)
     nodes: list[dict] | None = None
     edges: list[dict] | None = None
 
@@ -45,7 +44,7 @@ class TopologyResponse(BaseModel):
     id: uuid.UUID
     name: str
     description: str | None
-    topology_type: str
+    category: str
     nodes: list[dict]
     edges: list[dict]
     owner_id: uuid.UUID

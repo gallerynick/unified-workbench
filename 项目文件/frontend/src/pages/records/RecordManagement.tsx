@@ -413,6 +413,8 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
         okText="确定"
         cancelText="取消"
         destroyOnClose
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Select
           placeholder="请选择模板"

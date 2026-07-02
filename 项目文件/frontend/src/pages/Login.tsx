@@ -15,6 +15,7 @@ const { Title, Text } = Typography;
 export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const customization = useCustomization();
   const { refreshUser } = useUser();
 
@@ -32,7 +33,8 @@ export default function Login() {
         setTokens(response.data);
         await refreshUser();
         message.success('登录成功');
-        navigate('/', { replace: true });
+        setTransitioning(true);
+        setTimeout(() => navigate('/', { replace: true }), 400);
       } else {
         message.error('用户名或密码有误');
       }
@@ -54,8 +56,8 @@ export default function Login() {
   };
 
   return (
-    <div className={styles.container ?? ''}>
-      <Card className={styles.card ?? ''} bordered={false}>
+    <div className={`${styles.container ?? ''} ${transitioning ? styles.containerLeaving : ''}`}>
+      <Card className={`${styles.card ?? ''} ${transitioning ? styles.cardLeaving : ''}`} bordered={false}>
         <div className={styles.header ?? ''}>
           <Title level={3} className={styles.title ?? ''}>
             {customization.app.name}

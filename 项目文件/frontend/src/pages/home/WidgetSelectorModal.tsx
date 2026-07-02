@@ -24,6 +24,8 @@ export default function WidgetSelectorModal({
       onCancel={onClose}
       onOk={onClose}
       destroyOnClose
+      width={560}
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <List
         size="small"

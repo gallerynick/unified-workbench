@@ -187,6 +187,8 @@ export default function FileUploadModal({
       okButtonProps={{ disabled: fileList.length === 0 }}
       className={styles.modal ?? ''}
       destroyOnClose
+      width={560}
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <div className={styles.form ?? ''}>
         <div className={styles.uploadSection ?? ''}>

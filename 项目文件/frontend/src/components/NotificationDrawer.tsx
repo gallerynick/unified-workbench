@@ -1,6 +1,7 @@
 import { Drawer, List, Typography, Button, Empty, Tag } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
 import type { Notification } from '../hooks/useWebSocket';
+import styles from './NotificationDrawer.module.css';
 
 interface NotificationDrawerProps {
   open: boolean;
@@ -22,7 +23,7 @@ export default function NotificationDrawer({
       title="通知中心"
       open={open}
       onClose={onClose}
-      width={400}
+      width={420}
       extra={
         <Button
           type="link"
@@ -40,19 +41,18 @@ export default function NotificationDrawer({
           dataSource={notifications}
           renderItem={(item) => (
             <List.Item
-              style={{
-                cursor: 'pointer',
-                background: item.read ? 'transparent' : '#f6ffed',
-                padding: '12px 0',
-              }}
+              className={`${styles.notificationItem || ''} ${!item.read ? styles.unread || '' : ''}`}
               onClick={() => onMarkAsRead(item.id)}
-              actions={[!item.read ? <Tag color="green">未读</Tag> : null]}
+              actions={[!item.read ? <Tag key="unread" color="green">未读</Tag> : null]}
             >
               <List.Item.Meta
+                className={styles.notificationContent || ''}
                 title={
-                  <Typography.Text strong={!item.read}>
-                    {item.title}
-                  </Typography.Text>
+                  <div className={styles.notificationTitle}>
+                    <Typography.Text strong={!item.read}>
+                      {item.title}
+                    </Typography.Text>
+                  </div>
                 }
                 description={
                   <div>

@@ -163,7 +163,7 @@ export default function TaskManagement() {
       />
 
       <Modal title={editingTask ? '编辑待办' : '新建待办'} open={modalVisible} onOk={handleSave}
-        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消">
+        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical" initialValues={{ priority: 'medium' }}>
           <Form.Item name="title" label="待办标题" rules={[{ required: true, message: '请输入待办标题' }]}>
             <Input placeholder="请输入待办标题" />

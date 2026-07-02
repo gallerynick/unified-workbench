@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch, Tooltip, Form, Dropdown } from 'antd';
 import { PlusOutlined, DeleteOutlined, FormOutlined, BarChartOutlined, ShareAltOutlined, QrcodeOutlined, CopyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { listForms, createForm, deleteForm } from '../../api/forms';
 import type { FormItem, FormField } from '../../types/form';
@@ -115,7 +115,7 @@ export default function FormManagement() {
       </div>
       <Table<FormItem> columns={columns} dataSource={forms} rowKey="id" loading={loading}
         pagination={{ current: page, pageSize: 20, total, onChange: (p) => setPage(p) }} />
-      <Modal title="新建表单" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={600}>
+      <Modal title="新建表单" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="表单标题" rules={[{ required: true, message: '请输入表单标题' }]}>
             <Input placeholder="请输入表单标题" />
@@ -146,7 +146,7 @@ export default function FormManagement() {
           </div>
         </Form>
       </Modal>
-      <Modal title="分享表单" open={showQrModal} onCancel={() => setShowQrModal(false)} footer={null} width={320}>
+      <Modal title="分享表单" open={showQrModal} onCancel={() => setShowQrModal(false)} footer={null} width={420} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         {qrForm && (
           <div style={{ textAlign: 'center' }}>
             <QRCodeSVG value={`${window.location.origin}/forms/${qrForm.id}/fill`} size={200} />

@@ -72,6 +72,8 @@ export default function CategoryFormModal({ visible, category, onClose, onSucces
       okText={category ? '保存' : '创建'}
       cancelText="取消"
       destroyOnClose
+      width={560}
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <Form form={form} layout="vertical" preserve={false}>
         <Form.Item

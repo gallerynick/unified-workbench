@@ -1,3 +1,13 @@
-.container { padding: 24px; min-height: 100vh; }
-.header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+}
 .header h4 { margin: 0; }

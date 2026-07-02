@@ -1,16 +1,26 @@
 一、项目基定文件
-1.路径：/Users/gallerynick/Documents/Project/Project_UnifiedWorkbench/项目基定
+1.路径：Project_UnifiedWorkbench/项目基定
 2.说明：对于整个项目的总领，项目的所有开发工作都要基于且紧扣这个项目基定
 3.权限：只读
 
 二、项目文件
-1.路径：/Users/gallerynick/Documents/Project/Project_UnifiedWorkbench/项目文件
+1.路径：Project_UnifiedWorkbench/项目文件
 2.说明：项目的代码和配置文件，直接在此目录下组织（backend/、frontend/ 等），版本通过 Git tag 管理（如 v1.0.0），不需要创建版本子目录
 3.权限：读写
 
 三、项目开发日志
-1.路径：/Users/gallerynick/Documents/Project/Project_UnifiedWorkbench/项目开发日志
+1.路径：Project_UnifiedWorkbench/项目开发日志
 2.说明：每次开发工作结束后都需要记录修改；新增；删除了什么，要写详细，具体格式按照"项目基定"里的"项目开发日志格式.md"
+3.权限：读写
+
+四、代办计划
+1.路径：Project_UnifiedWorkbench/代办计划
+2.说明：在一些计划执行前的计划规划与记录，等待后续执行的计划文件
+3.权限：读写
+
+五、问题记录
+1.路径：Project_UnifiedWorkbench/问题记录
+2.说明：在开发过程中多次出现的问题，难修复的问题，容易出现的问题的记录，以便在后续开发过程中规避问题或再次出现问题可以快速解决
 3.权限：读写
 
 四、开发总则

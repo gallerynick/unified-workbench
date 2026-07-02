@@ -29,7 +29,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (res.code === 0) {
         setUser(res.data);
       }
-    } catch {}
+    } catch (e) { console.warn('Failed to refresh user:', e); }
   }, []);
 
   useEffect(() => {

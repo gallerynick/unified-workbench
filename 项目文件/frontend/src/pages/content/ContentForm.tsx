@@ -195,9 +195,10 @@ export default function ContentForm({
       onCancel={onClose}
       confirmLoading={submitting}
       destroyOnClose
-      width={960}
-      className={styles.modal ?? ''}
-      footer={(_defaultFooter, { OkBtn, CancelBtn }) => (
+      width={800}
+        className={styles.modal ?? ''}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
+        footer={(_defaultFooter, { OkBtn, CancelBtn }) => (
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div>
             {mode === 'create' && (

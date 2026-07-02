@@ -3,71 +3,69 @@ import { theme as antdTheme } from 'antd';
 
 const THEME_KEY = 'user_personalization';
 
+export type ThemeMode = 'dark' | 'light' | 'system';
+
 interface ThemeContextValue {
   isDark: boolean;
-  toggleTheme: () => void;
-  setDark: (dark: boolean) => void;
+  themeMode: ThemeMode;
+  setTheme: (mode: ThemeMode) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   isDark: false,
-  toggleTheme: () => {},
-  setDark: () => {},
+  themeMode: 'light',
+  setTheme: () => {},
 });
 
 export function useTheme() {
   return useContext(ThemeContext);
 }
 
-function readThemeFromStorage(): boolean {
+function readThemeMode(): ThemeMode {
   try {
     const stored = localStorage.getItem(THEME_KEY);
     if (stored) {
       const config = JSON.parse(stored);
-      return config.theme === 'dark';
+      if (config.theme === 'dark' || config.theme === 'light' || config.theme === 'system') {
+        return config.theme;
+      }
     }
-  } catch {}
-  return false;
+  } catch (e) { console.warn('Failed to read theme:', e); }
+  return 'light';
+}
+
+function getSystemPrefersDark(): boolean {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [isDark, setIsDark] = useState(readThemeFromStorage);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(readThemeMode);
+  const [systemDark, setSystemDark] = useState(getSystemPrefersDark);
+
+  const isDark = themeMode === 'system' ? systemDark : themeMode === 'dark';
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setIsDark(readThemeFromStorage());
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setIsDark((prev) => {
-      const next = !prev;
-      try {
-        const stored = localStorage.getItem(THEME_KEY);
-        const config = stored ? JSON.parse(stored) : {};
-        localStorage.setItem(THEME_KEY, JSON.stringify({ ...config, theme: next ? 'dark' : 'light' }));
-      } catch {}
-      return next;
-    });
-  }, []);
-
-  const setDark = useCallback((dark: boolean) => {
-    setIsDark(dark);
+  const setTheme = useCallback((mode: ThemeMode) => {
+    setThemeMode(mode);
     try {
       const stored = localStorage.getItem(THEME_KEY);
       const config = stored ? JSON.parse(stored) : {};
-      localStorage.setItem(THEME_KEY, JSON.stringify({ ...config, theme: dark ? 'dark' : 'light' }));
-    } catch {}
+      localStorage.setItem(THEME_KEY, JSON.stringify({ ...config, theme: mode }));
+    } catch (e) { console.warn('Failed to write theme:', e); }
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ isDark, toggleTheme, setDark }}>
+    <ThemeContext.Provider value={{ isDark, themeMode, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

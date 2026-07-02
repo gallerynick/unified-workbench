@@ -315,7 +315,8 @@ export default function ContentManagement() {
         open={draftModalVisible}
         onCancel={() => setDraftModalVisible(false)}
         footer={null}
-        width={500}
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <div style={{ padding: '8px 0' }}>
           {drafts.length > 0 ? (

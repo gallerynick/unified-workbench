@@ -178,3 +178,130 @@
 - 宽度为建议值，个别页面如有特殊需求（如 Tiptap 编辑器）可微调
 - `styles.body` 是 Ant Design 5 的 API（非 `bodyStyle`），需确认版本兼容
 - 此计划待确认后执行，**当前不修改任何代码**
+
+---
+
+## 八、Modal 内阴影与边框高亮规范
+
+### 规则
+
+**Modal 内部所有交互项不得使用 `box-shadow`（浮窗阴影），仅允许通过 `border-color` 颜色变化实现高亮反馈。**
+
+### 原因
+
+1. Modal 自身已有浮窗阴影（Ant Design Modal 默认 `box-shadow`），内部交互项再用 `box-shadow` 会造成视觉层级混乱
+2. `box-shadow` 在 Modal 内部容易被 Modal 自身的 footer/滚动边界遮挡，造成视觉截断
+3. 纯 `border-color` 高亮与 Input 组件的 focus 行为保持一致（参考 Input focus 态：`border-color: #1677ff`），视觉语言统一
+
+### 实现标准
+
+交互项（卡片、选项、列表项等）的高亮态应遵循以下层级：
+
+| 状态 | 样式 | 示例 |
+|------|------|------|
+| 默认 | `border: 1px solid var(--border-primary, #d9d9d9)` | 普通边框 |
+| 悬浮 (hover) | `border-color: var(--color-primary-hover, #4096ff)` | 蓝色边框加深 |
+| 选中 (selected) | `border-color: var(--color-primary, #1677ff)` + `background: var(--color-primary-bg, #e6f4ff)` | 蓝色边框 + 浅蓝背景 |
+
+深色模式使用对应的深色 CSS 变量即可自动适配。
+
+### 禁止事项
+
+- ❌ `Card hoverable`（Ant Design 的 hoverable 属性会自动注入 box-shadow）
+- ❌ 行内 `boxShadow` 样式
+- ❌ CSS `box-shadow` 声明在 `.module.css` 中作用于 Modal 内部的元素
+
+### 例外：Focus Ring 模式
+
+以下 `box-shadow` 模式为功能性 outline 模拟（因 CSS `outline` 不遵循 `border-radius`），**不属于禁止范围**：
+
+```css
+/* ✅ 允许：0 0 0 Npx 模式 == 功能性 focus ring */
+.editorWrapper:focus-within {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1); /* 模拟 outline */
+}
+```
+
+**判定标准**：`box-shadow` 的 spread 为正值且 blur ≤ 4px、无 X/Y 偏移 → 功能性 focus ring；X/Y 偏移 + blur ≥ 4px → 装饰性阴影，禁止。
+
+**已审查的 focus-ring 使用**：
+- `ContentEditor.module.css:22, 27` — `.editorWrapper:focus-within`（2px spread focus ring） → ✅ 例外
+- `ContentEditor.module.css:285, 290` — `.colorSwatchActive`（1px spread active ring） → ✅ 例外
+
+### Dropdown/Drawer 等非 Modal 浮窗
+
+Drawer、Dropdown、Popover 等非 Modal 浮窗**不在此规范约束范围内**，但建议参考相同原则。
+
+**已审查的 Drawer**：
+- `NotificationDrawer.tsx` — 使用 `List.Item.Meta`（含内置 `flex: 1; min-width: 0`），列对齐已正确。无 box-shadow 违规。 → ✅ 合规
+
+### 涉及组件
+
+监听以下 Ant Design 组件的 Modal 内使用：
+
+| 组件 | 禁止/替代 |
+|------|----------|
+| `Card hoverable={true}` | 移除 `hoverable`，用 CSS 类控 `border-color` |
+| `Card` 行内 `style={{ boxShadow }}` | 移除 shadow，使用 `borderColor` |
+| `List.Item` 自定义 shadow | 移除 shadow，用 `border-bottom` 或 `background-color` 区分 |
+
+### Modal 内 List.Item 列对齐规范
+
+**规则**：Modal 内 `List.Item` 的内容区必须使用 `flex: 1; min-width: 0; overflow: hidden`，确保操作区（actions）的列位置在所有列表项中一致对齐。
+
+**原因**：Ant Design `List.Item` 默认 `justify-content: space-between`，当列表项名称长短不一时，内容区宽度差异导致操作按钮横向位置不一致，破坏列对齐。
+
+**CSS 标准**：
+```css
+/* 列表项容器 */
+.listItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;                          /* 内容与操作区间距 */
+}
+
+/* 内容区——关键：flex:1 使其占用剩余空间，min-width:0 防止不收缩 */
+.listItemContent {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 名称文本——溢出省略 */
+.listItemName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+```
+
+**TSX 结构标准**：
+```tsx
+<List.Item className={styles.listItem} actions={[...]}>
+  <div className={styles.listItemContent}>
+    <div className={styles.listItemName}>{name}</div>
+    {tag}
+  </div>
+</List.Item>
+```
+
+### 已标准化项
+
+- **TopologyManagement.tsx** — 拓扑类型选择 Card：已移除 `hoverable`，改为 `border-color` 高亮选中态
+- **TopologyManagement.tsx** — 拓扑列表 List.Item：已添加 `.topologyItemContent`（flex:1 + min-width:0），确保名称列与操作按钮列对齐一致
+- **ContentEditor.module.css** — `.editorWrapper:focus-within` + `.colorSwatchActive`：CSS 中已标注例外注释，确认为功能性 focus ring（例外条款适用），无需修改
+- **NotificationDrawer.tsx + .module.css** — 已创建 CSS Module（`.notificationItem` + `.notificationContent` flex:1），显式应用列对齐；List.Item 行内 style 迁移至 CSS Module
+
+### 完整审查清单（42 个 Modal）
+
+以下为代码库中所有 `<Modal` 组件的逐个审查结果，验证第 八 章规范的合规性：
+
+| # | 文件 | Modal 内容 | box-shadow？| 列对齐？| 操作 |
+|---|------|-----------|------------|---------|------|
+| 1 | TopologyManagement.tsx:580 | Card hoverable ×4 | ❌→✅ 已移除 hoverable | ✅ 已加 flex:1 | 已修复 |
+| 2 | WidgetSelectorModal.tsx:21 | List.Item + Switch | ✅ 无 | ✅ 无 actions | 合规 |
+| 3-42 | 其余 40 个 Modal | 纯表单（Input/Select/Switch 等） | ✅ 无 | N/A | 合规 |
+
+**审查统计**：42 个 Modal → 1 个需修复（已修复）→ 0 个待处理。

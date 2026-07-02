@@ -161,7 +161,9 @@ export default function Profile() {
 
   return (
     <div className={styles.container}>
-      <Title level={4} className={styles.title ?? ''}>个人资料</Title>
+      <div className={styles.header ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>个人资料</Title>
+      </div>
 
       {/* 用户信息卡片 */}
       <Card className={styles.card ?? ''}>
@@ -323,6 +325,8 @@ export default function Profile() {
         open={deleteModalVisible}
         onCancel={() => { setDeleteModalVisible(false); setDeletePassword(''); }}
         footer={null}
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Typography.Paragraph type="danger">
           此操作不可逆！请输入您的登录密码以确认删除。

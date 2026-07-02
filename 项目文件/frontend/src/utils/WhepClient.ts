@@ -238,7 +238,7 @@ export class WhepClient {
     console.log('[WHEP] ontrack fired, kind:', evt.track.kind, 'streams:', evt.streams.length);
     if (this.savedVideoElement && evt.streams[0]) {
       this.savedVideoElement.srcObject = evt.streams[0];
-      this.savedVideoElement.play().catch(() => {});
+      this.savedVideoElement.play().catch((e) => { console.warn('Failed to play video:', e); });
     }
   }
 

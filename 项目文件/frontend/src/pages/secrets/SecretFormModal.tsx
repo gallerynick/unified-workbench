@@ -114,6 +114,8 @@ export default function SecretFormModal({
       confirmLoading={submitting}
       destroyOnClose
       className={styles.modal ?? ''}
+      width={560}
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <Form
         form={form}

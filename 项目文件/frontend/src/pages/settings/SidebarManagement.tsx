@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Typography, message, Space, Switch, List, Modal, Input, Alert, Form } from 'antd';
+import { Card, Button, Typography, message, Space, Switch, List, Modal, Input, Alert, Form, Result } from 'antd';
 import { PlusOutlined, DeleteOutlined, LockOutlined, MenuOutlined } from '@ant-design/icons';
 import { isAdmin } from '../../utils/auth';
-import { Result } from 'antd';
 import styles from './SidebarManagement.module.css';
 
 const { Title, Text } = Typography;
@@ -225,6 +224,8 @@ export default function SidebarManagement() {
         onCancel={() => { setAddModalVisible(false); form.resetFields(); }}
         okText="添加"
         cancelText="取消"
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">
           <Form.Item name="label" label="菜单项名称" rules={[{ required: true, message: '请输入菜单项名称' }]}>

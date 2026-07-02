@@ -46,7 +46,7 @@ async def create_topology(
     topology = Topology(
         name=request.name,
         description=request.description,
-        topology_type=request.topology_type,
+        category=request.category,
         nodes=request.nodes,
         edges=request.edges,
         owner_id=owner_id,
@@ -75,8 +75,8 @@ async def update_topology(
         topology.name = request.name
     if request.description is not None:
         topology.description = request.description
-    if request.topology_type is not None:
-        topology.topology_type = request.topology_type
+    if request.category is not None:
+        topology.category = request.category
     if request.nodes is not None:
         topology.nodes = request.nodes
     if request.edges is not None:

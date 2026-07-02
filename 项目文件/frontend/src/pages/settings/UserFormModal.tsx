@@ -87,6 +87,8 @@ export default function UserFormModal({
       onCancel={onClose}
       destroyOnClose
       className={styles.modal ?? ''}
+      width={560}
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <Form
         form={form}

@@ -1,0 +1,90 @@
+/* 一站式工作台 — 全局主题变量 */
+/* 所有页面共享的基础 CSS 变量，统一浅色/深色模式色值 */
+
+:root {
+  /* 背景色 */
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafafa;
+  --bg-tertiary: #f5f5f5;
+
+  /* 文字色 */
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: #8c8c8c;
+  --text-tertiary: #bfbfbf;
+  --text-inverse: #ffffff;
+
+  /* 边框色 */
+  --border-primary: #d9d9d9;
+  --border-secondary: #f0f0f0;
+  --border-tertiary: #e8e8e8;
+
+  /* 主色 */
+  --color-primary: #1677ff;
+  --color-primary-bg: #e6f4ff;
+  --color-primary-hover: #4096ff;
+  --color-primary-active: #0958d9;
+
+  /* 语义色 */
+  --color-success: #52c41a;
+  --color-success-bg: #f6ffed;
+  --color-warning: #faad14;
+  --color-warning-bg: #fffbe6;
+  --color-error: #ff4d4f;
+  --color-error-bg: #fff2f0;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-xxl: 48px;
+}
+
+:root[data-theme="dark"] {
+  /* 背景色 */
+  --bg-primary: #1f1f1f;
+  --bg-secondary: #141414;
+  --bg-tertiary: #262626;
+
+  /* 文字色 */
+  --text-primary: rgba(255, 255, 255, 0.85);
+  --text-secondary: #a6a6a6;
+  --text-tertiary: #595959;
+  --text-inverse: #000000;
+
+  /* 边框色 */
+  --border-primary: #434343;
+  --border-secondary: #303030;
+  --border-tertiary: #303030;
+
+  /* 主色 */
+  --color-primary: #1668dc;
+  --color-primary-bg: #111d2c;
+  --color-primary-hover: #3c89e8;
+  --color-primary-active: #1554ad;
+
+  /* 语义色 */
+  --color-success: #73d13d;
+  --color-success-bg: #162312;
+  --color-warning: #d89614;
+  --color-warning-bg: #2b2111;
+  --color-error: #ff7875;
+  --color-error-bg: #2a1215;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+}

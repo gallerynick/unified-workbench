@@ -83,3 +83,24 @@
     opacity: 1;
   }
 }
+
+/* ====== Home widget stagger animation ====== */
+.widgetGrid > * {
+  animation: widgetFadeUp 350ms ease-out both;
+}
+
+.widgetGrid > *:nth-child(1) { animation-delay: 0ms; }
+.widgetGrid > *:nth-child(2) { animation-delay: 100ms; }
+.widgetGrid > *:nth-child(3) { animation-delay: 200ms; }
+.widgetGrid > *:nth-child(4) { animation-delay: 300ms; }
+.widgetGrid > *:nth-child(5) { animation-delay: 400ms; }
+.widgetGrid > *:nth-child(6) { animation-delay: 500ms; }
+
+@keyframes widgetFadeUp {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}

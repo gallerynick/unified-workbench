@@ -125,6 +125,8 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
         onCancel={() => setEditModalVisible(false)}
         confirmLoading={submitting}
         destroyOnClose
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">
           <Form.Item

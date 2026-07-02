@@ -3,8 +3,7 @@ import { Modal, Form, Input, Select, DatePicker, Checkbox, message } from 'antd'
 import dayjs from 'dayjs';
 import { createReminder, updateReminder } from '../../api/reminders';
 import { listUsers } from '../../api/users';
-import type { Reminder, ReminderCreate, ReminderUpdate } from '../../types/reminder';
-import type { NotificationChannel } from '../../types/reminder';
+import type { Reminder, ReminderCreate, ReminderUpdate, NotificationChannel } from '../../types/reminder';
 import type { User } from '../../types/user';
 import styles from './ReminderFormModal.module.css';
 
@@ -128,6 +127,8 @@ export default function ReminderFormModal({
       onCancel={onClose}
       destroyOnClose
       className={styles.modal ?? ''}
+      width={560}
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <Form
         form={form}

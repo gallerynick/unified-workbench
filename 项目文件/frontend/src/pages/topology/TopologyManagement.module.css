@@ -26,7 +26,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .header {
@@ -79,76 +80,51 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px;
+  gap: 8px;
+  padding: 12px !important;
   border: 1px solid var(--topo-border, #e8e8e8);
   border-radius: 6px;
-  margin-bottom: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, transform 0.2s;
+}
+.topologyItem:not(:last-child) {
+  margin-bottom: 8px;
 }
 
 .topologyItem:hover {
   background: var(--topo-item-bg, #f5f5f5);
+  border-color: #4096ff;
+  transform: scale(1.01);
+}
+
+:root[data-theme="dark"] .topologyItem:hover {
+  border-color: #3c89e8;
 }
 
 .topologyItemActive {
   background: var(--topo-item-active-bg, #e6f7ff);
   border-color: #1677ff;
+  transform: scale(1);
+}
+
+:root[data-theme="dark"] .topologyItemActive {
+  border-color: #1668dc;
+  background: #111d2c;
+}
+
+/* 内容区：flex:1 确保操作按钮列对齐一致 */
+.topologyItemContent {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .topologyName {
   font-weight: 500;
   color: var(--topo-text, #333);
-  margin-bottom: 4px;
-}
-
-.topologyMeta {
-  font-size: 12px;
-  color: var(--topo-text-secondary, #666);
-}
-
-.palette {
-  width: 160px;
-  flex-shrink: 0;
-  background: var(--topo-palette-bg, #fff);
-  border: 1px solid var(--topo-border, #e8e8e8);
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.paletteTitle {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--topo-text, #333);
-}
-
-.paletteItem {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-  color: var(--topo-text, #333);
-}
-
-.paletteItem:hover {
-  background: var(--topo-item-bg, #f5f5f5);
-}
-
-.paletteDivider {
-  height: 1px;
-  background: var(--topo-border, #e8e8e8);
-  margin: 4px 0;
-}
-
-.paletteHint {
-  font-size: 12px;
-  color: var(--topo-text-secondary, #666);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .canvasWrapper {
@@ -240,30 +216,146 @@
   background: var(--topo-palette-bg, #fff);
   border: 1px solid var(--topo-border, #e8e8e8);
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  flex-direction: column;
+  gap: 0;
+  box-shadow: 0 2px 8px #0000001a;
   max-width: 240px;
+  max-height: 460px;
+  overflow-y: auto;
 }
 
-.nodeItem {
+/* 面板分区 */
+.panelSection {
+  padding: 2px 0;
+}
+
+.panelSectionTitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--topo-text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  padding: 0 2px;
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.collapseArrow {
+  font-size: 8px;
+  transition: transform 0.2s;
+  opacity: 0.5;
+}
+
+.panelDivider {
+  height: 1px;
+  background: var(--topo-border, #e8e8e8);
+  margin: 4px 0;
+}
+
+/* 形状/图标选择网格 */
+.shapeGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.shapeItem {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border: 1px solid var(--topo-border, #e8e8e8);
   border-radius: 6px;
   background: var(--topo-palette-bg, #fff);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, transform 0.2s;
+  padding: 1px;
+  box-sizing: border-box;
 }
 
-.nodeItem:hover {
+.shapeItem:hover {
+  border-color: #4096ff;
   background: var(--topo-item-bg, #f5f5f5);
+  transform: scale(1.05);
+}
+
+.shapeItemActive {
   border-color: #1677ff;
+  background: #e6f4ff;
+}
+
+:root[data-theme="dark"] .shapeItem:hover {
+  border-color: #3c89e8;
+}
+
+:root[data-theme="dark"] .shapeItemActive {
+  border-color: #1668dc;
+  background: #111d2c;
+}
+
+.deviceLabel,
+.shapeLabel {
+  font-size: 8px;
+  color: var(--topo-text-secondary, #666);
+  margin-top: 1px;
+}
+
+/* 颜色色板 */
+.colorSwatches {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 2px;
+}
+
+.colorSwatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s;
+  padding: 0;
+}
+
+.colorSwatch:hover {
+  border-color: #4096ff;
+  transform: scale(1.15);
+}
+
+.colorSwatchActive {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.2);
+}
+
+:root[data-theme="dark"] .colorSwatch:hover {
+  border-color: #3c89e8;
+}
+
+:root[data-theme="dark"] .colorSwatchActive {
+  border-color: #1668dc;
+  box-shadow: 0 0 0 2px rgba(22, 104, 220, 0.3);
+}
+
+/* 自定义节点行 */
+.customRow {
+  margin-bottom: 6px;
+}
+
+.customLabel {
+  font-size: 10px;
+  color: var(--topo-text-secondary, #666);
+  margin-bottom: 3px;
+  display: block;
 }
 
 .node {
@@ -305,11 +397,5 @@
   .sidebar {
     width: 100%;
     max-height: 200px;
-  }
-
-  .palette {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
   }
 }

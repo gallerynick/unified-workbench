@@ -1,96 +1,77 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Button, Typography, Modal, message, Space, Input, Tooltip, Spin, Tag, List, Card } from 'antd';
-import { SaveOutlined, ZoomInOutlined, ZoomOutOutlined, PlusOutlined, DeleteOutlined, ApartmentOutlined, DesktopOutlined, NodeIndexOutlined, DragOutlined, LinkOutlined, ExpandOutlined, ShrinkOutlined, AimOutlined, AppstoreOutlined, EditOutlined } from '@ant-design/icons';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Button, Typography, Modal, message, Space, Input, Tooltip, Spin, Tag, List, AutoComplete } from 'antd';
+import { SaveOutlined, ZoomInOutlined, ZoomOutOutlined, PlusOutlined, DeleteOutlined, ApartmentOutlined, DragOutlined, LinkOutlined, ExpandOutlined, ShrinkOutlined, AimOutlined, AppstoreOutlined, EditOutlined } from '@ant-design/icons';
 import { listTopologies, createTopology, updateTopology, deleteTopology } from '../../api/topology';
-import type { Topology, TopologyNode, TopologyEdge, TopologyNodeType, TopologyType } from '../../types/topology';
+import type { Topology, TopologyNode, TopologyEdge, TopologyNodeType, TopologyShape } from '../../types/topology';
 import styles from './TopologyManagement.module.css';
-
 import routerSvg from '../../assets/topology-icons/router.svg?raw';
 import switchSvg from '../../assets/topology-icons/switch.svg?raw';
 import serverSvg from '../../assets/topology-icons/server.svg?raw';
 import computerSvg from '../../assets/topology-icons/computer.svg?raw';
 import smartphoneSvg from '../../assets/topology-icons/smartphone.svg?raw';
-import tabletSvg from '../../assets/topology-icons/tablet.svg?raw';
+import headphoneSvg from '../../assets/topology-icons/headphone.svg?raw';
+import internetSvg from '../../assets/topology-icons/internet.svg?raw';
+import keyboardSvg from '../../assets/topology-icons/keyboard.svg?raw';
+import mouseSvg from '../../assets/topology-icons/mouse.svg?raw';
+import printerSvg from '../../assets/topology-icons/printer.svg?raw';
+import projectorSvg from '../../assets/topology-icons/projector.svg?raw';
+import speakerSvg from '../../assets/topology-icons/speaker.svg?raw';
+import televisionSvg from '../../assets/topology-icons/television.svg?raw';
 
 const { Title } = Typography;
 
 type ToolMode = 'select' | 'move' | 'connect' | 'delete';
 type PanelType = 'tools' | 'nodes' | null;
 
-const TOPOLOGY_TYPES: { type: TopologyType; label: string; icon: React.ReactNode; description: string }[] = [
-  { type: 'device', label: '设备拓扑', icon: <DesktopOutlined />, description: '使用设备图标（路由器、交换机、服务器等）' },
-  { type: 'network', label: '网络拓扑', icon: <NodeIndexOutlined />, description: '使用网络图标（路由器、交换机、服务器、电脑等）' },
-  { type: 'custom', label: '自定义拓扑', icon: <ApartmentOutlined />, description: '使用典型图形（圆形、矩形、菱形等）' },
-];
-
-const NETWORK_SVGS: Record<TopologyNodeType, string> = {
+const DEVICE_SVGS: Record<TopologyNodeType, string> = {
   router: routerSvg,
   switch: switchSvg,
   server: serverSvg,
-  device: computerSvg,
-  cloud: smartphoneSvg,
-  firewall: tabletSvg,
+  computer: computerSvg,
+  smartphone: smartphoneSvg,
+  headphone: headphoneSvg,
+  internet: internetSvg,
+  keyboard: keyboardSvg,
+  mouse: mouseSvg,
+  printer: printerSvg,
+  projector: projectorSvg,
+  speaker: speakerSvg,
+  television: televisionSvg,
+  custom: '',
 };
 
-const DEVICE_NODE_TYPES: { type: TopologyNodeType; label: string; color: string; icon: string }[] = [
-  { type: 'router', label: '路由器', color: '#1677ff', icon: '⬡' },
-  { type: 'switch', label: '交换机', color: '#52c41a', icon: '⬢' },
-  { type: 'server', label: '服务器', color: '#722ed1', icon: '⬜' },
-  { type: 'firewall', label: '防火墙', color: '#f5222d', icon: '🔺' },
-  { type: 'device', label: '终端设备', color: '#fa8c16', icon: '⬛' },
-  { type: 'cloud', label: '云服务', color: '#13c2c2', icon: '☁' },
-];
-
-const NETWORK_NODE_TYPES: { type: TopologyNodeType; label: string; color: string }[] = [
+const DEVICE_NODE_TYPES: { type: TopologyNodeType; label: string; color: string; icon?: string }[] = [
   { type: 'router', label: '路由器', color: '#1677ff' },
   { type: 'switch', label: '交换机', color: '#52c41a' },
   { type: 'server', label: '服务器', color: '#722ed1' },
-  { type: 'device', label: '电脑', color: '#fa8c16' },
-  { type: 'cloud', label: '手机', color: '#13c2c2' },
-  { type: 'firewall', label: '平板', color: '#f5222d' },
+  { type: 'computer', label: '电脑', color: '#fa8c16' },
+  { type: 'smartphone', label: '手机', color: '#13c2c2' },
+  { type: 'headphone', label: '耳机', color: '#eb2f96' },
+  { type: 'internet', label: '互联网', color: '#2f54eb' },
+  { type: 'keyboard', label: '键盘', color: '#fa541c' },
+  { type: 'mouse', label: '鼠标', color: '#a0d911' },
+  { type: 'printer', label: '打印机', color: '#531dab' },
+  { type: 'projector', label: '投影仪', color: '#fadb14' },
+  { type: 'speaker', label: '音箱', color: '#597ef7' },
+  { type: 'television', label: '电视', color: '#ff85c0' },
 ];
 
-const CUSTOM_NODE_TYPES: { type: TopologyNodeType; label: string; color: string; icon: string }[] = [
-  { type: 'device', label: '圆形', color: '#1677ff', icon: '●' },
-  { type: 'server', label: '矩形', color: '#52c41a', icon: '■' },
-  { type: 'firewall', label: '菱形', color: '#f5222d', icon: '◆' },
-  { type: 'cloud', label: '椭圆', color: '#13c2c2', icon: '⬭' },
-  { type: 'router', label: '六边形', color: '#722ed1', icon: '⬡' },
-  { type: 'switch', label: '三角形', color: '#fa8c16', icon: '▲' },
+const SHAPES: { type: TopologyShape; label: string }[] = [
+  { type: 'circle', label: '圆形' },
+  { type: 'rectangle', label: '矩形' },
+  { type: 'diamond', label: '菱形' },
+  { type: 'hexagon', label: '六边形' },
+  { type: 'triangle', label: '三角形' },
 ];
 
-function getNodeTypes(topologyType: TopologyType): typeof DEVICE_NODE_TYPES {
-  switch (topologyType) {
-    case 'device': return DEVICE_NODE_TYPES;
-    case 'network': return NETWORK_NODE_TYPES as unknown as typeof DEVICE_NODE_TYPES;
-    case 'custom': return CUSTOM_NODE_TYPES;
-    default: return DEVICE_NODE_TYPES;
-  }
-}
+const PRESET_COLORS = ['#1677ff', '#52c41a', '#722ed1', '#fa8c16', '#13c2c2', '#f5222d'];
 
-function getNodeColor(type: TopologyNodeType, topologyType: TopologyType): string {
-  return getNodeTypes(topologyType).find((t) => t.type === type)?.color ?? '#1677ff';
-}
-
-function getNodeIcon(type: TopologyNodeType, topologyType: TopologyType): string {
-  return getNodeTypes(topologyType).find((t) => t.type === type)?.icon ?? '⬜';
+function getNodeColor(type: TopologyNodeType): string {
+  return DEVICE_NODE_TYPES.find((t) => t.type === type)?.color ?? '#1677ff';
 }
 
 function getNodeSvg(type: TopologyNodeType): string | null {
-  return NETWORK_SVGS[type] ?? null;
-}
-
-function getTopologyTypeLabel(type: TopologyType): string {
-  return TOPOLOGY_TYPES.find((t) => t.type === type)?.label ?? '未知';
-}
-
-function getTopologyTypeColor(type: TopologyType): string {
-  switch (type) {
-    case 'device': return 'blue';
-    case 'network': return 'green';
-    case 'custom': return 'default';
-    default: return 'default';
-  }
+  return DEVICE_SVGS[type] ?? null;
 }
 
 export default function TopologyManagement() {
@@ -104,7 +85,7 @@ export default function TopologyManagement() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [topologyName, setTopologyName] = useState('未命名拓扑');
-  const [topologyType, setTopologyType] = useState<TopologyType>('custom');
+  const [topologyCategory, setTopologyCategory] = useState('');
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [dragNode, setDragNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -114,13 +95,18 @@ export default function TopologyManagement() {
   const [isEditing, setIsEditing] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [newTopologyName, setNewTopologyName] = useState('');
-  const [newTopologyType, setNewTopologyType] = useState<TopologyType>('custom');
+  const [newCategory, setNewCategory] = useState('');
   const [toolMode, setToolMode] = useState<ToolMode>('select');
   const [expandedPanel, setExpandedPanel] = useState<PanelType>('nodes');
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [customShape, setCustomShape] = useState<TopologyShape>('circle');
+  const [customColor, setCustomColor] = useState('#1677ff');
+  const [customLabel, setCustomLabel] = useState('');
+  const [systemExpanded, setSystemExpanded] = useState(true);
+  const [customExpanded, setCustomExpanded] = useState(true);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const fetchTopologies = useCallback(async () => {
@@ -140,25 +126,36 @@ export default function TopologyManagement() {
   useEffect(() => { fetchTopologies(); }, [fetchTopologies]);
 
   const loadTopology = (topology: Topology) => {
+    if (!topology) return;
     setCurrentTopology(topology);
     setTopologyName(topology.name);
-    setTopologyType(topology.topology_type as TopologyType || 'custom');
-    const topoNodes = topology.nodes ?? [];
-    const topoEdges = topology.edges ?? [];
+    setTopologyCategory(topology.category || '');
+    const topoNodes = Array.isArray(topology.nodes) ? topology.nodes : [];
+    const topoEdges = Array.isArray(topology.edges) ? topology.edges : [];
     setNodes(topoNodes);
     setEdges(topoEdges);
     setOriginalNodes(topoNodes);
     setOriginalEdges(topoEdges);
     setSelectedNode(null);
     setIsEditing(false);
-    setToolMode('move');
+    setToolMode('select');
   };
 
   const handleCreate = () => {
     if (!newTopologyName.trim()) { message.warning('请输入拓扑名称'); return; }
-    setCurrentTopology(null);
+    setCurrentTopology({
+      id: '',
+      name: newTopologyName,
+      description: null,
+      category: newCategory,
+      nodes: [],
+      edges: [],
+      owner_id: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
     setTopologyName(newTopologyName);
-    setTopologyType(newTopologyType);
+    setTopologyCategory(newCategory);
     setNodes([]);
     setEdges([]);
     setSelectedNode(null);
@@ -166,6 +163,7 @@ export default function TopologyManagement() {
     setOriginalEdges([]);
     setCreateModalVisible(false);
     setNewTopologyName('');
+    setNewCategory('');
     setIsEditing(true);
     message.info('已进入编辑模式，请添加节点后点击保存');
   };
@@ -174,8 +172,8 @@ export default function TopologyManagement() {
     if (!topologyName.trim()) { message.warning('请输入拓扑名称'); return; }
     setSaving(true);
     try {
-      if (currentTopology) {
-        const res = await updateTopology(currentTopology.id, { name: topologyName, nodes, edges });
+      if (currentTopology?.id) {
+        const res = await updateTopology(currentTopology.id, { name: topologyName, category: topologyCategory, nodes, edges });
         if (res.code === 0) {
           message.success('已保存');
           setCurrentTopology(res.data);
@@ -183,7 +181,7 @@ export default function TopologyManagement() {
           setOriginalEdges(edges);
         }
       } else {
-        const res = await createTopology({ name: topologyName, topology_type: topologyType, nodes, edges });
+        const res = await createTopology({ name: topologyName, category: topologyCategory, nodes, edges });
         if (res.code === 0) {
           message.success('已创建');
           setCurrentTopology(res.data);
@@ -201,30 +199,36 @@ export default function TopologyManagement() {
            JSON.stringify(edges) !== JSON.stringify(originalEdges);
   };
 
-  const handleExitEdit = () => {
-    if (hasChanges()) {
-      modal.confirm({
-        title: '未保存的修改',
-        content: '当前拓扑有未保存的修改，是否保存？',
-        okText: '保存',
-        cancelText: '不保存',
-        onOk: async () => {
-          await handleSave();
-          setIsEditing(false);
-          setToolMode('move');
-          setOriginalNodes(nodes);
-          setOriginalEdges(edges);
-        },
-        onCancel: () => {
-          setIsEditing(false);
-          setToolMode('move');
-          setOriginalNodes(nodes);
-          setOriginalEdges(edges);
-        },
-      });
+  const handleToggleEdit = () => {
+    if (isEditing) {
+      if (hasChanges()) {
+        modal.confirm({
+          title: '未保存的修改',
+          content: '当前拓扑有未保存的修改，是否保存？',
+          okText: '保存',
+          cancelText: '不保存',
+          onOk: async () => {
+            await handleSave();
+            setIsEditing(false);
+            setToolMode('move');
+            setOriginalNodes(nodes);
+            setOriginalEdges(edges);
+          },
+          onCancel: () => {
+            setIsEditing(false);
+            setToolMode('move');
+            setOriginalNodes(nodes);
+            setOriginalEdges(edges);
+          },
+        });
+      } else {
+        setIsEditing(false);
+        setToolMode('move');
+      }
     } else {
-      setIsEditing(false);
-      setToolMode('move');
+      setOriginalNodes(nodes);
+      setOriginalEdges(edges);
+      setIsEditing(true);
     }
   };
 
@@ -246,10 +250,26 @@ export default function TopologyManagement() {
     const id = `node_${Date.now()}`;
     const newNode: TopologyNode = {
       id, x: 200 + Math.random() * 200, y: 150 + Math.random() * 200,
-      label: getNodeTypes(topologyType).find((t) => t.type === type)?.label ?? '节点',
+      label: DEVICE_NODE_TYPES.find((t) => t.type === type)?.label ?? '节点',
       type,
     };
     setNodes([...nodes, newNode]);
+  };
+
+  const addCustomNode = () => {
+    if (!isEditing || !customLabel.trim()) { message.warning('请输入节点文字'); return; }
+    const id = `node_${Date.now()}`;
+    const newNode: TopologyNode = {
+      id, x: 200 + Math.random() * 200, y: 150 + Math.random() * 200,
+      label: customLabel,
+      type: 'custom',
+      shape: customShape,
+      customColor,
+    };
+    setNodes([...nodes, newNode]);
+    setCustomLabel('');
+    setCustomShape('circle');
+    setCustomColor('#1677ff');
   };
 
   const handleSvgMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -359,7 +379,12 @@ export default function TopologyManagement() {
     return () => svg.removeEventListener('wheel', onWheel);
   }, []);
 
-  const nodeTypes = getNodeTypes(topologyType);
+
+
+  const existingCategories = useMemo(() => {
+    const cats = new Set(topologies.map(t => t.category).filter(Boolean));
+    return Array.from(cats).map(c => ({ value: c, label: c }));
+  }, [topologies]);
 
   return (
     <div className={styles.container}>
@@ -370,7 +395,6 @@ export default function TopologyManagement() {
           {isEditing && (
             <>
               <Input value={topologyName} onChange={(e) => setTopologyName(e.target.value)} style={{ width: 160 }} placeholder="拓扑名称" />
-              <Tag color={getTopologyTypeColor(topologyType)}>{getTopologyTypeLabel(topologyType)}</Tag>
             </>
           )}
         </div>
@@ -392,6 +416,7 @@ export default function TopologyManagement() {
             {loading ? <Spin /> : (
               <List
                 size="small"
+                split={false}
                 dataSource={topologies}
                 locale={{ emptyText: '暂无拓扑' }}
                 renderItem={(item) => (
@@ -402,9 +427,9 @@ export default function TopologyManagement() {
                       <Button key="delete" type="text" size="small" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDelete(item); }} />
                     ]}
                   >
-                    <div>
+                    <div className={styles.topologyItemContent}>
                       <div className={styles.topologyName}>{item.name}</div>
-                      <Tag color={getTopologyTypeColor(item.topology_type as TopologyType)}>{getTopologyTypeLabel(item.topology_type as TopologyType)}</Tag>
+                      {item.category && <Tag>{item.category}</Tag>}
                     </div>
                   </List.Item>
                 )}
@@ -428,6 +453,14 @@ export default function TopologyManagement() {
                   <>
                     <div className={styles.toolDivider} />
                     <div className={styles.toolGroup}>
+                      <Tooltip title="拓扑组件库">
+                        <button type="button" className={`${styles.toolIcon} ${expandedPanel === 'nodes' ? styles.toolIconActive : ''}`} onClick={() => setExpandedPanel(expandedPanel === 'nodes' ? null : 'nodes')}>
+                          <AppstoreOutlined />
+                        </button>
+                      </Tooltip>
+                    </div>
+                    <div className={styles.toolDivider} />
+                    <div className={styles.toolGroup}>
                       <Tooltip title="选择">
                         <button type="button" className={`${styles.toolIcon} ${toolMode === 'select' ? styles.toolIconActive : ''}`} onClick={() => setToolMode('select')}>
                           <AimOutlined />
@@ -449,14 +482,6 @@ export default function TopologyManagement() {
                         </button>
                       </Tooltip>
                     </div>
-                    <div className={styles.toolDivider} />
-                    <div className={styles.toolGroup}>
-                      <Tooltip title="拓扑组件库">
-                        <button type="button" className={`${styles.toolIcon} ${expandedPanel === 'nodes' ? styles.toolIconActive : ''}`} onClick={() => setExpandedPanel(expandedPanel === 'nodes' ? null : 'nodes')}>
-                          <AppstoreOutlined />
-                        </button>
-                      </Tooltip>
-                    </div>
                   </>
                 )}
                 <div className={styles.toolDivider} />
@@ -467,7 +492,7 @@ export default function TopologyManagement() {
                 <div className={styles.toolDivider} />
                 <div className={styles.toolGroup}>
                   <Tooltip title="编辑">
-                    <button type="button" className={`${styles.toolIcon} ${isEditing ? styles.toolIconActive : ''}`} onClick={handleExitEdit}>
+                    <button type="button" className={`${styles.toolIcon} ${isEditing ? styles.toolIconActive : ''}`} onClick={handleToggleEdit}>
                       <EditOutlined />
                     </button>
                   </Tooltip>
@@ -477,20 +502,85 @@ export default function TopologyManagement() {
               <div className={styles.canvasArea}>
                 {isEditing && expandedPanel === 'nodes' && (
                   <div className={styles.nodePanel}>
-                    {nodeTypes.map((t) => {
-                      const svgContent = topologyType === 'network' ? getNodeSvg(t.type) : null;
-                      return (
-                        <Tooltip key={t.type} title={t.label}>
-                          <button type="button" className={styles.nodeItem} onClick={() => addNode(t.type)}>
-                            {svgContent ? (
-                              <span style={{ width: 18, height: 18, color: t.color, display: 'inline-flex' }} dangerouslySetInnerHTML={{ __html: svgContent }} />
-                            ) : (
-                              <span style={{ color: t.color, fontSize: 18 }}>{t.icon}</span>
-                            )}
-                          </button>
-                        </Tooltip>
-                      );
-                    })}
+                    <div className={styles.panelSection}>
+                      <div className={styles.panelSectionTitle} onClick={() => setSystemExpanded(!systemExpanded)}>
+                        <span>系统组件库</span>
+                        <span className={styles.collapseArrow} style={{ transform: systemExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▲</span>
+                      </div>
+                      {systemExpanded && (
+                        <div className={styles.shapeGrid}>
+                          {DEVICE_NODE_TYPES.map((t) => {
+                            const svgContent = getNodeSvg(t.type);
+                            return (
+                              <Tooltip key={t.type} title={t.label}>
+                                <button type="button" className={styles.shapeItem} onClick={() => addNode(t.type)}>
+                                  {svgContent ? (
+                                    <span style={{ width: 18, height: 18, color: t.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                  ) : null}
+                                  <span className={styles.deviceLabel}>{t.label}</span>
+                                </button>
+                              </Tooltip>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className={styles.panelDivider} />
+
+                    <div className={styles.panelSection}>
+                      <div className={styles.panelSectionTitle} onClick={() => setCustomExpanded(!customExpanded)}>
+                        <span>自定义节点</span>
+                        <span className={styles.collapseArrow} style={{ transform: customExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▲</span>
+                      </div>
+                      {customExpanded && (
+                        <>
+                          <div className={styles.customRow}>
+                            <span className={styles.customLabel}>形状</span>
+                        <div className={styles.shapeGrid}>
+                              {SHAPES.map((s) => (
+                                <button
+                                  key={s.type}
+                                  type="button"
+                                  className={`${styles.shapeItem} ${customShape === s.type ? styles.shapeItemActive : ''}`}
+                                  onClick={() => setCustomShape(s.type)}
+                                  title={s.label}
+                                >
+                                  <svg width={24} height={24} viewBox="-14 -14 28 28">
+                                    {s.type === 'circle' && <circle r={12} fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                    {s.type === 'rectangle' && <rect x={-14} y={-10} width={28} height={20} rx={3} fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                    {s.type === 'diamond' && <polygon points="0,-14 14,0 0,14 -14,0" fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                    {s.type === 'hexagon' && <polygon points="0,-13 11.3,-6.5 11.3,6.5 0,13 -11.3,6.5 -11.3,-6.5" fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                    {s.type === 'triangle' && <polygon points="0,-14 14,14 -14,14" fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                  </svg>
+                                  <span className={styles.shapeLabel}>{s.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className={styles.customRow}>
+                            <span className={styles.customLabel}>颜色</span>
+                            <div className={styles.colorSwatches}>
+                              {PRESET_COLORS.map((c) => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  className={`${styles.colorSwatch} ${customColor === c ? styles.colorSwatchActive : ''}`}
+                                  style={{ backgroundColor: c }}
+                                  onClick={() => setCustomColor(c)}
+                                  title={c}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <div className={styles.customRow}>
+                            <span className={styles.customLabel}>文字</span>
+                            <Input size="small" placeholder="节点文字" value={customLabel} onChange={(e) => setCustomLabel(e.target.value)} />
+                          </div>
+                          <Button type="primary" size="small" icon={<PlusOutlined />} onClick={addCustomNode} block>添加到画布</Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -532,18 +622,35 @@ export default function TopologyManagement() {
                       <line x1={connecting.x} y1={connecting.y} x2={mousePos.x} y2={mousePos.y} stroke="#1677ff" strokeWidth={2} strokeDasharray="6" />
                     )}
                     {nodes.map((node) => {
-                      const svgContent = topologyType === 'network' ? getNodeSvg(node.type) : null;
+                      const svgContent = getNodeSvg(node.type);
+                      const isCustom = !!node.shape;
+                      const fillColor = isCustom ? (node.customColor || '#1677ff') : getNodeColor(node.type);
                       return (
                         <g key={node.id} transform={`translate(${node.x}, ${node.y})`} onMouseDown={(e) => handleNodeMouseDown(node.id, e)} className={styles.node}>
-                          <circle r={24} fill={getNodeColor(node.type, topologyType)} stroke={selectedNode === node.id ? '#000' : 'transparent'} strokeWidth={2} opacity={0.9} style={{ cursor: isEditing && toolMode !== 'move' ? 'move' : 'default' }} />
-                          <text textAnchor="middle" dy={-32} fontSize={12} fill="currentColor" className={styles.nodeLabel}>{node.label}</text>
-                          {svgContent ? (
+    {/* Shape rendering: custom nodes = hexagon base + shape icon overlay */}
+    {isCustom ? (
+      <>
+        {/* 底层：始终为六边形，自定义颜色填充 */}
+        <polygon points="0,-24 21,-12 21,12 0,24 -21,12 -21,-12" fill={fillColor} stroke={selectedNode === node.id ? 'currentColor' : 'transparent'} strokeWidth={2} opacity={0.9} />
+        {/* 上层：选中形状的白色小图标，居中叠加 */}
+        {node.shape === 'circle' && <circle r={10} fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
+        {node.shape === 'rectangle' && <rect x={-12} y={-8} width={24} height={16} rx={3} fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
+        {node.shape === 'diamond' && <polygon points="0,-12 12,0 0,12 -12,0" fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
+        {node.shape === 'hexagon' && <polygon points="0,-10 9,-5 9,5 0,10 -9,5 -9,-5" fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
+        {node.shape === 'triangle' && <polygon points="0,-12 12,12 -12,12" fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
+      </>
+    ) : (
+      <circle r={24} fill={fillColor} stroke={selectedNode === node.id ? 'currentColor' : 'transparent'} strokeWidth={2} opacity={0.9} style={{ cursor: isEditing && toolMode !== 'move' ? 'move' : 'default' }} />
+    )}
+    {/* Label */}
+    <text textAnchor="middle" dy={-32} fontSize={12} fill="currentColor" className={styles.nodeLabel}>{node.label}</text>
+    {/* SVG icon (device nodes only) */}
+    {!isCustom && svgContent ? (
                             <foreignObject x={-12} y={-12} width={24} height={24} style={{ pointerEvents: 'none' }}>
                               <div style={{ width: 24, height: 24, color: '#fff' }} dangerouslySetInnerHTML={{ __html: svgContent }} />
                             </foreignObject>
-                          ) : (
-                            <text textAnchor="middle" dy={5} fontSize={16} fill="#fff">{getNodeIcon(node.type, topologyType)}</text>
-                          )}
+                          ) : null}
+                          {/* IP address */}
                           {node.ip && <text textAnchor="middle" dy={40} fontSize={10} fill="currentColor" className={styles.nodeIp}>{node.ip}</text>}
                         </g>
                       );
@@ -554,34 +661,29 @@ export default function TopologyManagement() {
             </>
           ) : (
             <div className={styles.emptyState}>
-              <ApartmentOutlined style={{ fontSize: 48, color: '#999', marginBottom: 16 }} />
+              <ApartmentOutlined style={{ fontSize: 48, color: 'var(--topo-text-secondary, #999)', marginBottom: 16 }} />
               <div>选择一个拓扑或创建新拓扑开始编辑</div>
             </div>
           )}
         </div>
       </div>
 
-      <Modal title="新建拓扑" open={createModalVisible} onOk={handleCreate} onCancel={() => setCreateModalVisible(false)} okText="创建" cancelText="取消">
+      <Modal title="新建拓扑" open={createModalVisible} onOk={handleCreate} onCancel={() => { setCreateModalVisible(false); setNewTopologyName(''); setNewCategory(''); }} okText="创建" cancelText="取消" width={480} styles={{ body: { paddingBottom: 16 } }}>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Input placeholder="拓扑名称" value={newTopologyName} onChange={(e) => setNewTopologyName(e.target.value)} />
           <div>
-            <div style={{ marginBottom: 8 }}>选择拓扑类型：</div>
-            <Space wrap>
-              {TOPOLOGY_TYPES.map((t) => (
-                <Card
-                  key={t.type}
-                  hoverable
-                  style={{ width: 150, borderColor: newTopologyType === t.type ? '#1677ff' : undefined }}
-                  onClick={() => setNewTopologyType(t.type)}
-                >
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>{t.icon}</div>
-                    <div style={{ fontWeight: 500 }}>{t.label}</div>
-                    <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>{t.description}</div>
-                  </div>
-                </Card>
-              ))}
-            </Space>
+            <div style={{ marginBottom: 4, fontSize: 13, color: 'var(--topo-text-secondary, #666)' }}>拓扑名称</div>
+            <Input placeholder="输入拓扑名称" value={newTopologyName} onChange={(e) => setNewTopologyName(e.target.value)} />
+          </div>
+          <div>
+            <div style={{ marginBottom: 4, fontSize: 13, color: 'var(--topo-text-secondary, #666)' }}>分类标签（可选）</div>
+            <AutoComplete
+              style={{ width: '100%' }}
+              placeholder="输入分类名称或选择已有分类"
+              value={newCategory}
+              onChange={(val) => setNewCategory(val)}
+              options={existingCategories}
+              allowClear
+            />
           </div>
         </Space>
       </Modal>

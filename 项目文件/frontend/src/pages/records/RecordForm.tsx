@@ -331,6 +331,7 @@ export default function RecordForm({
       destroyOnClose
       width={800}
       className={styles.modal ?? ''}
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <Form
         form={form}

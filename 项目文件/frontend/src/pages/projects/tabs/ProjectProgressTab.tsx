@@ -199,6 +199,8 @@ export default function ProjectProgressTab({ project, onUpdate }: ProjectProgres
         onCancel={() => setTransitionModalVisible(false)}
         confirmLoading={submitting}
         destroyOnClose
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <div style={{ marginBottom: 16 }}>
           <Text>当前状态：</Text>
