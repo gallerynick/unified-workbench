@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, theme, Avatar, Dropdown, Space, Drawer, Button, Typography } from 'antd';
 import {
@@ -153,6 +153,16 @@ export default function MainLayout() {
   }, []);
   const navigate = useNavigate();
   const location = useLocation();
+  const selectedKey = useMemo(() => {
+    const keys = getVisibleSidebarItems().map((i) => i.key);
+    if (keys.includes(location.pathname)) return location.pathname;
+    for (const key of keys.sort((a, b) => b.length - a.length)) {
+      if (location.pathname.startsWith(key + '/') || location.pathname.startsWith(key + '?')) {
+        return key;
+      }
+    }
+    return location.pathname;
+  }, [location.pathname]);
   const {
     token: { colorBgContainer, colorBgLayout, borderRadiusLG },
   } = theme.useToken();
@@ -224,7 +234,7 @@ export default function MainLayout() {
           >
             <Menu
               mode="inline"
-              selectedKeys={[location.pathname]}
+              selectedKeys={[selectedKey]}
               items={getMenuItems() ?? []}
               onClick={({ key }) => navigate(key)}
               onOpenChange={handleMenuOpenChange}
@@ -265,7 +275,7 @@ export default function MainLayout() {
           </div>
           <Menu
             mode="inline"
-            selectedKeys={[location.pathname]}
+            selectedKeys={[selectedKey]}
             items={getMenuItems() ?? []}
             onClick={({ key }) => {
               navigate(key);

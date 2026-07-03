@@ -1,0 +1,92 @@
+:root {
+  --room-bg: #fff;
+  --room-border: #e8e8e8;
+  --room-text: #333;
+  --room-text-secondary: #666;
+  --room-table-header-bg: #fafafa;
+  --room-table-row-hover: #f5f5f5;
+  --room-link-color: #1677ff;
+  --room-card-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme='dark'] {
+  --room-bg: #1f1f1f;
+  --room-border: #303030;
+  --room-text: #e0e0e0;
+  --room-text-secondary: #999;
+  --room-table-header-bg: #2a2a2a;
+  --room-table-row-hover: #2a2a2a;
+  --room-link-color: #3c89e8;
+  --room-card-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  background: var(--room-bg);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.title {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--room-text);
+}
+
+.searchInput {
+  width: 200px;
+}
+
+.filterSelect {
+  width: 130px;
+}
+
+.table {
+  flex: 1;
+}
+
+.table :global(.ant-table-thead > tr > th) {
+  background: var(--room-table-header-bg);
+  color: var(--room-text-secondary);
+  font-weight: 500;
+}
+
+.table :global(.ant-table-tbody > tr:hover > td) {
+  background: var(--room-table-row-hover);
+}
+
+.roomNameLink {
+  padding: 0 !important;
+  height: auto !important;
+  font-weight: 500;
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding: 12px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchInput,
+  .filterSelect {
+    width: 100%;
+  }
+}

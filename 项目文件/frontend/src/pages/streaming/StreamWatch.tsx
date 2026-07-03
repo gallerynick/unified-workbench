@@ -9,7 +9,7 @@ const MEDIAMTX_PORT = 8889;
 const RETRY_DELAY = 3000;
 
 export default function StreamWatch() {
-  const { key: streamKey } = useParams<{ key: string }>();
+  const { roomId } = useParams<{ roomId: string }>();
   const videoRef = useRef<HTMLVideoElement>(null);
   const clientRef = useRef<WhepClient | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,25 +39,25 @@ export default function StreamWatch() {
   }, []);
 
   useEffect(() => {
-    if (!streamKey) return;
+    if (!roomId) return;
     if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
     clientRef.current?.stop();
     setStatus('connecting');
-    const url = `http://${window.location.hostname}:${MEDIAMTX_PORT}/${streamKey}/whep`;
+    const url = `http://${window.location.hostname}:${MEDIAMTX_PORT}/${roomId}/whep`;
     console.log('[WATCH] connecting:', url);
     startConnection(url, videoRef.current!);
     return () => {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       clientRef.current?.stop();
     };
-  }, [streamKey, startConnection]);
+  }, [roomId, startConnection]);
 
   const handleRetry = () => {
-    if (!streamKey) return;
+    if (!roomId) return;
     if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
     clientRef.current?.stop();
     setStatus('connecting');
-    const url = `http://${window.location.hostname}:${MEDIAMTX_PORT}/${streamKey}/whep`;
+    const url = `http://${window.location.hostname}:${MEDIAMTX_PORT}/${roomId}/whep`;
     startConnection(url, videoRef.current!);
   };
 
@@ -68,7 +68,7 @@ export default function StreamWatch() {
       <Space style={{ marginBottom: 16 }}>
         <VideoCameraOutlined style={{ fontSize: 24 }} />
         <Title level={3} style={{ color: '#fff', margin: 0 }}>直播播放</Title>
-        {streamKey && <Tag color="blue">密钥: {streamKey.slice(0, 8)}...</Tag>}
+        {roomId && <Tag color="blue">房间: {roomId.slice(0, 8)}...</Tag>}
         {status === 'playing' && <Tag color="green">播放中</Tag>}
         {status === 'connecting' && <Tag color="orange">连接中...</Tag>}
       </Space>

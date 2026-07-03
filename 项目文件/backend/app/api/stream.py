@@ -11,9 +11,6 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.services.stream import (
     get_stream_config,
-    get_user_stream_key,
-    reset_user_stream_key,
-    update_stream_config,
 )
 
 
@@ -58,14 +55,14 @@ async def api_get_stream_config(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """获取推流配置"""
+    """[已废弃] 获取推流配置 — 请使用 /api/v1/stream/rooms 配置每个直播间"""
     config = await get_stream_config(db)
     host = _get_host(request)
     if not config.get("server_url"):
         config["server_url"] = f"http://{host}:8889"
     if not config.get("watch_url"):
         config["watch_url"] = f"http://{host}:8889"
-    return {"code": 0, "msg": "", "data": config}
+    return {"code": 0, "msg": "已废弃，请使用 /api/v1/stream/rooms 管理直播间", "data": config}
 
 
 @router.put("/config")
@@ -74,9 +71,8 @@ async def api_update_stream_config(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """更新推流配置"""
-    config = await update_stream_config(db, updates.model_dump(exclude_none=True))
-    return {"code": 0, "msg": "推流配置已更新", "data": config}
+    """[已废弃] 更新推流配置 — 请在每个直播间内配置推流参数"""
+    return {"code": 1, "msg": "已废弃，请在每个直播间内配置推流参数", "data": None}
 
 
 @router.get("/key")
@@ -85,18 +81,8 @@ async def api_get_stream_key(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """获取当前用户的推流密钥"""
-    key = await get_user_stream_key(db, current_user.id)
-    host = _get_host(request)
-    return {
-        "code": 0,
-        "msg": "",
-        "data": {
-            "stream_key": key,
-            "push_url": f"http://{host}:8889/{key}/whip",
-            "watch_url": f"http://{host}/stream/watch/{key}",
-        },
-    }
+    """[已废弃] 获取当前用户的推流密钥 — 请使用 /api/v1/stream/rooms 管理直播间"""
+    return {"code": 1, "msg": "已废弃，请使用 /api/v1/stream/rooms 管理直播间", "data": None}
 
 
 @router.post("/key/reset")
@@ -105,18 +91,8 @@ async def api_reset_stream_key(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """重置当前用户的推流密钥"""
-    new_key = await reset_user_stream_key(db, current_user.id)
-    host = _get_host(request)
-    return {
-        "code": 0,
-        "msg": "推流密钥已重置",
-        "data": {
-            "stream_key": new_key,
-            "push_url": f"http://{host}:8889/{new_key}/whip",
-            "watch_url": f"http://{host}/stream/watch/{new_key}",
-        },
-    }
+    """[已废弃] 重置当前用户的推流密钥 — 请使用 /api/v1/stream/rooms 管理直播间"""
+    return {"code": 1, "msg": "已废弃，请使用 /api/v1/stream/rooms 管理直播间", "data": None}
 
 
 @router.post("/speedtest")

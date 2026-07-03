@@ -1,16 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Button, Space, Input, Tag, message, Modal, Tooltip, Dropdown, Typography, Form, InputNumber, Select, Slider, Switch, Spin, Table } from 'antd';
+import { useParams } from 'react-router-dom';
+import { Button, Space, Input, Tag, message, Modal, Tooltip, Dropdown, Typography, Form, InputNumber, Select, Slider, Switch, Spin, Table, Badge } from 'antd';
 import {
   VideoCameraOutlined, DesktopOutlined,
   PlayCircleOutlined, StopOutlined, PlusOutlined,
   DeleteOutlined, SettingOutlined,
   SoundOutlined, MutedOutlined, EyeOutlined, GlobalOutlined,
-  FontSizeOutlined, CopyOutlined, ReloadOutlined, ExclamationCircleOutlined,
+  FontSizeOutlined, CopyOutlined, ExclamationCircleOutlined,
   AudioOutlined,
   ArrowUpOutlined, ArrowDownOutlined,
   DashboardOutlined,
 } from '@ant-design/icons';
-import { getStreamConfig, updateStreamConfig, getStreamKey, resetStreamKey, runSpeedTest, runDownloadTest } from '../../api/stream';
+import { getRoom, updateRoom, getRoomStatus, takeoverRoom, runSpeedTest, runDownloadTest } from '../../api/stream';
+import type { StreamRoom } from '../../types/stream';
+import { useWebSocket } from '../../hooks/useWebSocket';
 import { WhipClient } from '../../utils/WhipClient';
 import styles from './StreamStudio.module.css';
 
@@ -121,7 +124,7 @@ export default function StreamStudio() {
   const audioMode = Form.useWatch('audio_processing_mode', settingsForm);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
-  const [streamKey, setStreamKey] = useState('');
+  const [roomInfo, setRoomInfo] = useState<StreamRoom | null>(null);
   const [pushUrl, setPushUrl] = useState('');
   const [watchUrl, setWatchUrl] = useState('');
   const [streamResolution, setStreamResolution] = useState('1920x1080');
@@ -152,72 +155,101 @@ export default function StreamStudio() {
 
   const activeScene = scenes.find((s) => s.id === activeSceneId) || scenes[0]!;
 
+  const { roomId } = useParams<{ roomId: string }>();
+
   const loadSettings = useCallback(async () => {
+    if (!roomId) {
+      message.error('缺少房间 ID');
+      return;
+    }
     setSettingsLoading(true);
     try {
-      const [configRes, keyRes] = await Promise.all([
-        getStreamConfig(),
-        getStreamKey(),
-      ]);
-      if (configRes.code === 0 && configRes.data) {
-        settingsForm.setFieldsValue(configRes.data);
-        if (configRes.data.default_resolution) setStreamResolution(configRes.data.default_resolution);
-        if (configRes.data.default_fps) setStreamFps(configRes.data.default_fps);
-        if (configRes.data.default_bitrate) setStreamBitrate(configRes.data.default_bitrate);
-        audioConfigRef.current = {
-          sampleRate: configRes.data.audio_sample_rate ?? 48000,
-          channels: configRes.data.audio_channels ?? 2,
-          mode: configRes.data.audio_processing_mode ?? 'standard',
-          noiseSuppression: configRes.data.audio_noise_suppression ?? true,
-          echoCancellation: configRes.data.audio_echo_cancellation ?? true,
-          autoGainControl: configRes.data.audio_auto_gain_control ?? true,
-          highpassFreq: configRes.data.audio_highpass_freq ?? 80,
-          compressorThreshold: configRes.data.audio_compressor_threshold ?? -24,
-          compressorRatio: configRes.data.audio_compressor_ratio ?? 12,
-          limiterThreshold: configRes.data.audio_limiter_threshold ?? -3,
-          outputGain: configRes.data.audio_output_gain ?? 0.85,
-        };
-      }
-      if (keyRes.code === 0 && keyRes.data) {
-        setStreamKey(keyRes.data.stream_key);
-        setPushUrl(keyRes.data.push_url);
-        setWatchUrl(keyRes.data.watch_url || '');
+      const res = await getRoom(roomId);
+      if (res.code === 0 && res.data) {
+        const room = res.data;
+        setRoomInfo(room);
+        setPushUrl(room.push_url);
+        setWatchUrl(room.watch_url || '');
+        if (room.config) {
+          const cfg = room.config;
+          if (cfg.default_resolution) setStreamResolution(cfg.default_resolution);
+          if (cfg.default_fps) setStreamFps(cfg.default_fps);
+          if (cfg.default_bitrate) setStreamBitrate(cfg.default_bitrate);
+          settingsForm.setFieldsValue({
+            ...cfg,
+            server_url: room.push_url,
+            server_port: 8889,
+            enable_auth: true,
+          });
+          audioConfigRef.current = {
+            sampleRate: cfg.audio_sample_rate ?? 48000,
+            channels: cfg.audio_channels ?? 2,
+            mode: (cfg.audio_processing_mode as 'standard' | 'voice' | 'direct') ?? 'standard',
+            noiseSuppression: cfg.audio_noise_suppression ?? true,
+            echoCancellation: cfg.audio_echo_cancellation ?? true,
+            autoGainControl: cfg.audio_auto_gain_control ?? true,
+            highpassFreq: cfg.audio_highpass_freq ?? 80,
+            compressorThreshold: cfg.audio_compressor_threshold ?? -24,
+            compressorRatio: cfg.audio_compressor_ratio ?? 12,
+            limiterThreshold: cfg.audio_limiter_threshold ?? -3,
+            outputGain: cfg.audio_output_gain ?? 0.85,
+          };
+        }
       }
     } catch {
-      message.error('加载推流配置失败');
+      message.error('加载房间配置失败');
     } finally {
       setSettingsLoading(false);
     }
-  }, [settingsForm]);
+  }, [roomId, settingsForm]);
 
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
 
   const handleSaveSettings = async () => {
+    if (!roomId) return;
     try {
       const values = await settingsForm.validateFields();
       setSettingsSaving(true);
-      const cleanValues = Object.fromEntries(
-        Object.entries(values).filter(([, v]) => v !== undefined && v !== null && v !== ''),
-      );
-      const res = await updateStreamConfig(cleanValues);
+      const configData: Record<string, unknown> = {};
+      const fieldMap: Record<string, string> = {
+        default_resolution: 'default_resolution',
+        default_fps: 'default_fps',
+        default_bitrate: 'default_bitrate',
+        audio_sample_rate: 'audio_sample_rate',
+        audio_channels: 'audio_channels',
+        audio_processing_mode: 'audio_processing_mode',
+        audio_noise_suppression: 'audio_noise_suppression',
+        audio_echo_cancellation: 'audio_echo_cancellation',
+        audio_auto_gain_control: 'audio_auto_gain_control',
+        audio_highpass_freq: 'audio_highpass_freq',
+        audio_compressor_threshold: 'audio_compressor_threshold',
+        audio_compressor_ratio: 'audio_compressor_ratio',
+        audio_limiter_threshold: 'audio_limiter_threshold',
+        audio_output_gain: 'audio_output_gain',
+      };
+      for (const [formField, configField] of Object.entries(fieldMap)) {
+        if (values[formField] !== undefined && values[formField] !== null && values[formField] !== '') {
+          configData[configField] = values[formField];
+        }
+      }
+      const res = await updateRoom(roomId, { config: configData as any });
       if (res.code === 0) {
         message.success(res.msg || '推流配置已更新');
-        if (res.data) {
-          settingsForm.setFieldsValue(res.data);
+        if (res.data?.config) {
           audioConfigRef.current = {
-            sampleRate: res.data.audio_sample_rate ?? 48000,
-            channels: res.data.audio_channels ?? 2,
-            mode: res.data.audio_processing_mode ?? 'standard',
-            noiseSuppression: res.data.audio_noise_suppression ?? true,
-            echoCancellation: res.data.audio_echo_cancellation ?? true,
-            autoGainControl: res.data.audio_auto_gain_control ?? true,
-            highpassFreq: res.data.audio_highpass_freq ?? 80,
-            compressorThreshold: res.data.audio_compressor_threshold ?? -24,
-            compressorRatio: res.data.audio_compressor_ratio ?? 12,
-            limiterThreshold: res.data.audio_limiter_threshold ?? -3,
-            outputGain: res.data.audio_output_gain ?? 0.85,
+            sampleRate: (res.data.config as any).audio_sample_rate ?? 48000,
+            channels: (res.data.config as any).audio_channels ?? 2,
+            mode: (res.data.config as any).audio_processing_mode ?? 'standard',
+            noiseSuppression: (res.data.config as any).audio_noise_suppression ?? true,
+            echoCancellation: (res.data.config as any).audio_echo_cancellation ?? true,
+            autoGainControl: (res.data.config as any).audio_auto_gain_control ?? true,
+            highpassFreq: (res.data.config as any).audio_highpass_freq ?? 80,
+            compressorThreshold: (res.data.config as any).audio_compressor_threshold ?? -24,
+            compressorRatio: (res.data.config as any).audio_compressor_ratio ?? 12,
+            limiterThreshold: (res.data.config as any).audio_limiter_threshold ?? -3,
+            outputGain: (res.data.config as any).audio_output_gain ?? 0.85,
           };
         }
         if (values.default_resolution) setStreamResolution(values.default_resolution);
@@ -232,30 +264,6 @@ export default function StreamStudio() {
     } finally {
       setSettingsSaving(false);
     }
-  };
-
-  const handleResetKey = () => {
-    Modal.confirm({
-      title: '重置推流密钥',
-      icon: <ExclamationCircleOutlined />,
-      content: '重置后旧的推流密钥将立即失效，正在进行的推流将被中断。确定要继续吗？',
-      okText: '确认重置',
-      okType: 'danger',
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          const res = await resetStreamKey();
-          if (res.code === 0 && res.data) {
-            setStreamKey(res.data.stream_key);
-            setPushUrl(res.data.push_url);
-            setWatchUrl(res.data.watch_url || '');
-            message.success(res.msg || '推流密钥已重置');
-          }
-        } catch {
-          message.error('重置失败');
-        }
-      },
-    });
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -422,23 +430,42 @@ export default function StreamStudio() {
   };
 
   const startStream = async () => {
-    if (!pushUrl) {
-      message.warning('请先在设置中配置推流地址');
+    if (!roomId || !roomInfo) {
+      message.warning('房间信息未加载');
       return;
     }
-    let currentStreamKey = streamKey;
-    let currentPushUrl = pushUrl;
+    if (!pushUrl) {
+      message.warning('推流地址未配置');
+      return;
+    }
+
     try {
-      const keyRes = await getStreamKey();
-      if (keyRes.code === 0 && keyRes.data) {
-        currentStreamKey = keyRes.data.stream_key;
-        currentPushUrl = keyRes.data.push_url;
-        setStreamKey(currentStreamKey);
-        setPushUrl(currentPushUrl);
-        setWatchUrl(keyRes.data.watch_url || '');
+      const statusRes = await getRoomStatus(roomId);
+      if (statusRes.code === 0 && statusRes.data) {
+        const { is_active, pusher_id, pusher_nickname } = statusRes.data;
+        if (is_active && pusher_id) {
+          const canTakeover = await new Promise<boolean>((resolve) => {
+            Modal.confirm({
+              title: '推流冲突',
+              icon: <ExclamationCircleOutlined />,
+              content: `房间正在由 ${pusher_nickname || '其他用户'} 推流中。是否接管推流？接管后原推流者将被停止。`,
+              okText: '接管推流',
+              cancelText: '取消',
+              onOk: async () => { resolve(true); },
+              onCancel: () => { resolve(false); },
+            });
+          });
+          if (!canTakeover) return;
+          const takeoverRes = await takeoverRoom(roomId);
+          if (takeoverRes.code !== 0) {
+            message.error('接管推流失败');
+            return;
+          }
+          message.success('已接管推流');
+        }
       }
     } catch {
-      message.error('获取推流密钥失败');
+      message.error('检查房间状态失败');
       return;
     }
 
@@ -555,8 +582,12 @@ export default function StreamStudio() {
     whipRef.current = client;
 
     try {
-      await client.start(currentPushUrl, compositeStream, { videoBitrate: streamBitrate, videoFps: streamFps, audioBitrate: 192 });
+      await client.start(pushUrl, compositeStream, { videoBitrate: streamBitrate, videoFps: streamFps, audioBitrate: 192 });
       setIsStreaming(true);
+      if (roomId) {
+        updateRoom(roomId, { is_active: true }).catch(() => {});
+        getRoom(roomId).then(res => { if (res.code === 0 && res.data) setRoomInfo(res.data); }).catch(() => {});
+      }
       draw(); // 启动 Canvas 合成渲染循环
 
       // 准备画中画 video（不自动打开，由用户点击按钮触发）
@@ -594,6 +625,8 @@ export default function StreamStudio() {
     canvasRef.current = null;
     setIsStreaming(false);
     setPipActive(false);
+    updateRoom(roomId!, { is_active: false }).catch(() => {});
+    getRoom(roomId!).then(res => { if (res.code === 0 && res.data) setRoomInfo(res.data); }).catch(() => {});
     message.info('已停止推流');
   };
 
@@ -853,11 +886,60 @@ export default function StreamStudio() {
     gainNodeRefs.current.forEach(g => { if (g) g.gain.value = next ? 0 : 1; });
   };
 
+  // WebSocket room_kicked handler
+  const { kickedInfo } = useWebSocket();
+  const kickedHandledRef = useRef<string | null>(null);
+  const stopStreamRef = useRef(stopStream);
+  stopStreamRef.current = stopStream;
+  useEffect(() => {
+    if (kickedInfo && roomId && kickedInfo.roomId === roomId && kickedHandledRef.current !== kickedInfo.roomId + kickedInfo.nickname) {
+      kickedHandledRef.current = kickedInfo.roomId + kickedInfo.nickname;
+      message.warning(`推流已被 ${kickedInfo.nickname} 接管`);
+      if (isStreaming) {
+        stopStreamRef.current();
+      }
+    }
+  }, [kickedInfo, roomId, isStreaming]);
+
+  const isExternalMode = roomInfo?.mode === 'external';
+
   return (
     <div className={styles.container}>
+      {isExternalMode ? (
+        /* Todo 12: External mode — 只显示 RTMP 地址和观看地址 */
+        <div style={{ textAlign: 'center', padding: '60px 24px', maxWidth: 640, margin: '0 auto' }}>
+          <Title level={4} style={{ marginBottom: 32 }}>
+            {roomInfo?.name || '直播间'}
+            <Badge status={roomInfo?.is_active ? 'processing' : 'default'} style={{ marginLeft: 12 }} text={roomInfo?.is_active ? '推流中' : '空闲'} />
+          </Title>
+          <div style={{ background: 'var(--stream-section-bg, #fff)', border: '1px solid var(--stream-border, #e8e8e8)', borderRadius: 8, padding: 24, marginBottom: 16, textAlign: 'left' }}>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ display: 'block', marginBottom: 4 }}>RTMP 推流地址</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--stream-item-bg, #f5f5f5)', padding: '8px 12px', borderRadius: 6 }}>
+                <code style={{ flex: 1, fontSize: 14, wordBreak: 'break-all' }}>{roomInfo?.rtmp_url}</code>
+                <Button type="text" icon={<CopyOutlined />} onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', 'RTMP 地址')} />
+              </div>
+            </div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+              在 OBS 中填入以下地址进行推流
+            </Text>
+            <div>
+              <Text strong style={{ display: 'block', marginBottom: 4 }}>观看地址</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--stream-item-bg, #f5f5f5)', padding: '8px 12px', borderRadius: 6 }}>
+                <code style={{ flex: 1, fontSize: 14, wordBreak: 'break-all' }}>{roomInfo?.watch_url}</code>
+                <Button type="text" icon={<CopyOutlined />} onClick={() => copyToClipboard(roomInfo?.watch_url || '', '观看地址')} />
+              </div>
+            </div>
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            此直播间为「外部推流」模式，请使用 OBS 等工具推流
+          </Text>
+        </div>
+      ) : (
+      <>
       <div className={styles.header}>
         <Space>
-          <Title level={4} className={styles.title ?? ''}>直播工作室</Title>
+          <Title level={4} className={styles.title ?? ''}>{roomInfo?.name ? `${roomInfo.name} - 直播工作室` : '直播工作室'}</Title>
           {isStreaming && <Tag color="red">推流中</Tag>}
           {isStreaming && uploadKbps > 0 && (
             <Text style={{ fontSize: 12, color: '#52c41a' }}>
@@ -866,7 +948,7 @@ export default function StreamStudio() {
           )}
         </Space>
         <Space>
-              <Button icon={<SettingOutlined />} onClick={async () => { await loadSettings(); setShowSettingsModal(true); }}>设置</Button>
+          <Button icon={<SettingOutlined />} onClick={async () => { await loadSettings(); setShowSettingsModal(true); }}>设置</Button>
         </Space>
       </div>
 
@@ -1182,8 +1264,8 @@ export default function StreamStudio() {
             </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>拉流:</Text>
-              <code style={{ color: '#fa8c16', fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{`rtmp://${window.location.hostname}:1935/${streamKey}`}</code>
-              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(`rtmp://${window.location.hostname}:1935/${streamKey}`, '拉流地址')} /></Tooltip>
+              <code style={{ color: '#fa8c16', fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roomInfo?.rtmp_url || '配置中'}</code>
+              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', '拉流地址')} /></Tooltip>
             </div>
           </div>
           </div>
@@ -1369,17 +1451,6 @@ export default function StreamStudio() {
               </Form.Item>
             </Form>
 
-            <div className={styles.sectionTitle} style={{ marginTop: 16 }}>推流密钥</div>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
-              推流密钥用于身份验证，请勿泄露给他人。如怀疑泄露，请立即重置。
-            </Text>
-            <Space style={{ width: '100%' }}>
-              <Input.Password value={streamKey} readOnly style={{ width: 240 }} />
-              <Tooltip title="复制密钥">
-                <Button icon={<CopyOutlined />} onClick={() => copyToClipboard(streamKey, '推流密钥')} />
-              </Tooltip>
-              <Button danger icon={<ReloadOutlined />} onClick={handleResetKey}>重置</Button>
-            </Space>
           </div>
         )}
       </Modal>
@@ -1584,6 +1655,8 @@ export default function StreamStudio() {
           );
         })()}
       </Modal>
+      </>
+      )}
     </div>
   );
 }

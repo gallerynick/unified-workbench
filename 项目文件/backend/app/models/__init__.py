@@ -22,6 +22,7 @@ from app.models.system_config import SystemConfig
 from app.models.tag import Tag
 from app.models.task import Task, TaskPriority, TaskStatus
 from app.models.template import Template
+from app.models.stream_room import StreamRoom, StreamRoomMode, StreamRoomType
 from app.models.topology import Topology
 from app.models.user import User, UserRole, UserStatus
 from app.models.user_tag import UserTag
@@ -67,6 +68,9 @@ __all__ = [
     "Task",
     "TaskStatus",
     "TaskPriority",
+    "StreamRoom",
+    "StreamRoomMode",
+    "StreamRoomType",
     "Topology",
     "Vote",
     "VoteRecord",

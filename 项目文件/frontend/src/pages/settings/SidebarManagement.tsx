@@ -35,7 +35,7 @@ const DEFAULT_ITEMS: SidebarItem[] = [
   { key: '/secrets', label: '密钥保险箱', icon: 'KeyOutlined', visible: true, hasData: true, builtin: true },
   { key: '/reminders', label: '提醒事项', icon: 'BellOutlined', visible: true, hasData: true, builtin: true },
   { key: '/topology', label: '拓扑结构', icon: 'ApartmentOutlined', visible: true, hasData: false, builtin: true },
-  { key: '/stream', label: '直播工作室', icon: 'VideoCameraOutlined', visible: true, hasData: false, builtin: true },
+{ key: '/streaming', label: '直播工作室', icon: 'VideoCameraOutlined', visible: true, hasData: false, builtin: true },
 ];
 
 function mergeWithDefaults(storedItems: SidebarItem[]): SidebarItem[] {

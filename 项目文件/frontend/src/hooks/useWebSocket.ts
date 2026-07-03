@@ -9,9 +9,15 @@ export interface Notification {
   read: boolean;
 }
 
+export interface KickedInfo {
+  roomId: string;
+  nickname: string;
+}
+
 export function useWebSocket() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [connected, setConnected] = useState(false);
+  const [kickedInfo, setKickedInfo] = useState<KickedInfo | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -46,6 +52,8 @@ export function useWebSocket() {
           title?: string;
           message?: string;
           content?: string;
+          room_id?: string;
+          nickname?: string;
         };
         if (data.type === 'notification') {
           const notification: Notification = {
@@ -56,6 +64,11 @@ export function useWebSocket() {
             read: false,
           };
           setNotifications((prev) => [notification, ...prev]);
+        } else if (data.type === 'room_kicked') {
+          setKickedInfo({
+            roomId: data.room_id || '',
+            nickname: data.nickname || '',
+          });
         }
       } catch {
         // 忽略非 JSON 消息
@@ -95,5 +108,5 @@ export function useWebSocket() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  return { notifications, unreadCount, connected, markAsRead, markAllAsRead };
+  return { notifications, unreadCount, connected, markAsRead, markAllAsRead, kickedInfo };
 }

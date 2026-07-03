@@ -1,34 +1,14 @@
 import { request } from '../utils/request';
 import { getToken } from '../utils/auth';
 import type { UnifiedResponse } from '../types/user';
-
-export interface StreamConfig {
-  server_url: string;
-  server_port: number;
-  default_bitrate: number;
-  default_resolution: string;
-  default_fps: number;
-  max_bitrate: number;
-  min_bitrate: number;
-  enable_auth: boolean;
-  audio_sample_rate: number;
-  audio_channels: number;
-  audio_processing_mode: 'standard' | 'voice' | 'direct';
-  audio_noise_suppression: boolean;
-  audio_echo_cancellation: boolean;
-  audio_auto_gain_control: boolean;
-  audio_highpass_freq: number;
-  audio_compressor_threshold: number;
-  audio_compressor_ratio: number;
-  audio_limiter_threshold: number;
-  audio_output_gain: number;
-}
-
-export interface StreamKey {
-  stream_key: string;
-  push_url: string;
-  watch_url?: string;
-}
+import type {
+  StreamConfig,
+  StreamKey,
+  StreamRoom,
+  StreamRoomCreate,
+  StreamRoomUpdate,
+  StreamRoomListResponse,
+} from '../types/stream';
 
 export async function getStreamConfig(): Promise<UnifiedResponse<StreamConfig>> {
   return request<StreamConfig>('/stream/config');
@@ -40,10 +20,12 @@ export async function updateStreamConfig(
   return request<StreamConfig>('/stream/config', { method: 'PUT', body: config });
 }
 
+/** @deprecated 使用 StreamRoom 替代。保留仅用于兼容旧版 */
 export async function getStreamKey(): Promise<UnifiedResponse<StreamKey>> {
   return request<StreamKey>('/stream/key');
 }
 
+/** @deprecated 使用 StreamRoom 替代。保留仅用于兼容旧版 */
 export async function resetStreamKey(): Promise<UnifiedResponse<StreamKey>> {
   return request<StreamKey>('/stream/key/reset', { method: 'POST' });
 }
@@ -77,4 +59,33 @@ export async function runDownloadTest(dataSize: number): Promise<number> {
   const body = await resp.arrayBuffer();
   const kbps = Math.round((body.byteLength * 8) / elapsed);
   return kbps;
+}
+
+export async function createRoom(data: StreamRoomCreate): Promise<UnifiedResponse<StreamRoom>> {
+  return request<StreamRoom>('/stream/rooms', { method: 'POST', body: data as any });
+}
+
+export async function listRooms(params?: Record<string, string>): Promise<UnifiedResponse<StreamRoomListResponse>> {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  return request<StreamRoomListResponse>(`/stream/rooms${qs}`);
+}
+
+export async function getRoom(roomId: string): Promise<UnifiedResponse<StreamRoom>> {
+  return request<StreamRoom>(`/stream/rooms/${roomId}`);
+}
+
+export async function updateRoom(roomId: string, data: StreamRoomUpdate): Promise<UnifiedResponse<StreamRoom>> {
+  return request<StreamRoom>(`/stream/rooms/${roomId}`, { method: 'PUT', body: data as any });
+}
+
+export async function deleteRoom(roomId: string): Promise<UnifiedResponse<null>> {
+  return request<null>(`/stream/rooms/${roomId}`, { method: 'DELETE' });
+}
+
+export async function takeoverRoom(roomId: string): Promise<UnifiedResponse<StreamRoom>> {
+  return request<StreamRoom>(`/stream/rooms/${roomId}/takeover`, { method: 'POST' });
+}
+
+export async function getRoomStatus(roomId: string): Promise<UnifiedResponse<{ is_active: boolean; pusher_id: string | null; pusher_nickname: string | null }>> {
+  return request<any>(`/stream/rooms/${roomId}/status`);
 }

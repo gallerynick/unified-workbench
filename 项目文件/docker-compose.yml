@@ -124,11 +124,6 @@ services:
       - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
     environment:
       MTX_WEBRTCADDITIONALHOSTS: "${HOST_IP:-host.docker.internal}"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "-X", "OPTIONS", "http://localhost:8889/test/whip"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - workbench
 

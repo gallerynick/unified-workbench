@@ -5,6 +5,8 @@ from celery import Celery
 from app.core.config import get_settings
 from app.tasks.backup import scheduled_backup  # noqa: F401
 from app.tasks.reminder import check_due_reminders  # noqa: F401
+from app.tasks.stream_room import cleanup_temporary_rooms  # noqa: F401
+from app.tasks.stream_room import sync_room_active_status  # noqa: F401
 
 settings = get_settings()
 
@@ -15,6 +17,7 @@ celery_app = Celery(
     include=[
         "app.tasks.reminder",
         "app.tasks.backup",
+        "app.tasks.stream_room",
     ],
 )
 
@@ -41,5 +44,13 @@ celery_app.conf.beat_schedule = {
     'scheduled-backup': {
         'task': 'app.tasks.backup.scheduled_backup',
         'schedule': 86400.0,
+    },
+    'sync-room-active-status': {
+        'task': 'app.tasks.stream_room.sync_room_active_status',
+        'schedule': 60.0,
+    },
+    'cleanup-temporary-rooms': {
+        'task': 'app.tasks.stream_room.cleanup_temporary_rooms',
+        'schedule': 300.0,
     },
 }
