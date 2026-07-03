@@ -28,7 +28,9 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import type { WorkRecord } from '../../../types/record';
+import type { Template } from '../../../types/template';
 import ContentEditor from '../../content/ContentEditor';
+import TemplateSelector from '../TemplateSelector';
 import styles from './ProjectDocumentTab.module.css';
 
 const { Text } = Typography;
@@ -489,6 +491,38 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
     setTemplateModalVisible(false);
   }, []);
 
+  const handleApplyTemplate = useCallback(
+    (template: Template) => {
+      if (!activeDocId) return;
+      // 将模板 schema 转换为 Tiptap 文档内容
+      const content = {
+        type: 'doc',
+        content: [
+          { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: template.name }] },
+          ...(template.schema?.map((field) => ({
+            type: 'heading',
+            attrs: { level: 3 },
+            content: [{ type: 'text', text: field.label }],
+          })) ?? []),
+          ...(template.schema?.map((field) => ({
+            type: 'paragraph',
+            content: [{ type: 'text', text: field.default_value != null ? String(field.default_value) : '' }],
+          })) ?? []),
+        ],
+      };
+      const updatedDocs = documents.map((d) =>
+        d.id === activeDocId
+          ? { ...d, content: content as Record<string, unknown>, updated_at: new Date().toISOString() }
+          : d,
+      );
+      setDocuments(updatedDocs);
+      debouncedSave(updatedDocs);
+      setTemplateModalVisible(false);
+      void message.success(`已应用模板「${template.name}」`);
+    },
+    [activeDocId, documents, debouncedSave],
+  );
+
   // ─── 渲染：预览模式 ──────────────────────────────────────
 
   if (mode === 'preview' && activeDoc) {
@@ -642,7 +676,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
           width={560}
           styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
         >
-          <Empty description="暂无可用模板" />
+          <TemplateSelector onSelect={handleApplyTemplate} location="project" />
         </Modal>
       </div>
     );
