@@ -107,7 +107,7 @@ export default function SystemSettings() {
           setRemoteVersion(res.data.remote);
           message.success('当前已是最新版本');
         } else {
-          setRemoteVersion(null);
+          setRemoteVersion('无法获取');
         }
       }
     } catch {
