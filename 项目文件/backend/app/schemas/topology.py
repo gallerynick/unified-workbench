@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.visibility import Visibility
+
 # 允许的节点类型与状态，与前端 TopologyNode.type / status 对齐
 VALID_NODE_TYPES = {"router", "switch", "server", "computer", "smartphone", "headphone", "internet", "keyboard", "mouse", "printer", "projector", "speaker", "television", "custom"}
 VALID_NODE_STATUS = {"online", "offline", "warning"}
@@ -21,7 +23,7 @@ class TopologyCreate(BaseModel):
     category: str = Field(default="", max_length=100)
     nodes: list[dict] = Field(default_factory=list)
     edges: list[dict] = Field(default_factory=list)
-    visibility: Literal["public", "private", "restricted"] = "private"
+    visibility: Visibility = Visibility.PRIVATE
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
 

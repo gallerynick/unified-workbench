@@ -7,27 +7,17 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.system_config import get_config, update_config
+from app.schemas.stream_room import StreamRoomConfig
 
+# 音频/视频默认值从 StreamRoomConfig 单一来源获取，避免双写
+_room_defaults = StreamRoomConfig().model_dump()
 DEFAULT_STREAM_CONFIG: dict = {
     "server_url": "http://localhost:8889",
     "server_port": 1935,
-    "default_bitrate": 8000,
-    "default_resolution": "1920x1080",
-    "default_fps": 30,
     "max_bitrate": 20000,
     "min_bitrate": 500,
     "enable_auth": True,
-    "audio_sample_rate": 48000,
-    "audio_channels": 2,
-    "audio_processing_mode": "standard",
-    "audio_noise_suppression": True,
-    "audio_echo_cancellation": True,
-    "audio_auto_gain_control": True,
-    "audio_highpass_freq": 80,
-    "audio_compressor_threshold": -24,
-    "audio_compressor_ratio": 12,
-    "audio_limiter_threshold": -3,
-    "audio_output_gain": 0.85,
+    **_room_defaults,
 }
 
 

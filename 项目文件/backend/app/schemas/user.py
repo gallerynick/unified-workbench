@@ -6,6 +6,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
+from app.models.user import UserRole, UserStatus
+
 
 class TagResponse(BaseModel):
     """标签响应。"""
@@ -26,8 +28,8 @@ class UserResponse(BaseModel):
     username: str
     nickname: str
     avatar: str | None
-    role: str
-    status: str
+    role: UserRole
+    status: UserStatus
     tags: list[TagResponse] = []
     created_at: datetime
 
@@ -49,7 +51,7 @@ class UserCreateRequest(BaseModel):
     username: str
     password: str
     nickname: str
-    role: str = "member"
+    role: UserRole = UserRole.MEMBER
     tags: list[uuid.UUID] = []
 
     @field_validator("username")

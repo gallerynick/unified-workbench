@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from app.core.visibility import Visibility
+
 
 class VoteCreate(BaseModel):
     title: str
@@ -15,7 +17,7 @@ class VoteCreate(BaseModel):
     options: list[str]
     allow_multiple: bool = False
     deadline: str | None = None
-    visibility: Literal["public", "private", "restricted"] = "private"
+    visibility: Visibility = Visibility.PRIVATE
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
 

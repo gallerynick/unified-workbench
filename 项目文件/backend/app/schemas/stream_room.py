@@ -7,6 +7,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.stream_room import StreamRoomMode, StreamRoomType
+
 
 class StreamRoomConfig(BaseModel):
     """直播间配置"""
@@ -31,8 +33,8 @@ class StreamRoomCreate(BaseModel):
     """创建直播间请求"""
 
     name: str = Field(min_length=1, max_length=100)
-    mode: str = Field(default="builtin")
-    room_type: str = Field(default="permanent")
+    mode: StreamRoomMode = Field(default=StreamRoomMode.BUILTIN)
+    room_type: StreamRoomType = Field(default=StreamRoomType.PERMANENT)
     is_open: bool = True
     config: StreamRoomConfig | None = None
 
@@ -41,8 +43,8 @@ class StreamRoomUpdate(BaseModel):
     """更新直播间请求"""
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
-    mode: str | None = None
-    room_type: str | None = None
+    mode: StreamRoomMode | None = None
+    room_type: StreamRoomType | None = None
     is_open: bool | None = None
     is_active: bool | None = None
     config: StreamRoomConfig | None = None
@@ -57,8 +59,8 @@ class StreamRoomResponse(BaseModel):
     name: str
     creator_id: uuid.UUID
     creator_nickname: str
-    mode: str
-    room_type: str
+    mode: StreamRoomMode
+    room_type: StreamRoomType
     config: dict | None = None
     is_open: bool
     is_active: bool

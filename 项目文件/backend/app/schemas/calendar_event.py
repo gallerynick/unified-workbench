@@ -7,6 +7,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.models.calendar_event import EventRepeat
+
 VALID_REPEATS = {"none", "daily", "weekly", "monthly", "yearly"}
 
 
@@ -17,7 +19,7 @@ class CalendarEventCreate(BaseModel):
     end_time: str | None = None
     all_day: bool = False
     location: str | None = None
-    repeat: str = "none"
+    repeat: EventRepeat = EventRepeat.NONE
     color: str | None = None
 
     @field_validator("repeat")
@@ -35,7 +37,7 @@ class CalendarEventUpdate(BaseModel):
     end_time: str | None = None
     all_day: bool | None = None
     location: str | None = None
-    repeat: str | None = None
+    repeat: EventRepeat | None = None
     color: str | None = None
 
     @field_validator("repeat")
@@ -56,7 +58,7 @@ class CalendarEventResponse(BaseModel):
     end_time: datetime | None
     all_day: bool
     location: str | None
-    repeat: str
+    repeat: EventRepeat
     color: str | None
     owner_id: uuid.UUID
     created_at: datetime

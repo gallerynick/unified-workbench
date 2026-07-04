@@ -8,6 +8,8 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
+from app.core.visibility import Visibility
+
 if TYPE_CHECKING:
     from app.models.user import User
 
@@ -36,13 +38,13 @@ def check_visibility(
     Returns:
         True 表示用户可以查看该资源
     """
-    if visibility == "public":
+    if visibility == Visibility.PUBLIC:
         return True
 
-    if visibility == "private":
+    if visibility == Visibility.PRIVATE:
         return user.id == owner_id
 
-    if visibility == "restricted":
+    if visibility == Visibility.RESTRICTED:
         # owner 始终可见
         if user.id == owner_id:
             return True

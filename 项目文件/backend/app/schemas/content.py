@@ -5,13 +5,15 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.core.visibility import Visibility
+
 
 class ContentCreateRequest(BaseModel):
     """创建内容请求。"""
 
     title: str
     body: dict  # Tiptap JSON
-    visibility: str = "private"
+    visibility: Visibility = Visibility.PRIVATE
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     tags: list[str] | None = None

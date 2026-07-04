@@ -5,6 +5,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.core.visibility import Visibility
+
 
 class FileResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -36,7 +38,7 @@ class FolderResponse(BaseModel):
     name: str
     parent_id: uuid.UUID | None = None
     owner_id: uuid.UUID
-    visibility: str = "private"
+    visibility: Visibility = Visibility.PRIVATE
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     expires_at: datetime | None = None

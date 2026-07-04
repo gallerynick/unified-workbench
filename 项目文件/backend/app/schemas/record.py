@@ -8,6 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from app.core.visibility import Visibility
+
 from app.models.record import RecordStatus, RecordType
 
 
@@ -18,7 +20,7 @@ class RecordCreate(BaseModel):
     title: str
     data: dict[str, Any] = {}
     type: RecordType = RecordType.RECORD
-    visibility: str = "private"
+    visibility: Visibility = Visibility.PRIVATE
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
 

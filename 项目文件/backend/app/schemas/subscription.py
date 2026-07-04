@@ -7,6 +7,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.models.subscription import BillingCycle, SubscriptionStatus
+
 
 VALID_CYCLES = {"monthly", "yearly"}
 VALID_STATUSES = {"active", "cancelled", "paused"}
@@ -16,7 +18,7 @@ class SubscriptionCreate(BaseModel):
     name: str
     provider: str
     amount: float
-    billing_cycle: str = "monthly"
+    billing_cycle: BillingCycle = BillingCycle.MONTHLY
     next_billing: str | None = None
 
     @field_validator("billing_cycle")
@@ -31,9 +33,9 @@ class SubscriptionUpdate(BaseModel):
     name: str | None = None
     provider: str | None = None
     amount: float | None = None
-    billing_cycle: str | None = None
+    billing_cycle: BillingCycle | None = None
     next_billing: str | None = None
-    status: str | None = None
+    status: SubscriptionStatus | None = None
 
     @field_validator("billing_cycle")
     @classmethod
@@ -57,9 +59,9 @@ class SubscriptionResponse(BaseModel):
     name: str
     provider: str
     amount: float
-    billing_cycle: str
+    billing_cycle: BillingCycle
     next_billing: datetime | None
-    status: str
+    status: SubscriptionStatus
     owner_id: uuid.UUID
     created_at: datetime
     updated_at: datetime

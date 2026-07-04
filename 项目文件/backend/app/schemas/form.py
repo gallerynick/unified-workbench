@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from app.core.visibility import Visibility
+
 
 class FormField(BaseModel):
     key: str
@@ -22,7 +24,7 @@ class FormCreate(BaseModel):
     title: str
     description: str | None = None
     fields: list[FormField]
-    visibility: Literal["public", "private", "restricted"] = "private"
+    visibility: Visibility = Visibility.PRIVATE
     allow_anonymous: bool = False
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
