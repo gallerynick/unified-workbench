@@ -16,7 +16,7 @@ async def health_check() -> UnifiedResponse[dict[str, str]]:
     return UnifiedResponse(
         data={
             "status": "healthy",
-            "version": "1.0.1",
+            "version": "1.0.0",
         }
     )
 
