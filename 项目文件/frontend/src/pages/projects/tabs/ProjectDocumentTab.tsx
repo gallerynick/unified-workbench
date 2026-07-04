@@ -548,20 +548,9 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
 
       // 检查编辑器是否已有内容
       const existingContent = activeDoc?.content as Record<string, unknown> | undefined;
-      const hasContent = (() => {
-        if (!existingContent) return false;
-        try {
-          const hasNodes = (node: Record<string, unknown>): boolean => {
-            if (node.type === 'text' && typeof node.text === 'string' && node.text.trim()) return true;
-            if (node.type === 'image' || node.type === 'table') return true;
-            if (Array.isArray(node.content)) {
-              return (node.content as Array<Record<string, unknown>>).some(hasNodes);
-            }
-            return false;
-          };
-          return hasNodes(existingContent);
-        } catch { return false; }
-      })();
+      const hasContent = existingContent
+        ? JSON.stringify(existingContent).length > 50
+        : false;
 
       if (hasContent) {
         Modal.confirm({
