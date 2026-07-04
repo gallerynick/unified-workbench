@@ -132,6 +132,9 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [docModalVisible, setDocModalVisible] = useState(false);
+  const [modalDocTitle, setModalDocTitle] = useState('');
+  const [modalDocCategory, setModalDocCategory] = useState('');
+  const [contentKey, setContentKey] = useState(0);
   const [newDocTitle, setNewDocTitle] = useState('');
   const [newDocCategory, setNewDocCategory] = useState<string | undefined>(undefined);
   const [hoveredDocId, setHoveredDocId] = useState<string | null>(null);
@@ -522,6 +525,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         setDocuments(updatedDocs);
         debouncedSave(updatedDocs);
         setTemplateModalVisible(false);
+        setContentKey((k) => k + 1);
         void message.success(`已应用模板「${template.name}」`);
       };
 
@@ -680,6 +684,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         {/* 富文本编辑器 */}
         <div className={styles.contentArea}>
           <ContentEditor
+            key={contentKey}
             value={activeDoc.content}
             onChange={handleContentChange}
             placeholder="开始编写文档内容..."
