@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.permissions import check_visibility
 from app.models.record import Record, RecordStatus
@@ -65,7 +66,7 @@ async def list_records(
     search: str | None = None,
 ) -> tuple[list[Record], int]:
     """列出记录，支持按 type/status 筛选，搜索 title，并过滤可见性。"""
-    query = select(Record)
+    query = select(Record).options(selectinload(Record.owner))
 
     if type is not None:
         query = query.where(Record.type == type)
