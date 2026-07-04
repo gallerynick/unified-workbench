@@ -23,6 +23,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # 从构建阶段复制依赖
