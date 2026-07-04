@@ -132,8 +132,6 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [docModalVisible, setDocModalVisible] = useState(false);
-  const [modalDocTitle, setModalDocTitle] = useState('');
-  const [modalDocCategory, setModalDocCategory] = useState('');
   const [contentKey, setContentKey] = useState(0);
   const [newDocTitle, setNewDocTitle] = useState('');
   const [newDocCategory, setNewDocCategory] = useState<string | undefined>(undefined);
