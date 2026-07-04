@@ -132,7 +132,6 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [docModalVisible, setDocModalVisible] = useState(false);
-  const [contentKey, setContentKey] = useState(0);
   const [newDocTitle, setNewDocTitle] = useState('');
   const [newDocCategory, setNewDocCategory] = useState<string | undefined>(undefined);
   const [hoveredDocId, setHoveredDocId] = useState<string | null>(null);
@@ -523,14 +522,19 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         setDocuments(updatedDocs);
         debouncedSave(updatedDocs);
         setTemplateModalVisible(false);
-        setContentKey((k) => k + 1);
         void message.success(`已应用模板「${template.name}」`);
       };
 
       // 检查编辑器是否已有内容
       const existingContent = activeDoc?.content as Record<string, unknown> | undefined;
-      const contentArray = existingContent?.content as Array<unknown> | undefined;
-      const hasContent = contentArray && contentArray.length > 0;
+      const hasTextContent = (node: Record<string, unknown>): boolean => {
+        if (node.type === 'text' && typeof node.text === 'string' && node.text.trim().length > 0) return true;
+        if (Array.isArray(node.content)) {
+          return node.content.some((child) => hasTextContent(child as Record<string, unknown>));
+        }
+        return false;
+      };
+      const hasContent = existingContent ? hasTextContent(existingContent) : false;
 
       if (hasContent) {
         Modal.confirm({
@@ -682,7 +686,6 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         {/* 富文本编辑器 */}
         <div className={styles.contentArea}>
           <ContentEditor
-            key={contentKey}
             value={activeDoc.content}
             onChange={handleContentChange}
             placeholder="开始编写文档内容..."

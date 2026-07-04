@@ -95,6 +95,7 @@ export default function ContentEditor({
   editable = true,
 }: ContentEditorProps) {
   const currentColorRef = useRef('#000000');
+  const isExternalUpdate = useRef(false);
 
   const editor = useEditor({
     extensions: [
@@ -114,18 +115,24 @@ export default function ContentEditor({
       },
     },
     onUpdate: ({ editor: ed }) => {
-      const json = ed.getJSON();
-      onChange?.(json as Record<string, unknown>);
+      if (!isExternalUpdate.current) {
+        const json = ed.getJSON();
+        onChange?.(json as Record<string, unknown>);
+      }
     },
   });
 
-  // 外部 value 变化时同步编辑器内容（如套用模板场景）
   useEffect(() => {
     if (editor && value) {
-      const nextContent = JSON.parse(JSON.stringify(value));
-      editor.commands.setContent(nextContent);
+      const currentJson = JSON.stringify(editor.getJSON());
+      const newJson = JSON.stringify(value);
+      if (currentJson !== newJson) {
+        isExternalUpdate.current = true;
+        editor.commands.setContent(JSON.parse(newJson));
+        isExternalUpdate.current = false;
+      }
     }
-  }, [editor]);
+  }, [value, editor]);
 
   const handleBold = useCallback(() => {
     editor?.chain().focus().toggleBold().run();
