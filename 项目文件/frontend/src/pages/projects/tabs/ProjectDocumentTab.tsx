@@ -497,21 +497,38 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
       if (!activeDocId) return;
 
       const buildTemplateContent = () => {
-        return {
-          type: 'doc',
-          content: [
-            { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: template.name }] },
-            ...(template.schema?.map((field) => ({
+        const docContent: Array<Record<string, unknown>> = [
+          { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: template.name }] },
+        ];
+
+        for (const field of template.schema ?? []) {
+          if (field.type === 'richtext' && field.config) {
+            // richtext 字段：直接嵌入 config 中的 Tiptap JSON（本身就是完整 doc content）
+            const inner = field.config as { content?: Array<Record<string, unknown>> };
+            if (Array.isArray(inner.content) && inner.content.length > 0) {
+              docContent.push({
+                type: 'heading',
+                attrs: { level: 3 },
+                content: [{ type: 'text', text: field.label }],
+              });
+              docContent.push(...inner.content);
+            }
+          } else if (field.type === 'divider') {
+            docContent.push({ type: 'horizontalRule' });
+          } else {
+            docContent.push({
               type: 'heading',
               attrs: { level: 3 },
               content: [{ type: 'text', text: field.label }],
-            })) ?? []),
-            ...(template.schema?.map((field) => ({
+            });
+            docContent.push({
               type: 'paragraph',
               content: [{ type: 'text', text: field.default_value != null ? String(field.default_value) : '' }],
-            })) ?? []),
-          ],
-        };
+            });
+          }
+        }
+
+        return { type: 'doc', content: docContent };
       };
 
       const applyContent = (content: Record<string, unknown>) => {
@@ -529,14 +546,15 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
 
       // 检查编辑器是否已有内容
       const existingContent = activeDoc?.content as Record<string, unknown> | undefined;
-      const hasTextContent = (node: Record<string, unknown>): boolean => {
+      const hasAnyContent = (node: Record<string, unknown>): boolean => {
         if (node.type === 'text' && typeof node.text === 'string' && node.text.trim().length > 0) return true;
+        if (node.type === 'image' || node.type === 'horizontalRule' || node.type === 'table') return true;
         if (Array.isArray(node.content)) {
-          return node.content.some((child) => hasTextContent(child as Record<string, unknown>));
+          return node.content.some((child) => hasAnyContent(child as Record<string, unknown>));
         }
         return false;
       };
-      const hasContent = existingContent ? hasTextContent(existingContent) : false;
+      const hasContent = existingContent ? hasAnyContent(existingContent) : false;
 
       if (hasContent) {
         Modal.confirm({
