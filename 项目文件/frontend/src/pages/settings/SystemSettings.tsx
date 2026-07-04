@@ -197,10 +197,11 @@ export default function SystemSettings() {
 
       <Card title="系统更新">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span>当前版本：v{updateInfo?.current || '0.1.0'}</span>
+          <span>本地版本：v{updateInfo?.current || '-'}</span>
+          <span>仓库最新：{updateInfo?.remote ? `v${updateInfo.remote}` : (updateInfo?.error ? '无法获取' : '检查中...')}</span>
           <span>仓库：{repo || 'gallerynick/unified-workbench'}</span>
           {updateInfo?.available && (
-            <Tag color="green">新版本 v{updateInfo.remote} 可用</Tag>
+            <Tag color="green">新版本可用</Tag>
           )}
           <Button
             icon={<ReloadOutlined />}
