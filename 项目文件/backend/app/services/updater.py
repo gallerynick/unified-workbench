@@ -81,7 +81,7 @@ async def check_update(db: AsyncSession) -> dict:
 
     validation = await validate_repo(repo, token)
     if not validation["valid"]:
-        return {"available": False, "error": validation["error"]}
+        return {"available": False, "current": __version__, "error": validation["error"]}
 
     async with httpx.AsyncClient() as client:
         resp = await client.get(
@@ -90,7 +90,7 @@ async def check_update(db: AsyncSession) -> dict:
             timeout=10,
         )
         if resp.status_code != 200:
-            return {"available": False, "error": "无法获取远程版本信息"}
+            return {"available": False, "current": __version__, "error": "无法获取远程版本信息"}
 
         data = resp.json()
         remote_version = data["tag_name"].lstrip("v")
