@@ -72,32 +72,36 @@ async def validate_repo(repo: str, token: str = "") -> dict:
 
 
 async def check_update(db: AsyncSession) -> dict:
-    """检查是否有新版本"""
+    """检查是否有新版本（通过 git ls-remote 获取远程 tag，无需 GitHub API）"""
+    import re
     repo = await get_github_repo(db)
-    token = await get_github_token(db)
-    headers = {"Accept": "application/vnd.github.v3+json"}
-    if token:
-        headers["Authorization"] = f"token {token}"
 
-    validation = await validate_repo(repo, token)
-    if not validation["valid"]:
-        return {"available": False, "current": __version__, "error": validation["error"]}
-
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"https://api.github.com/repos/{repo}/releases/latest",
-            headers=headers,
-            timeout=10,
+    try:
+        # 使用 git ls-remote 获取远程 tag，不依赖 GitHub API
+        result = subprocess.run(
+            ["git", "ls-remote", "--tags", "--refs",
+             f"https://github.com/{repo}.git"],
+            capture_output=True, text=True, timeout=15,
         )
-        if resp.status_code != 200:
-            return {"available": False, "current": __version__, "error": "无法获取远程版本信息"}
+        if result.returncode != 0:
+            return {"available": False, "current": __version__,
+                    "error": f"无法连接远程仓库: {result.stderr.strip()}"}
 
-        data = resp.json()
-        remote_version = data["tag_name"].lstrip("v")
-        release_notes = data.get("body", "")
-        download_url = data.get("html_url", "")
+        # 解析 tag，找最高版本
+        remote_version = "0.0.0"
+        for line in result.stdout.strip().split("\n"):
+            if not line.strip():
+                continue
+            # 格式: <commit>\trefs/tags/v1.0.0
+            tag = line.split("refs/tags/")[-1].strip().lstrip("v")
+            if re.match(r"^\d+\.\d+\.\d+$", tag):
+                if version_compare(tag, remote_version) > 0:
+                    remote_version = tag
 
-        # 确保版本比当前高
+        if remote_version == "0.0.0":
+            return {"available": False, "current": __version__, "remote": None,
+                    "error": "远程仓库无版本 tag"}
+
         cmp = version_compare(remote_version, __version__)
         if cmp <= 0:
             return {
@@ -105,8 +109,20 @@ async def check_update(db: AsyncSession) -> dict:
                 "current": __version__,
                 "remote": remote_version,
                 "repo": repo,
-                "error": "当前已是最新版本" if cmp == 0 else f"本地版本（{__version__}）高于远程版本（{remote_version}），无需更新",
             }
+
+        return {
+            "available": True,
+            "current": __version__,
+            "remote": remote_version,
+            "repo": repo,
+        }
+    except subprocess.TimeoutExpired:
+        return {"available": False, "current": __version__,
+                "error": "连接远程仓库超时"}
+    except Exception as e:
+        return {"available": False, "current": __version__,
+                "error": str(e)}
 
         return {
             "available": True,
