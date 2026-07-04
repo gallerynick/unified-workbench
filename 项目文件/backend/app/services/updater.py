@@ -72,66 +72,72 @@ async def validate_repo(repo: str, token: str = "") -> dict:
 
 
 async def check_update(db: AsyncSession) -> dict:
-    """检查是否有新版本（通过 git ls-remote 获取远程 tag，无需 GitHub API）"""
+    """检查是否有新版本。
+    先尝试无 token 访问，失败则使用已配置的 token。
+    """
     import re
     repo = await get_github_repo(db)
+    token = await get_github_token(db)
 
-    try:
-        # 使用 git ls-remote 获取远程 tag，不依赖 GitHub API
-        result = subprocess.run(
-            ["git", "ls-remote", "--tags", "--refs",
-             f"https://github.com/{repo}.git"],
-            capture_output=True, text=True, timeout=15,
-        )
-        if result.returncode != 0:
-            return {"available": False, "current": __version__,
-                    "error": f"无法连接远程仓库: {result.stderr.strip()}"}
-
-        # 解析 tag，找最高版本
-        remote_version = "0.0.0"
-        for line in result.stdout.strip().split("\n"):
+    def _parse_tags(output: str) -> str:
+        """解析 git ls-remote 输出，返回最高版本号"""
+        remote = "0.0.0"
+        for line in output.strip().split("\n"):
             if not line.strip():
                 continue
-            # 格式: <commit>\trefs/tags/v1.0.0
             tag = line.split("refs/tags/")[-1].strip().lstrip("v")
             if re.match(r"^\d+\.\d+\.\d+$", tag):
-                if version_compare(tag, remote_version) > 0:
-                    remote_version = tag
+                if version_compare(tag, remote) > 0:
+                    remote = tag
+        return remote
 
-        if remote_version == "0.0.0":
-            return {"available": False, "current": __version__, "remote": None,
-                    "error": "远程仓库无版本 tag"}
+    def _run_ls_remote(repo_url: str) -> tuple[int, str, str]:
+        """执行 git ls-remote，返回 (returncode, stdout, stderr)"""
+        result = subprocess.run(
+            ["git", "ls-remote", "--tags", "--refs", repo_url],
+            capture_output=True, text=True, timeout=15,
+        )
+        return result.returncode, result.stdout, result.stderr
 
-        cmp = version_compare(remote_version, __version__)
-        if cmp <= 0:
-            return {
-                "available": False,
-                "current": __version__,
-                "remote": remote_version,
-                "repo": repo,
-            }
+    url = f"https://github.com/{repo}.git"
 
-        return {
-            "available": True,
-            "current": __version__,
-            "remote": remote_version,
-            "repo": repo,
-        }
+    # 1. 先尝试无 token
+    try:
+        rc, out, err = _run_ls_remote(url)
+        if rc == 0:
+            remote_version = _parse_tags(out)
+            if remote_version != "0.0.0":
+                cmp = version_compare(remote_version, __version__)
+                return {
+                    "available": cmp > 0,
+                    "current": __version__,
+                    "remote": remote_version,
+                    "repo": repo,
+                }
     except subprocess.TimeoutExpired:
-        return {"available": False, "current": __version__,
-                "error": "连接远程仓库超时"}
-    except Exception as e:
-        return {"available": False, "current": __version__,
-                "error": str(e)}
+        pass  # fall through to token attempt
 
-        return {
-            "available": True,
-            "current": __version__,
-            "remote": remote_version,
-            "release_notes": release_notes,
-            "download_url": download_url,
-            "repo": repo,
-        }
+    # 2. 无 token 失败，尝试带 token
+    if token:
+        try:
+            token_url = f"https://oauth2:{token}@github.com/{repo}.git"
+            rc, out, err = _run_ls_remote(token_url)
+            if rc == 0:
+                remote_version = _parse_tags(out)
+                if remote_version != "0.0.0":
+                    cmp = version_compare(remote_version, __version__)
+                    return {
+                        "available": cmp > 0,
+                        "current": __version__,
+                        "remote": remote_version,
+                        "repo": repo,
+                    }
+        except subprocess.TimeoutExpired:
+            pass
+
+    # 3. 都失败
+    return {"available": False, "current": __version__,
+            "error": "无法获取远程版本信息"}
 
 
 def version_compare(v1: str, v2: str) -> int:
