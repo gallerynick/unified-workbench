@@ -253,6 +253,13 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
       ellipsis: true,
     },
     {
+      title: '所有者',
+      dataIndex: 'owner_name',
+      key: 'owner_name',
+      width: 120,
+      ellipsis: true,
+    },
+    {
       title: '类型',
       dataIndex: 'type',
       key: 'type',

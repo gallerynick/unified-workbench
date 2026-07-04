@@ -52,6 +52,7 @@ class RecordResponse(BaseModel):
     title: str
     status: str
     owner_id: uuid.UUID
+    owner_name: str
     visibility: str
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None

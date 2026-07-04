@@ -13,6 +13,7 @@ export interface WorkRecord {
   title: string;
   status: RecordStatus;
   owner_id: string;
+  owner_name: string;
   visibility: Visibility;
   restricted_users: string[] | null;
   restricted_tags: string[] | null;

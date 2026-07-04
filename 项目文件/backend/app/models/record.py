@@ -76,3 +76,7 @@ class Record(Base):
         "Template", back_populates="records", lazy="selectin"
     )
     owner: Mapped[User] = relationship("User", lazy="selectin")
+
+    @property
+    def owner_name(self) -> str:
+        return self.owner.nickname if self.owner and self.owner.nickname else (self.owner.username if self.owner else '未知')
