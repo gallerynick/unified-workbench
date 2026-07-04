@@ -10,6 +10,8 @@ const { Title, Text } = Typography;
 
 export default function SystemSettings() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [localVersion, setLocalVersion] = useState('...');
+  const [remoteVersion, setRemoteVersion] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [repo, setRepoValue] = useState('');
@@ -35,6 +37,11 @@ export default function SystemSettings() {
           setEditingToken('••••••••••••••••');
         }
       } catch (e) { console.warn('Failed to load settings:', e); }
+      try {
+        const healthRes = await fetch('/api/v1/health');
+        const health = await healthRes.json();
+        if (health?.data?.version) setLocalVersion(health.data.version);
+      } catch (e) { console.warn('Failed to load version:', e); }
     };
     loadConfig();
   }, []);
@@ -94,11 +101,13 @@ export default function SystemSettings() {
       if (res.code === 0) {
         setUpdateInfo(res.data);
         if (res.data.available) {
+          setRemoteVersion(res.data.remote);
           message.info(`发现新版本 v${res.data.remote}`);
-        } else if (res.data.error) {
-          message.warning(res.data.error);
-        } else {
+        } else if (res.data.remote) {
+          setRemoteVersion(res.data.remote);
           message.success('当前已是最新版本');
+        } else {
+          setRemoteVersion(null);
         }
       }
     } catch {
@@ -199,11 +208,11 @@ export default function SystemSettings() {
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>
             <Text type="secondary">本地版本：</Text>
-            <Text strong>v{updateInfo?.current || '未知'}</Text>
+            <Text strong>v{localVersion}</Text>
           </div>
           <div>
             <Text type="secondary">仓库最新：</Text>
-            <Text strong>{updateInfo?.remote ? `v${updateInfo.remote}` : (updateInfo ? '无法获取' : '检查中...')}</Text>
+            <Text strong>{remoteVersion ? `v${remoteVersion}` : (checking ? '检查中...' : '未检查')}</Text>
             {updateInfo?.available && <Tag color="green" style={{ marginLeft: 8 }}>新版本可用</Tag>}
           </div>
           <div>
