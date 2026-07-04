@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Empty, Spin, Typography, Tag } from 'antd';
+import { Card, Empty, Spin, Typography } from 'antd';
 import { FileTextOutlined } from '@ant-design/icons';
 import { listTemplates } from '../../api/templates';
 import type { Template } from '../../types/template';
@@ -53,9 +53,6 @@ export default function TemplateSelector({ onSelect, location }: TemplateSelecto
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <FileTextOutlined style={{ color: '#1677ff', fontSize: 16 }} />
             <Text strong>{tpl.name}</Text>
-            <Tag color="blue" style={{ marginLeft: 'auto', fontSize: 11 }}>
-              {tpl.location === 'global' ? '全局' : tpl.location === 'project' ? '项目' : '记录'}
-            </Tag>
           </div>
           <Paragraph
             type="secondary"
