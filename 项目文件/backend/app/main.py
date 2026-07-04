@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.version import __version__
 
 
 @asynccontextmanager
@@ -29,7 +30,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.APP_NAME,
         # redirect_slashes=False removed — FastAPI default handles /path ↔ /path/
-        version="1.0.0",
+        version=__version__,
         docs_url="/api/v1/docs",
         openapi_url="/api/v1/openapi.json",
         lifespan=lifespan,
