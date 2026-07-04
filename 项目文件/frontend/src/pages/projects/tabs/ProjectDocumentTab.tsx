@@ -497,34 +497,14 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
       if (!activeDocId) return;
 
       const buildTemplateContent = () => {
-        const docContent: Array<Record<string, unknown>> = [
-          { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: template.name }] },
-        ];
+        const docContent: Array<Record<string, unknown>> = [];
 
         for (const field of template.schema ?? []) {
           if (field.type === 'richtext' && field.config) {
-            // richtext 字段：直接嵌入 config 中的 Tiptap JSON（本身就是完整 doc content）
             const inner = field.config as { content?: Array<Record<string, unknown>> };
             if (Array.isArray(inner.content) && inner.content.length > 0) {
-              docContent.push({
-                type: 'heading',
-                attrs: { level: 3 },
-                content: [{ type: 'text', text: field.label }],
-              });
               docContent.push(...inner.content);
             }
-          } else if (field.type === 'divider') {
-            docContent.push({ type: 'horizontalRule' });
-          } else {
-            docContent.push({
-              type: 'heading',
-              attrs: { level: 3 },
-              content: [{ type: 'text', text: field.label }],
-            });
-            docContent.push({
-              type: 'paragraph',
-              content: [{ type: 'text', text: field.default_value != null ? String(field.default_value) : '' }],
-            });
           }
         }
 
