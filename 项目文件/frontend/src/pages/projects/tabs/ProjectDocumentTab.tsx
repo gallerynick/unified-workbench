@@ -494,33 +494,56 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
   const handleApplyTemplate = useCallback(
     (template: Template) => {
       if (!activeDocId) return;
-      // 将模板 schema 转换为 Tiptap 文档内容
-      const content = {
-        type: 'doc',
-        content: [
-          { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: template.name }] },
-          ...(template.schema?.map((field) => ({
-            type: 'heading',
-            attrs: { level: 3 },
-            content: [{ type: 'text', text: field.label }],
-          })) ?? []),
-          ...(template.schema?.map((field) => ({
-            type: 'paragraph',
-            content: [{ type: 'text', text: field.default_value != null ? String(field.default_value) : '' }],
-          })) ?? []),
-        ],
+
+      const buildTemplateContent = () => {
+        return {
+          type: 'doc',
+          content: [
+            { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: template.name }] },
+            ...(template.schema?.map((field) => ({
+              type: 'heading',
+              attrs: { level: 3 },
+              content: [{ type: 'text', text: field.label }],
+            })) ?? []),
+            ...(template.schema?.map((field) => ({
+              type: 'paragraph',
+              content: [{ type: 'text', text: field.default_value != null ? String(field.default_value) : '' }],
+            })) ?? []),
+          ],
+        };
       };
-      const updatedDocs = documents.map((d) =>
-        d.id === activeDocId
-          ? { ...d, content: content as Record<string, unknown>, updated_at: new Date().toISOString() }
-          : d,
-      );
-      setDocuments(updatedDocs);
-      debouncedSave(updatedDocs);
-      setTemplateModalVisible(false);
-      void message.success(`已应用模板「${template.name}」`);
+
+      const applyContent = (content: Record<string, unknown>) => {
+        const updatedDocs = documents.map((d) =>
+          d.id === activeDocId
+            ? { ...d, content, updated_at: new Date().toISOString() }
+            : d,
+        );
+        setDocuments(updatedDocs);
+        debouncedSave(updatedDocs);
+        setTemplateModalVisible(false);
+        void message.success(`已应用模板「${template.name}」`);
+      };
+
+      // 检查编辑器是否已有内容
+      const existingContent = activeDoc?.content as Record<string, unknown> | undefined;
+      const contentArray = existingContent?.content as Array<unknown> | undefined;
+      const hasContent = contentArray && contentArray.length > 0;
+
+      if (hasContent) {
+        Modal.confirm({
+          title: '替换现有内容',
+          content: '当前文档已有内容，应用模板将替换所有现有内容。是否继续？',
+          okText: '替换',
+          cancelText: '取消',
+          okButtonProps: { danger: true },
+          onOk: () => applyContent(buildTemplateContent() as Record<string, unknown>),
+        });
+      } else {
+        applyContent(buildTemplateContent() as Record<string, unknown>);
+      }
     },
-    [activeDocId, documents, debouncedSave],
+    [activeDocId, activeDoc, documents, debouncedSave],
   );
 
   // ─── 渲染：预览模式 ──────────────────────────────────────
@@ -642,7 +665,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
               icon={<AppstoreOutlined />}
               onClick={handleOpenTemplateModal}
             >
-              套用模板
+               模板
             </Button>
             <Button
               type="primary"
