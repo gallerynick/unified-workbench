@@ -196,21 +196,29 @@ export default function SystemSettings() {
       </Card>
 
       <Card title="系统更新">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span>本地版本：v{updateInfo?.current || '-'}</span>
-          <span>仓库最新：{updateInfo?.remote ? `v${updateInfo.remote}` : (updateInfo?.error ? '无法获取' : '检查中...')}</span>
-          <span>仓库：{repo || 'gallerynick/unified-workbench'}</span>
-          {updateInfo?.available && (
-            <Tag color="green">新版本可用</Tag>
-          )}
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={handleCheckUpdate}
-            loading={checking}
-          >
-            检查更新
-          </Button>
-          {updateInfo?.available && (
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <div>
+            <Text type="secondary">本地版本：</Text>
+            <Text strong>v{updateInfo?.current || '未知'}</Text>
+          </div>
+          <div>
+            <Text type="secondary">仓库最新：</Text>
+            <Text strong>{updateInfo?.remote ? `v${updateInfo.remote}` : (updateInfo ? '无法获取' : '检查中...')}</Text>
+            {updateInfo?.available && <Tag color="green" style={{ marginLeft: 8 }}>新版本可用</Tag>}
+          </div>
+          <div>
+            <Text type="secondary">仓库地址：</Text>
+            <Text>{repo || 'gallerynick/unified-workbench'}</Text>
+          </div>
+          <Space>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleCheckUpdate}
+              loading={checking}
+            >
+              检查更新
+            </Button>
+            {updateInfo?.available && (
             <Button
               type="primary"
               icon={<CloudDownloadOutlined />}
@@ -220,7 +228,8 @@ export default function SystemSettings() {
               立即更新
             </Button>
           )}
-        </div>
+          </Space>
+        </Space>
         {updateInfo?.release_notes && (
           <div style={{ marginTop: 16, whiteSpace: 'pre-wrap' }}>
             <strong>更新说明：</strong>
