@@ -212,7 +212,7 @@ export default function SystemSettings() {
           </div>
           <div>
             <Text type="secondary">仓库最新：</Text>
-            <Text strong>{remoteVersion ? `v${remoteVersion}` : (checking ? '检查中...' : '未检查')}</Text>
+            <Text strong>{remoteVersion && remoteVersion !== '无法获取' ? `v${remoteVersion}` : remoteVersion || '未检查'}</Text>
             {updateInfo?.available && <Tag color="green" style={{ marginLeft: 8 }}>新版本可用</Tag>}
           </div>
           <div>
