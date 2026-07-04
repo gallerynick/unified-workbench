@@ -548,9 +548,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
 
       // 检查编辑器是否已有内容
       const existingContent = activeDoc?.content as Record<string, unknown> | undefined;
-      const hasContent = existingContent
-        ? JSON.stringify(existingContent).length > 100
-        : false;
+      const hasContent = extractTextSummary(existingContent ?? null, 200) !== '暂无内容';
 
       if (hasContent) {
         Modal.confirm({
