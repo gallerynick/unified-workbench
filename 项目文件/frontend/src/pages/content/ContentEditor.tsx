@@ -119,6 +119,20 @@ export default function ContentEditor({
     },
   });
 
+  // 外部 value 变化时同步编辑器内容（如套用模板场景）
+  useEffect(() => {
+    if (editor && value) {
+      const currentJson = editor.getJSON();
+      const newJson = value as Record<string, unknown>;
+      if (JSON.stringify(currentJson) !== JSON.stringify(newJson)) {
+        const isUpdating = { value: false };
+        editor.off('update');
+        editor.on('update', () => { isUpdating.value = true; });
+        editor.commands.setContent(JSON.parse(JSON.stringify(newJson)));
+      }
+    }
+  }, [value, editor]);
+
   const handleBold = useCallback(() => {
     editor?.chain().focus().toggleBold().run();
   }, [editor]);
