@@ -540,7 +540,9 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         setDocuments(updatedDocs);
         debouncedSave(updatedDocs);
         setTemplateModalVisible(false);
-        editorRef.current?.setContent(content);
+        requestAnimationFrame(() => {
+          editorRef.current?.setContent(content);
+        });
         void message.success(`已应用模板「${template.name}」`);
       };
 
