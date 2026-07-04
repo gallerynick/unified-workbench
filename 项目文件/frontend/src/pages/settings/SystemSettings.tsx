@@ -6,7 +6,7 @@ import type { UpdateInfo, RepoInfo } from '../../api/system';
 import type { UnifiedResponse } from '../../types/user';
 import styles from './SystemSettings.module.css';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 export default function SystemSettings() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
