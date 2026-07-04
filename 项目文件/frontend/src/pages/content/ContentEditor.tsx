@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import type { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { TextStyle } from '@tiptap/extension-text-style';
@@ -87,13 +88,17 @@ interface ContentEditorProps {
   editable?: boolean;
 }
 
-export default function ContentEditor({
+export interface ContentEditorHandle {
+  setContent: (content: Record<string, unknown>) => void;
+}
+
+const ContentEditor = forwardRef<ContentEditorHandle, ContentEditorProps>(function ContentEditor({
   value,
   onChange,
   placeholder = '请输入内容...',
   minHeight = 200,
   editable = true,
-}: ContentEditorProps) {
+}, ref) {
   const currentColorRef = useRef('#000000');
   const isExternalUpdate = useRef(false);
 
@@ -133,6 +138,16 @@ export default function ContentEditor({
       }
     }
   }, [value, editor]);
+
+  useImperativeHandle(ref, () => ({
+    setContent: (content: Record<string, unknown>) => {
+      if (editor) {
+        isExternalUpdate.current = true;
+        editor.commands.setContent(JSON.parse(JSON.stringify(content)));
+        isExternalUpdate.current = false;
+      }
+    },
+  }), [editor]);
 
   const handleBold = useCallback(() => {
     editor?.chain().focus().toggleBold().run();
@@ -272,4 +287,6 @@ export default function ContentEditor({
       </div>
     </div>
   );
-}
+});
+
+export default ContentEditor;

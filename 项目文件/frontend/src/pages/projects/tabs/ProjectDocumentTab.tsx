@@ -29,7 +29,7 @@ import {
 } from '@ant-design/icons';
 import type { WorkRecord } from '../../../types/record';
 import type { Template } from '../../../types/template';
-import ContentEditor from '../../content/ContentEditor';
+import ContentEditor, { type ContentEditorHandle } from '../../content/ContentEditor';
 import TemplateSelector from '../TemplateSelector';
 import styles from './ProjectDocumentTab.module.css';
 
@@ -138,6 +138,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
   const [renameCategoryModalVisible, setRenameCategoryModalVisible] = useState(false);
   const [renameCategoryOld, setRenameCategoryOld] = useState('');
   const [renameCategoryNew, setRenameCategoryNew] = useState('');
+  const editorRef = useRef<ContentEditorHandle>(null);
 
   // ── 编辑模式下的临时标题 ──
   const [editTitle, setEditTitle] = useState('');
@@ -522,6 +523,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         setDocuments(updatedDocs);
         debouncedSave(updatedDocs);
         setTemplateModalVisible(false);
+        editorRef.current?.setContent(content);
         void message.success(`已应用模板「${template.name}」`);
       };
 
@@ -686,6 +688,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         {/* 富文本编辑器 */}
         <div className={styles.contentArea}>
           <ContentEditor
+            ref={editorRef}
             value={activeDoc.content}
             onChange={handleContentChange}
             placeholder="开始编写文档内容..."
