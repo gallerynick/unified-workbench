@@ -549,7 +549,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
       // 检查编辑器是否已有内容
       const existingContent = activeDoc?.content as Record<string, unknown> | undefined;
       const hasContent = existingContent
-        ? JSON.stringify(existingContent).length > 50
+        ? JSON.stringify(existingContent).length > 100
         : false;
 
       if (hasContent) {
