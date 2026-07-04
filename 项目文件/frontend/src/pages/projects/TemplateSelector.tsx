@@ -20,9 +20,8 @@ export default function TemplateSelector({ onSelect, location }: TemplateSelecto
     const fetch = async () => {
       setLoading(true);
       try {
-        const res = await listTemplates({ page_size: 100, location });
+        const res = await listTemplates({ page_size: 100 });
         if (!cancelled && res.code === 0 && res.data) {
-          // 项目文档也接受全局模板
           const items = res.data.items.filter(
             (t) => location === 'project' ? t.location === 'project' || t.location === 'global' : true
           );
