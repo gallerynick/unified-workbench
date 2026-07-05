@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Button, Card, Tag, message, Modal, Input, Space, Typography, Progress } from 'antd';
+import { Button, Card, Tag, message, Modal, Input, Space, Typography } from 'antd';
 import { ReloadOutlined, CloudDownloadOutlined, SaveOutlined } from '@ant-design/icons';
-import { checkUpdate, performUpdate, getRepo, setRepo, getToken, setToken } from '../../api/system';
+import { checkUpdate, getRepo, setRepo, getToken, setToken } from '../../api/system';
 import type { UpdateInfo, RepoInfo } from '../../api/system';
 import type { UnifiedResponse } from '../../types/user';
 import styles from './SystemSettings.module.css';
@@ -13,7 +13,6 @@ export default function SystemSettings() {
   const [localVersion, setLocalVersion] = useState('...');
   const [remoteVersion, setRemoteVersion] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
-  const [updating, setUpdating] = useState<{ isRunning: boolean; percent: number; message: string } | false>(false);
   const [repo, setRepoValue] = useState('');
   const [editingRepo, setEditingRepo] = useState('');
   const [savingRepo, setSavingRepo] = useState(false);
@@ -120,54 +119,28 @@ export default function SystemSettings() {
   const [updateTaskId, setUpdateTaskId] = useState<string | null>(null);
 
   const handleUpdate = () => {
-    Modal.confirm({
-      title: '确认更新',
-      content: `确定要更新到 v${updateInfo?.remote} 吗？更新过程中服务将重启。`,
-      okText: '更新',
-      cancelText: '取消',
-      onOk: async () => {
-        setUpdating({ isRunning: true, percent: 0, message: '准备更新...' });
-        try {
-          const res = await performUpdate();
-          const data = res.data as Record<string, unknown> | null;
-          if (res.code === 0 && data?.task_id) {
-            pollUpdateProgress(data.task_id as string);
-          } else {
-            message.error((data?.error as string) || '更新失败');
-            setUpdating(false);
-          }
-        } catch {
-          message.error('更新失败');
-          setUpdating(false);
-        }
-      },
-    });
-  };
+    Modal.info({
+      title: '手动更新指南',
+      width: 560,
+      content: (
+        <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 13, lineHeight: 1.8 }}>
+          {`发现新版本 v${updateInfo?.remote}，请按以下步骤手动更新：
 
-  const pollUpdateProgress = async (taskId: string) => {
-    const poll = async () => {
-      try {
-        const resp = await fetch(`/api/v1/system/update/progress?task_id=${taskId}`);
-        const json = await resp.json();
-        if (json.code === 0 && json.data) {
-          const { percent, message, status } = json.data;
-          setUpdating({ isRunning: true, percent, message });
-          if (status === 'done') {
-            message.success('更新完成，服务重启中...');
-            setTimeout(() => window.location.reload(), 5000);
-          } else {
-            setTimeout(poll, 500);
-          }
-        } else {
-          setUpdating(false);
-          message.error('无法获取更新进度');
-        }
-      } catch {
-        setUpdating(false);
-        message.error('更新失败');
-      }
-    };
-    poll();
+1. 打开终端，进入项目目录：
+   cd 项目文件
+
+2. 拉取最新代码：
+   git pull origin master
+   git checkout v${updateInfo?.remote}
+
+3. 重启服务：
+   macOS/Linux: bash start.sh
+   Windows:     start.bat
+
+更新完成后刷新此页面即可。`}
+        </div>
+      ),
+    });
   };
 
   return (
@@ -260,7 +233,7 @@ export default function SystemSettings() {
               type="primary"
               icon={<CloudDownloadOutlined />}
               onClick={handleUpdate}
-              loading={!!updating}
+              loading={false}
             >
               立即更新
             </Button>
@@ -274,24 +247,6 @@ export default function SystemSettings() {
           </div>
         )}
       </Card>
-
-      <Modal
-        title="正在更新"
-        open={!!updating}
-        footer={null}
-        closable={false}
-        maskClosable={false}
-      >
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <Progress
-            type="circle"
-            percent={typeof updating === 'object' ? updating.percent : 0}
-          />
-          <div style={{ marginTop: 16 }}>
-            {typeof updating === 'object' ? updating.message : '准备中...'}
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }
