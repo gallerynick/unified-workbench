@@ -190,23 +190,15 @@ async def perform_update(db: AsyncSession) -> dict:
         if start_bat.exists():
             os.chmod(start_bat, 0o755)
 
-        # 6. 执行 runner 重启
-        system = platform.system()
-        if system == "Darwin" or system == "Linux":
-            # macOS / Linux: 后台执行 start.sh
-            subprocess.Popen(
-                ["bash", str(PROJECT_DIR / "start.sh")],
-                cwd=str(PROJECT_DIR),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        elif system == "Windows":
-            subprocess.Popen(
-                ["cmd", "/c", str(PROJECT_DIR / "start.bat")],
-                cwd=str(PROJECT_DIR),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+        # 6. 从 /tmp/ 以 nohup 方式启动 runner，确保父进程被 docker compose down 杀死后
+        #    runner 仍能存活并完成重启
+        _write_runner_script(runner_dst)
+        subprocess.Popen(
+            ["python3", str(runner_dst)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,  # 脱离父进程 Session，防止被 SIGTERM 连带杀死
+        )
 
         _report_progress(task_id, 100, "更新完成，服务重启中...")
         return {"success": True, "message": "更新完成，服务正在重启", "task_id": task_id}
@@ -217,18 +209,31 @@ async def perform_update(db: AsyncSession) -> dict:
 
 
 def _write_runner_script(path: Path):
-    """写入更新 runner 脚本"""
+    """写入更新 runner 脚本（含临时文件清理）"""
     path.write_text("""# 更新 runner - 由系统更新触发
-import subprocess, sys, time, platform
+import subprocess, shutil, os, platform
 from pathlib import Path
 
 WORKBENCH = Path("/Users/gallerynick/Documents/Project/Project_UnifiedWorkbench/项目文件")
+TEMP_DIR = Path("/tmp/unified_workbench_update")
+RUNNER = Path("/tmp/update_runner.py")
 
+# 等待父进程完成响应
+import time; time.sleep(2)
+
+# 执行重启
 system = platform.system()
 if system == "Darwin" or system == "Linux":
     subprocess.run(["bash", str(WORKBENCH / "start.sh")], cwd=str(WORKBENCH))
 elif system == "Windows":
     subprocess.run(["cmd", "/c", str(WORKBENCH / "start.bat")], cwd=str(WORKBENCH))
+
+# 清理临时文件
+try:
+    shutil.rmtree(TEMP_DIR, ignore_errors=True)
+    os.remove(RUNNER)
+except Exception:
+    pass
 """)
     os.chmod(path, 0o755)
 
