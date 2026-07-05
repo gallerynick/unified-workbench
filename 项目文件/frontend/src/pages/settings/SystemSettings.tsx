@@ -217,7 +217,12 @@ export default function SystemSettings() {
       });
       const json = await resp.json();
       if (json.code === 0) {
+        // 清除所有本地存储和 Cookie
         clearTokens();
+        localStorage.clear();
+        document.cookie.split(';').forEach(c => {
+          document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/');
+        });
         message.success('系统已重置，即将跳转到初始化页面...');
         setTimeout(() => { window.location.href = '/welcome'; }, 1500);
       } else {
