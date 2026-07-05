@@ -47,7 +47,7 @@ export default function Welcome() {
         message.success(`管理员 ${adminUser} 创建成功，即将跳转登录页...`);
         setTimeout(() => navigate('/login', { replace: true }), 2000);
       } else {
-        message.error(json.msg || '初始化失败');
+        message.error(json.msg || json.detail || '初始化失败');
       }
     } catch { message.error('网络错误'); }
     finally { setCreating(false); }

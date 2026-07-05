@@ -137,16 +137,16 @@ async def initial_setup_endpoint(
     from app.services.system_config import get_config
     config = await get_config(db, SETUP_COMPLETE_KEY)
     if config and config.get("complete") is True:
-        raise HTTPException(status_code=400, detail="系统已初始化")
+        return {"code": 1, "msg": "系统已初始化", "data": None}
 
     # 2. 清除 seed 创建的默认用户，替换为请求中指定的管理员
     await db.execute(text("DELETE FROM \"user\""))
 
     # 3. 验证用户名和密码
     if len(request.username) < 3 or len(request.username) > 50:
-        raise HTTPException(status_code=400, detail="用户名长度需在 3-50 个字符")
+        return {"code": 1, "msg": "用户名长度需在 3-50 个字符", "data": None}
     if not validate_password_strength(request.password):
-        raise HTTPException(status_code=400, detail="密码至少 8 位，必须包含字母和数字")
+        return {"code": 1, "msg": "密码至少 8 位，必须包含字母和数字", "data": None}
 
     # 3. 创建管理员账号
     admin = User(
