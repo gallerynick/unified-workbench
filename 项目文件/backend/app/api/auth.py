@@ -139,12 +139,8 @@ async def initial_setup_endpoint(
     if config and config.get("complete") is True:
         raise HTTPException(status_code=400, detail="系统已初始化")
 
-    # 2. 如已有用户（seed 已创建管理员），直接标记完成
-    count_result = await db.execute(text("SELECT COUNT(*) FROM \"user\""))
-    if count_result.scalar() > 0:
-        await update_config(db, SETUP_COMPLETE_KEY, {"complete": True})
-        await db.commit()
-        return UnifiedResponse(msg="初始化完成，请登录")
+    # 2. 清除 seed 创建的默认用户，替换为请求中指定的管理员
+    await db.execute(text("DELETE FROM \"user\""))
 
     # 3. 验证用户名和密码
     if len(request.username) < 3 or len(request.username) > 50:
