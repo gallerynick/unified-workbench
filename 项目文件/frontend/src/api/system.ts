@@ -10,22 +10,12 @@ export interface UpdateInfo {
   error?: string;
 }
 
-export interface UpdateResult {
-  success: boolean;
-  message?: string;
-  error?: string;
-}
-
 export interface RepoInfo {
   repo: string;
 }
 
 export async function checkUpdate() {
   return request<UpdateInfo>('/system/check-update');
-}
-
-export async function performUpdate() {
-  return request<UpdateResult>('/system/update', { method: 'POST' });
 }
 
 export async function getRepo() {
