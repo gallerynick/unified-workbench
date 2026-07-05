@@ -86,7 +86,7 @@ async def api_reset_system(
     if not row or not verify_password(request.password, row[0]):
         return {"code": 1, "msg": "密码错误", "data": None}
 
-    # 1. 删除所有表的数据（按依赖顺序）
+    # 1. 删除所有表的数据（按依赖顺序，包括所有用户）
     tables = [
         "vote_record", "vote", "content_file", "content",
         "file", "folder", "form_response", "form",
@@ -96,21 +96,13 @@ async def api_reset_system(
         "topology", "stream_room",
         "announcement", "notification", "audit_log",
         "refresh_token", "user_tag", "system_config",
+        "\"user\"",  # 删除所有用户包括管理员
     ]
     for table in tables:
         await db.execute(text(f"DELETE FROM {table}"))
-    # 用户表需要排除初始管理员
-    await db.execute(text(
-        "DELETE FROM \"user\" WHERE username != 'admin'"
-    ))
     await db.flush()
 
-    # 2. 恢复初始管理员状态
-    await db.execute(text(
-        "UPDATE \"user\" SET password_hash = '', nickname = '管理员' WHERE username = 'admin'"
-    ))
-
-    # 3. 删除文件（如果不保留）
+    # 2. 删除文件（如果不保留）
     if not request.keep_files:
         import shutil
         data_dir = "/data/files"
@@ -119,12 +111,12 @@ async def api_reset_system(
         except Exception:
             pass
 
-    # 4. 重新创建初始管理员（通过 seed）
+    # 3. 重新创建初始管理员（通过 seed）
     from app.utils.seed import create_initial_admin
     await create_initial_admin(db)
 
     return {
         "code": 0,
-        "msg": "系统已重置" + ("，文件已保留" if request.keep_files else "，所有数据已清除"),
+        "msg": "系统已重置，所有用户已被清除" + ("（文件已保留）" if request.keep_files else ""),
         "data": None,
     }

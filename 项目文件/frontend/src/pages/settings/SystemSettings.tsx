@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button, Card, Tag, message, Modal, Input, Space, Typography } from 'antd';
 import { ReloadOutlined, CloudDownloadOutlined, SaveOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { checkUpdate, getRepo, setRepo, getToken, setToken } from '../../api/system';
+import { clearTokens } from '../../utils/auth';
 import type { UpdateInfo, RepoInfo } from '../../api/system';
 import type { UnifiedResponse } from '../../types/user';
 import styles from './SystemSettings.module.css';
@@ -175,7 +176,7 @@ export default function SystemSettings() {
   const handleReset = () => {
     let pwd = '';
     Modal.confirm({
-      title: '⚠️ 删除所有数据',
+      title: '删除所有数据',
       icon: <ExclamationCircleOutlined />,
       content: (
         <div>
@@ -194,7 +195,7 @@ export default function SystemSettings() {
       onOk: () => {
         _resetPassword = pwd;
         Modal.confirm({
-          title: '⚠️ 是否保留应用文件？',
+          title: '是否保留应用文件？',
           icon: <ExclamationCircleOutlined />,
           content: '选择「保留」将保留已上传的文件和文档附件。选择「不保留」将删除所有文件，系统回到初始状态。',
           okText: '不保留，全部删除',
@@ -216,8 +217,9 @@ export default function SystemSettings() {
       });
       const json = await resp.json();
       if (json.code === 0) {
-        message.success(json.msg || '系统已重置');
-        setTimeout(() => window.location.reload(), 2000);
+        clearTokens();
+        message.success('系统已重置，即将跳转到初始化页面...');
+        setTimeout(() => { window.location.href = '/welcome'; }, 1500);
       } else {
         message.error(json.msg || '重置失败');
       }
