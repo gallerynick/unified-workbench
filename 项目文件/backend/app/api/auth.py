@@ -133,9 +133,10 @@ async def initial_setup_endpoint(
     from app.core.security import hash_password, validate_password_strength
     from app.models.user import User, UserRole, UserStatus
 
-    # 1. 检查是否已有用户（防止重复初始化）
-    result = await db.execute(text("SELECT COUNT(*) FROM \"user\""))
-    if result.scalar() > 0:
+    # 1. 检查是否已初始化（通过 setup_complete 标记而非用户数）
+    from app.services.system_config import get_config
+    config = await get_config(db, SETUP_COMPLETE_KEY)
+    if config and config.get("complete") is True:
         raise HTTPException(status_code=400, detail="系统已初始化")
 
     # 2. 验证用户名和密码
