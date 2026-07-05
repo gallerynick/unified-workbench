@@ -16,7 +16,8 @@ async def create_initial_admin(db: AsyncSession) -> None:
     """Create initial admin user if no admin exists.
 
     This function is idempotent - it will not create a duplicate admin if one already exists.
-    Called on application startup.
+    Called on application startup and system reset.
+    Uses flush() instead of commit() so callers control the transaction boundary.
     """
     settings = get_settings()
 
@@ -27,8 +28,7 @@ async def create_initial_admin(db: AsyncSession) -> None:
     if existing is not None:
         if existing.role != UserRole.ADMIN:
             existing.role = UserRole.ADMIN
-            await db.commit()
-            logger.info(f"Fixed admin user role to ADMIN")
+            await db.flush()
         return
 
     admin = User(
@@ -39,6 +39,4 @@ async def create_initial_admin(db: AsyncSession) -> None:
         status=UserStatus.ACTIVE,
     )
     db.add(admin)
-    await db.commit()
-
-    logger.info(f"Initial admin user '{admin.username}' created successfully")
+    await db.flush()

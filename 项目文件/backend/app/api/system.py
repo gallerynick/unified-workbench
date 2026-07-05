@@ -114,6 +114,7 @@ async def api_reset_system(
     # 3. 重新创建初始管理员（通过 seed）
     from app.utils.seed import create_initial_admin
     await create_initial_admin(db)
+    await db.commit()
 
     return {
         "code": 0,
