@@ -67,7 +67,8 @@ async def api_set_token(config: TokenConfig, db: AsyncSession = Depends(get_db))
 
 class ResetRequest(BaseModel):
     """数据重置请求"""
-    keep_files: bool = True  # 默认保留文件
+    keep_files: bool = True
+    password: str = ""
 
 
 @router.post("/reset")
@@ -75,18 +76,26 @@ async def api_reset_system(
     request: ResetRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """重置系统：删除所有数据，可选保留文件"""
+    """重置系统：删除所有数据，需要密码验证，可选保留文件"""
     from sqlalchemy import text
+
+    # 0. 验证管理员密码
+    from app.core.security import verify_password
+    result = await db.execute(text("SELECT password_hash FROM \"user\" WHERE username = 'admin'"))
+    row = result.fetchone()
+    if not row or not verify_password(request.password, row[0]):
+        return {"code": 1, "msg": "密码错误", "data": None}
 
     # 1. 删除所有表的数据（按依赖顺序）
     tables = [
-        "stream_room", "topology", "vote_record", "vote", "content_file",
-        "content", "file", "folder", "form_response", "form",
+        "vote_record", "vote", "content_file", "content",
+        "file", "folder", "form_response", "form",
         "calendar_event", "note", "inventory", "contact",
-        "project_document", "reminder", "budget", "subscription",
+        "reminder", "budget", "subscription",
         "task", "record", "template", "secret", "secret_category",
+        "topology", "stream_room",
         "announcement", "notification", "audit_log",
-        "user_tag", "system_config",
+        "refresh_token", "user_tag", "system_config",
     ]
     for table in tables:
         await db.execute(text(f"DELETE FROM {table}"))
