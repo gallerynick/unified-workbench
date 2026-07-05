@@ -8,6 +8,8 @@ import styles from './SystemSettings.module.css';
 
 const { Title, Text } = Typography;
 
+let _resetPassword = '';
+
 export default function SystemSettings() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [localVersion, setLocalVersion] = useState('...');
@@ -171,14 +173,26 @@ export default function SystemSettings() {
   };
 
   const handleReset = () => {
+    let pwd = '';
     Modal.confirm({
       title: '⚠️ 删除所有数据',
       icon: <ExclamationCircleOutlined />,
-      content: '此操作将删除数据库中所有数据（用户、项目、文档、文件记录等）。是否继续？',
+      content: (
+        <div>
+          <p>此操作将删除数据库中所有数据（用户、项目、文档、文件记录等）。</p>
+          <p>请输入管理员密码以确认：</p>
+          <Input.Password
+            placeholder="管理员密码"
+            onChange={(e) => { pwd = e.target.value; }}
+            style={{ marginTop: 8 }}
+          />
+        </div>
+      ),
       okText: '继续',
       cancelText: '取消',
       okType: 'danger',
       onOk: () => {
+        _resetPassword = pwd;
         Modal.confirm({
           title: '⚠️ 是否保留应用文件？',
           icon: <ExclamationCircleOutlined />,
@@ -186,41 +200,28 @@ export default function SystemSettings() {
           okText: '不保留，全部删除',
           cancelText: '保留文件',
           okType: 'danger',
-          onOk: async () => {
-            try {
-              const resp = await fetch('/api/v1/system/reset', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ keep_files: false }),
-              });
-              const json = await resp.json();
-              if (json.code === 0) {
-                message.success(json.msg || '系统已重置');
-                setTimeout(() => window.location.reload(), 2000);
-              } else {
-                message.error(json.msg || '重置失败');
-              }
-            } catch { message.error('重置失败'); }
-          },
-          onCancel: async () => {
-            try {
-              const resp = await fetch('/api/v1/system/reset', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ keep_files: true }),
-              });
-              const json = await resp.json();
-              if (json.code === 0) {
-                message.success(json.msg || '系统已重置');
-                setTimeout(() => window.location.reload(), 2000);
-              } else {
-                message.error(json.msg || '重置失败');
-              }
-            } catch { message.error('重置失败'); }
-          },
+          onOk: () => doReset(false),
+          onCancel: () => doReset(true),
         });
       },
     });
+  };
+
+  const doReset = async (keepFiles: boolean) => {
+    try {
+      const resp = await fetch('/api/v1/system/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keep_files: keepFiles, password: _resetPassword }),
+      });
+      const json = await resp.json();
+      if (json.code === 0) {
+        message.success(json.msg || '系统已重置');
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        message.error(json.msg || '重置失败');
+      }
+    } catch { message.error('重置失败'); }
   };
 
   return (
