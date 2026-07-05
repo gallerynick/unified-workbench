@@ -141,8 +141,15 @@ export default function SystemSettings() {
 
           <Typography.Paragraph>
             <Typography.Text strong>3. 拉取新版本代码</Typography.Text><br />
+            在项目目录所在的上层目录（即能看到 <Typography.Text code>项目文件</Typography.Text> 文件夹的位置），执行：<br />
             <Typography.Text code copyable>git pull origin master</Typography.Text><br />
-            如果提示需要登录，请先配置 GitHub 账号或联系管理员。
+            <Typography.Text type="secondary">
+              如果是首次使用或 git pull 失败，请先克隆仓库：<br />
+            </Typography.Text>
+            <Typography.Text code copyable>git clone https://github.com/{repo || 'gallerynick/unified-workbench'}.git</Typography.Text><br />
+            <Typography.Text type="secondary">
+              如果提示需要登录，请先配置 GitHub 账号或联系管理员。
+            </Typography.Text>
           </Typography.Paragraph>
 
           <Typography.Paragraph>
