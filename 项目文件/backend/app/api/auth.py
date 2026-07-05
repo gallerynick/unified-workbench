@@ -139,7 +139,14 @@ async def initial_setup_endpoint(
     if config and config.get("complete") is True:
         raise HTTPException(status_code=400, detail="系统已初始化")
 
-    # 2. 验证用户名和密码
+    # 2. 如已有用户（seed 已创建管理员），直接标记完成
+    count_result = await db.execute(text("SELECT COUNT(*) FROM \"user\""))
+    if count_result.scalar() > 0:
+        await update_config(db, SETUP_COMPLETE_KEY, {"complete": True})
+        await db.commit()
+        return UnifiedResponse(msg="初始化完成，请登录")
+
+    # 3. 验证用户名和密码
     if len(request.username) < 3 or len(request.username) > 50:
         raise HTTPException(status_code=400, detail="用户名长度需在 3-50 个字符")
     if not validate_password_strength(request.password):
