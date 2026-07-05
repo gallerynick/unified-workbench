@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Steps, Input, Button, Typography, message, Space, Spin, Form } from 'antd';
+import { Card, Steps, Input, Button, Typography, message, Space, Spin } from 'antd';
 import { RocketOutlined, UserOutlined, LockOutlined, SettingOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useCustomization, saveAppSettings } from '../hooks/useCustomization';
 import styles from './Welcome.module.css';
