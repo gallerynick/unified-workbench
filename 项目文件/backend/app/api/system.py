@@ -1,6 +1,6 @@
 """系统更新 API，支持仓库地址配置与验证"""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +9,7 @@ from app.services.updater import (
     check_update,
     get_github_repo,
     get_github_token,
+    get_progress,
     perform_update,
     set_github_repo,
     set_github_token,
@@ -36,6 +37,15 @@ async def api_check_update(db: AsyncSession = Depends(get_db)):
 async def api_perform_update(db: AsyncSession = Depends(get_db)):
     result = await perform_update(db)
     return {"code": 0, "msg": "", "data": result}
+
+
+@router.get("/update/progress")
+async def api_update_progress(task_id: str = Query(...)):
+    """轮询更新进度"""
+    progress = get_progress(task_id)
+    if progress is None:
+        return {"code": 1, "msg": "任务不存在", "data": None}
+    return {"code": 0, "msg": "", "data": progress}
 
 
 @router.get("/repo")

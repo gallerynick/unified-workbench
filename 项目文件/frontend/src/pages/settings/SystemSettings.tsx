@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Card, Tag, message, Modal, Input, Space, Typography } from 'antd';
+import { Button, Card, Tag, message, Modal, Input, Space, Typography, Progress } from 'antd';
 import { ReloadOutlined, CloudDownloadOutlined, SaveOutlined } from '@ant-design/icons';
 import { checkUpdate, performUpdate, getRepo, setRepo, getToken, setToken } from '../../api/system';
 import type { UpdateInfo, RepoInfo } from '../../api/system';
@@ -13,7 +13,7 @@ export default function SystemSettings() {
   const [localVersion, setLocalVersion] = useState('...');
   const [remoteVersion, setRemoteVersion] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
-  const [updating, setUpdating] = useState(false);
+  const [updating, setUpdating] = useState<{ isRunning: boolean; percent: number; message: string } | false>(false);
   const [repo, setRepoValue] = useState('');
   const [editingRepo, setEditingRepo] = useState('');
   const [savingRepo, setSavingRepo] = useState(false);
@@ -117,6 +117,8 @@ export default function SystemSettings() {
     }
   };
 
+  const [updateTaskId, setUpdateTaskId] = useState<string | null>(null);
+
   const handleUpdate = () => {
     Modal.confirm({
       title: '确认更新',
@@ -127,19 +129,46 @@ export default function SystemSettings() {
         setUpdating(true);
         try {
           const res = await performUpdate();
-          if (res.code === 0 && res.data.success) {
-            message.success('更新成功，服务正在重启...');
-            setTimeout(() => window.location.reload(), 5000);
+          if (res.code === 0 && res.data?.task_id) {
+            setUpdateTaskId(res.data.task_id);
+            // 开始轮询进度
+            pollUpdateProgress(res.data.task_id);
           } else {
-            message.error(res.data.error || '更新失败');
+            message.error(res.data?.error || '更新失败');
+            setUpdating(false);
           }
         } catch {
           message.error('更新失败');
-        } finally {
           setUpdating(false);
         }
       },
     });
+  };
+
+  const pollUpdateProgress = async (taskId: string) => {
+    const poll = async () => {
+      try {
+        const resp = await fetch(`/api/v1/system/update/progress?task_id=${taskId}`);
+        const json = await resp.json();
+        if (json.code === 0 && json.data) {
+          const { percent, message, status } = json.data;
+          setUpdating({ isRunning: true, percent, message });
+          if (status === 'done') {
+            message.success('更新完成，服务重启中...');
+            setTimeout(() => window.location.reload(), 5000);
+          } else {
+            setTimeout(poll, 500);
+          }
+        } else {
+          setUpdating(false);
+          message.error('无法获取更新进度');
+        }
+      } catch {
+        setUpdating(false);
+        message.error('更新失败');
+      }
+    };
+    poll();
   };
 
   return (
@@ -232,7 +261,7 @@ export default function SystemSettings() {
               type="primary"
               icon={<CloudDownloadOutlined />}
               onClick={handleUpdate}
-              loading={updating}
+              loading={!!updating}
             >
               立即更新
             </Button>
@@ -246,6 +275,24 @@ export default function SystemSettings() {
           </div>
         )}
       </Card>
+
+      <Modal
+        title="正在更新"
+        open={!!updating}
+        footer={null}
+        closable={false}
+        maskClosable={false}
+      >
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <Progress
+            type="circle"
+            percent={typeof updating === 'object' ? updating.percent : 0}
+          />
+          <div style={{ marginTop: 16 }}>
+            {typeof updating === 'object' ? updating.message : '准备中...'}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
