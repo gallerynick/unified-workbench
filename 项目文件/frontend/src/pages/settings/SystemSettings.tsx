@@ -116,8 +116,6 @@ export default function SystemSettings() {
     }
   };
 
-  const [updateTaskId, setUpdateTaskId] = useState<string | null>(null);
-
   const handleUpdate = () => {
     Modal.info({
       title: '手动更新指南',
