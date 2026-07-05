@@ -118,24 +118,46 @@ export default function SystemSettings() {
 
   const handleUpdate = () => {
     Modal.info({
-      title: '手动更新指南',
-      width: 560,
+      title: `发现新版本 v${updateInfo?.remote}`,
+      width: 600,
       content: (
-        <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 13, lineHeight: 1.8 }}>
-          {`发现新版本 v${updateInfo?.remote}，请按以下步骤手动更新：
+        <div style={{ lineHeight: 2 }}>
+          <Typography.Paragraph>
+            当前版本 <Typography.Text strong>v{updateInfo?.current}</Typography.Text>，可升级至 <Typography.Text strong type="success">v{updateInfo?.remote}</Typography.Text>。
+            请按以下步骤在服务器/本机上手动更新：
+          </Typography.Paragraph>
 
-1. 打开终端，进入项目目录：
-   cd 项目文件
+          <Typography.Paragraph>
+            <Typography.Text strong>1. 打开终端（命令行）</Typography.Text><br />
+            Windows 用户按 <Typography.Text code>Win+R</Typography.Text>，输入 <Typography.Text code>cmd</Typography.Text> 回车。<br />
+            macOS 用户打开 <Typography.Text code>终端</Typography.Text> 应用。
+          </Typography.Paragraph>
 
-2. 拉取最新代码：
-   git pull origin master
-   git checkout v${updateInfo?.remote}
+          <Typography.Paragraph>
+            <Typography.Text strong>2. 进入项目目录</Typography.Text><br />
+            <Typography.Text code>cd 项目文件所在路径/项目文件</Typography.Text><br />
+            （即包含 <Typography.Text code>start.sh</Typography.Text> 和 <Typography.Text code>start.bat</Typography.Text> 的目录）
+          </Typography.Paragraph>
 
-3. 重启服务：
-   macOS/Linux: bash start.sh
-   Windows:     start.bat
+          <Typography.Paragraph>
+            <Typography.Text strong>3. 拉取新版本代码</Typography.Text><br />
+            <Typography.Text code copyable>git pull origin master</Typography.Text><br />
+            如果提示需要登录，请先配置 GitHub 账号或联系管理员。
+          </Typography.Paragraph>
 
-更新完成后刷新此页面即可。`}
+          <Typography.Paragraph>
+            <Typography.Text strong>4. 重启服务</Typography.Text><br />
+            <Typography.Text strong>macOS / Linux：</Typography.Text><br />
+            <Typography.Text code copyable>bash start.sh</Typography.Text><br />
+            <Typography.Text strong>Windows：</Typography.Text><br />
+            <Typography.Text code copyable>start.bat</Typography.Text><br />
+            等待出现「全部服务已启动」即完成。
+          </Typography.Paragraph>
+
+          <Typography.Paragraph type="secondary">
+            更新完成后刷新此页面，本地版本号将自动更新。
+            如有问题请查看终端输出的错误信息或联系管理员。
+          </Typography.Paragraph>
         </div>
       ),
     });
