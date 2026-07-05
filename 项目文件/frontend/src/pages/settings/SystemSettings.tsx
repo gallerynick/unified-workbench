@@ -126,15 +126,14 @@ export default function SystemSettings() {
       okText: '更新',
       cancelText: '取消',
       onOk: async () => {
-        setUpdating(true);
+        setUpdating({ isRunning: true, percent: 0, message: '准备更新...' });
         try {
           const res = await performUpdate();
-          if (res.code === 0 && res.data?.task_id) {
-            setUpdateTaskId(res.data.task_id);
-            // 开始轮询进度
-            pollUpdateProgress(res.data.task_id);
+          const data = res.data as Record<string, unknown> | null;
+          if (res.code === 0 && data?.task_id) {
+            pollUpdateProgress(data.task_id as string);
           } else {
-            message.error(res.data?.error || '更新失败');
+            message.error((data?.error as string) || '更新失败');
             setUpdating(false);
           }
         } catch {
