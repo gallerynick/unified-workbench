@@ -20,6 +20,15 @@ export default function Login() {
   const { refreshUser } = useUser();
 
   useEffect(() => {
+    // 检查系统初始化状态
+    fetch('/api/v1/auth/setup-status')
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.data?.complete === false) {
+          navigate('/welcome', { replace: true });
+        }
+      })
+      .catch(() => {});
     if (isAuthenticated()) {
       navigate('/', { replace: true });
     }
