@@ -111,7 +111,7 @@ async def api_reset_system(
         except Exception:
             pass
 
-    # 3. 重新创建初始管理员（通过 seed）
+    # 3. 重建初始管理员（seed），用户通过初始化页面修改密码
     from app.utils.seed import create_initial_admin
     await create_initial_admin(db)
     await db.commit()
