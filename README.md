@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.1-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/python-3.11+-blue" alt="Python">
   <img src="https://img.shields.io/badge/react-18-61dafb" alt="React">
@@ -66,19 +66,28 @@
 | `http://<本机IP>` | 局域网访问 |
 | `http://localhost/api/v1/docs` | API 文档（Swagger） |
 
-### 默认账号
+### 首次初始化
 
-| 用户名 | 密码 | 角色 |
-|--------|------|------|
-| `admin` | `admin123456` | 管理员 |
+初次启动时系统处于未初始化状态，访问任意页面将自动跳转到初始化页面（`/welcome`）。
 
-> 首次登录后请立即修改密码。
+在初始化页面中设置管理员账号和密码，完成后即可登录使用。
 
 ### 停止
 
 ```bash
 docker compose -p unified-workbench down
 ```
+
+## 数据存储
+
+| 数据类型 | 存储位置 | 说明 |
+|----------|---------|------|
+| 数据库（PostgreSQL） | Docker Volume `unified-workbench_pg_data` | 用户、项目、文档等所有结构化数据 |
+| 缓存/队列（Redis） | Docker Volume `unified-workbench_redis_data` | 会话缓存、Celery 队列 |
+| 用户上传文件 | `项目文件/data/files` | 可配置至 NAS，修改 `.env` 中 `NAS_FILES_PATH` |
+| 备份文件 | `项目文件/data/backups` | 可配置至 NAS，修改 `.env` 中 `NAS_BACKUPS_PATH` |
+
+> 数据库和 Redis 由 Docker 管理，删除容器不会丢失数据。如需彻底清除，使用 Docker Desktop 删除对应 Volume。
 
 ## 项目结构
 
