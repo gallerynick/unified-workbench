@@ -1,14 +1,14 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   min-height: 48px;
 }
 
@@ -19,17 +19,17 @@
 }
 
 .tabs {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .empty {
-  margin: 48px 0;
+  margin: var(--spacing-xxl) 0;
 }
 
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .card {
@@ -46,12 +46,12 @@
 .cardTitle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
   overflow: hidden;
 }
 
 .pinIcon {
-  color: #faad14;
+  color: var(--color-warning);
   flex-shrink: 0;
 }
 
@@ -63,7 +63,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-sm);
 }
 
 .contentPreview {
@@ -77,17 +77,17 @@
 }
 
 .meta {
-  font-size: 12px;
+  font-size: var(--text-body-xs-size);
 }
 
 .cardActions {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-secondary);
 }
 
 .pagination {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: var(--spacing-card-gap);
 }

@@ -1,0 +1,390 @@
+/* ============================================================
+ * 一站式工作台 — 全局字体排版
+ * 严格遵循《项目基定/UI设计规范.md》18 级字阶
+ *
+ * 原则：
+ * - 显示字号使用负字距
+ * - 字重阶梯：300 / 400 / 600 / 700（无 500）
+ * - 标题统一 600，正文统一 400/17px
+ * - 深色模式：字色通过 --ink / --body / --body-on-dark 切换
+ * ============================================================ */
+
+/* ── 字体族 ─────────────────────────────────────── */
+:root {
+  --font-display: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* ── 浅色模式字阶 ────────────────────────────────── */
+:root {
+  /* Hero Display — 英雄标题 56px/600 */
+  --text-hero-display-size: 56px;
+  --text-hero-display-weight: 600;
+  --text-hero-display-line: 1.07;
+  --text-hero-display-spacing: -0.28px;
+
+  /* Display LG — 内容区块标题 40px/600 */
+  --text-display-lg-size: 40px;
+  --text-display-lg-weight: 600;
+  --text-display-lg-line: 1.1;
+  --text-display-lg-spacing: 0;
+
+  /* Display MD — 分区标题 34px/600 */
+  --text-display-md-size: 34px;
+  --text-display-md-weight: 600;
+  --text-display-md-line: 1.47;
+  --text-display-md-spacing: -0.374px;
+
+  /* Lead — 次级文案 28px/400 */
+  --text-lead-size: 28px;
+  --text-lead-weight: 400;
+  --text-lead-line: 1.14;
+  --text-lead-spacing: 0.196px;
+
+  /* Lead Airy — 段落引言 24px/300 */
+  --text-lead-airy-size: 24px;
+  --text-lead-airy-weight: 300;
+  --text-lead-airy-line: 1.5;
+  --text-lead-airy-spacing: 0;
+
+  /* Tagline — 标签行 21px/600 */
+  --text-tagline-size: 21px;
+  --text-tagline-weight: 600;
+  --text-tagline-line: 1.19;
+  --text-tagline-spacing: 0.231px;
+
+  /* Body Strong — 行内强调 17px/600 */
+  --text-body-strong-size: 17px;
+  --text-body-strong-weight: 600;
+  --text-body-strong-line: 1.24;
+  --text-body-strong-spacing: -0.374px;
+
+  /* Body — 默认段落 17px/400 */
+  --text-body-size: 17px;
+  --text-body-weight: 400;
+  --text-body-line: 1.47;
+  --text-body-spacing: -0.374px;
+
+  /* Dense Link — 页脚链接 17px/400 */
+  --text-dense-link-size: 17px;
+  --text-dense-link-weight: 400;
+  --text-dense-link-line: 2.41;
+  --text-dense-link-spacing: 0;
+
+  /* Caption — 次级说明文字 14px/400 */
+  --text-caption-size: 14px;
+  --text-caption-weight: 400;
+  --text-caption-line: 1.43;
+  --text-caption-spacing: -0.224px;
+
+  /* Caption Strong — 强调说明 14px/600 */
+  --text-caption-strong-size: 14px;
+  --text-caption-strong-weight: 600;
+  --text-caption-strong-line: 1.29;
+  --text-caption-strong-spacing: -0.224px;
+
+  /* Button Large — 英雄按钮 18px/300 */
+  --text-button-large-size: 18px;
+  --text-button-large-weight: 300;
+  --text-button-large-line: 1.0;
+  --text-button-large-spacing: 0;
+
+  /* Button Utility — 工具按钮 14px/400 */
+  --text-button-utility-size: 14px;
+  --text-button-utility-weight: 400;
+  --text-button-utility-line: 1.29;
+  --text-button-utility-spacing: -0.224px;
+
+  /* Fine Print — 细小文字 12px/400 */
+  --text-fine-print-size: 12px;
+  --text-fine-print-weight: 400;
+  --text-fine-print-line: 1.0;
+  --text-fine-print-spacing: -0.12px;
+
+  /* Micro Legal — 微小法律 10px/400 */
+  --text-micro-legal-size: 10px;
+  --text-micro-legal-weight: 400;
+  --text-micro-legal-line: 1.3;
+  --text-micro-legal-spacing: -0.08px;
+
+  /* Nav Link — 全局导航 12px/400 */
+  --text-nav-link-size: 12px;
+  --text-nav-link-weight: 400;
+  --text-nav-link-line: 1.0;
+  --text-nav-link-spacing: -0.12px;
+
+  /* Heading 1 — 功能页标题 32px/600 */
+  --text-heading-1-size: 32px;
+  --text-heading-1-weight: 600;
+  --text-heading-1-line: 1.3;
+  --text-heading-1-spacing: 0;
+
+  /* Heading 2 — 24px/600 */
+  --text-heading-2-size: 24px;
+  --text-heading-2-weight: 600;
+  --text-heading-2-line: 1.35;
+  --text-heading-2-spacing: 0;
+
+  /* Heading 3 — 20px/600 */
+  --text-heading-3-size: 20px;
+  --text-heading-3-weight: 600;
+  --text-heading-3-line: 1.4;
+  --text-heading-3-spacing: 0;
+
+  /* Heading 4 — 16px/600 */
+  --text-heading-4-size: 16px;
+  --text-heading-4-weight: 600;
+  --text-heading-4-line: 1.5;
+  --text-heading-4-spacing: 0;
+
+  /* Body SM — 小号正文 14px/400 */
+  --text-body-sm-size: 14px;
+  --text-body-sm-weight: 400;
+  --text-body-sm-line: 1.5;
+  --text-body-sm-spacing: 0;
+
+  /* Body XS — 超小正文 12px/400 */
+  --text-body-xs-size: 12px;
+  --text-body-xs-weight: 400;
+  --text-body-xs-line: 1.4;
+  --text-body-xs-spacing: 0;
+
+  /* Body Mono — 等宽正文 13px/400 */
+  --text-body-mono-size: 13px;
+  --text-body-mono-weight: 400;
+  --text-body-mono-line: 1.4;
+  --text-body-mono-spacing: 0;
+}
+
+/* ── 实用类：直接使用的 font 快捷类 ───────────────── */
+.text-hero-display {
+  font-family: var(--font-display);
+  font-size: var(--text-hero-display-size);
+  font-weight: var(--text-hero-display-weight);
+  line-height: var(--text-hero-display-line);
+  letter-spacing: var(--text-hero-display-spacing);
+  color: var(--ink);
+}
+
+.text-display-lg {
+  font-family: var(--font-display);
+  font-size: var(--text-display-lg-size);
+  font-weight: var(--text-display-lg-weight);
+  line-height: var(--text-display-lg-line);
+  letter-spacing: var(--text-display-lg-spacing);
+  color: var(--ink);
+}
+
+.text-body {
+  font-family: var(--font-body);
+  font-size: var(--text-body-size);
+  font-weight: var(--text-body-weight);
+  line-height: var(--text-body-line);
+  letter-spacing: var(--text-body-spacing);
+  color: var(--ink);
+}
+
+.text-body-sm {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-body-sm-weight);
+  line-height: var(--text-body-sm-line);
+  letter-spacing: var(--text-body-sm-spacing);
+  color: var(--ink);
+}
+
+.text-caption {
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-line);
+  letter-spacing: var(--text-caption-spacing);
+  color: var(--text-secondary);
+}
+
+.text-caption-strong {
+  font-family: var(--font-body);
+  font-size: var(--text-caption-strong-size);
+  font-weight: var(--text-caption-strong-weight);
+  line-height: var(--text-caption-strong-line);
+  letter-spacing: var(--text-caption-strong-spacing);
+  color: var(--ink);
+}
+
+.text-heading-1 {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-1-size);
+  font-weight: var(--text-heading-1-weight);
+  line-height: var(--text-heading-1-line);
+  letter-spacing: var(--text-heading-1-spacing);
+  color: var(--ink);
+}
+
+.text-heading-4 {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-4-size);
+  font-weight: var(--text-heading-4-weight);
+  line-height: var(--text-heading-4-line);
+  letter-spacing: var(--text-heading-4-spacing);
+  color: var(--ink);
+}
+
+.text-display-md {
+  font-family: var(--font-display);
+  font-size: var(--text-display-md-size);
+  font-weight: var(--text-display-md-weight);
+  line-height: var(--text-display-md-line);
+  letter-spacing: var(--text-display-md-spacing);
+  color: var(--ink);
+}
+
+.text-lead {
+  font-family: var(--font-display);
+  font-size: var(--text-lead-size);
+  font-weight: var(--text-lead-weight);
+  line-height: var(--text-lead-line);
+  letter-spacing: var(--text-lead-spacing);
+  color: var(--ink);
+}
+
+.text-lead-airy {
+  font-family: var(--font-display);
+  font-size: var(--text-lead-airy-size);
+  font-weight: var(--text-lead-airy-weight);
+  line-height: var(--text-lead-airy-line);
+  letter-spacing: var(--text-lead-airy-spacing);
+  color: var(--ink);
+}
+
+.text-tagline {
+  font-family: var(--font-display);
+  font-size: var(--text-tagline-size);
+  font-weight: var(--text-tagline-weight);
+  line-height: var(--text-tagline-line);
+  letter-spacing: var(--text-tagline-spacing);
+  color: var(--ink);
+}
+
+.text-body-strong {
+  font-family: var(--font-body);
+  font-size: var(--text-body-strong-size);
+  font-weight: var(--text-body-strong-weight);
+  line-height: var(--text-body-strong-line);
+  letter-spacing: var(--text-body-strong-spacing);
+  color: var(--ink);
+}
+
+.text-button-large {
+  font-family: var(--font-display);
+  font-size: var(--text-button-large-size);
+  font-weight: var(--text-button-large-weight);
+  line-height: var(--text-button-large-line);
+  letter-spacing: var(--text-button-large-spacing);
+  color: var(--ink);
+}
+
+.text-button-utility {
+  font-family: var(--font-body);
+  font-size: var(--text-button-utility-size);
+  font-weight: var(--text-button-utility-weight);
+  line-height: var(--text-button-utility-line);
+  letter-spacing: var(--text-button-utility-spacing);
+  color: var(--ink);
+}
+
+.text-fine-print {
+  font-family: var(--font-body);
+  font-size: var(--text-fine-print-size);
+  font-weight: var(--text-fine-print-weight);
+  line-height: var(--text-fine-print-line);
+  letter-spacing: var(--text-fine-print-spacing);
+  color: var(--ink-muted-48);
+}
+
+.text-micro-legal {
+  font-family: var(--font-body);
+  font-size: var(--text-micro-legal-size);
+  font-weight: var(--text-micro-legal-weight);
+  line-height: var(--text-micro-legal-line);
+  letter-spacing: var(--text-micro-legal-spacing);
+  color: var(--ink-muted-48);
+}
+
+.text-nav-link {
+  font-family: var(--font-body);
+  font-size: var(--text-nav-link-size);
+  font-weight: var(--text-nav-link-weight);
+  line-height: var(--text-nav-link-line);
+  letter-spacing: var(--text-nav-link-spacing);
+  color: var(--body-on-dark);
+}
+
+.text-heading-2 {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-2-size);
+  font-weight: var(--text-heading-2-weight);
+  line-height: var(--text-heading-2-line);
+  letter-spacing: var(--text-heading-2-spacing);
+  color: var(--ink);
+}
+
+.text-heading-3 {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-3-size);
+  font-weight: var(--text-heading-3-weight);
+  line-height: var(--text-heading-3-line);
+  letter-spacing: var(--text-heading-3-spacing);
+  color: var(--ink);
+}
+
+.text-dense-link {
+  font-family: var(--font-body);
+  font-size: var(--text-dense-link-size);
+  font-weight: var(--text-dense-link-weight);
+  line-height: var(--text-dense-link-line);
+  letter-spacing: var(--text-dense-link-spacing);
+  color: var(--ink);
+}
+
+.text-body-xs {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs-size);
+  font-weight: var(--text-body-xs-weight);
+  line-height: var(--text-body-xs-line);
+  letter-spacing: var(--text-body-xs-spacing);
+  color: var(--ink);
+}
+
+.text-body-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-body-mono-size);
+  font-weight: var(--text-body-mono-weight);
+  line-height: var(--text-body-mono-line);
+  letter-spacing: var(--text-body-mono-spacing);
+  color: var(--ink);
+}
+
+/* ── 深色模式覆写（仅字色，字阶不变） ──────────────── */
+:root[data-theme="dark"] .text-hero-display,
+:root[data-theme="dark"] .text-display-lg,
+:root[data-theme="dark"] .text-display-md,
+:root[data-theme="dark"] .text-lead,
+:root[data-theme="dark"] .text-lead-airy,
+:root[data-theme="dark"] .text-tagline,
+:root[data-theme="dark"] .text-body-strong,
+:root[data-theme="dark"] .text-button-large,
+:root[data-theme="dark"] .text-button-utility,
+:root[data-theme="dark"] .text-body,
+:root[data-theme="dark"] .text-body-sm,
+:root[data-theme="dark"] .text-caption-strong,
+:root[data-theme="dark"] .text-heading-1,
+:root[data-theme="dark"] .text-heading-2,
+:root[data-theme="dark"] .text-heading-3,
+:root[data-theme="dark"] .text-heading-4 {
+  color: var(--body-on-dark);
+}
+
+:root[data-theme="dark"] .text-caption {
+  color: var(--text-secondary);
+}

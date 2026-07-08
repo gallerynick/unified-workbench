@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, theme, Avatar, Dropdown, Space, Drawer, Button, Typography } from 'antd';
+import { Layout, Menu, ConfigProvider, Avatar, Dropdown, Space, Drawer, Button, Typography } from 'antd';
 import {
   AuditOutlined,
   SettingOutlined,
@@ -163,9 +163,6 @@ export default function MainLayout() {
     }
     return location.pathname;
   }, [location.pathname]);
-  const {
-    token: { colorBgContainer, colorBgLayout, borderRadiusLG },
-  } = theme.useToken();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useWebSocket();
   const { isMobile } = useResponsive();
   const customization = useCustomization();
@@ -185,7 +182,7 @@ export default function MainLayout() {
 
   return (
     <TagProvider>
-      <Layout style={{ minHeight: '100vh', background: colorBgLayout }}>
+      <Layout style={{ minHeight: '100vh', background: 'var(--canvas-parchment)' }}>
         {!isMobile && (
         <div className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`} style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240, display: 'flex', flexDirection: 'column' }}>
           <div
@@ -195,7 +192,7 @@ export default function MainLayout() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+              borderBottom: 'var(--sider-border)',
               gap: 2,
               flexShrink: 0,
             }}
@@ -204,7 +201,7 @@ export default function MainLayout() {
               customization.branding.displayMode !== 'text' && customization.branding.logoCollapsed ? (
                 <img src={customization.branding.logoCollapsed} alt="Logo" style={{ height: 28 }} />
               ) : (
-                <span style={{ fontSize: 20, fontWeight: 'bold', color: isDark ? '#fff' : undefined }}>{customization.app.shortName}</span>
+                <span style={{ fontSize: 'var(--text-heading-3-size)', fontWeight: 'bold', color: 'var(--ink)' }}>{customization.app.shortName}</span>
               )
             ) : (
               <>
@@ -212,7 +209,7 @@ export default function MainLayout() {
                   <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 28 }} />
                 )}
                 {customization.branding.displayMode !== 'icon' && (
-                  <span style={{ fontSize: customization.branding.displayMode === 'both' ? 12 : 16, fontWeight: 'bold', color: isDark ? '#fff' : undefined }}>
+                  <span style={{ fontSize: customization.branding.displayMode === 'both' ? 'var(--text-body-xs-size)' : 'var(--text-heading-4-size)', fontWeight: 'bold', color: 'var(--ink)' }}>
                     {customization.app.name}
                   </span>
                 )}
@@ -220,6 +217,24 @@ export default function MainLayout() {
             )}
           </div>
           <div ref={siderRef} className="sider-menu-scroll" style={{ flex: 1, overflow: 'auto' }}>
+          <ConfigProvider
+            theme={{
+              components: {
+                Menu: {
+                  itemHeight: 40,
+                  itemPaddingInline: 16,
+                  itemBorderRadius: 8,
+                  fontSize: 14,
+                  activeBarBorderWidth: collapsed ? 3 : 0,
+                  itemActiveBg: 'var(--sider-menu-item-active-bg)',
+                  itemSelectedBg: 'var(--sider-menu-item-active-bg)',
+                  itemSelectedColor: 'var(--sider-menu-item-active-text)',
+                  itemHoverBg: 'var(--sider-menu-item-hover-bg)',
+                  subMenuItemBg: 'transparent',
+                },
+              },
+            }}
+          >
           <Sider
             width={240}
             collapsible
@@ -229,7 +244,8 @@ export default function MainLayout() {
             theme={isDark ? 'dark' : 'light'}
             style={{
               height: 'auto',
-              borderRight: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+              borderRight: 'var(--sider-border)',
+              background: 'var(--sider-bg)',
             }}
           >
             <Menu
@@ -241,6 +257,7 @@ export default function MainLayout() {
               style={{ borderRight: 0 }}
             />
           </Sider>
+          </ConfigProvider>
           </div>
         </div>
       )}
@@ -260,7 +277,7 @@ export default function MainLayout() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+              borderBottom: 'var(--sider-border)',
               gap: 2,
             }}
           >
@@ -268,7 +285,7 @@ export default function MainLayout() {
               <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 28 }} />
             )}
             {customization.branding.displayMode !== 'icon' && (
-              <span style={{ fontSize: customization.branding.displayMode === 'both' ? 12 : 16, fontWeight: 'bold' }}>
+              <span style={{ fontSize: customization.branding.displayMode === 'both' ? 'var(--text-body-xs-size)' : 'var(--text-heading-4-size)', fontWeight: 'bold' }}>
                 {customization.app.name}
               </span>
             )}
@@ -287,18 +304,19 @@ export default function MainLayout() {
         </Drawer>
       )}
 
-      <Layout className={`${styles.appLayout}${sidebarEntered ? ` ${styles.appEntered}` : ''}`} style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 240), transition: 'margin-left 0.2s', background: colorBgLayout }}>
+      <Layout className={`${styles.appLayout}${sidebarEntered ? ` ${styles.appEntered}` : ''}`} style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 240), transition: 'margin-left 0.2s', background: 'var(--canvas-parchment)' }}>
         <Header
           style={{
             padding: isMobile ? '0 16px' : '0 24px',
-            background: colorBgContainer,
+            background: 'var(--header-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+            borderBottom: 'var(--header-border)',
             position: 'sticky',
             top: 0,
             zIndex: 100,
+            height: 64,
           }}
         >
           <Space>
@@ -307,7 +325,7 @@ export default function MainLayout() {
                 type="text"
                 icon={<MenuOutlined />}
                 onClick={() => setMenuDrawerOpen(true)}
-                style={{ fontSize: 18 }}
+                style={{ fontSize: 'var(--text-button-large-size)' }}
               />
             )}
             {!isMobile && (
@@ -315,20 +333,20 @@ export default function MainLayout() {
                 type="button"
                 onClick={() => setCollapsed(!collapsed)}
                 style={{
-                  fontSize: 18,
+                  fontSize: 'var(--text-button-large-size)',
                   cursor: 'pointer',
                   background: 'none',
                   border: 'none',
                   padding: 0,
                   lineHeight: 1,
-                  color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.88)',
+                  color: 'var(--ink)',
                 }}
               >
                 {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               </button>
             )}
           </Space>
-          <Text strong style={{ fontSize: 16, marginLeft: 8, flex: 1, textAlign: 'center' }}>
+          <Text strong style={{ fontSize: 'var(--text-heading-4-size)', marginLeft: 8, flex: 1, textAlign: 'center' }}>
             {getRouteTitle(location.pathname)}
           </Text>
           <Space size="middle">
@@ -354,8 +372,8 @@ export default function MainLayout() {
           style={{
             margin: isMobile ? 8 : 24,
             padding: isMobile ? 8 : 24,
-            background: colorBgContainer,
-            borderRadius: borderRadiusLG,
+            background: 'var(--canvas)',
+            borderRadius: 'var(--rounded-sm)',
             minHeight: 280,
             display: 'flex',
             flexDirection: 'column',

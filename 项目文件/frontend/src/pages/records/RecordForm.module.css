@@ -6,7 +6,7 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .editorField {
@@ -14,9 +14,9 @@
 }
 
 .dividerField {
-  margin: 8px 0;
+  margin: var(--spacing-xs) 0;
 }
 
 .visibilitySection {
-  margin-top: 8px;
+  margin-top: var(--spacing-xs);
 }

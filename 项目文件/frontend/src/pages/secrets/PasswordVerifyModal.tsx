@@ -113,7 +113,7 @@ export default function PasswordVerifyModal({
       {!decryptedData ? (
         /* 密码输入阶段 */
         <Spin spinning={verifying}>
-          <Form form={form} layout="vertical" style={{ paddingTop: 8 }}>
+          <Form form={form} layout="vertical" style={{ paddingTop: "var(--spacing-xs)" }}>
             <Form.Item
               name="password"
               label="请输入登录密码以验证身份"
@@ -146,10 +146,10 @@ export default function PasswordVerifyModal({
             {formatDate(decryptedData.created_at)}
           </Descriptions.Item>
           <Descriptions.Item label="数据">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
               {Object.entries(decryptedData.data).map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ fontWeight: 500, minWidth: 100, color: 'rgba(0,0,0,0.65)' }}>
+                <div key={k} style={{ display: 'flex', gap: "var(--spacing-xs)" }}>
+                  <span style={{ fontWeight: 500, minWidth: 100, color: 'var(--text-secondary)' }}>
                     {k}
                   </span>
                   <span style={{ wordBreak: 'break-all', fontFamily: 'monospace' }}>

@@ -50,8 +50,8 @@ function PreviewField({ field }: { field: TemplateField }) {
   const label = (
     <span>
       {field.label}
-      {field.required && <span style={{ color: '#ff4d4f', marginLeft: 4 }}>*</span>}
-      <span style={{ color: '#999', marginLeft: 8, fontSize: 12 }}>
+      {field.required && <span style={{ color: 'var(--color-error)', marginLeft: "var(--spacing-xxs)" }}>*</span>}
+      <span style={{ color: 'var(--text-secondary)', marginLeft: "var(--spacing-xs)", fontSize: 'var(--text-body-xs-size)' }}>
         [{FIELD_TYPE_LABELS[field.type]}]
       </span>
     </span>
@@ -70,14 +70,14 @@ function renderField(field: TemplateField) {
       return (
         <div
           style={{
-            border: '1px solid #d9d9d9',
-            borderRadius: 6,
-            padding: 16,
+            border: 'var(--border-width-thin) solid var(--border-primary)',
+            borderRadius: 'var(--rounded-xs)',
+            padding: "var(--spacing-card-gap)",
             minHeight: 100,
-            background: '#fafafa',
+            background: 'var(--bg-secondary)',
           }}
         >
-          <span style={{ color: '#999' }}>富文本预览区域</span>
+          <span style={{ color: 'var(--text-secondary)' }}>富文本预览区域</span>
         </div>
       );
     case 'number':
@@ -112,7 +112,7 @@ function renderField(field: TemplateField) {
         <Upload disabled listType="picture-card">
           <div>
             <UploadOutlined />
-            <div style={{ marginTop: 8 }}>上传图片</div>
+            <div style={{ marginTop: "var(--spacing-xs)" }}>上传图片</div>
           </div>
         </Upload>
       );

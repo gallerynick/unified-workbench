@@ -1,15 +1,15 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  min-height: 48px;
+  gap: var(--spacing-card-gap);
+  min-height: var(--spacing-xxl);
 }
 
 .title {
@@ -29,17 +29,17 @@
 .tagList {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--spacing-xxs);
 }
 
 @media (max-width: 767px) {
   .container {
-    padding: 8px;
+    padding: var(--spacing-xs);
   }
 
   .header {
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-xs);
   }
 
   .header > * {

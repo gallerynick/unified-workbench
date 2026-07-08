@@ -98,7 +98,7 @@ const ContentEditor = forwardRef<ContentEditorHandle, ContentEditorProps>(functi
   minHeight = 200,
   editable = true,
 }, ref) {
-  const currentColorRef = useRef('#000000');
+  const currentColorRef = useRef('var(--ink)');
   const isExternalUpdate = useRef(false);
 
   const editor = useEditor({

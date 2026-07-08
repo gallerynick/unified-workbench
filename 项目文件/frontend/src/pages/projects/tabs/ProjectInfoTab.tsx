@@ -92,7 +92,7 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
         <Descriptions.Item label="可见性">
           <Tag color={visibilityCfg.color}>{visibilityCfg.text}</Tag>
           {project.visibility === 'restricted' && project.restricted_users && project.restricted_users.length > 0 && (
-            <span style={{ marginLeft: 8, color: '#999', fontSize: 12 }}>
+            <span style={{ marginLeft: "var(--spacing-xs)", color: 'var(--text-secondary)', fontSize: 'var(--text-body-xs-size)' }}>
               {project.restricted_users.length} 个用户
             </span>
           )}

@@ -60,20 +60,20 @@ function renderTreeTitle(node: TreeNodeData, onPin: (note: Note) => void, onEdit
   return (
     <span className={styles.treeNode}>
       <span className={styles.treeNodeTitle}>
-        {hasChildren ? <FolderOutlined style={{ marginRight: 8, color: 'var(--tree-icon-folder, #64748b)' }} /> : <FileOutlined style={{ marginRight: 8, color: 'var(--tree-icon-file, #94a3b8)' }} />}
-        {note.is_pinned && <PushpinOutlined style={{ marginRight: 4, color: '#f59e0b', fontSize: 12 }} />}
+        {hasChildren ? <FolderOutlined style={{ marginRight: "var(--spacing-xs)", color: 'var(--text-secondary)' }} /> : <FileOutlined style={{ marginRight: "var(--spacing-xs)", color: 'var(--text-secondary)' }} />}
+        {note.is_pinned && <PushpinOutlined style={{ marginRight: "var(--spacing-xxs)", color: 'var(--color-warning)', fontSize: 'var(--text-body-xs-size)' }} />}
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{note.title}</span>
-        {note.category && <Tag style={{ marginLeft: 8, fontSize: 12, lineHeight: '18px', padding: '0 6px', borderRadius: 3, color: 'var(--tree-tag-text, #64748b)', background: 'transparent', border: '1px solid var(--tree-border, #e2e8f0)' }}>{note.category}</Tag>}
+        {note.category && <Tag style={{ marginLeft: "var(--spacing-xs)", fontSize: 'var(--text-body-xs-size)', lineHeight: 'var(--text-caption-line)', padding: '0 6px', borderRadius: 'var(--rounded-chip)', color: 'var(--text-secondary)', background: 'transparent', border: 'var(--border-width-thin) solid var(--border-tertiary)' }}>{note.category}</Tag>}
       </span>
       <span className={styles.treeNodeActions}>
         <Tooltip title={note.is_pinned ? '取消置顶' : '置顶'}>
-          <Button type="text" size="small" icon={<PushpinOutlined style={{ fontSize: 13 }} />} onClick={(e) => { e.stopPropagation(); onPin(note); }} />
+          <Button type="text" size="small" icon={<PushpinOutlined style={{ fontSize: 'var(--text-body-mono-size)' }} />} onClick={(e) => { e.stopPropagation(); onPin(note); }} />
         </Tooltip>
         <Tooltip title="编辑">
-          <Button type="text" size="small" icon={<EditOutlined style={{ fontSize: 13 }} />} onClick={(e) => { e.stopPropagation(); onEdit(note); }} />
+          <Button type="text" size="small" icon={<EditOutlined style={{ fontSize: 'var(--text-body-mono-size)' }} />} onClick={(e) => { e.stopPropagation(); onEdit(note); }} />
         </Tooltip>
         <Tooltip title="删除">
-          <Button type="text" size="small" danger icon={<DeleteOutlined style={{ fontSize: 13 }} />} onClick={(e) => { e.stopPropagation(); onDelete(note); }} />
+          <Button type="text" size="small" danger icon={<DeleteOutlined style={{ fontSize: 'var(--text-body-mono-size)' }} />} onClick={(e) => { e.stopPropagation(); onDelete(note); }} />
         </Tooltip>
       </span>
     </span>
@@ -275,14 +275,14 @@ export default function NoteManagement() {
               { label: '图形视图', value: 'graph', icon: <ShareAltOutlined /> },
             ]}
           />
-          <Input placeholder="搜索笔记" prefix={<SearchOutlined style={{ color: '#94a3b8' }} />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 220 }} variant="filled" />
+          <Input placeholder="搜索笔记" prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 220 }} variant="filled" />
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>新建笔记</Button>
         </Space>
       </div>
 
       {notes.length === 0 && !loading ? (
         <div className={styles.emptyState}>
-          <FileOutlined style={{ fontSize: 40, marginBottom: 12, color: 'var(--tree-empty-color, #94a3b8)' }} />
+          <FileOutlined style={{ fontSize: 40, marginBottom: "var(--spacing-sm)", color: 'var(--text-secondary)' }} />
           <div>还没有笔记，点击「新建笔记」创建一个吧</div>
         </div>
       ) : viewMode === 'tree' ? (
@@ -340,7 +340,7 @@ export default function NoteManagement() {
             <Switch checked={formPinned} onChange={setFormPinned} checkedChildren="置顶" unCheckedChildren="普通" size="small" />
           </Form.Item>
           <Form.Item label="笔记内容">
-            <Input.TextArea placeholder="请输入笔记内容" value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={8} variant="filled" style={{ fontSize: 14, lineHeight: 1.6 }} />
+            <Input.TextArea placeholder="请输入笔记内容" value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={8} variant="filled" style={{ fontSize: 'var(--text-caption-size)', lineHeight: 1.6 }} />
           </Form.Item>
         </Form>
       </Modal>

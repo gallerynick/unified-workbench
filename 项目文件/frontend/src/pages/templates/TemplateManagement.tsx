@@ -304,11 +304,11 @@ function ProjectDocsTab() {
         cancelText="取消"
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-card-gap)" }}>
+          <div style={{ display: 'flex', gap: "var(--spacing-card-gap)" }}>
             <div style={{ flex: 1 }}>
-              <label htmlFor="doc-name" style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
-                文档名称 <span style={{ color: '#ff4d4f' }}>*</span>
+              <label htmlFor="doc-name" style={{ display: 'block', marginBottom: "var(--spacing-xxs)", fontWeight: 500 }}>
+                文档名称                 <span style={{ color: 'var(--color-error)' }}>*</span>
               </label>
               <Input
                 id="doc-name"
@@ -318,7 +318,7 @@ function ProjectDocsTab() {
               />
             </div>
             <div style={{ flex: 1 }}>
-              <label htmlFor="doc-category" style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+              <label htmlFor="doc-category" style={{ display: 'block', marginBottom: "var(--spacing-xxs)", fontWeight: 500 }}>
                 分类
               </label>
               <Input
@@ -331,7 +331,7 @@ function ProjectDocsTab() {
           </div>
 
           <div>
-            <div style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+            <div style={{ display: 'block', marginBottom: "var(--spacing-xxs)", fontWeight: 500 }}>
               内容
             </div>
             <ContentEditor

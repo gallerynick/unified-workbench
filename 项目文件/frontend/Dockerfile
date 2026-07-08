@@ -1,21 +1,5 @@
 # 多阶段构建 - 前端 Dockerfile
-
-# 构建阶段
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# 复制依赖文件
-COPY package.json package-lock.json* ./
-
-# 安装依赖（无 lock 文件时使用 npm install）
-RUN npm install
-
-# 复制源代码
-COPY . .
-
-# 构建生产版本
-RUN npm run build
+# 使用本地预构建的 dist 产物（解决容器内网络不可达问题）
 
 # 生产阶段
 FROM nginx:1.25-alpine
@@ -23,8 +7,8 @@ FROM nginx:1.25-alpine
 # 复制 nginx 配置
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# 复制构建产物
-COPY --from=builder /app/dist /usr/share/nginx/html
+# 复制本地构建产物
+COPY dist /usr/share/nginx/html
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S workbench && \

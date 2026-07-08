@@ -562,12 +562,12 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
             返回列表
           </Button>
 
-          <Text strong style={{ fontSize: 16 }}>
+          <Text strong style={{ fontSize: 'var(--text-heading-4-size)' }}>
             {activeDoc.title}
           </Text>
 
           <Space>
-            {saving && <Text type="secondary" style={{ fontSize: 12 }}>保存中...</Text>}
+            {saving && <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>保存中...</Text>}
             <Button
               type="primary"
               icon={<EditOutlined />}
@@ -582,21 +582,21 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         <div className={styles.metadataBar}
         >
           <div>
-            <Text type="secondary" style={{ fontSize: 12 }}>分类</Text>
+            <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>分类</Text>
             <div>
               <Tag color="blue">{activeDoc.category || '未分类'}</Tag>
             </div>
           </div>
           <div>
-            <Text type="secondary" style={{ fontSize: 12 }}>创建时间</Text>
+            <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>创建时间</Text>
             <div>
-              <Text style={{ fontSize: 13 }}>{formatDate(activeDoc.created_at)}</Text>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-mono-size)' }}>{formatDate(activeDoc.created_at)}</Text>
             </div>
           </div>
           <div>
-            <Text type="secondary" style={{ fontSize: 12 }}>更新时间</Text>
+            <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>更新时间</Text>
             <div>
-              <Text style={{ fontSize: 13 }}>{formatDate(activeDoc.updated_at)}</Text>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-mono-size)' }}>{formatDate(activeDoc.updated_at)}</Text>
             </div>
           </div>
         </div>
@@ -654,13 +654,13 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
               maxWidth: 300,
               textAlign: 'center',
               fontWeight: 600,
-              fontSize: 16,
+              fontSize: 'var(--text-heading-4-size)',
             }}
             placeholder="文档标题"
           />
 
           <Space>
-            {saving && <Text type="secondary" style={{ fontSize: 12 }}>保存中...</Text>}
+            {saving && <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>保存中...</Text>}
             <Button
               icon={<AppstoreOutlined />}
               onClick={handleOpenTemplateModal}
@@ -760,9 +760,9 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
               label: (
                 <div className={styles.categoryHeader}>
                   <Space>
-                    <FolderOutlined style={{ color: '#1890ff' }} />
+                    <FolderOutlined style={{ color: 'var(--color-info)' }} />
                     <Text strong>{category}</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
+                    <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
                       {docs.length} 篇
                     </Text>
                   </Space>
@@ -794,7 +794,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                 </div>
               ),
               children: (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-xxs)" }}>
                   {docs.map((doc) => (
                     <button
                       key={doc.id}
@@ -802,12 +802,12 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 12,
+                        gap: "var(--spacing-sm)",
                         padding: '8px 12px',
-                        borderRadius: 6,
+                        borderRadius: 'var(--rounded-xs)',
                         cursor: 'pointer',
                         transition: 'background 0.2s',
-                        background: hoveredDocId === doc.id ? '#f5f5f5' : 'transparent',
+                        background: hoveredDocId === doc.id ? 'var(--bg-tertiary)' : 'transparent',
                         width: '100%',
                         border: 'none',
                         textAlign: 'left',
@@ -817,18 +817,18 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                       onMouseLeave={() => setHoveredDocId(null)}
                       onClick={() => handleEnterPreview(doc.id)}
                     >
-                      <FileTextOutlined style={{ fontSize: 16, color: '#1890ff', flexShrink: 0 }} />
+                      <FileTextOutlined style={{ fontSize: 'var(--text-heading-4-size)', color: 'var(--color-info)', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <Text style={{ display: 'block' }}>{doc.title}</Text>
                         <Text
                           type="secondary"
-                          style={{ fontSize: 12 }}
+                          style={{ fontSize: 'var(--text-body-xs-size)' }}
                           ellipsis
                         >
                           {extractTextSummary(doc.content, 60)}
                         </Text>
                       </div>
-                      <Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>
+                      <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', flexShrink: 0 }}>
                         {new Date(doc.updated_at).toLocaleDateString('zh-CN')}
                       </Text>
 
@@ -950,7 +950,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         />
         <Select
           placeholder="选择分类（可选）"
-          style={{ width: '100%', marginTop: 12 }}
+          style={{ width: '100%', marginTop: "var(--spacing-sm)" }}
           allowClear
           value={newDocCategory || undefined}
           onChange={(value) => setNewDocCategory(value || undefined)}

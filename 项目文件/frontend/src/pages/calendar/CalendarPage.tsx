@@ -23,7 +23,7 @@ const REPEAT_OPTIONS: { label: string; value: EventRepeat }[] = [
   { label: '每年', value: 'yearly' },
 ];
 
-const PRESET_COLORS = ['#1677ff', '#52c41a', '#fa8c16', '#f5222d', '#722ed1', '#13c2c2', '#eb2f96', '#fa541c'];
+const PRESET_COLORS = ['var(--color-info)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-error)', 'var(--color-purple)', 'var(--color-cyan)', 'var(--color-magenta)', 'var(--color-orange-bright)'];
 
 function formatDateTimeLocal(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -137,8 +137,8 @@ export default function CalendarPage() {
             title: e.title,
             start: e.start_time,
             allDay: e.all_day,
-            backgroundColor: e.color || '#1677ff',
-            borderColor: e.color || '#1677ff',
+            backgroundColor: e.color || 'var(--color-info)',
+            borderColor: e.color || 'var(--color-info)',
             extendedProps: {
               description: e.description,
               location: e.location,
@@ -236,7 +236,7 @@ export default function CalendarPage() {
             <Form.Item label="开始时间">
               <Input type="datetime-local" value={formStartTime} onChange={(e) => setFormStartTime(e.target.value)} style={{ width: 200 }} />
             </Form.Item>
-            <span style={{ marginTop: 30 }}>至</span>
+            <span style={{ marginTop: 'var(--spacing-xl)' }}>至</span>
             <Form.Item label="结束时间">
               <Input type="datetime-local" value={formEndTime} onChange={(e) => setFormEndTime(e.target.value)} style={{ width: 200 }} />
             </Form.Item>
@@ -257,7 +257,7 @@ export default function CalendarPage() {
                   type="button"
                   onClick={() => setFormColor(c)}
                   style={{
-                    width: 24, height: 24, borderRadius: '50%', border: formColor === c ? '2px solid #000' : '2px solid transparent',
+                    width: 24, height: 24, borderRadius: '50%', border: formColor === c ? '2px solid var(--ink)' : '2px solid transparent',
                     backgroundColor: c, cursor: 'pointer', padding: 0,
                   }}
                 />

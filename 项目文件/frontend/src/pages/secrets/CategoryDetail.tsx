@@ -142,7 +142,7 @@ export default function CategoryDetail({ categoryId, onBack }: CategoryDetailPro
       width: 180,
       render: (name: string) => (
         <Space size="small">
-          <KeyOutlined style={{ color: '#8c8c8c' }} />
+          <KeyOutlined style={{ color: 'var(--text-secondary)' }} />
           <span>{name}</span>
         </Space>
       ),
@@ -215,7 +215,7 @@ export default function CategoryDetail({ categoryId, onBack }: CategoryDetailPro
       key: subCat,
       label: (
         <Space>
-          <FolderOutlined style={{ color: '#1677ff' }} />
+          <FolderOutlined style={{ color: 'var(--color-info)' }} />
           <span style={{ fontWeight: 500 }}>{subCat}</span>
           <Tag>{items.length} 项</Tag>
         </Space>

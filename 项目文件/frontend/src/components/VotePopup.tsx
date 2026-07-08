@@ -86,22 +86,22 @@ export default function VotePopup() {
     >
       {currentVote && (
         <div>
-          <Title level={5} style={{ marginBottom: 8 }}>{currentVote.title}</Title>
-          {currentVote.description && <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>{currentVote.description}</Text>}
+          <Title level={5} style={{ marginBottom: 'var(--spacing-xs)' }}>{currentVote.title}</Title>
+          {currentVote.description && <Text type="secondary" style={{ display: 'block', marginBottom: 'var(--spacing-card-gap)' }}>{currentVote.description}</Text>}
           {currentVote.allow_multiple ? (
-            <Checkbox.Group value={selectedOptions} onChange={setSelectedOptions} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            <Checkbox.Group value={selectedOptions} onChange={setSelectedOptions} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)', marginBottom: 'var(--spacing-card-gap)' }}>
               {currentVote.options.map((opt) => (
                 <Checkbox key={opt} value={opt}>{opt}</Checkbox>
               ))}
             </Checkbox.Group>
           ) : (
-            <Radio.Group value={selectedOptions[0]} onChange={(e) => setSelectedOptions([e.target.value])} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            <Radio.Group value={selectedOptions[0]} onChange={(e) => setSelectedOptions([e.target.value])} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)', marginBottom: 'var(--spacing-card-gap)' }}>
               {currentVote.options.map((opt) => (
                 <Radio key={opt} value={opt}>{opt}</Radio>
               ))}
             </Radio.Group>
           )}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-xs)' }}>
             <Button onClick={handleSkip}>跳过</Button>
             <Button type="primary" loading={submitting} onClick={handleSubmitVote}>提交投票</Button>
           </div>

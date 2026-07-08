@@ -12,31 +12,31 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .switchLabel {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xxs);
   flex: 1;
 }
 
 .switchDesc {
-  font-size: 12px;
+  font-size: var(--text-body-mono-size);
 }
 
 .warningAlert {
-  margin-top: 12px;
+  margin-top: var(--spacing-sm);
 }
 
 .divider {
-  margin: 16px 0;
+  margin: var(--spacing-card-gap) 0;
 }
 
 .sectionTitle {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .settingContent {
@@ -44,7 +44,7 @@
 }
 
 .hint {
-  font-size: 12px;
+  font-size: var(--text-body-mono-size);
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: var(--spacing-xxs);
 }

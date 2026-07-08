@@ -41,7 +41,7 @@ const DEVICE_SVGS: Record<TopologyNodeType, string> = {
 };
 
 const DEVICE_NODE_TYPES: { type: TopologyNodeType; label: string; color: string; icon?: string }[] = [
-  { type: 'router', label: '路由器', color: '#1677ff' },
+  { type: 'router', label: '路由器', color: 'var(--color-info)' },
   { type: 'switch', label: '交换机', color: '#52c41a' },
   { type: 'server', label: '服务器', color: '#722ed1' },
   { type: 'computer', label: '电脑', color: '#fa8c16' },
@@ -64,10 +64,10 @@ const SHAPES: { type: TopologyShape; label: string }[] = [
   { type: 'triangle', label: '三角形' },
 ];
 
-const PRESET_COLORS = ['#1677ff', '#52c41a', '#722ed1', '#fa8c16', '#13c2c2', '#f5222d'];
+const PRESET_COLORS = ['var(--color-info)', 'var(--color-success)', 'var(--color-purple)', 'var(--color-orange)', 'var(--color-cyan)', 'var(--color-red)'];
 
 function getNodeColor(type: TopologyNodeType): string {
-  return DEVICE_NODE_TYPES.find((t) => t.type === type)?.color ?? '#1677ff';
+  return DEVICE_NODE_TYPES.find((t) => t.type === type)?.color ?? 'var(--color-info)';
 }
 
 function getNodeSvg(type: TopologyNodeType): string | null {
@@ -103,7 +103,7 @@ export default function TopologyManagement() {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [customShape, setCustomShape] = useState<TopologyShape>('circle');
-  const [customColor, setCustomColor] = useState('#1677ff');
+  const [customColor, setCustomColor] = useState('var(--color-info)');
   const [customLabel, setCustomLabel] = useState('');
   const [systemExpanded, setSystemExpanded] = useState(true);
   const [customExpanded, setCustomExpanded] = useState(true);
@@ -269,7 +269,7 @@ export default function TopologyManagement() {
     setNodes([...nodes, newNode]);
     setCustomLabel('');
     setCustomShape('circle');
-    setCustomColor('#1677ff');
+    setCustomColor('var(--color-info)');
   };
 
   const handleSvgMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -547,11 +547,11 @@ export default function TopologyManagement() {
                                   title={s.label}
                                 >
                                   <svg width={24} height={24} viewBox="-14 -14 28 28">
-                                    {s.type === 'circle' && <circle r={12} fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
-                                    {s.type === 'rectangle' && <rect x={-14} y={-10} width={28} height={20} rx={3} fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
-                                    {s.type === 'diamond' && <polygon points="0,-14 14,0 0,14 -14,0" fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
-                                    {s.type === 'hexagon' && <polygon points="0,-13 11.3,-6.5 11.3,6.5 0,13 -11.3,6.5 -11.3,-6.5" fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
-                                    {s.type === 'triangle' && <polygon points="0,-14 14,14 -14,14" fill="none" stroke={customShape === s.type ? '#1677ff' : '#999'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                    {s.type === 'circle' && <circle r={12} fill="none" stroke={customShape === s.type ? 'var(--color-info)' : 'var(--text-secondary)'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                    {s.type === 'rectangle' && <rect x={-14} y={-10} width={28} height={20} rx={3} fill="none" stroke={customShape === s.type ? 'var(--color-info)' : 'var(--text-secondary)'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                    {s.type === 'diamond' && <polygon points="0,-14 14,0 0,14 -14,0" fill="none" stroke={customShape === s.type ? 'var(--color-info)' : 'var(--text-secondary)'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                    {s.type === 'hexagon' && <polygon points="0,-13 11.3,-6.5 11.3,6.5 0,13 -11.3,6.5 -11.3,-6.5" fill="none" stroke={customShape === s.type ? 'var(--color-info)' : 'var(--text-secondary)'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
+                                    {s.type === 'triangle' && <polygon points="0,-14 14,14 -14,14" fill="none" stroke={customShape === s.type ? 'var(--color-info)' : 'var(--text-secondary)'} strokeWidth={customShape === s.type ? 2 : 1.5} />}
                                   </svg>
                                   <span className={styles.shapeLabel}>{s.label}</span>
                                 </button>
@@ -598,7 +598,7 @@ export default function TopologyManagement() {
                   <title>拓扑画布</title>
                   <defs>
                     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                      <polygon points="0 0, 10 3.5, 0 7" fill="#8c8c8c" />
+                      <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-secondary)" />
                     </marker>
                   </defs>
                   <g transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoom})`}>
@@ -611,7 +611,7 @@ export default function TopologyManagement() {
                           key={edge.id}
                           x1={source.x} y1={source.y}
                           x2={target.x} y2={target.y}
-                          stroke="#8c8c8c" strokeWidth={2}
+                          stroke="var(--text-secondary)" strokeWidth={2}
                           markerEnd="url(#arrowhead)"
                           className={styles.edge}
                           onClick={() => isEditing && toolMode === 'delete' && handleDeleteEdge(edge.id)}
@@ -619,12 +619,12 @@ export default function TopologyManagement() {
                       );
                     })}
                     {connecting && (
-                      <line x1={connecting.x} y1={connecting.y} x2={mousePos.x} y2={mousePos.y} stroke="#1677ff" strokeWidth={2} strokeDasharray="6" />
+                      <line x1={connecting.x} y1={connecting.y} x2={mousePos.x} y2={mousePos.y} stroke="var(--color-info)" strokeWidth={2} strokeDasharray="6" />
                     )}
                     {nodes.map((node) => {
                       const svgContent = getNodeSvg(node.type);
                       const isCustom = !!node.shape;
-                      const fillColor = isCustom ? (node.customColor || '#1677ff') : getNodeColor(node.type);
+                      const fillColor = isCustom ? (node.customColor || 'var(--color-info)') : getNodeColor(node.type);
                       return (
                         <g key={node.id} transform={`translate(${node.x}, ${node.y})`} onMouseDown={(e) => handleNodeMouseDown(node.id, e)} className={styles.node}>
     {/* Shape rendering: custom nodes = hexagon base + shape icon overlay */}
@@ -633,11 +633,11 @@ export default function TopologyManagement() {
         {/* 底层：始终为六边形，自定义颜色填充 */}
         <polygon points="0,-24 21,-12 21,12 0,24 -21,12 -21,-12" fill={fillColor} stroke={selectedNode === node.id ? 'currentColor' : 'transparent'} strokeWidth={2} opacity={0.9} />
         {/* 上层：选中形状的白色小图标，居中叠加 */}
-        {node.shape === 'circle' && <circle r={10} fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
-        {node.shape === 'rectangle' && <rect x={-12} y={-8} width={24} height={16} rx={3} fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
-        {node.shape === 'diamond' && <polygon points="0,-12 12,0 0,12 -12,0" fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
-        {node.shape === 'hexagon' && <polygon points="0,-10 9,-5 9,5 0,10 -9,5 -9,-5" fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
-        {node.shape === 'triangle' && <polygon points="0,-12 12,12 -12,12" fill="none" stroke="#fff" strokeWidth={2} opacity={0.85} />}
+        {node.shape === 'circle' && <circle r={10} fill="none" stroke="var(--body-on-dark)" strokeWidth={2} opacity={0.85} />}
+        {node.shape === 'rectangle' && <rect x={-12} y={-8} width={24} height={16} rx={3} fill="none" stroke="var(--body-on-dark)" strokeWidth={2} opacity={0.85} />}
+        {node.shape === 'diamond' && <polygon points="0,-12 12,0 0,12 -12,0" fill="none" stroke="var(--body-on-dark)" strokeWidth={2} opacity={0.85} />}
+        {node.shape === 'hexagon' && <polygon points="0,-10 9,-5 9,5 0,10 -9,5 -9,-5" fill="none" stroke="var(--body-on-dark)" strokeWidth={2} opacity={0.85} />}
+        {node.shape === 'triangle' && <polygon points="0,-12 12,12 -12,12" fill="none" stroke="var(--body-on-dark)" strokeWidth={2} opacity={0.85} />}
       </>
     ) : (
       <circle r={24} fill={fillColor} stroke={selectedNode === node.id ? 'currentColor' : 'transparent'} strokeWidth={2} opacity={0.9} style={{ cursor: isEditing && toolMode !== 'move' ? 'move' : 'default' }} />
@@ -647,7 +647,7 @@ export default function TopologyManagement() {
     {/* SVG icon (device nodes only) */}
     {!isCustom && svgContent ? (
                             <foreignObject x={-12} y={-12} width={24} height={24} style={{ pointerEvents: 'none' }}>
-                              <div style={{ width: 24, height: 24, color: '#fff' }} dangerouslySetInnerHTML={{ __html: svgContent }} />
+                              <div style={{ width: 24, height: 24, color: 'var(--body-on-dark)' }} dangerouslySetInnerHTML={{ __html: svgContent }} />
                             </foreignObject>
                           ) : null}
                           {/* IP address */}
@@ -661,21 +661,21 @@ export default function TopologyManagement() {
             </>
           ) : (
             <div className={styles.emptyState}>
-              <ApartmentOutlined style={{ fontSize: 48, color: 'var(--topo-text-secondary, #999)', marginBottom: 16 }} />
+              <ApartmentOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: "var(--spacing-card-gap)" }} />
               <div>选择一个拓扑或创建新拓扑开始编辑</div>
             </div>
           )}
         </div>
       </div>
 
-      <Modal title="新建拓扑" open={createModalVisible} onOk={handleCreate} onCancel={() => { setCreateModalVisible(false); setNewTopologyName(''); setNewCategory(''); }} okText="创建" cancelText="取消" width={480} styles={{ body: { paddingBottom: 16 } }}>
+      <Modal title="新建拓扑" open={createModalVisible} onOk={handleCreate} onCancel={() => { setCreateModalVisible(false); setNewTopologyName(''); setNewCategory(''); }} okText="创建" cancelText="取消" width={480} styles={{ body: { paddingBottom: "var(--spacing-card-gap)" } }}>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <div>
-            <div style={{ marginBottom: 4, fontSize: 13, color: 'var(--topo-text-secondary, #666)' }}>拓扑名称</div>
+            <div style={{ marginBottom: "var(--spacing-xxs)", fontSize: 'var(--text-body-mono-size)', color: 'var(--text-secondary)' }}>拓扑名称</div>
             <Input placeholder="输入拓扑名称" value={newTopologyName} onChange={(e) => setNewTopologyName(e.target.value)} />
           </div>
           <div>
-            <div style={{ marginBottom: 4, fontSize: 13, color: 'var(--topo-text-secondary, #666)' }}>分类标签（可选）</div>
+            <div style={{ marginBottom: "var(--spacing-xxs)", fontSize: 'var(--text-body-mono-size)', color: 'var(--text-secondary)' }}>分类标签（可选）</div>
             <AutoComplete
               style={{ width: '100%' }}
               placeholder="输入分类名称或选择已有分类"

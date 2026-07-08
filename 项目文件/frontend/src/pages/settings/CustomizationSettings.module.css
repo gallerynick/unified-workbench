@@ -1,15 +1,15 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  min-height: 48px;
+  gap: var(--spacing-card-gap);
+  min-height: var(--spacing-xxl);
 }
 
 .title {
@@ -19,11 +19,11 @@
 }
 
 .card {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
-  padding-top: 16px;
+  padding-top: var(--spacing-card-gap);
 }

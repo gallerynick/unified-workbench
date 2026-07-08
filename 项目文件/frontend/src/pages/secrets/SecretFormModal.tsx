@@ -187,7 +187,7 @@ export default function SecretFormModal({
           ))
         )}
 
-        <Form.Item name="note" label="备注" style={{ marginTop: 16 }}>
+        <Form.Item name="note" label="备注" style={{ marginTop: "var(--spacing-card-gap)" }}>
           <Input.TextArea placeholder="请输入备注（选填）" rows={3} />
         </Form.Item>
       </Form>

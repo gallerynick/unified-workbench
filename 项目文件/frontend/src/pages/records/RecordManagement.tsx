@@ -297,7 +297,7 @@ export default function RecordManagement({ defaultType }: RecordManagementProps 
           <Space direction="vertical" size={2}>
             <Tag color={cfg.color}>{cfg.text}</Tag>
             {record.visibility === 'restricted' && record.restricted_users && record.restricted_users.length > 0 && (
-              <span style={{ fontSize: 11, color: '#999' }}>
+              <span style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--text-secondary)' }}>
                 {record.restricted_users.length} 个用户
               </span>
             )}

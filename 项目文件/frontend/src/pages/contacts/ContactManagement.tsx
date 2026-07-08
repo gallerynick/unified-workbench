@@ -183,10 +183,10 @@ export default function ContactManagement() {
             <Select value={formType} onChange={(v) => setFormType(v as ContactType)} options={Object.entries(TYPE_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
           </Form.Item>
           {formType === 'other' && (
-            <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, padding: 12 }}>
-              <div style={{ marginBottom: 8, fontWeight: 500 }}>自定义字段</div>
+            <div style={{ border: 'var(--border-width-thin) solid var(--border-primary)', borderRadius: 'var(--rounded-chip)', padding: "var(--spacing-sm)" }}>
+              <div style={{ marginBottom: "var(--spacing-xs)", fontWeight: 500 }}>自定义字段</div>
               {customFields.map((f, i) => (
-                <Space key={i} style={{ marginBottom: 8, display: 'flex' }}>
+                <Space key={i} style={{ marginBottom: "var(--spacing-xs)", display: 'flex' }}>
                   <Input placeholder="字段名" value={f.key} style={{ width: 120 }}
                     onChange={(e) => { const n = [...customFields]; n[i]!.key = e.target.value; setCustomFields(n); }} />
                   <Input placeholder="值" value={f.value} style={{ width: 160 }}

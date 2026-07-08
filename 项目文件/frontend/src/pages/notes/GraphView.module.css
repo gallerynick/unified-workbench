@@ -2,9 +2,9 @@
   flex: 1;
   position: relative;
   overflow: hidden;
-  border-radius: 4px;
-  border: 1px solid var(--graph-border, rgba(148, 163, 184, 0.2));
-  background: var(--graph-bg, #f8fafc);
+  border-radius: var(--rounded-chip);
+  border: 1px solid var(--border-secondary);
+  background: var(--canvas-parchment);
   min-height: 400px;
 }
 
@@ -21,18 +21,6 @@
   align-items: center;
   justify-content: center;
   height: 400px;
-  color: var(--graph-empty-color, #94a3b8);
-  font-size: 15px;
-}
-
-:root {
-  --graph-bg: #f8fafc;
-  --graph-border: rgba(148, 163, 184, 0.2);
-  --graph-empty-color: #94a3b8;
-}
-
-:root[data-theme="dark"] {
-  --graph-bg: #0f172a;
-  --graph-border: rgba(148, 163, 184, 0.1);
-  --graph-empty-color: #64748b;
+  color: var(--text-secondary);
+  font-size: var(--text-body-xs-size);
 }

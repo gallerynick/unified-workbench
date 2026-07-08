@@ -1,14 +1,14 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   max-width: 800px;
 }
 
 .header {
   display: flex;
   align-items: center;
-  min-height: 48px;
+  min-height: var(--spacing-xxl);
 }
 
 .title {

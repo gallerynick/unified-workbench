@@ -289,13 +289,13 @@ export default function FileManagement() {
           <Space direction="vertical" size={2}>
             <Tag color={cfg.color}>{cfg.text}</Tag>
             {record.visibility === 'restricted' && record.restricted_users && record.restricted_users.length > 0 && (
-              <span style={{ fontSize: 11, color: '#999' }}>
+              <span style={{ fontSize: 'var(--text-body-mono-size)', color: 'var(--text-secondary)' }}>
                 {record.restricted_users.length} 个用户
               </span>
             )}
             {isManaged && folderName && (
               <Tooltip title={`此文件受文件夹「${folderName}」统一管理，设置将继承自文件夹`}>
-                <Tag icon={<LinkOutlined />} color="processing" style={{ fontSize: 11, lineHeight: '18px' }}>
+                <Tag icon={<LinkOutlined />} color="processing" style={{ fontSize: 'var(--text-body-mono-size)', lineHeight: 'var(--text-caption-line)' }}>
                   继承自文件夹
                 </Tag>
               </Tooltip>
@@ -329,7 +329,7 @@ export default function FileManagement() {
             {expired && (
               <Tag icon={<WarningOutlined />} color="warning">已过期</Tag>
             )}
-            <span style={{ color: expired ? '#ff4d4f' : undefined, fontSize: 13 }}>
+            <span style={{ color: expired ? 'var(--color-error)' : undefined, fontSize: 'var(--text-body-mono-size)' }}>
               {formatDate(expiresAt)}
             </span>
           </Space>
@@ -457,9 +457,9 @@ export default function FileManagement() {
         width={560}
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-xs)" }}>
           {editingFile?.expires_at && !isExpired(editingFile.expires_at) && (
-            <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.45)' }}>
+            <span style={{ fontSize: 'var(--text-body-mono-size)', color: 'var(--text-tertiary)' }}>
               当前过期时间：{formatDate(editingFile.expires_at)}
             </span>
           )}

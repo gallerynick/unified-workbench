@@ -5,13 +5,13 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .uploadSection {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-sm);
 }
 
 .uploadArea {
@@ -21,18 +21,18 @@
 .progressSection {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-xs);
 }
 
 .progressLabel {
-  font-size: 13px;
-  color: rgba(0, 0, 0, 0.65);
+  font-size: var(--text-body-mono-size);
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .fileName {
-  font-size: 13px;
-  color: rgba(0, 0, 0, 0.45);
+  font-size: var(--text-body-mono-size);
+  color: var(--text-tertiary);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -46,24 +46,12 @@
 .visibilitySection {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-xs);
 }
 
 .sectionLabel {
-  font-size: 14px;
+  font-size: var(--text-caption-size);
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.85);
+  color: var(--text-primary);
   margin: 0;
-}
-
-[data-theme="dark"] .progressLabel {
-  color: rgba(255, 255, 255, 0.65);
-}
-
-[data-theme="dark"] .fileName {
-  color: rgba(255, 255, 255, 0.45);
-}
-
-[data-theme="dark"] .sectionLabel {
-  color: rgba(255, 255, 255, 0.85);
 }

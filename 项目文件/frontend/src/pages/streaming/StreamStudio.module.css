@@ -1,28 +1,8 @@
-:root {
-  --stream-bg: #fff;
-  --stream-border: #e8e8e8;
-  --stream-text: #333;
-  --stream-text-secondary: #666;
-  --stream-item-bg: #f5f5f5;
-  --stream-item-active-bg: #e6f7ff;
-  --stream-section-bg: #fff;
-}
-
-:root[data-theme="dark"] {
-  --stream-bg: #1f1f1f;
-  --stream-border: #303030;
-  --stream-text: #e0e0e0;
-  --stream-text-secondary: #999;
-  --stream-item-bg: #2a2a2a;
-  --stream-item-active-bg: #177ddc;
-  --stream-section-bg: #1f1f1f;
-}
-
 .container {
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .title {
@@ -35,13 +15,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   min-height: 48px;
 }
 
 .main {
   display: flex;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   flex: 1;
   min-height: 0;
 }
@@ -51,29 +31,29 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .section {
-  background: var(--stream-section-bg, #fff);
-  border: 1px solid var(--stream-border, #e8e8e8);
-  border-radius: 8px;
-  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-sm);
 }
 
 .sectionTitle {
   font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--stream-border, #e8e8e8);
+  font-size: var(--text-caption-size);
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--border-secondary);
 }
 
 .sceneList,
 .sourceList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xxs);
   max-height: 200px;
   overflow-y: auto;
 }
@@ -83,35 +63,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  border: 1px solid var(--stream-border, #e8e8e8);
-  border-radius: 6px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-xs);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .sceneItem:hover,
 .sourceItem:hover {
-  background: var(--stream-item-bg, #f5f5f5);
+  background: var(--bg-tertiary);
 }
 
 .sceneItemActive {
-  background: var(--stream-item-active-bg, #e6f7ff);
-  border-color: #1677ff;
+  background: var(--color-info-bg);
+  border-color: var(--color-info);
 }
 
 .previewArea {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   min-width: 0;
 }
 
 .previewContainer {
   flex: 1;
-  background: #000;
-  border-radius: 8px;
+  background: var(--surface-black);
+  border-radius: var(--rounded-sm);
   overflow: hidden;
   position: relative;
   min-height: 0;
@@ -122,10 +102,10 @@
   align-items: center;
   justify-content: space-between;
   font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--stream-border, #e8e8e8);
+  font-size: var(--text-caption-size);
+  margin-bottom: var(--spacing-xs);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--border-secondary);
   flex-shrink: 0;
 }
 
@@ -133,7 +113,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   position: relative;
-  background: #000;
+  background: var(--surface-black);
 }
 
 .emptyPreview {
@@ -142,8 +122,8 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 16px;
-  color: var(--stream-text-secondary, #999);
+  gap: var(--spacing-card-gap);
+  color: var(--text-secondary);
 }
 
 .sourceOverlay {
@@ -154,16 +134,16 @@
 }
 
 .sourceOverlay:hover {
-  border-color: #1677ff;
+  border-color: var(--color-info);
 }
 
 .controls {
   display: flex;
   align-items: center;
-  padding: 12px;
-  background: var(--stream-section-bg, #fff);
-  border: 1px solid var(--stream-border, #e8e8e8);
-  border-radius: 8px;
+  padding: var(--spacing-sm);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
 }
 
 /* 滑块最右侧标记文字右对齐，防止被 overflow hidden 裁切 */

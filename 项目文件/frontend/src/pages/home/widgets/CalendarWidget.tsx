@@ -49,7 +49,7 @@ export default function CalendarWidget() {
     <Card
       title={
         <span>
-          <CalendarOutlined style={{ marginRight: 8 }} />
+          <CalendarOutlined style={{ marginRight: "var(--spacing-xs)" }} />
           近期日程
         </span>
       }
@@ -64,7 +64,7 @@ export default function CalendarWidget() {
           renderItem={(item) => (
             <List.Item style={{ cursor: 'pointer' }} onClick={() => navigate('/calendar')}>
               <Badge status={getEventType(item)} text={item.title} />
-              <Text type="secondary" style={{ fontSize: 12 }}>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
                 {new Date(item.start_time).toLocaleDateString('zh-CN')}
               </Text>
             </List.Item>

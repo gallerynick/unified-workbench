@@ -185,7 +185,7 @@ export default function SystemSettings() {
           <Input.Password
             placeholder="管理员密码"
             onChange={(e) => { pwd = e.target.value; }}
-            style={{ marginTop: 8 }}
+            style={{ marginTop: 'var(--spacing-xs)' }}
           />
         </div>
       ),
@@ -239,7 +239,7 @@ export default function SystemSettings() {
       <Card title="更新仓库配置">
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <div>
-            <div style={{ marginBottom: 8 }}>GitHub 仓库地址（格式：owner/repo）：</div>
+            <div style={{ marginBottom: "var(--spacing-xs)" }}>GitHub 仓库地址（格式：owner/repo）：</div>
             <Space>
               <Input
                 value={editingRepo}
@@ -255,14 +255,14 @@ export default function SystemSettings() {
                 保存
               </Button>
             </Space>
-            <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-              默认地址：gallerynick/unified-workbench
-            </div>
+            <div style={{ marginTop: "var(--spacing-xs)", fontSize: 'var(--text-body-xs-size)', color: 'var(--text-secondary)' }}>
+               默认地址：gallerynick/unified-workbench
+             </div>
           </div>
           <div>
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom: "var(--spacing-xs)" }}>
               GitHub Token（私有仓库必须）：
-              {hasToken && <Tag color="green" style={{ marginLeft: 8 }}>已配置</Tag>}
+              {hasToken && <Tag color="green" style={{ marginLeft: "var(--spacing-xs)" }}>已配置</Tag>}
             </div>
             <Space>
               <Input.Password
@@ -286,9 +286,9 @@ export default function SystemSettings() {
                 </Button>
               )}
             </Space>
-            <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-              用于访问私有仓库，需要 repo 权限。生成地址：GitHub → Settings → Developer settings → Personal access tokens
-            </div>
+            <div style={{ marginTop: "var(--spacing-xs)", fontSize: 'var(--text-body-xs-size)', color: 'var(--text-secondary)' }}>
+               用于访问私有仓库，需要 repo 权限。生成地址：GitHub → Settings → Developer settings → Personal access tokens
+             </div>
           </div>
         </Space>
       </Card>
@@ -302,7 +302,7 @@ export default function SystemSettings() {
           <div>
             <Text type="secondary">仓库最新：</Text>
             <Text strong>{remoteVersion && remoteVersion !== '无法获取' ? `v${remoteVersion}` : remoteVersion || '未检查'}</Text>
-            {updateInfo?.available && <Tag color="green" style={{ marginLeft: 8 }}>新版本可用</Tag>}
+            {updateInfo?.available && <Tag color="green" style={{ marginLeft: "var(--spacing-xs)" }}>新版本可用</Tag>}
           </div>
           <div>
             <Text type="secondary">仓库地址：</Text>
@@ -329,14 +329,14 @@ export default function SystemSettings() {
           </Space>
         </Space>
         {updateInfo?.release_notes && (
-          <div style={{ marginTop: 16, whiteSpace: 'pre-wrap' }}>
+          <div style={{ marginTop: "var(--spacing-card-gap)", whiteSpace: 'pre-wrap' }}>
             <strong>更新说明：</strong>
             <p>{updateInfo.release_notes}</p>
           </div>
         )}
       </Card>
 
-      <Card title="危险操作" style={{ marginTop: 24 }}>
+      <Card title="危险操作" style={{ marginTop: "var(--spacing-lg)" }}>
         <Space direction="vertical" style={{ width: '100%' }}>
           <Typography.Paragraph type="danger">
             删除所有数据将使系统恢复到初始状态。此操作不可撤销。

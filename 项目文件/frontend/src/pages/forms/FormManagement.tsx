@@ -130,7 +130,7 @@ export default function FormManagement() {
             </Space>
           ))}
           <Button type="dashed" onClick={addField} block>添加字段</Button>
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: "var(--spacing-card-gap)" }}>
             <Form.Item name="allow_anonymous" label="允许匿名提交" valuePropName="checked">
               <Switch />
             </Form.Item>
@@ -150,7 +150,7 @@ export default function FormManagement() {
         {qrForm && (
           <div style={{ textAlign: 'center' }}>
             <QRCodeSVG value={`${window.location.origin}/forms/${qrForm.id}/fill`} size={200} />
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: "var(--spacing-sm)" }}>
               <Text copyable>{`${window.location.origin}/forms/${qrForm.id}/fill`}</Text>
             </div>
           </div>

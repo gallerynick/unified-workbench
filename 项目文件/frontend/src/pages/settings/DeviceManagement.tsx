@@ -153,7 +153,7 @@ export default function DeviceManagement() {
         description="查看和管理已登录的设备。撤销设备将强制该设备重新登录。"
         type="info"
         showIcon
-        style={{ marginBottom: 24 }}
+        style={{ marginBottom: 'var(--spacing-lg)' }}
       />
 
       <Card>

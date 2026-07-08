@@ -1,26 +1,18 @@
 /* 浮窗交互组件标准化规范：List.Item 列对齐 + 微放大 */
 .notificationItem {
   cursor: pointer;
-  padding: 12px 0;
+  padding: var(--spacing-sm) 0;
   transition: border-color 0.2s, background 0.2s, transform 0.2s;
 }
 
 .notificationItem:hover {
-  background: var(--bg-hover, #f5f5f5);
+  background: var(--bg-tertiary);
   transform: scale(1.01);
-}
-
-[data-theme="dark"] .notificationItem:hover {
-  background: var(--bg-hover-dark, #2a2a2a);
 }
 
 /* 未读通知高亮背景 */
 .unread {
-  background: #f6ffed;
-}
-
-[data-theme="dark"] .unread {
-  background: #162312;
+  background: var(--color-success-bg);
 }
 
 /* 内容区：flex:1 确保操作区（未读标签）列对齐一致 */

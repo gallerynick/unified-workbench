@@ -9,13 +9,13 @@
 }
 
 .card {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .userInfo {

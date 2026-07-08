@@ -6,7 +6,8 @@ import zhCN from 'antd/locale/zh_CN';
 import { router } from './router';
 import { ThemeProvider, useTheme, getAntdThemeConfig } from './contexts/ThemeContext';
 import { UserProvider } from './contexts/UserContext';
-import './styles/theme.css';
+import './styles/token.css';
+import './styles/typography.css';
 import './global.css';
 
 function AppWithTheme() {

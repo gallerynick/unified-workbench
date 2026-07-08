@@ -113,7 +113,7 @@ export default function Welcome() {
   }
 
   if (isInit) {
-    return <div style={{ textAlign: 'center', padding: 100 }}><Button type="primary" onClick={() => navigate('/login')}>系统已初始化，前往登录</Button></div>;
+    return <div style={{ textAlign: 'center', padding: '40px' }}><Button type="primary" onClick={() => navigate('/login')}>系统已初始化，前往登录</Button></div>;
   }
 
   return (

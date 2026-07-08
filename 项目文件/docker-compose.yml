@@ -1,4 +1,5 @@
 # 一站式工作台 Docker Compose 配置
+name: unified-workbench
 
 services:
   # PostgreSQL 数据库

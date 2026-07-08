@@ -1,13 +1,3 @@
-:root {
-  --folder-toolbar-border: #f0f0f0;
-  --folder-create-border: #f0f0f0;
-}
-
-:root[data-theme="dark"] {
-  --folder-toolbar-border: #303030;
-  --folder-create-border: #303030;
-}
-
 .container {
   display: flex;
   flex-direction: column;
@@ -33,19 +23,19 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--folder-toolbar-border, #f0f0f0);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-bottom: 1px solid var(--border-secondary);
 }
 
 .inlineCreate {
-  padding: 4px 12px 8px;
-  border-bottom: 1px solid var(--folder-create-border, #f0f0f0);
+  padding: var(--spacing-xxs) var(--spacing-sm) var(--spacing-xs);
+  border-bottom: 1px solid var(--border-secondary);
 }
 
 .treeWrapper {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 8px;
+  padding: var(--spacing-xxs) var(--spacing-xs);
 }
 
 .treeNode {
@@ -62,7 +52,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: var(--text-body-mono-size);
 }
 
 .nodeActions {
@@ -75,19 +65,19 @@
 }
 
 .folderIcon {
-  color: #faad14;
-  margin-right: 4px;
+  color: var(--color-warning);
+  margin-right: var(--spacing-xxs);
 }
 
 .allFilesIcon {
-  color: #1890ff;
-  margin-right: 4px;
+  color: var(--color-info);
+  margin-right: var(--spacing-xxs);
 }
 
 .unifiedTag {
   margin-left: 6px;
-  font-size: 11px;
+  font-size: var(--text-body-mono-size);
   line-height: 18px;
-  padding: 0 4px;
+  padding: 0 var(--spacing-xxs);
   vertical-align: middle;
 }

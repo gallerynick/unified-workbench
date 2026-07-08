@@ -1,0 +1,309 @@
+/* ============================================================
+ * 一站式工作台 — 全局 Design Token
+ * 严格遵循《项目基定/UI设计规范.md》v1.0.0
+ *
+ * 使用方式：所有 CSS/ModuleCSS 引用 var(--token-name)
+ * 深色模式通过 [data-theme="dark"] 选择器自动切换
+ * ============================================================ */
+
+/* ── 浅色模式（默认） ─────────────────────────────── */
+:root {
+  /* === 品牌与强调色 === */
+  --color-primary: #0066cc;              /* 行动蓝 — 单一交互色 */
+  --color-primary-focus: #0071e3;        /* 焦点蓝 — 键盘焦点环 */
+  --color-primary-on-dark: #2997ff;      /* 浅底亮蓝 — 深色表面链接 */
+
+  /* === 底色 === */
+  --canvas: #ffffff;                     /* 纯白 — 主画布 */
+  --canvas-parchment: #f5f5f7;           /* 暖白 — 交替区块底色 */
+  --surface-pearl: #fafafc;              /* 珍珠白 — 次级按钮填充 */
+  --surface-tile-1: #272729;             /* 近黑区块 1 */
+  --surface-tile-2: #2a2a2c;             /* 近黑区块 2 */
+  --surface-tile-3: #252527;             /* 近黑区块 3 */
+  --surface-black: #000000;              /* 纯黑 — 全局导航/视频 */
+  --surface-chip-translucent: #d2d2d7;   /* 半透明灰芯片 */
+
+  /* === 文本色 === */
+  --ink: #1d1d1f;                        /* 近黑墨色 — 标题/正文 */
+  --body: #1d1d1f;                       /* 同 ink，浅底正文 */
+  --body-on-dark: #ffffff;               /* 深色区块正文 */
+  --body-muted: #cccccc;                 /* 深色区块次级文案 */
+  --ink-muted-80: #333333;               /* 珍珠按钮正文 */
+  --ink-muted-48: #7a7a7a;              /* 禁用文本/法规 */
+  --text-disabled: #7a7a7a;             /* 禁用状态文本色 — 同 ink-muted-48 */
+
+  /* === 描边线 === */
+  --divider-soft: #f0f0f0;               /* 分隔浅线 — 次级按钮"边框" */
+  --hairline: #e0e0e0;                   /* 发丝线 — 工具卡片描边 */
+
+  /* === 状态色 === */
+  --color-success: #52c41a;
+  --color-success-bg: #f6ffed;
+  --color-success-dark: #73d13d;
+  --color-success-bg-dark: #162312;
+  --color-warning: #faad14;
+  --color-warning-bg: #fffbe6;
+  --color-warning-dark: #d89614;
+  --color-warning-bg-dark: #2b2111;
+  --color-error: #ff4d4f;
+  --color-error-bg: #fff2f0;
+  --color-error-dark: #ff7875;
+  --color-error-bg-dark: #2a1215;
+  --color-info: #1677ff;
+  --color-info-bg: #e6f4ff;
+  --color-info-dark: #1668dc;
+  --color-info-bg-dark: #111d2c;
+
+  /* === 扩展背景/文本/边框 token（功能型页面） === */
+  --bg-primary: var(--canvas);
+  --bg-secondary: #fafafa;
+  --bg-tertiary: #f5f5f5;
+  --text-primary: var(--ink);
+  --text-secondary: #8c8c8c;
+  --text-tertiary: #bfbfbf;
+  --text-inverse: #ffffff;
+  --border-primary: #d9d9d9;
+  --border-secondary: #f0f0f0;
+  --border-tertiary: #e8e8e8;
+
+  /* === 边框宽度 === */
+  --border-width-thin: 1px;
+
+  /* === 模态框遮罩 === */
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+
+  /* === 扩展强调色（日历/拓扑） === */
+  --color-purple: #722ed1;
+  --color-cyan: #13c2c2;
+  --color-magenta: #eb2f96;
+  --color-orange-bright: #fa541c;
+  --color-orange: #fa8c16;
+  --color-red: #f5222d;
+
+  /* === 圆角 === */
+  --rounded-none: 0px;
+  --rounded-xs: 5px;
+  --rounded-sm: 8px;
+  --rounded-md: 11px;
+  --rounded-lg: 18px;
+  --rounded-pill: 9999px;
+  --rounded-full: 9999px;
+  --rounded-chip: 4px;
+  --rounded-circular: 50%;
+
+  /* === 间距 === */
+  --spacing-xxs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 17px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  --spacing-section: 80px;
+  --spacing-content-pad: 24px;
+  --spacing-content-pad-sm: 8px;
+  --spacing-card-gap: 16px;
+  --spacing-section-gap: 16px;
+
+  /* === 阴影 === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  /* 品牌展示页唯一内容投影 — 仅用于内容图像 */
+  --shadow-content-image: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
+
+  /* === 层级 === */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal: 1050;
+  --z-tooltip: 1070;
+
+  /* === 动画 === */
+  --anim-fast: 0.15s;
+  --anim-normal: 0.2s;
+  --anim-slow: 0.3s;
+  --anim-ease: ease;
+  --anim-ease-in-out: ease-in-out;
+
+  /* === 布局 === */
+  --sider-width: 240px;
+  --sider-collapsed-width: 80px;
+  --header-height: 64px;
+  --content-max-width-text: 980px;
+  --content-max-width-grid: 1440px;
+
+  /* === 组件级 token — 按钮 === */
+  --btn-primary-bg: var(--color-primary);
+  --btn-primary-text: #ffffff;
+  --btn-primary-padding: 11px 22px;
+  --btn-primary-rounded: var(--rounded-pill);
+  --btn-hero-padding: 14px 28px;
+  --btn-dark-utility-bg: var(--ink);
+  --btn-dark-utility-text: var(--body-on-dark);
+  --btn-dark-utility-padding: 8px 15px;
+  --btn-dark-utility-rounded: var(--rounded-sm);
+  --btn-pearl-capsule-bg: var(--surface-pearl);
+  --btn-pearl-capsule-text: var(--ink-muted-80);
+  --btn-pearl-capsule-padding: 8px 14px;
+  --btn-pearl-capsule-rounded: var(--rounded-md);
+  --btn-icon-circular-bg: var(--surface-chip-translucent);
+  --btn-icon-circular-size: 44px;
+  --btn-active-scale: scale(0.95);
+
+  /* === 组件级 token — 卡片 === */
+  --card-bg: var(--canvas);
+  --card-border: 1px solid var(--border-secondary);
+  --card-rounded: var(--rounded-sm);
+  --card-padding: 16px;
+  --card-hover-bg: var(--bg-tertiary);
+  --card-hover-border: 1px solid var(--border-primary);
+  --card-grid: repeat(auto-fill, minmax(300px, 1fr));
+  --card-grid-gap: var(--spacing-sm);
+
+  /* === 组件级 token — 模态框 === */
+  --modal-bg: var(--canvas);
+  --modal-padding: 24px;
+  --modal-rounded: var(--rounded-sm);
+  --modal-width: 560px;
+  --modal-width-large: 800px;
+  --modal-width-small: 480px;
+  --modal-shadow: var(--shadow-md);
+
+  /* === 组件级 token — 表格 === */
+  --table-bg: var(--canvas);
+  --table-row-height: 54px;
+  --table-cell-padding: 12px 16px;
+  --table-header-bg: var(--bg-tertiary);
+  --table-header-text: var(--text-secondary);
+  --table-row-hover-bg: var(--bg-secondary);
+
+  /* === 组件级 token — 表单 === */
+  --input-bg: var(--canvas);
+  --input-border: 1px solid var(--border-primary);
+  --input-rounded: var(--rounded-sm);
+  --input-height: 32px;
+  --input-padding: 4px 11px;
+  --input-focus-border: 1px solid var(--color-info);
+  --input-focus-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+  --input-error-border: 1px solid var(--color-error);
+  --switch-width: 44px;
+  --switch-height: 22px;
+  --checkbox-size: 16px;
+  --radio-size: 16px;
+
+  /* === 组件级 token — 侧边栏 === */
+  --sider-bg: var(--canvas);
+  --sider-border: 1px solid var(--border-secondary);
+  --sider-menu-item-height: 40px;
+  --sider-menu-item-padding: 0 16px;
+  --sider-menu-item-rounded: var(--rounded-sm);
+  --sider-menu-item-active-bg: var(--color-info-bg);
+  --sider-menu-item-active-text: var(--color-info);
+  --sider-menu-item-hover-bg: var(--bg-tertiary);
+
+  /* === 组件级 token — 顶栏 === */
+  --header-bg: var(--canvas);
+  --header-border: 1px solid var(--border-secondary);
+  --header-padding: 0 24px;
+
+  /* === 组件级 token — 导航 === */
+  --breadcrumb-text: var(--text-secondary);
+  --breadcrumb-active: var(--color-info);
+  --tabs-border: 1px solid var(--border-secondary);
+  --tabs-active: var(--color-info);
+
+  /* === 组件级 token — 反馈 === */
+  --badge-bg: var(--color-error);
+  --badge-text: #ffffff;
+  --tag-bg: var(--bg-tertiary);
+  --tag-padding: 2px 8px;
+  --tag-rounded: var(--rounded-chip);
+  --tooltip-bg: var(--ink);
+  --tooltip-text: var(--body-on-dark);
+  --tooltip-padding: 6px 8px;
+  --popover-bg: var(--canvas);
+  --popover-border: 1px solid var(--border-primary);
+  --popover-padding: 12px;
+  --progress-height: 6px;
+  --progress-fill: var(--color-info);
+
+  /* === 组件级 token — 抽屉 === */
+  --drawer-width: 520px;
+  --drawer-notification-width: 420px;
+  --drawer-mobile-width: 250px;
+
+  /* === 组件级 token — 其他 === */
+  --avatar-size: 32px;
+  --avatar-size-lg: 48px;
+  --empty-state-text: var(--text-tertiary);
+  --result-icon-size: 72px;
+  --upload-drag-height: 150px;
+  --upload-drag-border: 2px dashed var(--border-primary);
+  --collapse-padding: 16px;
+  --tree-node-height: 28px;
+  --scrollbar-width: 8px;
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+}
+
+/* ── 深色模式 ───────────────────────────────────── */
+:root[data-theme="dark"] {
+  /* === 底色 === */
+  --canvas: #141414;
+  --canvas-parchment: #1a1a1a;
+  --surface-pearl: #1f1f1f;
+  --surface-chip-translucent: rgba(210, 210, 215, 0.3);
+
+  /* === 文本色 === */
+  --ink: var(--body-on-dark);
+  --body: var(--body-on-dark);
+  --ink-muted-80: #a6a6a6;
+  --ink-muted-48: #595959;
+
+  /* === 状态色（深色变体） === */
+  --color-success: var(--color-success-dark);
+  --color-success-bg: var(--color-success-bg-dark);
+  --color-warning: var(--color-warning-dark);
+  --color-warning-bg: var(--color-warning-bg-dark);
+  --color-error: var(--color-error-dark);
+  --color-error-bg: var(--color-error-bg-dark);
+  --color-info: var(--color-info-dark);
+  --color-info-bg: var(--color-info-bg-dark);
+
+  /* === 扩展背景/文本/边框 token（深色） === */
+  --bg-primary: #141414;
+  --bg-secondary: #141414;
+  --bg-tertiary: #262626;
+  --text-primary: rgba(255, 255, 255, 0.85);
+  --text-secondary: #a6a6a6;
+  --text-tertiary: #595959;
+  --text-inverse: #000000;
+  --border-primary: #434343;
+  --border-secondary: #303030;
+  --border-tertiary: #303030;
+
+  /* === 阴影（深色变体） === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  /* === 组件级 token（深色覆写） === */
+  --card-bg: var(--canvas);
+  --card-border: 1px solid var(--border-secondary);
+  --card-hover-bg: var(--bg-tertiary);
+  --card-hover-border: 1px solid var(--border-primary);
+  --table-bg: var(--canvas);
+  --table-header-bg: var(--bg-tertiary);
+  --table-row-hover-bg: var(--bg-secondary);
+  --sider-bg: var(--canvas);
+  --sider-border: 1px solid var(--border-secondary);
+  --sider-menu-item-hover-bg: var(--bg-tertiary);
+  --header-bg: var(--canvas);
+  --header-border: 1px solid var(--border-secondary);
+  --tag-bg: var(--bg-tertiary);
+
+  /* === 滚动条（深色） === */
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+}

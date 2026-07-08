@@ -153,7 +153,7 @@ export default function Profile() {
   };
 
   if (loading) {
-    return <div style={{ padding: 40, textAlign: 'center' }}>加载中...</div>;
+    return <div style={{ padding: "var(--spacing-xxl)", textAlign: 'center' }}>加载中...</div>;
   }
 
   const roleInfo = ROLE_MAP[user?.role ?? ''] ?? { label: user?.role ?? '未知', color: 'default' };
@@ -187,7 +187,7 @@ export default function Profile() {
                   size={80}
                   icon={<UserOutlined />}
                   src={user?.avatar}
-                  style={{ border: '2px solid var(--border-color, #e2e8f0)' }}
+                  style={{ border: 'var(--border-width-thin) solid var(--border-color, var(--border-primary))' }}
                 />
                 <div
                   style={{
@@ -197,14 +197,14 @@ export default function Profile() {
                     width: 28,
                     height: 28,
                     borderRadius: '50%',
-                    background: '#6366f1',
+                    background: 'var(--color-primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid #fff',
+                    border: 'var(--border-width-thin) solid var(--canvas)',
                   }}
                 >
-                  <CameraOutlined style={{ color: '#fff', fontSize: 13 }} />
+                  <CameraOutlined style={{ color: 'var(--canvas)', fontSize: 'var(--text-body-mono-size)' }} />
                 </div>
               </div>
             </Upload>
@@ -305,7 +305,7 @@ export default function Profile() {
       <Card
         title={<><DeleteOutlined /> 危险操作</>}
         className={styles.card ?? ''}
-        style={{ borderColor: '#ff4d4f' }}
+        style={{ borderColor: 'var(--color-error)' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -337,8 +337,8 @@ export default function Profile() {
           onChange={(e) => setDeletePassword(e.target.value)}
           onPressEnter={handleDeleteAccount}
         />
-        <div style={{ marginTop: 16, textAlign: 'right' }}>
-          <Button onClick={() => { setDeleteModalVisible(false); setDeletePassword(''); }} style={{ marginRight: 8 }}>
+        <div style={{ marginTop: "var(--spacing-card-gap)", textAlign: 'right' }}>
+          <Button onClick={() => { setDeleteModalVisible(false); setDeletePassword(''); }} style={{ marginRight: "var(--spacing-xs)" }}>
             取消
           </Button>
           <Button type="primary" danger loading={deleting} onClick={handleDeleteAccount}>

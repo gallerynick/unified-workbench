@@ -38,7 +38,7 @@ export default function WidgetSelectorModal({
                 <div>
                   <Text strong>{meta?.label ?? item.id}</Text>
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
+                    <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
                       {meta?.description ?? ''}
                     </Text>
                   </div>

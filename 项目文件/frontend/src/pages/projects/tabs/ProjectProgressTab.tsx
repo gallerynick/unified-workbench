@@ -111,7 +111,7 @@ export default function ProjectProgressTab({ project, onUpdate }: ProjectProgres
 
   return (
     <div>
-      <Card title="项目状态流程" style={{ marginBottom: 16 }}>
+      <Card title="项目状态流程" style={{ marginBottom: "var(--spacing-card-gap)" }}>
         <Steps
           current={currentStepIndex}
           items={STATUS_FLOW.map((item) => ({
@@ -137,11 +137,11 @@ export default function ProjectProgressTab({ project, onUpdate }: ProjectProgres
             <Text type="secondary">
               当前状态：{STATUS_LABELS[project.status]}，可转换为：
             </Text>
-            <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: "var(--spacing-xs)" }}>
               {availableTransitions.map((status) => (
                 <Button
                   key={status}
-                  style={{ marginRight: 8 }}
+                  style={{ marginRight: "var(--spacing-xs)" }}
                   onClick={() => {
                     setSelectedStatus(status);
                     setTransitionModalVisible(true);
@@ -157,7 +157,7 @@ export default function ProjectProgressTab({ project, onUpdate }: ProjectProgres
         )}
       </Card>
 
-      <Card title="状态变更历史" style={{ marginTop: 16 }}>
+      <Card title="状态变更历史" style={{ marginTop: "var(--spacing-card-gap)" }}>
         <Timeline
           items={[
             {
@@ -186,7 +186,7 @@ export default function ProjectProgressTab({ project, onUpdate }: ProjectProgres
             },
           ]}
         />
-        <Text type="secondary" style={{ fontSize: 12 }}>
+        <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
           注：完整的状态变更历史需要后端审计日志支持
         </Text>
       </Card>
@@ -202,14 +202,14 @@ export default function ProjectProgressTab({ project, onUpdate }: ProjectProgres
         width={560}
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: "var(--spacing-card-gap)" }}>
           <Text>当前状态：</Text>
           <Text strong>{STATUS_LABELS[project.status]}</Text>
         </div>
         <div>
           <Text>目标状态：</Text>
           <Select
-            style={{ width: '100%', marginTop: 8 }}
+            style={{ width: '100%', marginTop: "var(--spacing-xs)" }}
             placeholder="请选择目标状态"
             value={selectedStatus}
             onChange={setSelectedStatus}

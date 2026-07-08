@@ -1,7 +1,7 @@
 .container {
   max-width: 640px;
   margin: 0 auto;
-  padding: 48px 16px;
+  padding: var(--spacing-xxl) var(--spacing-card-gap);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -10,24 +10,19 @@
 
 .card {
   width: 100%;
-  background: #fff;
-  border-radius: 12px;
-  padding: 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: background 0.3s, box-shadow 0.3s;
-}
-
-[data-theme='dark'] .card {
-  background: #1f1f1f;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: var(--canvas);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+  transition: background var(--anim-slow), box-shadow var(--anim-slow);
 }
 
 .header {
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: var(--spacing-card-gap);
+  margin-bottom: var(--spacing-lg);
 }
 
 .description {
-  margin-top: 8px;
+  margin-top: var(--spacing-xs);
   margin-bottom: 0;
 }

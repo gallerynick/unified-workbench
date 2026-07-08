@@ -52,7 +52,7 @@ export default function UserPersonalization() {
           </Space>
         }
       >
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 'var(--spacing-card-gap)' }}>
           <Segmented
             options={THEME_OPTIONS}
             value={localTheme}

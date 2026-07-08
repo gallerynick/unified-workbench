@@ -46,7 +46,7 @@ export default function TodosWidget() {
     <Card
       title={
         <span>
-          <CheckSquareOutlined style={{ marginRight: 8 }} />
+          <CheckSquareOutlined style={{ marginRight: "var(--spacing-xs)" }} />
           待办事项
         </span>
       }
@@ -60,12 +60,12 @@ export default function TodosWidget() {
           locale={{ emptyText: '暂无待办' }}
           renderItem={(item) => (
             <List.Item style={{ cursor: 'pointer' }} onClick={() => navigate('/tasks')}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", width: '100%' }}>
                 <Checkbox checked={item.status === 'done'} onChange={() => toggleDone(item)} onClick={(e) => e.stopPropagation()} />
                 <Text delete={item.status === 'done'} ellipsis style={{ flex: 1 }}>
                   {item.title}
                 </Text>
-                <Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', whiteSpace: 'nowrap' }}>
                   {item.due_date ? new Date(item.due_date).toLocaleDateString('zh-CN') : ''}
                 </Text>
               </div>

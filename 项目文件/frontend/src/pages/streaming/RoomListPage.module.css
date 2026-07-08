@@ -1,34 +1,12 @@
-:root {
-  --room-bg: #fff;
-  --room-border: #e8e8e8;
-  --room-text: #333;
-  --room-text-secondary: #666;
-  --room-table-header-bg: #fafafa;
-  --room-table-row-hover: #f5f5f5;
-  --room-link-color: #1677ff;
-  --room-card-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-:root[data-theme='dark'] {
-  --room-bg: #1f1f1f;
-  --room-border: #303030;
-  --room-text: #e0e0e0;
-  --room-text-secondary: #999;
-  --room-table-header-bg: #2a2a2a;
-  --room-table-row-hover: #2a2a2a;
-  --room-link-color: #3c89e8;
-  --room-card-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-}
-
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   flex: 1;
   min-height: 0;
-  background: var(--room-bg);
-  border-radius: 8px;
-  padding: 24px;
+  background: var(--bg-primary);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-lg);
 }
 
 .header {
@@ -36,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--spacing-sm);
   min-height: 48px;
 }
 
@@ -44,7 +22,7 @@
   margin: 0 !important;
   font-weight: 600;
   white-space: nowrap;
-  color: var(--room-text);
+  color: var(--text-primary);
 }
 
 .searchInput {
@@ -60,13 +38,13 @@
 }
 
 .table :global(.ant-table-thead > tr > th) {
-  background: var(--room-table-header-bg);
-  color: var(--room-text-secondary);
+  background: var(--table-header-bg);
+  color: var(--table-header-text);
   font-weight: 500;
 }
 
 .table :global(.ant-table-tbody > tr:hover > td) {
-  background: var(--room-table-row-hover);
+  background: var(--table-row-hover-bg);
 }
 
 .roomNameLink {
@@ -77,7 +55,7 @@
 
 @media (max-width: 767px) {
   .container {
-    padding: 12px;
+    padding: var(--spacing-sm);
   }
 
   .header {

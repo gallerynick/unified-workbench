@@ -21,22 +21,45 @@ const CATEGORY_PALETTE = [
 ];
 
 function categoryColor(category: string | null): string {
-  if (!category) return '#94a3b8';
+  if (!category) return 'var(--text-secondary)';
   let hash = 0;
   for (let i = 0; i < category.length; i++) {
     hash = ((hash << 5) - hash) + category.charCodeAt(i);
     hash |= 0;
   }
-  return CATEGORY_PALETTE[Math.abs(hash) % CATEGORY_PALETTE.length] ?? '#94a3b8';
+  return CATEGORY_PALETTE[Math.abs(hash) % CATEGORY_PALETTE.length] ?? 'var(--text-secondary)';
 }
 
-export default function GraphView({ notes, onNodeClick, isDark, search }: GraphViewProps) {
+/** 读取 CSS 自定义属性用于 canvas 绘制（canvas 无法直接使用 CSS var） */
+function readTokens(): { bg: string; text: string; textSecondary: string; warning: string } {
+  const root = document.documentElement;
+  const style = getComputedStyle(root);
+  return {
+    bg: style.getPropertyValue('--canvas-parchment').trim() || 'var(--canvas-parchment)',
+    text: style.getPropertyValue('--text-primary').trim() || 'var(--body)',
+    textSecondary: style.getPropertyValue('--text-secondary').trim() || 'var(--text-secondary)',
+    warning: style.getPropertyValue('--color-warning').trim() || 'var(--color-warning)',
+  };
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m?.[1] || !m?.[2] || !m?.[3]) return null;
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+
+export default function GraphView({ notes, onNodeClick, isDark: _isDark, search }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraphMethods<NodeObject<GraphNodeData>, GraphLinkData> | undefined>(undefined);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [loading, setLoading] = useState(true);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const hoveredNeighbors = useRef<Set<string>>(new Set());
+
+  // 运行时读取 CSS token（每次渲染时重新读取，确保主题切换时更新）
+  const tokens = readTokens();
+  // 将 textSecondary hex 转为 rgb 分量用于 rgba 构造
+  const textSecondaryRgb = useMemo(() => hexToRgb(tokens.textSecondary) ?? { r: 140, g: 140, b: 140 }, [tokens.textSecondary]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -148,7 +171,7 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
     if (isDimmed) return;
 
     if (node.isPinned) {
-      ctx.strokeStyle = '#fbbf24';
+      ctx.strokeStyle = tokens.warning;
       ctx.lineWidth = 3;
       ctx.stroke();
     }
@@ -161,10 +184,10 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
 
       const label = node.name;
 
-      ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+      ctx.fillStyle = tokens.text;
       ctx.fillText(label, x, y + radius + 4);
     }
-  }, [isDark, hoveredNode]);
+  }, [hoveredNode, tokens]);
 
   const nodePointerAreaPaint = useCallback((node: NodeObject<GraphNodeData>, color: string, ctx: CanvasRenderingContext2D) => {
     const x = node.x ?? 0;
@@ -188,12 +211,14 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
       hoveredNode !== source.id && hoveredNode !== target.id &&
       !hoveredNeighbors.current.has(source.id) && !hoveredNeighbors.current.has(target.id);
 
+    const { r, g, b } = textSecondaryRgb;
+
     ctx.beginPath();
     ctx.moveTo(sx, sy);
     ctx.lineTo(tx, ty);
-    ctx.strokeStyle = isDark
-      ? (isDimmed ? 'rgba(148,163,184,0.1)' : 'rgba(148,163,184,0.4)')
-      : (isDimmed ? 'rgba(100,116,139,0.1)' : 'rgba(100,116,139,0.3)');
+    ctx.strokeStyle = isDimmed
+      ? `rgba(${r},${g},${b},0.1)`
+      : `rgba(${r},${g},${b},0.35)`;
     ctx.lineWidth = isDimmed ? 1 : 2;
     ctx.stroke();
 
@@ -208,18 +233,16 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
     ctx.lineTo(mx - arrowLen * Math.cos(angle - arrowAngle), my - arrowLen * Math.sin(angle - arrowAngle));
     ctx.moveTo(mx, my);
     ctx.lineTo(mx - arrowLen * Math.cos(angle + arrowAngle), my - arrowLen * Math.sin(angle + arrowAngle));
-    ctx.strokeStyle = isDark
-      ? (isDimmed ? 'rgba(148,163,184,0.15)' : 'rgba(148,163,184,0.6)')
-      : (isDimmed ? 'rgba(100,116,139,0.15)' : 'rgba(100,116,139,0.5)');
+    ctx.strokeStyle = isDimmed
+      ? `rgba(${r},${g},${b},0.15)`
+      : `rgba(${r},${g},${b},0.55)`;
     ctx.lineWidth = 2;
     ctx.stroke();
-  }, [isDark, hoveredNode]);
+  }, [hoveredNode, textSecondaryRgb]);
 
   const handleNodeClick = useCallback((node: NodeObject<GraphNodeData>) => {
     onNodeClick(node.note);
   }, [onNodeClick]);
-
-  const bgColor = isDark ? '#0f172a' : '#f8fafc';
 
   if (notes.length === 0) {
     return (
@@ -246,7 +269,7 @@ export default function GraphView({ notes, onNodeClick, isDark, search }: GraphV
         linkCanvasObject={linkCanvasObject}
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
-        backgroundColor={bgColor}
+        backgroundColor={tokens.bg}
         autoPauseRedraw={true}
         warmupTicks={200}
         cooldownTime={15000}

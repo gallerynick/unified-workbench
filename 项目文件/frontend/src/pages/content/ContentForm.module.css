@@ -6,7 +6,7 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 .editorField {
@@ -15,42 +15,34 @@
 
 .visibilitySection {
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-sm);
   align-items: flex-start;
 }
 
 .visibilityOption {
   flex: 1;
-  padding: 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--rounded-sm);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .visibilityOption:hover {
-  border-color: #4096ff;
+  border-color: var(--color-info);
 }
 
 .visibilityOptionSelected {
-  border-color: #1677ff;
-  background: #e6f4ff;
+  border-color: var(--color-info);
+  background: var(--color-info-bg);
 }
 
 .visibilityOptionTitle {
   font-weight: 500;
-  margin-bottom: 4px;
+  margin-bottom: var(--spacing-xxs);
 }
 
 .visibilityOptionDesc {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-[data-theme="dark"] .visibilityOption {
-  border-color: #434343;
-}
-
-[data-theme="dark"] .visibilityOptionSelected {
-  background: #111a2c;
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
 }

@@ -72,7 +72,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
   return (
     <div>
       {/* 房间名称 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', marginBottom: 'var(--spacing-card-gap)' }}>
         {editingName && isOwner ? (
           <Input
             value={nameInput}
@@ -105,9 +105,9 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
       <Descriptions
         column={1}
         size="small"
-        style={{ marginBottom: 16 }}
+        style={{ marginBottom: 'var(--spacing-card-gap)' }}
         labelStyle={{
-          color: 'var(--text-secondary, #666)',
+          color: 'var(--text-secondary)',
           width: 100,
         }}
       >
@@ -151,20 +151,20 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
       </Descriptions>
 
       {/* 推流地址 */}
-      <div style={{ marginBottom: 16 }}>
-        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+      <div style={{ marginBottom: 'var(--spacing-card-gap)' }}>
+        <Text strong style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>
           推流地址
         </Text>
         <Space direction="vertical" style={{ width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
             <code
               style={{
                 flex: 1,
                 padding: '6px 10px',
-                background: 'var(--bg-secondary, #f5f5f5)',
-                borderRadius: 4,
-                fontSize: 12,
-                color: 'var(--text-primary, #333)',
+                background: 'var(--bg-tertiary)',
+                borderRadius: 'var(--rounded-chip)',
+                fontSize: 'var(--text-body-xs-size)',
+                color: 'var(--text-primary)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -181,15 +181,15 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
               />
             </Tooltip>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
             <code
               style={{
                 flex: 1,
                 padding: '6px 10px',
-                background: 'var(--bg-secondary, #f5f5f5)',
-                borderRadius: 4,
-                fontSize: 12,
-                color: 'var(--text-primary, #333)',
+                background: 'var(--bg-tertiary)',
+                borderRadius: 'var(--rounded-chip)',
+                fontSize: 'var(--text-body-xs-size)',
+                color: 'var(--text-primary)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -210,25 +210,25 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
       </div>
 
       {/* 观看地址 */}
-      <div style={{ marginBottom: 16 }}>
-        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+      <div style={{ marginBottom: 'var(--spacing-card-gap)' }}>
+        <Text strong style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>
           观看地址
         </Text>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
           <code
             style={{
               flex: 1,
               padding: '6px 10px',
-              background: 'var(--bg-secondary, #f5f5f5)',
-              borderRadius: 4,
-              fontSize: 12,
-              color: 'var(--text-primary, #333)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {room.watch_url}
+              background: 'var(--bg-tertiary)',
+                borderRadius: 'var(--rounded-chip)',
+                fontSize: 'var(--text-body-xs-size)',
+                color: 'var(--text-primary)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {room.watch_url}
           </code>
           <Tooltip title="复制">
             <Button
@@ -242,7 +242,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
       </div>
 
       {/* 模式相关操作按钮 */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 'var(--spacing-card-gap)' }}>
         {room.mode === 'builtin' ? (
           <Button
             type="primary"
@@ -255,31 +255,31 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
           <div
             style={{
               padding: '10px 14px',
-              background: 'var(--bg-secondary, #f5f5f5)',
-              borderRadius: 6,
-              fontSize: 13,
-              color: 'var(--text-secondary, #666)',
+              background: 'var(--bg-tertiary)',
+              borderRadius: 'var(--rounded-sm)',
+              fontSize: 'var(--text-body-mono-size)',
+              color: 'var(--text-secondary)',
               lineHeight: 1.6,
-              border: '1px solid var(--border-color, #e8e8e8)',
+              border: 'var(--border-width-thin) solid var(--border-tertiary)',
             }}
           >
-            <Text strong style={{ display: 'block', marginBottom: 4 }}>
+            <Text strong style={{ display: 'block', marginBottom: 'var(--spacing-xxs)' }}>
               在 OBS 中填入此地址
             </Text>
             <code
               style={{
                 display: 'block',
                 padding: '6px 10px',
-                background: 'var(--bg-primary, #fff)',
-                borderRadius: 4,
-                fontSize: 13,
-                marginBottom: 4,
+                background: 'var(--bg-primary)',
+                borderRadius: 'var(--rounded-chip)',
+                fontSize: 'var(--text-body-mono-size)',
+                marginBottom: 'var(--spacing-xxs)',
                 wordBreak: 'break-all',
               }}
             >
               {room.rtmp_url}
             </code>
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginTop: 6 }}>
               <Tooltip title="复制 RTMP 地址">
                 <Button
                   size="small"
@@ -315,10 +315,10 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
                 <Space direction="vertical" style={{ width: '100%' }}>
                   {editingName ? null : (
                     <div>
-                      <Text style={{ display: 'block', marginBottom: 4, color: 'var(--text-secondary, #666)' }}>
+                      <Text style={{ display: 'block', marginBottom: 'var(--spacing-xxs)', color: 'var(--text-secondary)' }}>
                         房间名称
                       </Text>
-                      <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
                         <Input
                           value={nameInput}
                           onChange={(e) => setNameInput(e.target.value)}
@@ -343,7 +343,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
                   )}
 
                   <div>
-                    <Text style={{ display: 'block', marginBottom: 4, color: 'var(--text-secondary, #666)' }}>
+                    <Text style={{ display: 'block', marginBottom: 'var(--spacing-xxs)', color: 'var(--text-secondary)' }}>
                       推流模式
                     </Text>
                     <Radio.Group
@@ -356,7 +356,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
                   </div>
 
                   <div>
-                    <Text style={{ display: 'block', marginBottom: 4, color: 'var(--text-secondary, #666)' }}>
+                    <Text style={{ display: 'block', marginBottom: 'var(--spacing-xxs)', color: 'var(--text-secondary)' }}>
                       房间类型
                     </Text>
                     <Radio.Group
@@ -375,7 +375,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
                       justifyContent: 'space-between',
                     }}
                   >
-                    <Text style={{ color: 'var(--text-secondary, #666)' }}>开放访问</Text>
+                    <Text style={{ color: 'var(--text-secondary)' }}>开放访问</Text>
                     <Switch
                       checked={room.is_open}
                       onChange={(checked) => handleUpdate({ is_open: checked })}

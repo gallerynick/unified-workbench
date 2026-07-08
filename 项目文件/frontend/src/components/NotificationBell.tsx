@@ -2,7 +2,6 @@ import { Badge, Dropdown, List, Typography, Button, Empty } from 'antd';
 import { BellOutlined, CheckOutlined, ExpandOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { Notification } from '../hooks/useWebSocket';
-import { useTheme } from '../contexts/ThemeContext';
 
 interface NotificationBellProps {
   notifications: Notification[];
@@ -19,7 +18,6 @@ export default function NotificationBell({
   onMarkAllAsRead,
   onOpenDrawer,
 }: NotificationBellProps) {
-  const { isDark } = useTheme();
   const navigate = useNavigate();
   const recentNotifications = notifications.slice(0, 10);
 
@@ -29,15 +27,15 @@ export default function NotificationBell({
         width: 320,
         maxHeight: 400,
         overflow: 'auto',
-        background: isDark ? '#1f1f1f' : '#fff',
-        borderRadius: 8,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        background: 'var(--bg-primary)',
+        borderRadius: 'var(--rounded-sm)',
+        boxShadow: 'var(--shadow-md)',
       }}
     >
       <div
         style={{
           padding: '12px 16px',
-          borderBottom: `1px solid ${isDark ? '#303030' : '#f0f0f0'}`,
+          borderBottom: '1px solid var(--border-secondary)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -66,7 +64,7 @@ export default function NotificationBell({
                 style={{
                   padding: '12px 16px',
                   cursor: 'pointer',
-                  background: item.read ? 'transparent' : (isDark ? '#162312' : '#f6ffed'),
+                    background: item.read ? 'transparent' : 'var(--color-success-bg)',
                 }}
                 onClick={() => {
                   onMarkAsRead(item.id);
@@ -89,11 +87,11 @@ export default function NotificationBell({
                     <div>
                       <Typography.Paragraph
                         ellipsis={{ rows: 2 }}
-                        style={{ margin: 0, fontSize: 12 }}
+                        style={{ margin: 0, fontSize: 'var(--text-body-xs-size)' }}
                       >
                         {item.content}
                       </Typography.Paragraph>
-                      <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                      <Typography.Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
                         {new Date(item.timestamp).toLocaleTimeString('zh-CN')}
                       </Typography.Text>
                     </div>
@@ -103,7 +101,7 @@ export default function NotificationBell({
             )}
           />
           {notifications.length > 10 && (
-            <div style={{ padding: '8px 16px', borderTop: `1px solid ${isDark ? '#303030' : '#f0f0f0'}`, textAlign: 'center' }}>
+            <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-secondary)', textAlign: 'center' }}>
               <Button type="link" size="small" icon={<ExpandOutlined />} onClick={onOpenDrawer}>
                 查看全部通知
               </Button>
@@ -121,7 +119,7 @@ export default function NotificationBell({
       placement="bottomRight"
     >
       <Badge count={unreadCount} size="small">
-        <BellOutlined style={{ fontSize: 20, cursor: 'pointer' }} />
+        <BellOutlined style={{ fontSize: 'var(--text-heading-3-size)', cursor: 'pointer' }} />
       </Badge>
     </Dropdown>
   );

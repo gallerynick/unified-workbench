@@ -64,31 +64,31 @@ export default function StreamWatch() {
   const copyUrl = () => { navigator.clipboard.writeText(window.location.href); message.success('地址已复制'); };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', background: '#000', color: '#fff', padding: 24 }}>
-      <Space style={{ marginBottom: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', background: 'var(--surface-black)', color: 'var(--body-on-dark)', padding: "var(--spacing-lg)" }}>
+      <Space style={{ marginBottom: "var(--spacing-card-gap)" }}>
         <VideoCameraOutlined style={{ fontSize: 24 }} />
-        <Title level={3} style={{ color: '#fff', margin: 0 }}>直播播放</Title>
+        <Title level={3} style={{ color: 'var(--body-on-dark)', margin: 0 }}>直播播放</Title>
         {roomId && <Tag color="blue">房间: {roomId.slice(0, 8)}...</Tag>}
         {status === 'playing' && <Tag color="green">播放中</Tag>}
         {status === 'connecting' && <Tag color="orange">连接中...</Tag>}
       </Space>
-      <div style={{ position: 'relative', width: '100%', maxWidth: 960, aspectRatio: '16/9', background: '#111', borderRadius: 8, overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 960, aspectRatio: '16/9', background: 'var(--surface-tile-1)', borderRadius: 'var(--rounded-sm)', overflow: 'hidden' }}>
         <video ref={videoRef} muted autoPlay playsInline controls style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         {status === 'connecting' && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--modal-overlay)' }}>
             <Space direction="vertical" align="center"><Spin /><div>等待推流端...</div></Space>
           </div>
         )}
         {status === 'error' && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--modal-overlay)' }}>
             <Space direction="vertical" align="center">
-              <Text style={{ color: '#ff4d4f' }}>连接失败</Text>
+              <Text style={{ color: 'var(--color-error)' }}>连接失败</Text>
               <Button size="small" onClick={handleRetry}>重试</Button>
             </Space>
           </div>
         )}
       </div>
-      <Space style={{ marginTop: 16 }}>
+      <Space style={{ marginTop: "var(--spacing-card-gap)" }}>
         <Button icon={<CopyOutlined />} onClick={copyUrl}>复制观看地址</Button>
       </Space>
     </div>

@@ -185,7 +185,7 @@ export default function ContentManagement() {
               </Tag>
             ))
           ) : (
-            <span style={{ color: '#bfbfbf' }}>无标签</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>无标签</span>
           )}
         </div>
       ),
@@ -201,7 +201,7 @@ export default function ContentManagement() {
           <Space direction="vertical" size={2}>
             <Tag color={cfg.color}>{cfg.text}</Tag>
             {record.visibility === 'restricted' && record.restricted_users && record.restricted_users.length > 0 && (
-              <span style={{ fontSize: 11, color: '#999' }}>
+              <span style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--text-secondary)' }}>
                 {record.restricted_users.length} 个用户
               </span>
             )}
@@ -320,7 +320,7 @@ export default function ContentManagement() {
       >
         <div style={{ padding: '8px 0' }}>
           {drafts.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-xs)" }}>
               {drafts.map((draft) => (
                 <button
                   key={draft.id}
@@ -330,10 +330,10 @@ export default function ContentManagement() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '12px 16px',
-                    border: '1px solid #f0f0f0',
-                    borderRadius: 6,
+                    border: 'var(--border-width-thin) solid var(--border-secondary)',
+                    borderRadius: 'var(--rounded-xs)',
                     cursor: 'pointer',
-                    background: 'white',
+                    background: 'var(--canvas)',
                     width: '100%',
                     textAlign: 'left',
                   }}
@@ -347,7 +347,7 @@ export default function ContentManagement() {
                 >
                   <div>
                     <div style={{ fontWeight: 500 }}>{draft.title}</div>
-                    <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+                    <div style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--text-secondary)', marginTop: "var(--spacing-xxs)" }}>
                       {new Date(draft.timestamp).toLocaleString('zh-CN')}
                     </div>
                   </div>
@@ -368,7 +368,7 @@ export default function ContentManagement() {
               ))}
             </div>
           ) : (
-            <p style={{ textAlign: 'center', color: '#999' }}>暂无草稿</p>
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>暂无草稿</p>
           )}
         </div>
       </Modal>

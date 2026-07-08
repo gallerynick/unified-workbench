@@ -493,7 +493,7 @@ export default function StreamStudio() {
       try {
         const scene = scenesRef.current.find((s) => s.id === activeSceneIdRef.current);
         const sources = scene?.sources.filter((s) => s.visible && s.type !== 'audio') ?? [];
-        offCtx.fillStyle = '#000';
+        offCtx.fillStyle = 'var(--surface-black)';
         offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
         for (const src of sources) {
           const el = sourceElRefs.current.get(src.id);
@@ -511,7 +511,7 @@ export default function StreamStudio() {
           } else if (el instanceof HTMLVideoElement && el.readyState >= 2) {
             offCtx.drawImage(el, dx, dy, dw, dh);
           } else if (src.type === 'text' && src.url) {
-            offCtx.fillStyle = '#fff';
+            offCtx.fillStyle = 'var(--body-on-dark)';
             offCtx.font = `${Math.max(12, dh / 2)}px sans-serif`;
             offCtx.fillText(src.url, dx + 8 * scale, dy + dh / 2, dw - 16 * scale);
           }
@@ -731,9 +731,9 @@ export default function StreamStudio() {
       return (
         <div
           style={{
-            padding: 16,
-            fontSize: 24,
-            color: '#fff',
+            padding: "var(--spacing-card-gap)",
+            fontSize: 'var(--text-heading-2-size)',
+            color: 'var(--body-on-dark)',
             textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
             whiteSpace: 'pre-wrap',
           }}
@@ -748,7 +748,7 @@ export default function StreamStudio() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#999',
+          color: 'var(--text-secondary)',
         }}
       >
         {source.name}
@@ -908,30 +908,30 @@ export default function StreamStudio() {
       {isExternalMode ? (
         /* Todo 12: External mode — 只显示 RTMP 地址和观看地址 */
         <div style={{ textAlign: 'center', padding: '60px 24px', maxWidth: 640, margin: '0 auto' }}>
-          <Title level={4} style={{ marginBottom: 32 }}>
+          <Title level={4} style={{ marginBottom: "var(--spacing-xl)" }}>
             {roomInfo?.name || '直播间'}
-            <Badge status={roomInfo?.is_active ? 'processing' : 'default'} style={{ marginLeft: 12 }} text={roomInfo?.is_active ? '推流中' : '空闲'} />
+            <Badge status={roomInfo?.is_active ? 'processing' : 'default'} style={{ marginLeft: "var(--spacing-sm)" }} text={roomInfo?.is_active ? '推流中' : '空闲'} />
           </Title>
-          <div style={{ background: 'var(--stream-section-bg, #fff)', border: '1px solid var(--stream-border, #e8e8e8)', borderRadius: 8, padding: 24, marginBottom: 16, textAlign: 'left' }}>
-            <div style={{ marginBottom: 16 }}>
-              <Text strong style={{ display: 'block', marginBottom: 4 }}>RTMP 推流地址</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--stream-item-bg, #f5f5f5)', padding: '8px 12px', borderRadius: 6 }}>
-                <code style={{ flex: 1, fontSize: 14, wordBreak: 'break-all' }}>{roomInfo?.rtmp_url}</code>
+          <div style={{ background: 'var(--bg-primary)', border: 'var(--border-width-thin) solid var(--border-secondary)', borderRadius: 'var(--rounded-sm)', padding: "var(--spacing-lg)", marginBottom: "var(--spacing-card-gap)", textAlign: 'left' }}>
+            <div style={{ marginBottom: "var(--spacing-card-gap)" }}>
+              <Text strong style={{ display: 'block', marginBottom: "var(--spacing-xxs)" }}>RTMP 推流地址</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", background: 'var(--bg-tertiary)', padding: '8px 12px', borderRadius: 'var(--rounded-xs)' }}>
+                <code style={{ flex: 1, fontSize: 'var(--text-caption-size)', wordBreak: 'break-all' }}>{roomInfo?.rtmp_url}</code>
                 <Button type="text" icon={<CopyOutlined />} onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', 'RTMP 地址')} />
               </div>
             </div>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+            <Text type="secondary" style={{ display: 'block', marginBottom: "var(--spacing-lg)" }}>
               在 OBS 中填入以下地址进行推流
             </Text>
             <div>
-              <Text strong style={{ display: 'block', marginBottom: 4 }}>观看地址</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--stream-item-bg, #f5f5f5)', padding: '8px 12px', borderRadius: 6 }}>
-                <code style={{ flex: 1, fontSize: 14, wordBreak: 'break-all' }}>{roomInfo?.watch_url}</code>
+              <Text strong style={{ display: 'block', marginBottom: "var(--spacing-xxs)" }}>观看地址</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", background: 'var(--bg-tertiary)', padding: '8px 12px', borderRadius: 'var(--rounded-xs)' }}>
+                <code style={{ flex: 1, fontSize: 'var(--text-caption-size)', wordBreak: 'break-all' }}>{roomInfo?.watch_url}</code>
                 <Button type="text" icon={<CopyOutlined />} onClick={() => copyToClipboard(roomInfo?.watch_url || '', '观看地址')} />
               </div>
             </div>
           </div>
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
             此直播间为「外部推流」模式，请使用 OBS 等工具推流
           </Text>
         </div>
@@ -942,7 +942,7 @@ export default function StreamStudio() {
           <Title level={4} className={styles.title ?? ''}>{roomInfo?.name ? `${roomInfo.name} - 直播工作室` : '直播工作室'}</Title>
           {isStreaming && <Tag color="red">推流中</Tag>}
           {isStreaming && uploadKbps > 0 && (
-            <Text style={{ fontSize: 12, color: '#52c41a' }}>
+            <Text style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--color-success)' }}>
               {uploadKbps} kbps · {uploadTotal > 1048576 ? `${(uploadTotal / 1048576).toFixed(1)}MB` : `${(uploadTotal / 1024).toFixed(0)}KB`}
             </Text>
           )}
@@ -986,7 +986,7 @@ export default function StreamStudio() {
               block
               icon={<PlusOutlined />}
               onClick={addScene}
-              style={{ marginTop: 8 }}
+              style={{ marginTop: "var(--spacing-xs)" }}
             >
               添加场景
             </Button>
@@ -994,11 +994,11 @@ export default function StreamStudio() {
 
           <div className={styles.section}>
             <div className={styles.sectionTitle}>画面源</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xxs)", marginBottom: "var(--spacing-xxs)" }}>
               <Tooltip title={activeScene.sources.every((s) => s.visible) ? '全部隐藏' : '全部显示'}>
                 <Button type="text" size="small" icon={activeScene.sources.every((s) => s.visible) ? <EyeOutlined /> : <EyeOutlined style={{ opacity: 0.3 }} />} onClick={toggleAllSourcesVisibility} />
               </Tooltip>
-              <span style={{ fontSize: 12, fontWeight: 500 }}>黑屏</span>
+              <span style={{ fontSize: 'var(--text-body-xs-size)', fontWeight: 500 }}>黑屏</span>
             </div>
             <div className={styles.sourceList}>
               {activeScene.sources.map((source, idx) => (
@@ -1074,7 +1074,7 @@ export default function StreamStudio() {
               <Button
                 block
                 icon={<PlusOutlined />}
-                style={{ marginTop: 8 }}
+                style={{ marginTop: "var(--spacing-xs)" }}
               >
                 添加画面源
               </Button>
@@ -1083,20 +1083,20 @@ export default function StreamStudio() {
 
           <div className={styles.section}>
             <div className={styles.sectionTitle}>音频源</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xxs)", marginBottom: "var(--spacing-xxs)" }}>
               <Tooltip title={masterMuted ? '取消静音' : '全部静音'}>
                 <Button type="text" size="small" icon={masterMuted ? <MutedOutlined /> : <SoundOutlined />} onClick={toggleMasterMute} />
               </Tooltip>
-              <span style={{ fontSize: 12, fontWeight: 500 }}>静音</span>
+              <span style={{ fontSize: 'var(--text-body-xs-size)', fontWeight: 500 }}>静音</span>
             </div>
             {audioTracks.map((track, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 0' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xxs)", padding: '4px 0' }}>
                 {track.stream ? (
                   <>
                     <Tooltip title={track.muted ? '取消静音' : '静音'}>
                       <Button type="text" size="small" icon={track.muted ? <MutedOutlined /> : <SoundOutlined />} onClick={() => toggleTrackMute(i)} />
                     </Tooltip>
-                    <Text style={{ fontSize: 11, color: '#52c41a', flex: 1 }}>{track.name}</Text>
+                    <Text style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--color-success)', flex: 1 }}>{track.name}</Text>
                     <Tooltip title="移除"><Button type="text" size="small" icon={<DeleteOutlined />} onClick={() => removeAudioFromTrack(i)} /></Tooltip>
                   </>
                 ) : (
@@ -1170,7 +1170,7 @@ export default function StreamStudio() {
               {activeScene.sources.length === 0 ? (
                 <div className={styles.emptyPreview}>
                   <VideoCameraOutlined
-                    style={{ fontSize: 48, color: '#999' }}
+                    style={{ fontSize: 48, color: 'var(--text-secondary)' }}
                   />
                   <div>点击"添加画面源"开始</div>
                 </div>
@@ -1181,7 +1181,7 @@ export default function StreamStudio() {
                     <div
                       key={source.id}
                       className={styles.sourceOverlay}
-                      style={{ left: source.x, top: source.y, width: source.width, height: source.height, zIndex: sIdx + 1, outline: hoveredSourceId === source.id ? '2px solid #1677ff' : 'none' }}
+                      style={{ left: source.x, top: source.y, width: source.width, height: source.height, zIndex: sIdx + 1, outline: hoveredSourceId === source.id ? '2px solid var(--color-info)' : 'none' }}
                       onMouseEnter={() => setHoveredSourceId(source.id)}
                       onMouseLeave={() => setHoveredSourceId(null)}
                       onMouseDown={(e) => {
@@ -1196,16 +1196,16 @@ export default function StreamStudio() {
                       {hoveredSourceId === source.id && (
                         <>
                           {/* 四角调整控制点 */}
-                          <div style={{ position: 'absolute', left: -5, top: -5, width: 10, height: 10, background: '#1677ff', cursor: 'nwse-resize', borderRadius: 2, zIndex: 10 }}
+                          <div style={{ position: 'absolute', left: -5, top: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nwse-resize', borderRadius: 'var(--rounded-chip)', zIndex: 10 }}
                             onMouseDown={(e) => { e.stopPropagation(); const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect(); if (!rect) return; setResizeSourceId(source.id); setResizeCorner('nw'); setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height }); }}
                           />
-                          <div style={{ position: 'absolute', right: -5, top: -5, width: 10, height: 10, background: '#1677ff', cursor: 'nesw-resize', borderRadius: 2, zIndex: 10 }}
+                          <div style={{ position: 'absolute', right: -5, top: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nesw-resize', borderRadius: 'var(--rounded-chip)', zIndex: 10 }}
                             onMouseDown={(e) => { e.stopPropagation(); const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect(); if (!rect) return; setResizeSourceId(source.id); setResizeCorner('ne'); setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height }); }}
                           />
-                          <div style={{ position: 'absolute', left: -5, bottom: -5, width: 10, height: 10, background: '#1677ff', cursor: 'nesw-resize', borderRadius: 2, zIndex: 10 }}
+                          <div style={{ position: 'absolute', left: -5, bottom: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nesw-resize', borderRadius: 'var(--rounded-chip)', zIndex: 10 }}
                             onMouseDown={(e) => { e.stopPropagation(); const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect(); if (!rect) return; setResizeSourceId(source.id); setResizeCorner('sw'); setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height }); }}
                           />
-                          <div style={{ position: 'absolute', right: -5, bottom: -5, width: 10, height: 10, background: '#1677ff', cursor: 'nwse-resize', borderRadius: 2, zIndex: 10 }}
+                          <div style={{ position: 'absolute', right: -5, bottom: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nwse-resize', borderRadius: 'var(--rounded-chip)', zIndex: 10 }}
                             onMouseDown={(e) => { e.stopPropagation(); const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect(); if (!rect) return; setResizeSourceId(source.id); setResizeCorner('se'); setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height }); }}
                           />
                         </>
@@ -1256,15 +1256,15 @@ export default function StreamStudio() {
               </Tooltip>
             </Space>
           </div>
-          <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderTop: '1px solid var(--stream-border, #e8e8e8)', fontSize: 12, flexShrink: 0, visibility: isStreaming ? 'visible' : 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>观看:</Text>
-              <code style={{ color: '#52c41a', fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{watchUrl || '设置中配置'}</code>
+          <div style={{ display: 'flex', gap: "var(--spacing-xs)", padding: '8px 12px', borderTop: '1px solid var(--border-secondary)', fontSize: 'var(--text-body-xs-size)', flexShrink: 0, visibility: isStreaming ? 'visible' : 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)" }}>
+                <Text style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>观看:</Text>
+              <code style={{ color: 'var(--color-success)', fontSize: 'var(--text-body-xs-size)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{watchUrl || '设置中配置'}</code>
               <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(watchUrl, '观看地址')} /></Tooltip>
             </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text style={{ color: '#999', whiteSpace: 'nowrap' }}>拉流:</Text>
-              <code style={{ color: '#fa8c16', fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roomInfo?.rtmp_url || '配置中'}</code>
+              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)" }}>
+                <Text style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>拉流:</Text>
+              <code style={{ color: 'var(--color-warning)', fontSize: 'var(--text-body-xs-size)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roomInfo?.rtmp_url || '配置中'}</code>
               <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', '拉流地址')} /></Tooltip>
             </div>
           </div>
@@ -1285,7 +1285,7 @@ export default function StreamStudio() {
           size="middle"
         >
           <div>
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom: "var(--spacing-xs)" }}>
               网络流地址（HLS/RTSP/HTTP）：
             </div>
             <Space>
@@ -1307,7 +1307,7 @@ export default function StreamStudio() {
             </Space>
           </div>
           <div>
-            <div style={{ marginBottom: 8 }}>文字内容：</div>
+            <div style={{ marginBottom: "var(--spacing-xs)" }}>文字内容：</div>
             <Space>
               <Input
                 value={textInput}
@@ -1343,7 +1343,7 @@ export default function StreamStudio() {
         styles={{ body: { overflowY: 'auto', overflowX: 'hidden' } }}
       >
         {settingsLoading ? (
-          <div style={{ textAlign: 'center', padding: 40 }}><Spin /></div>
+          <div style={{ textAlign: 'center', padding: "var(--spacing-xxl)" }}><Spin /></div>
         ) : (
           <div style={{ maxHeight: 500, overflowY: 'auto', overflowX: 'hidden' }}>
             <Form form={settingsForm} layout="vertical" initialValues={{
@@ -1370,7 +1370,7 @@ export default function StreamStudio() {
                 <Switch checkedChildren="开启" unCheckedChildren="关闭" />
               </Form.Item>
 
-              <div className={styles.sectionTitle} style={{ marginTop: 16 }}>编码参数</div>
+              <div className={styles.sectionTitle} style={{ marginTop: "var(--spacing-card-gap)" }}>编码参数</div>
               <Form.Item name="default_resolution" label="默认分辨率" rules={[{ required: true, message: '请选择默认分辨率' }]}>
                 <Select options={RESOLUTION_OPTIONS} />
               </Form.Item>
@@ -1392,7 +1392,7 @@ export default function StreamStudio() {
                 <Slider min={500} max={20000} step={500} marks={{ 500: '500', 5000: '5M', 10000: '10M', 20000: '20M' }} />
               </Form.Item>
 
-              <div className={styles.sectionTitle} style={{ marginTop: 16 }}>音频配置</div>
+              <div className={styles.sectionTitle} style={{ marginTop: "var(--spacing-card-gap)" }}>音频配置</div>
               <Form.Item name="audio_sample_rate" label="采样率 (Hz)">
                 <Select options={[
                   { label: '44100 Hz (CD音质)', value: 44100 },
@@ -1433,7 +1433,7 @@ export default function StreamStudio() {
 
               {audioMode === 'voice' && (
                 <>
-                  <div style={{ fontWeight: 600, marginBottom: 8, marginTop: 8 }}>压缩器 / 限制器</div>
+                  <div style={{ fontWeight: 600, marginBottom: "var(--spacing-xs)", marginTop: "var(--spacing-xs)" }}>压缩器 / 限制器</div>
                   <Form.Item name="audio_compressor_threshold" label="压缩阈值 (dB)">
                     <Slider min={-60} max={0} step={1} marks={{ '-60': '-60', '-30': '-30', '-12': '-12', '0': '0' }} />
                   </Form.Item>
@@ -1466,11 +1466,11 @@ export default function StreamStudio() {
       >
         {!speedTestRunning && speedTestResults.length === 0 && (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+            <Text type="secondary" style={{ display: 'block', marginBottom: "var(--spacing-xs)" }}>
               上行 / 下行 / 并发带宽综合测试
             </Text>
-            <Text type="secondary" style={{ fontSize: 11 }}>4 档数据量 × 3 轮 + 2/4 路并发 + 下行，约 30~60 秒</Text>
-            <div style={{ marginTop: 20 }}>
+            <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>4 档数据量 × 3 轮 + 2/4 路并发 + 下行，约 30~60 秒</Text>
+            <div style={{ marginTop: "var(--spacing-md)" }}>
               <Button type="primary" icon={<DashboardOutlined />} onClick={handleSpeedTest} size="large">开始测速</Button>
             </div>
           </div>
@@ -1478,11 +1478,11 @@ export default function StreamStudio() {
         {speedTestRunning && (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <Spin size="large" />
-            <div style={{ marginTop: 16 }}>
+            <div style={{ marginTop: "var(--spacing-card-gap)" }}>
               <Text type="secondary">已测 {speedTestResults.length} 次</Text>
             </div>
             {speedTestResults.length > 0 && (
-              <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+              <div style={{ marginTop: "var(--spacing-sm)", display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: "var(--spacing-xs)" }}>
                 {speedTestResults.map((r, i) => (
                   <Tag key={i}>{Math.round(r / 1024 * 10) / 10} Mbps</Tag>
                 ))}
@@ -1500,7 +1500,7 @@ export default function StreamStudio() {
           const recommend = Math.round(med * 0.7);
           return (
              <div style={{ padding: '8px 0' }}>
-              <Title level={5} style={{ marginBottom: 12 }}>上下行带宽</Title>
+              <Title level={5} style={{ marginBottom: "var(--spacing-sm)" }}>上下行带宽</Title>
               {allResults.length > 0 && (() => {
                 const dlData = downloadResults;
                 const maxVal = Math.max(...allResults, ...(dlData.length > 0 ? dlData : [1]), 1);
@@ -1520,40 +1520,40 @@ export default function StreamStudio() {
                 const dlMax2 = dlSorted2.length > 0 ? dlSorted2[dlSorted2.length - 1]! : 0;
                 const dlMin2 = dlSorted2.length > 0 ? dlSorted2[0]! : 0;
                 return (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 4, fontSize: 11 }}>
-                      <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#1677ff', marginRight: 4, verticalAlign: 'middle' }} />上行</span>
-                      {dlData.length > 0 && <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#52c41a', marginRight: 4, verticalAlign: 'middle' }} />下行</span>}
+                  <div style={{ marginBottom: "var(--spacing-card-gap)" }}>
+                    <div style={{ display: 'flex', gap: "var(--spacing-sm)", marginBottom: "var(--spacing-xxs)", fontSize: 'var(--text-body-xs-size)' }}>
+                      <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--color-info)', marginRight: "var(--spacing-xxs)", verticalAlign: 'middle' }} />上行</span>
+                      {dlData.length > 0 && <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--color-success)', marginRight: "var(--spacing-xxs)", verticalAlign: 'middle' }} />下行</span>}
                     </div>
                     <svg width={w} height={h} style={{ display: 'block' }}>
                       {yTicks.map((v, i) => (
                         <g key={i}>
-                          <line x1={padL} y1={padT + plotH - (v / chartMax) * plotH} x2={w - padR} y2={padT + plotH - (v / chartMax) * plotH} stroke="#f0f0f0" strokeWidth={1} />
-                          <text x={padL - 4} y={padT + plotH - (v / chartMax) * plotH + 4} textAnchor="end" fontSize={10} fill="#999">
+                          <line x1={padL} y1={padT + plotH - (v / chartMax) * plotH} x2={w - padR} y2={padT + plotH - (v / chartMax) * plotH} stroke="var(--border-secondary)" strokeWidth={1} />
+                          <text x={padL - 4} y={padT + plotH - (v / chartMax) * plotH + 4} textAnchor="end" fontSize={10} fill="var(--text-secondary)">
                             {Math.round(v / 1024 * 10) / 10}
                           </text>
                         </g>
                       ))}
-                      {dlPts && <polyline points={dlPts} fill="none" stroke="#52c41a" strokeWidth={2} strokeLinejoin="round" />}
-                      <polyline points={upPts} fill="none" stroke="#1677ff" strokeWidth={2} strokeLinejoin="round" />
+                      {dlPts && <polyline points={dlPts} fill="none" stroke="var(--color-success)" strokeWidth={2} strokeLinejoin="round" />}
+                      <polyline points={upPts} fill="none" stroke="var(--color-info)" strokeWidth={2} strokeLinejoin="round" />
                       {allResults.map((r, i) => (
                         <g key={`up-${i}`}>
-                          <circle cx={padL + (i / (allResults.length - 1)) * plotW} cy={padT + plotH - (r / chartMax) * plotH} r={4} fill="#1677ff" />
-                          <text x={padL + (i / (allResults.length - 1)) * plotW} y={padT + plotH - (r / chartMax) * plotH - 8} textAnchor="middle" fontSize={9} fill="#1677ff">{Math.round(r / 1024 * 10) / 10}</text>
+                          <circle cx={padL + (i / (allResults.length - 1)) * plotW} cy={padT + plotH - (r / chartMax) * plotH} r={4} fill="var(--color-info)" />
+                          <text x={padL + (i / (allResults.length - 1)) * plotW} y={padT + plotH - (r / chartMax) * plotH - 8} textAnchor="middle" fontSize={9} fill="var(--color-info)">{Math.round(r / 1024 * 10) / 10}</text>
                         </g>
                       ))}
                       {dlData.map((r, i) => (
                         <g key={`dl-${i}`}>
-                          <circle cx={padL + (i / (dlData.length - 1)) * plotW} cy={padT + plotH - (r / chartMax) * plotH} r={4} fill="#52c41a" />
-                          <text x={padL + (i / (dlData.length - 1)) * plotW} y={padT + plotH - (r / chartMax) * plotH - 8} textAnchor="middle" fontSize={9} fill="#52c41a">{Math.round(r / 1024 * 10) / 10}</text>
+                          <circle cx={padL + (i / (dlData.length - 1)) * plotW} cy={padT + plotH - (r / chartMax) * plotH} r={4} fill="var(--color-success)" />
+                          <text x={padL + (i / (dlData.length - 1)) * plotW} y={padT + plotH - (r / chartMax) * plotH - 8} textAnchor="middle" fontSize={9} fill="var(--color-success)">{Math.round(r / 1024 * 10) / 10}</text>
                         </g>
                       ))}
                       {allResults.map((_, i) => (
-                        <text key={`xlbl-${i}`} x={padL + (i / (allResults.length - 1)) * plotW} y={h - 2} textAnchor="middle" fontSize={9} fill="#999">{i + 1}</text>
+                        <text key={`xlbl-${i}`} x={padL + (i / (allResults.length - 1)) * plotW} y={h - 2} textAnchor="middle" fontSize={9} fill="var(--text-secondary)">{i + 1}</text>
                       ))}
                     </svg>
                     <Table
-                      style={{ marginTop: 12, width: '100%' }}
+                      style={{ marginTop: "var(--spacing-sm)", width: '100%' }}
                       dataSource={[
                         { key: 'avg', label: '平均', up: `${Math.round(avg / 1024 * 10) / 10} Mbps`, dl: dlData.length > 0 ? `${Math.round(dlAvg2 / 1024 * 10) / 10} Mbps` : '-' },
                         { key: 'med', label: '中位', up: `${Math.round(med / 1024 * 10) / 10} Mbps`, dl: dlData.length > 0 ? `${Math.round(dlMed2 / 1024 * 10) / 10} Mbps` : '-' },
@@ -1573,8 +1573,8 @@ export default function StreamStudio() {
               })()}
 
               {speedTestConcurrent.length > 0 && (
-                <div style={{ marginTop: 20 }}>
-                  <Title level={5} style={{ marginBottom: 12 }}>并发表现</Title>
+                <div style={{ marginTop: "var(--spacing-md)" }}>
+                  <Title level={5} style={{ marginBottom: "var(--spacing-sm)" }}>并发表现</Title>
                   <Table
                     dataSource={speedTestConcurrent.map((cfg) => {
                       const cSorted = [...cfg.results].sort((a, b) => a - b);
@@ -1598,9 +1598,9 @@ export default function StreamStudio() {
                 </div>
               )}
 
-              <div style={{ marginTop: 16, padding: 12, border: '1px solid var(--stream-border, #e8e8e8)', borderRadius: 6 }}>
+              <div style={{ marginTop: "var(--spacing-card-gap)", padding: "var(--spacing-sm)", border: 'var(--border-width-thin) solid var(--border-secondary)', borderRadius: 'var(--rounded-xs)' }}>
                 <Text>稳定可用码率：约 {Math.round(recommend / 1024 * 10) / 10} Mbps ({recommend} kbps)</Text>
-                <Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 11 }}>测试中位值 × 0.7，保留安全余量。实际峰值可能更高，此值为保守估计</Text>
+                <Text type="secondary" style={{ display: 'block', marginTop: "var(--spacing-xxs)", fontSize: 'var(--text-body-xs-size)' }}>测试中位值 × 0.7，保留安全余量。实际峰值可能更高，此值为保守估计</Text>
               </div>
 
               {downloadMedKbps !== null && (() => {
@@ -1611,29 +1611,29 @@ export default function StreamStudio() {
                 const uploadOk = estPushCount === 0 || pushNeed <= uploadMed;
                 const downloadOk = pullNeed <= downMed;
                 return (
-                  <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--stream-border, #e8e8e8)', borderRadius: 6 }}>
-                    <Title level={5} style={{ marginBottom: 8 }}>容量估算</Title>
-                    <Text type="secondary" style={{ fontSize: 11 }}>
+                  <div style={{ marginTop: "var(--spacing-sm)", padding: "var(--spacing-sm)", border: 'var(--border-width-thin) solid var(--border-secondary)', borderRadius: 'var(--rounded-xs)' }}>
+                    <Title level={5} style={{ marginBottom: "var(--spacing-xs)" }}>容量估算</Title>
+                    <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
                       实测上行 {Math.round(uploadMed / 1024 * 10) / 10} Mbps，下行 {Math.round(downMed / 1024 * 10) / 10} Mbps
                     </Text>
 
-                    <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: "var(--spacing-sm)", marginTop: "var(--spacing-sm)", flexWrap: 'wrap' }}>
                       <div style={{ flex: 1, minWidth: 100 }}>
-                        <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>推流人数</Text>
+                        <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', display: 'block', marginBottom: "var(--spacing-xxs)" }}>推流人数</Text>
                         <InputNumber min={0} max={100} value={estPushCount} onChange={(v) => setEstPushCount(v ?? 0)} style={{ width: '100%' }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 100 }}>
-                        <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>拉流人数</Text>
+                        <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', display: 'block', marginBottom: "var(--spacing-xxs)" }}>拉流人数</Text>
                         <InputNumber min={0} max={1000} value={estPullCount} onChange={(v) => setEstPullCount(v ?? 0)} style={{ width: '100%' }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 100 }}>
-                        <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>单路码率(kbps)</Text>
+                        <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', display: 'block', marginBottom: "var(--spacing-xxs)" }}>单路码率(kbps)</Text>
                         <InputNumber min={100} max={50000} step={100} value={estBitrate} onChange={(v) => setEstBitrate(v ?? 1000)} style={{ width: '100%' }} />
                       </div>
                     </div>
 
                     <Table
-                      style={{ marginTop: 12 }}
+                      style={{ marginTop: "var(--spacing-sm)" }}
                       dataSource={[
                         { key: 'push', label: '上行需求', value: `${Math.round(pushNeed / 1024 * 10) / 10} Mbps`, ok: uploadOk },
                         { key: 'pull', label: '下行需求', value: `${Math.round(pullNeed / 1024 * 10) / 10} Mbps`, ok: downloadOk },
@@ -1647,7 +1647,7 @@ export default function StreamStudio() {
                       size="small"
                     />
 
-                    <Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 11 }}>基于实测带宽的理论估算</Text>
+                    <Text type="secondary" style={{ display: 'block', marginTop: "var(--spacing-xs)", fontSize: 'var(--text-body-xs-size)' }}>基于实测带宽的理论估算</Text>
                   </div>
                 );
               })()}

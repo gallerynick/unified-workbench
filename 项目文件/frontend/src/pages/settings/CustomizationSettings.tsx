@@ -184,7 +184,7 @@ export default function CustomizationSettings() {
     description: string,
   ) => (
     <Form.Item label={label}>
-      <Text type="secondary" style={{ display: 'block', marginBottom: 8, fontSize: 12 }}>
+      <Text type="secondary" style={{ display: 'block', marginBottom: "var(--spacing-xs)", fontSize: 'var(--text-body-xs-size)' }}>
         {description}
       </Text>
       <Upload
@@ -198,7 +198,7 @@ export default function CustomizationSettings() {
         {files.length === 0 && (
           <div>
             <PlusOutlined />
-            <div style={{ marginTop: 8 }}>上传</div>
+            <div style={{ marginTop: "var(--spacing-xs)" }}>上传</div>
           </div>
         )}
       </Upload>
@@ -220,7 +220,7 @@ export default function CustomizationSettings() {
         description="只有管理员可以修改应用配置。修改后需刷新页面才能看到效果。"
         type="info"
         showIcon
-        style={{ marginBottom: 24 }}
+        style={{ marginBottom: "var(--spacing-lg)" }}
       />
 
       <Form form={form} layout="vertical">

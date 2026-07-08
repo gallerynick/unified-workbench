@@ -65,7 +65,7 @@ export default function Login() {
   };
 
   return (
-    <div className={`${styles.container ?? ''} ${transitioning ? styles.containerLeaving : ''}`}>
+    <div className={`login-page ${styles.container ?? ''} ${transitioning ? styles.containerLeaving : ''}`}>
       <Card className={`${styles.card ?? ''} ${transitioning ? styles.cardLeaving : ''}`} bordered={false}>
         <div className={styles.header ?? ''}>
           <Title level={3} className={styles.title ?? ''}>

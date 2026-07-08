@@ -32,7 +32,7 @@ export default function AnnouncementsWidget() {
     <Card
       title={
         <span>
-          <SoundOutlined style={{ marginRight: 8 }} />
+          <SoundOutlined style={{ marginRight: "var(--spacing-xs)" }} />
           最新公告
         </span>
       }
@@ -46,9 +46,9 @@ export default function AnnouncementsWidget() {
           locale={{ emptyText: '暂无公告' }}
           renderItem={(item) => (
             <List.Item style={{ cursor: 'pointer' }} onClick={() => navigate('/announcements')}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", width: '100%' }}>
                 <Text ellipsis style={{ flex: 1 }}>{item.title}</Text>
-                <Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', whiteSpace: 'nowrap' }}>
                   {new Date(item.created_at).toLocaleDateString('zh-CN')}
                 </Text>
               </div>

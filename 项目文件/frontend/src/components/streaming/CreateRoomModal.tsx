@@ -55,10 +55,17 @@ export default function CreateRoomModal({ open, onClose, onCreated }: CreateRoom
       onOk={handleSubmit}
       onCancel={onClose}
       destroyOnClose
-      width={520}
+      width={800}
       okText="创建"
       cancelText="取消"
-      styles={{ body: { paddingBottom: 16 } }}
+      styles={{
+        body: { padding: 'var(--modal-padding)' },
+        content: {
+          background: 'var(--modal-bg)',
+          borderRadius: 'var(--modal-rounded)',
+          boxShadow: 'var(--modal-shadow)',
+        },
+      }}
     >
       <Form
         form={form}
@@ -100,10 +107,10 @@ export default function CreateRoomModal({ open, onClose, onCreated }: CreateRoom
                 style={{
                   padding: '8px 12px',
                   marginBottom: 16,
-                  background: 'var(--bg-secondary, #f5f5f5)',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  color: 'var(--text-secondary, #666)',
+                  background: 'var(--bg-tertiary)',
+                  borderRadius: 'var(--rounded-sm)',
+                  fontSize: 'var(--text-body-mono-size)',
+                  color: 'var(--text-secondary)',
                   lineHeight: 1.6,
                 }}
               >
@@ -131,10 +138,10 @@ export default function CreateRoomModal({ open, onClose, onCreated }: CreateRoom
                 style={{
                   padding: '8px 12px',
                   marginBottom: 16,
-                  background: 'var(--bg-secondary, #f5f5f5)',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  color: 'var(--text-secondary, #666)',
+                  background: 'var(--bg-tertiary)',
+                  borderRadius: 'var(--rounded-sm)',
+                  fontSize: 'var(--text-body-mono-size)',
+                  color: 'var(--text-secondary)',
                   lineHeight: 1.6,
                 }}
               >

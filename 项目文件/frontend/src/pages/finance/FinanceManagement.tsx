@@ -248,7 +248,7 @@ export default function FinanceManagement() {
             label: '预算管理',
             children: (
               <>
-                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ marginBottom: "var(--spacing-card-gap)", display: 'flex', justifyContent: 'flex-end' }}>
                   <Button type="primary" icon={<PlusOutlined />} onClick={handleAddBudget}>
                     新增预算
                   </Button>
@@ -262,7 +262,7 @@ export default function FinanceManagement() {
             label: '订阅管理',
             children: (
               <>
-                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ marginBottom: "var(--spacing-card-gap)", display: 'flex', justifyContent: 'flex-end' }}>
                   <Button type="primary" icon={<PlusOutlined />} onClick={handleAddSubscription}>
                     新增订阅
                   </Button>

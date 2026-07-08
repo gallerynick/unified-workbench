@@ -37,11 +37,11 @@ export default function TemplateSelector({ onSelect, location }: TemplateSelecto
     return () => { cancelled = true; };
   }, [location]);
 
-  if (loading) return <Spin style={{ display: 'block', textAlign: 'center', padding: 40 }} />;
+  if (loading) return <Spin style={{ display: 'block', textAlign: 'center', padding: 'var(--spacing-xxl)' }} />;
   if (templates.length === 0) return <Empty description="暂无可用模板" />;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-xs)", maxHeight: 400, overflowY: 'auto' }}>
       {templates.map((tpl) => (
         <Card
           key={tpl.id}
@@ -50,13 +50,13 @@ export default function TemplateSelector({ onSelect, location }: TemplateSelecto
           onClick={() => onSelect(tpl)}
           style={{ cursor: 'pointer' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FileTextOutlined style={{ color: '#1677ff', fontSize: 16 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)" }}>
+            <FileTextOutlined style={{ color: 'var(--color-info)', fontSize: 'var(--text-heading-4-size)' }} />
             <Text strong>{tpl.name}</Text>
           </div>
           <Paragraph
             type="secondary"
-            style={{ margin: '4px 0 0', fontSize: 12 }}
+            style={{ margin: 'var(--spacing-xxs) 0 0', fontSize: 'var(--text-body-xs-size)' }}
             ellipsis={{ rows: 1 }}
           >
             {tpl.schema?.length ?? 0} 个字段

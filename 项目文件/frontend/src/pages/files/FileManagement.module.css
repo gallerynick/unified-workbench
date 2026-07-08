@@ -1,17 +1,7 @@
-:root {
-  --file-sidebar-bg: #fff;
-  --file-sidebar-border: #f0f0f0;
-}
-
-:root[data-theme="dark"] {
-  --file-sidebar-bg: #1f1f1f;
-  --file-sidebar-border: #303030;
-}
-
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   height: 100%;
 }
 
@@ -19,13 +9,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   min-height: 48px;
 }
 
 .contentArea {
   display: flex;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   flex: 1;
   min-height: 0;
 }
@@ -33,9 +23,9 @@
 .sidebar {
   width: 260px;
   flex-shrink: 0;
-  background: var(--file-sidebar-bg, #fff);
-  border-radius: 8px;
-  border: 1px solid var(--file-sidebar-border, #f0f0f0);
+  background: var(--bg-primary);
+  border-radius: var(--rounded-sm);
+  border: 1px solid var(--border-secondary);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -45,7 +35,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-card-gap);
   min-width: 0;
 }
 
@@ -66,22 +56,22 @@
 .fileNameCell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
 }
 
 .fileIcon {
-  color: #8c8c8c;
-  font-size: 16px;
+  color: var(--text-secondary);
+  font-size: var(--text-heading-4-size);
 }
 
 .folderIcon {
-  color: #faad14;
-  font-size: 16px;
+  color: var(--color-warning);
+  font-size: var(--text-heading-4-size);
 }
 
 @media (max-width: 767px) {
   .container {
-    padding: 8px;
+    padding: var(--spacing-xs);
   }
 
   .contentArea {
@@ -94,7 +84,7 @@
 
   .header {
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-xs);
   }
 
   .header > * {

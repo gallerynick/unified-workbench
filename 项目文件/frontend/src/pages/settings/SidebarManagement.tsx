@@ -114,7 +114,7 @@ export default function SidebarManagement() {
               description="删除后数据将保留在数据库中，但用户无法通过界面访问。您可以随时恢复此菜单项。"
               type="warning"
               showIcon
-              style={{ marginTop: 16 }}
+              style={{ marginTop: "var(--spacing-card-gap)" }}
             />
           )}
         </div>
@@ -166,7 +166,7 @@ export default function SidebarManagement() {
         description="管理侧边栏菜单项的显示和隐藏。删除菜单项时，数据将保留在数据库中。"
         type="info"
         showIcon
-        style={{ marginBottom: 24 }}
+        style={{ marginBottom: "var(--spacing-lg)" }}
       />
 
       <Card

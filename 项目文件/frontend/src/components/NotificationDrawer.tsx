@@ -59,7 +59,7 @@ export default function NotificationDrawer({
                     <Typography.Paragraph style={{ margin: 0 }}>
                       {item.content}
                     </Typography.Paragraph>
-                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    <Typography.Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
                       {new Date(item.timestamp).toLocaleString('zh-CN')}
                     </Typography.Text>
                   </div>

@@ -1,20 +1,20 @@
 .homeContainer {
-  padding-bottom: 24px;
+  padding-bottom: var(--spacing-lg);
 }
 
 .headerBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-card-gap);
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--spacing-sm);
 }
 
 .widgetGrid {
   display: grid;
   grid-template-columns: repeat(1, 1fr);
-  gap: 16px;
+  gap: var(--spacing-card-gap);
 }
 
 @media (min-width: 768px) {
@@ -31,26 +31,26 @@
 
 .widgetWrapper {
   position: relative;
-  background: var(--widget-bg, #fff);
-  border: 1px solid var(--widget-border, #f0f0f0);
-  border-radius: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
   transition: box-shadow 0.2s ease;
 }
 
 .widgetWrapper:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .widgetHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px 0;
+  padding: var(--spacing-xs) var(--spacing-sm) 0;
 }
 
 .dragHandle {
   cursor: grab;
-  color: var(--text-secondary, #8c8c8c);
+  color: var(--text-secondary);
 }
 
 .dragHandle:active {
@@ -58,7 +58,7 @@
 }
 
 .removeBtn {
-  color: var(--text-secondary, #8c8c8c);
+  color: var(--text-secondary);
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -68,15 +68,9 @@
 }
 
 .widgetBody {
-  padding: 0 12px 12px;
+  padding: 0 var(--spacing-sm) var(--spacing-sm);
 }
 
-
-[data-theme='dark'] .widgetWrapper {
-  --widget-bg: #1f1f1f;
-  --widget-border: #434343;
-  --text-secondary: #a6a6a6;
-}
 
 @media (max-width: 767px) {
   .removeBtn {

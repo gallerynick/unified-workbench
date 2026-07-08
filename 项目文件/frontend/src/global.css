@@ -1,29 +1,29 @@
-/* 全局背景色 - 深色模式适配 */
+/* 全局样式 — 使用 design token */
+/* token.css 和 typography.css 在 main.tsx 中先行引入 */
+
 html,
 body {
   margin: 0;
   padding: 0;
-  background-color: #ffffff;
-  color: rgba(0, 0, 0, 0.88);
-  transition: background-color 0.3s, color 0.3s;
-}
-
-[data-theme="dark"] html,
-[data-theme="dark"] body {
-  background-color: #141414;
-  color: rgba(255, 255, 255, 0.85);
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  letter-spacing: var(--text-body-spacing);
+  transition: background-color var(--anim-slow), color var(--anim-slow);
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* 全局滚动条样式 - 深色模式适配 */
+/* ── 全局滚动条 ─────────────────────────────────── */
 
 /* Webkit 浏览器 (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
 }
 
 ::-webkit-scrollbar-track {
@@ -31,47 +31,34 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
+  background-color: var(--scrollbar-thumb);
+  border-radius: var(--rounded-xs);
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.25);
+  background-color: var(--scrollbar-thumb-hover);
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-/* 深色模式滚动条 */
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.25);
-}
-
 /* Firefox 滚动条 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-[data-theme="dark"] * {
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-/* 侧边栏滚动条特殊样式 */
+/* ── 侧边栏滚动条 ───────────────────────────────── */
 .sider-menu-scroll::-webkit-scrollbar {
   width: 6px;
 }
 
 .sider-menu-scroll::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
+  border-radius: var(--rounded-xs);
 }
 
 [data-theme="dark"] .sider-menu-scroll::-webkit-scrollbar-thumb {
@@ -80,4 +67,352 @@ body {
 
 [data-theme="dark"] .sider-menu-scroll::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ── 全局过渡 ──────────────────────────────────── */
+a {
+  color: var(--color-primary);
+  transition: color var(--anim-fast);
+}
+
+a:hover {
+  color: var(--color-primary-focus);
+}
+
+/* ── 深色模式全局覆写 ──────────────────────────── */
+[data-theme="dark"] body {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] a {
+  color: var(--color-primary-on-dark);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--color-primary);
+}
+
+/* ── 深色模式：Input/Button/Select 边框覆盖 ────── */
+[data-theme="dark"] input,
+[data-theme="dark"] button,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .ant-input,
+[data-theme="dark"] .ant-select-selector,
+[data-theme="dark"] .ant-input-number {
+  border-color: var(--border-primary);
+}
+
+/* ── 深色模式：Ant Design 组件样式覆盖 ─────────── */
+
+/* Sider 侧边栏 */
+[data-theme="dark"] .ant-layout-sider {
+  background-color: var(--canvas);
+  border-right: 1px solid var(--border-secondary);
+}
+
+[data-theme="dark"] .ant-layout-sider-trigger {
+  background-color: var(--bg-tertiary);
+  border-left: 1px solid var(--border-secondary);
+  color: var(--text-secondary);
+}
+
+/* Header 顶栏 */
+[data-theme="dark"] .ant-layout-header {
+  background-color: var(--canvas);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+/* Tabs 标签页 */
+[data-theme="dark"] .ant-tabs-nav {
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+[data-theme="dark"] .ant-tabs-tab {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .ant-tabs-tab-active {
+  color: var(--color-info);
+}
+
+/* Breadcrumb 面包屑 */
+[data-theme="dark"] .ant-breadcrumb-separator {
+  color: var(--text-tertiary);
+}
+
+[data-theme="dark"] .ant-breadcrumb .ant-breadcrumb-link {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .ant-breadcrumb .ant-breadcrumb-link:last-child {
+  color: var(--color-info);
+}
+
+/* Segmented 分段控制器 */
+[data-theme="dark"] .ant-segmented {
+  background-color: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .ant-segmented-item {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .ant-segmented-item-selected {
+  color: var(--text-primary);
+  background-color: var(--canvas);
+}
+
+/* List 列表 */
+[data-theme="dark"] .ant-list-items {
+  border-top: 1px solid var(--border-secondary);
+}
+
+[data-theme="dark"] .ant-list-item {
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+/* Collapse 折叠面板 */
+[data-theme="dark"] .ant-collapse {
+  background-color: var(--canvas);
+  border-color: var(--border-secondary);
+}
+
+[data-theme="dark"] .ant-collapse-header {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ant-collapse-item {
+  border-color: var(--border-secondary);
+}
+
+/* Upload 上传 */
+[data-theme="dark"] .ant-upload-drag {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-primary);
+}
+
+[data-theme="dark"] .ant-upload-text {
+  color: var(--text-secondary);
+}
+
+/* Tree 树形控件 */
+[data-theme="dark"] .ant-tree {
+  background-color: var(--canvas);
+}
+
+[data-theme="dark"] .ant-tree-node-content-wrapper {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ant-tree-node-content-wrapper:hover {
+  background-color: var(--bg-tertiary);
+}
+
+/* Dropdown 下拉菜单 */
+[data-theme="dark"] .ant-dropdown-menu {
+  background-color: var(--canvas);
+  border-color: var(--border-primary);
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+/* Popover 弹出框 */
+[data-theme="dark"] .ant-popover-inner {
+  background-color: var(--canvas);
+  border-color: var(--border-primary);
+}
+
+/* Descriptions 描述列表 */
+[data-theme="dark"] .ant-descriptions {
+  border-color: var(--border-secondary);
+}
+
+[data-theme="dark"] .ant-descriptions-view {
+  border-color: var(--border-secondary);
+}
+
+[data-theme="dark"] .ant-descriptions-item-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .ant-descriptions-item-content {
+  color: var(--text-primary);
+}
+
+/* Drawer 抽屉 */
+[data-theme="dark"] .ant-drawer {
+  background-color: var(--canvas);
+}
+
+[data-theme="dark"] .ant-drawer-header {
+  background-color: var(--canvas);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+/* Alert 警告 */
+[data-theme="dark"] .ant-alert {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+}
+
+/* Skeleton 骨架屏 */
+[data-theme="dark"] .ant-skeleton {
+  background-color: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .ant-skeleton-element {
+  background-color: var(--bg-tertiary);
+}
+
+/* Steps 步骤条深色模式 */
+[data-theme="dark"] .ant-steps .ant-steps-item-finish .ant-steps-item-icon {
+  background: var(--canvas) !important;
+  border-color: var(--color-primary) !important;
+}
+[data-theme="dark"] .ant-steps .ant-steps-item-process .ant-steps-item-icon {
+  background: var(--canvas) !important;
+  border-color: var(--color-info) !important;
+}
+[data-theme="dark"] .ant-steps .ant-steps-item-finish .ant-steps-item-title,
+[data-theme="dark"] .ant-steps .ant-steps-item-finish .ant-steps-item-description {
+  color: var(--text-secondary) !important;
+}
+[data-theme="dark"] .ant-steps .ant-steps-item-process .ant-steps-item-title {
+  color: var(--text-primary) !important;
+}
+[data-theme="dark"] .ant-steps .ant-steps-item-wait .ant-steps-item-icon {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-secondary) !important;
+}
+
+/* Timeline 时间轴深色模式 */
+[data-theme="dark"] .ant-timeline-item-tail {
+  border-color: var(--border-secondary) !important;
+}
+[data-theme="dark"] .ant-timeline-item-pending .ant-timeline-item-dot {
+  background: var(--canvas) !important;
+  border-color: var(--color-info) !important;
+}
+[data-theme="dark"] .ant-timeline-item-dot {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--color-info) !important;
+}
+[data-theme="dark"] .ant-timeline.ant-timeline-label .ant-timeline-item-label {
+  color: var(--text-secondary) !important;
+}
+
+/* Progress 进度条深色模式 */
+[data-theme="dark"] .ant-progress-text {
+  color: var(--text-primary) !important;
+}
+[data-theme="dark"] .ant-progress .ant-progress-bg {
+  background-color: var(--color-primary) !important;
+}
+[data-theme="dark"] .ant-progress-circle .ant-progress-text {
+  color: var(--text-primary) !important;
+}
+[data-theme="dark"] .ant-progress-status-exception .ant-progress-bg {
+  background-color: var(--color-error) !important;
+}
+[data-theme="dark"] .ant-progress-status-success .ant-progress-bg {
+  background-color: var(--color-success) !important;
+}
+
+/* Badge 徽标深色模式 */
+[data-theme="dark"] .ant-badge .ant-badge-count,
+[data-theme="dark"] .ant-badge .ant-badge-dot {
+  background-color: var(--color-error) !important;
+  color: var(--body-on-dark) !important;
+}
+
+/* Empty 空状态深色模式 */
+[data-theme="dark"] .ant-empty .ant-empty-image {
+  opacity: 0.4 !important;
+}
+[data-theme="dark"] .ant-empty .ant-empty-description {
+  color: var(--text-tertiary) !important;
+}
+
+/* Radio.Button 深色模式 */
+[data-theme="dark"] .ant-radio-button-wrapper {
+  background: var(--canvas) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-secondary) !important;
+}
+[data-theme="dark"] .ant-radio-button-wrapper-checked {
+  background: var(--color-info) !important;
+  border-color: var(--color-info) !important;
+  color: var(--body-on-dark) !important;
+}
+[data-theme="dark"] .ant-radio-button-wrapper:hover {
+  color: var(--text-primary) !important;
+}
+[data-theme="dark"] .ant-radio-button-wrapper-disabled {
+  color: var(--text-disabled) !important;
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-secondary) !important;
+}
+
+/* Checkbox 复选框深色模式 */
+[data-theme="dark"] .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: var(--color-info) !important;
+  border-color: var(--color-info) !important;
+}
+[data-theme="dark"] .ant-checkbox .ant-checkbox-inner {
+  background-color: var(--canvas) !important;
+  border-color: var(--border-primary) !important;
+}
+[data-theme="dark"] .ant-checkbox-disabled .ant-checkbox-inner {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--border-secondary) !important;
+}
+
+/* Select 下拉菜单深色模式 */
+[data-theme="dark"] .ant-select-dropdown {
+  background-color: var(--canvas) !important;
+  border-color: var(--border-primary) !important;
+}
+[data-theme="dark"] .ant-select-item {
+  color: var(--text-primary) !important;
+}
+[data-theme="dark"] .ant-select-item-option-active,
+[data-theme="dark"] .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background-color: var(--bg-tertiary) !important;
+}
+[data-theme="dark"] .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  color: var(--text-primary) !important;
+}
+
+/* ── Login 页面按钮：button-dark-utility (8px 圆角) ── */
+/* 登录按钮虽用 type="primary"，但规范定义为 button-dark-utility，圆角应为 8px 而非 pill */
+.login-page .ant-btn,
+.login-page .ant-btn-primary,
+.login-page .ant-btn-default {
+  border-radius: var(--rounded-sm) !important;
+}
+
+/* 登录页面 Card 圆角也应为 sm (8px) */
+.login-page .ant-card {
+  border-radius: var(--rounded-sm) !important;
+}
+
+/* 浮窗/模态框/抽屉按钮：pill 圆角 (9999px)，区别于工作台普通按钮(8px)
+   Modal/Drawer 通过 Portal 渲染到 document.body，不在 #root 内 */
+.ant-modal .ant-btn,
+.ant-drawer .ant-btn {
+  border-radius: 9999px !important;
+}
+
+/* 工作台普通按钮：统一 8px 圆角
+   使用 #root 前缀提高特异性，覆盖 Ant Design CSS-in-JS 的哈希类 */
+#root .ant-btn {
+  border-radius: var(--rounded-sm) !important;
 }

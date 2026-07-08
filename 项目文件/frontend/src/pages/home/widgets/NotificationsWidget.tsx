@@ -60,7 +60,7 @@ export default function NotificationsWidget() {
     <Card
       title={
         <span>
-          <BellOutlined style={{ marginRight: 8 }} />
+          <BellOutlined style={{ marginRight: "var(--spacing-xs)" }} />
           通知提醒
         </span>
       }
@@ -85,12 +85,12 @@ export default function NotificationsWidget() {
                 }
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", width: '100%' }}>
                 {!item.read && <Badge status="processing" />}
                 <Text {...(item.read ? { type: 'secondary' } : {})} ellipsis style={{ flex: 1 }}>
                   {item.message}
                 </Text>
-                <Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', whiteSpace: 'nowrap' }}>
                   {timeAgo(item.created_at)}
                 </Text>
               </div>

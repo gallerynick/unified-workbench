@@ -162,7 +162,7 @@ export default function VoteManagement() {
             </Form.Item>
           ))}
           <Button type="dashed" onClick={() => setFormOptions([...formOptions, ''])} block>添加选项</Button>
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 'var(--spacing-card-gap)' }}>
             <VisibilitySetting
               value={visibility}
               restrictedUsers={restrictedUsers}
@@ -177,7 +177,7 @@ export default function VoteManagement() {
       </Modal>
       <Modal title="投票结果" open={resultsVisible} onCancel={() => setResultsVisible(false)} footer={null} width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         {results.map((r) => (
-          <div key={r.option} style={{ marginBottom: 8 }}>
+          <div key={r.option} style={{ marginBottom: 'var(--spacing-xs)' }}>
             <Text>{r.option}</Text>
             <Progress percent={r.percentage} format={() => `${r.count}票 (${r.percentage}%)`} />
           </div>
@@ -196,15 +196,15 @@ export default function VoteManagement() {
       >
         {currentVote && (
           <div>
-            {currentVote.description && <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>{currentVote.description}</Text>}
+            {currentVote.description && <Text type="secondary" style={{ display: 'block', marginBottom: 'var(--spacing-card-gap)' }}>{currentVote.description}</Text>}
             {currentVote.allow_multiple ? (
-              <Checkbox.Group value={selectedOptions} onChange={setSelectedOptions} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Checkbox.Group value={selectedOptions} onChange={setSelectedOptions} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
                 {currentVote.options.map((opt) => (
                   <Checkbox key={opt} value={opt}>{opt}</Checkbox>
                 ))}
               </Checkbox.Group>
             ) : (
-              <Radio.Group value={selectedOptions[0]} onChange={(e) => setSelectedOptions([e.target.value])} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Radio.Group value={selectedOptions[0]} onChange={(e) => setSelectedOptions([e.target.value])} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
                 {currentVote.options.map((opt) => (
                   <Radio key={opt} value={opt}>{opt}</Radio>
                 ))}

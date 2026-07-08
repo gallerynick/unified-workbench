@@ -84,15 +84,15 @@ export default function SiteSettings() {
         description="这些配置影响整个站点的访问方式。修改后可能需要重启服务才能生效。"
         type="warning"
         showIcon
-        style={{ marginBottom: 24 }}
+        style={{ marginBottom: "var(--spacing-lg)" }}
       />
 
       <Form form={form} layout="vertical">
-        <Card title={<><GlobalOutlined /> 访问配置</>} style={{ marginBottom: 24 }}>
+        <Card title={<><GlobalOutlined /> 访问配置</>} style={{ marginBottom: "var(--spacing-lg)" }}>
           <Form.Item label="站点端口" name="site_port">
             <Input placeholder="80" disabled />
           </Form.Item>
-          <Typography.Text type="secondary" style={{ display: 'block', marginTop: -16, marginBottom: 16 }}>
+          <Typography.Text type="secondary" style={{ display: 'block', marginTop: -16, marginBottom: "var(--spacing-card-gap)" }}>
             端口修改需修改 docker-compose.yml 与 nginx.conf 后重启容器
           </Typography.Text>
           <Form.Item label="站点 IP/域名" name="site_ip">
@@ -100,7 +100,7 @@ export default function SiteSettings() {
           </Form.Item>
         </Card>
 
-        <Card title={<><SafetyOutlined /> 测试模式</>} style={{ marginBottom: 24 }}>
+        <Card title={<><SafetyOutlined /> 测试模式</>} style={{ marginBottom: "var(--spacing-lg)" }}>
           <Form.Item
             label="开启测试模式"
             name="test_mode"
