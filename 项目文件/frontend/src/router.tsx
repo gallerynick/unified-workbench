@@ -47,6 +47,8 @@ const TopologyManagement = lazy(() => import('@/pages/topology/TopologyManagemen
 const StreamStudio = lazy(() => import('@/pages/streaming/StreamStudio'));
 const StreamWatch = lazy(() => import('@/pages/streaming/StreamWatch'));
 const RoomListPage = lazy(() => import('@/pages/streaming/RoomListPage'));
+const ServerManagement = lazy(() => import('@/pages/servers/ServerManagement'));
+const ServerDetail = lazy(() => import('@/pages/servers/ServerDetail'));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -227,6 +229,14 @@ export const router = createBrowserRouter([
           {
             path: 'topology',
             element: <LazyPage><TopologyManagement /></LazyPage>,
+          },
+          {
+            path: 'servers',
+            element: <LazyPage><ServerManagement /></LazyPage>,
+          },
+          {
+            path: 'servers/:id',
+            element: <LazyPage><ServerDetail /></LazyPage>,
           },
           {
             path: 'streaming',

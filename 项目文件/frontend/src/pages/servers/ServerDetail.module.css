@@ -1,0 +1,234 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.loadingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+
+/* ── 顶部信息卡 ─────────────────────────────────────── */
+.infoCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-card-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.infoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-card-gap);
+}
+
+.title {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm) var(--spacing-lg);
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  min-width: 0;
+}
+
+.infoLabel {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.infoValue {
+  font-size: var(--text-body-sm-size);
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.maintainerTag {
+  margin: 0;
+}
+
+/* ── deploy_status 提醒条 ───────────────────────────── */
+.deployBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-sm) var(--spacing-card-gap);
+}
+
+.deployBannerIcon {
+  color: var(--color-warning);
+  font-size: var(--text-heading-3-size);
+  margin-top: 2px;
+}
+
+.deployBannerText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.deployBannerHint {
+  margin: 0 !important;
+  font-size: var(--text-caption-size);
+}
+
+/* ── 通用区块卡片 ───────────────────────────────────── */
+.sectionCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-card-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.sectionTitle {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table {
+  flex: 1;
+}
+
+/* ── 单系统：系统信息展示 ───────────────────────────── */
+.systemInfo {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm) var(--spacing-lg);
+}
+
+/* ── 多系统：树 + 内容区 ────────────────────────────── */
+.multiRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-card-gap);
+}
+
+.treePanel {
+  flex-shrink: 0;
+  width: 260px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-card-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-height: 560px;
+  overflow: auto;
+}
+
+.systemTree {
+  background: transparent;
+}
+
+.treeNode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xxs) 0;
+}
+
+.treeNodeTitle {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-caption-size);
+  color: var(--text-primary);
+}
+
+.treeNodeActions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  opacity: 0;
+  transition: opacity var(--anim-fast) var(--anim-ease);
+}
+
+.treeNode:hover .treeNodeActions {
+  opacity: 1;
+}
+
+.contentPanel {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── 响应式 ─────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .container {
+    padding: var(--spacing-xs);
+  }
+
+  .infoHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .systemInfo {
+    grid-template-columns: 1fr;
+  }
+
+  .deployBanner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .multiRow {
+    flex-direction: column;
+  }
+
+  .treePanel {
+    width: 100%;
+    max-height: 240px;
+  }
+
+  .sectionHeader {
+    flex-wrap: wrap;
+  }
+
+  .table {
+    overflow-x: auto;
+  }
+}

@@ -18,6 +18,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/secrets': '密钥保险箱',
   '/reminders': '提醒事项',
   '/topology': '拓扑结构',
+  '/servers': '服务器管理',
   '/stream': '直播工作室',
   '/records': '记录管理',
   '/settings/personalization': '用户个性化',
@@ -43,6 +44,9 @@ export function getRouteTitle(pathname: string): string {
   }
   if (pathname.startsWith('/projects/')) {
     return '项目详情';
+  }
+  if (pathname.startsWith('/servers/')) {
+    return '服务器详情';
   }
   if (pathname.startsWith('/secrets/category/')) {
     return '密钥分类';

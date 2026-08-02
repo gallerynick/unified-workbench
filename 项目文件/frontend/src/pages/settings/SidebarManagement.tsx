@@ -35,6 +35,7 @@ const DEFAULT_ITEMS: SidebarItem[] = [
   { key: '/secrets', label: '密钥保险箱', icon: 'KeyOutlined', visible: true, hasData: true, builtin: true },
   { key: '/reminders', label: '提醒事项', icon: 'BellOutlined', visible: true, hasData: true, builtin: true },
   { key: '/topology', label: '拓扑结构', icon: 'ApartmentOutlined', visible: true, hasData: false, builtin: true },
+  { key: '/servers', label: '服务器管理', icon: 'CloudServerOutlined', visible: true, hasData: false, builtin: true },
 { key: '/streaming', label: '直播工作室', icon: 'VideoCameraOutlined', visible: true, hasData: false, builtin: true },
 ];
 
@@ -225,6 +226,7 @@ export default function SidebarManagement() {
         okText="添加"
         cancelText="取消"
         width={560}
+        destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">

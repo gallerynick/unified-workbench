@@ -75,6 +75,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   AuditOutlined: <AuditOutlined />,
   ApartmentOutlined: <ApartmentOutlined />,
   VideoCameraOutlined: <VideoCameraOutlined />,
+  CloudServerOutlined: <CloudServerOutlined />,
 };
 
 function getMenuItems(): MenuProps['items'] {
@@ -218,7 +219,7 @@ export default function MainLayout() {
               </>
             )}
           </div>
-          <div ref={siderRef} className="sider-menu-scroll" style={{ flex: 1, overflow: 'auto' }}>
+          <div ref={siderRef} className="sider-menu-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           <ConfigProvider
             theme={{
               components: {
@@ -317,7 +318,7 @@ export default function MainLayout() {
             borderBottom: 'var(--header-border)',
             position: 'sticky',
             top: 0,
-            zIndex: 100,
+            zIndex: 'var(--z-sticky)',
             height: 64,
           }}
         >
@@ -326,6 +327,7 @@ export default function MainLayout() {
               <Button
                 type="text"
                 icon={<MenuOutlined />}
+                aria-label="打开导航菜单"
                 onClick={() => setMenuDrawerOpen(true)}
                 style={{ fontSize: 'var(--text-button-large-size)' }}
               />
@@ -333,6 +335,7 @@ export default function MainLayout() {
             {!isMobile && (
               <button
                 type="button"
+                aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
                 onClick={() => setCollapsed(!collapsed)}
                 style={{
                   fontSize: 'var(--text-button-large-size)',
