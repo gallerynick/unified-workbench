@@ -16,7 +16,7 @@ from app.services.audit import log_audit
 async def create_content(
     db: AsyncSession, request: ContentCreateRequest, current_user: User
 ) -> Content:
-    """创建内容，关联文件，记录审计日志。"""
+    """创建内容，记录审计日志。"""
     content = Content(
         title=request.title,
         body=request.body,

@@ -8,29 +8,6 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, model_validator
 
 
-class ShareCreateRequest(BaseModel):
-    """创建分享请求。至少一个 expires_in_* 必须 > 0。"""
-
-    file_name: str
-    file_size: int
-    mime_type: str | None = None
-    password: str | None = None
-    expires_in_minutes: int = 0
-    expires_in_hours: int = 0
-    expires_in_days: int = 0
-    max_downloads: int | None = None
-
-    @model_validator(mode="after")
-    def check_at_least_one_expires(self) -> ShareCreateRequest:
-        if (
-            self.expires_in_minutes <= 0
-            and self.expires_in_hours <= 0
-            and self.expires_in_days <= 0
-        ):
-            raise ValueError("至少需指定一个过期时间参数（分钟/小时/天）")
-        return self
-
-
 class ShareResponse(BaseModel):
     """分享详情响应。"""
 
