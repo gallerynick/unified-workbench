@@ -5,7 +5,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { listVotes, createVote, deleteVote, getVoteResults, submitVote } from '../../api/votes';
 import type { Vote, VoteResult } from '../../types/vote';
 import type { Visibility } from '../../utils/visibility';
-import VisibilitySetting from '../files/VisibilitySetting';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import { useUser } from '../../contexts/UserContext';
 import styles from './VoteManagement.module.css';
 

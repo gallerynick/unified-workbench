@@ -12,7 +12,7 @@ import {
 } from '@ant-design/icons';
 
 const links = [
-  { label: '文件管理', icon: <FileOutlined />, path: '/files' },
+  { label: '文件共享', icon: <FileOutlined />, path: '/file-shares' },
   { label: '内容管理', icon: <FileTextOutlined />, path: '/content' },
   { label: '项目管理', icon: <ProjectOutlined />, path: '/projects' },
   { label: '团队成员', icon: <UserOutlined />, path: '/members' },

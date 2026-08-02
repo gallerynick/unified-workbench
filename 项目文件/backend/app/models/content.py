@@ -14,7 +14,6 @@ from app.core.database import Base
 from app.core.visibility import Visibility
 
 if TYPE_CHECKING:
-    from app.models.content_file import ContentFile
     from app.models.user import User
 
 
@@ -48,6 +47,3 @@ class Content(Base):
 
     # 关系
     owner: Mapped[User] = relationship("User")
-    files: Mapped[list[ContentFile]] = relationship(
-        "ContentFile", back_populates="content"
-    )

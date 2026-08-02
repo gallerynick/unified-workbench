@@ -10,7 +10,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/members': '成员目录',
   '/announcements': '公告通知',
   '/notes': '笔记知识库',
-  '/files': '文件中心',
+  '/file-shares': '文件共享',
   '/content': '内容编辑',
   '/projects': '项目管理',
   '/inventory': '物品管理',
@@ -33,6 +33,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/settings/backups': '数据备份',
   '/settings/customization': '应用配置',
   '/settings/system': '系统更新',
+  '/settings/storage': '存储设置',
   '/profile': '个人资料',
 };
 
@@ -45,6 +46,9 @@ export function getRouteTitle(pathname: string): string {
   }
   if (pathname.startsWith('/secrets/category/')) {
     return '密钥分类';
+  }
+  if (pathname.startsWith('/share/')) {
+    return '文件下载';
   }
   return '';
 }

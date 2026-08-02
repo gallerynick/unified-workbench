@@ -7,7 +7,7 @@ import {
   ProjectOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { listFiles } from '../../../api/files';
+import { listFileShares } from '../../../api/file-shares';
 import { listContents } from '../../../api/contents';
 import { listRecords } from '../../../api/records';
 import { listUsers } from '../../../api/users';
@@ -21,7 +21,7 @@ export default function StatsWidget() {
     const fetchStats = async () => {
       try {
         const [filesRes, contentsRes, projectsRes, membersRes] = await Promise.all([
-          listFiles({ page_size: 1 }).catch(() => ({ code: -1, data: { total: 0 } })),
+          listFileShares(1, 1).catch(() => ({ code: -1, data: { total: 0 } })),
           listContents({ page_size: 1 }).catch(() => ({ code: -1, data: { total: 0 } })),
           listRecords({ page: 1, page_size: 1, type: 'project' }).catch(() => ({ code: -1, data: { total: 0 } })),
           listUsers({ page_size: 1 }).catch(() => ({ code: -1, data: { total: 0 } })),
@@ -48,7 +48,7 @@ export default function StatsWidget() {
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} sm={12} lg={6}>
-        <Card hoverable onClick={() => navigate('/files')}>
+        <Card hoverable onClick={() => navigate('/file-shares')}>
           <Statistic title="文件数量" value={stats.files} prefix={<FileOutlined />} />
         </Card>
       </Col>

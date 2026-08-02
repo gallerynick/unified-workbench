@@ -3,12 +3,11 @@
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import String, cast, delete, or_, select
+from sqlalchemy import String, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import check_visibility
 from app.models.content import Content
-from app.models.content_file import ContentFile
 from app.models.user import User, UserRole
 from app.schemas.content import ContentCreateRequest, ContentUpdateRequest
 from app.services.audit import log_audit
@@ -29,13 +28,6 @@ async def create_content(
     )
     db.add(content)
     await db.flush()
-
-    # 关联文件
-    if request.file_ids:
-        for file_id in request.file_ids:
-            cf = ContentFile(content_id=content.id, file_id=uuid.UUID(file_id))
-            db.add(cf)
-        await db.flush()
 
     # 审计日志
     await log_audit(
@@ -120,15 +112,6 @@ async def update_content(
     if request.tags is not None:
         content.tags = request.tags
 
-    # 更新文件关联：先删后建
-    if request.file_ids is not None:
-        await db.execute(
-            delete(ContentFile).where(ContentFile.content_id == content_id)
-        )
-        for file_id in request.file_ids:
-            cf = ContentFile(content_id=content_id, file_id=uuid.UUID(file_id))
-            db.add(cf)
-
     await db.flush()
     await db.refresh(content)
 
@@ -171,11 +154,6 @@ async def delete_content(
         target_type="content",
         target_id=str(content.id),
         detail={"title": content.title},
-    )
-
-    # 删除关联文件记录
-    await db.execute(
-        delete(ContentFile).where(ContentFile.content_id == content_id)
     )
 
     # 删除内容

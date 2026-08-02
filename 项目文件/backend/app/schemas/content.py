@@ -17,7 +17,6 @@ class ContentCreateRequest(BaseModel):
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     tags: list[str] | None = None
-    file_ids: list[str] | None = None  # 关联的文件 ID 列表
 
 
 class ContentUpdateRequest(BaseModel):
@@ -29,7 +28,6 @@ class ContentUpdateRequest(BaseModel):
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     tags: list[str] | None = None
-    file_ids: list[str] | None = None
 
 
 class ContentResponse(BaseModel):

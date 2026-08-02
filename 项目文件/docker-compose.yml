@@ -55,8 +55,11 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ${NAS_FILES_PATH:-./data/files}:/data/files
-      - ${NAS_BACKUPS_PATH:-./data/backups}:/data/backups
+      - ${FILE_STORAGE_PATH:-./data/files}:/data/files
+      - ${FILE_BACKUPS_PATH:-./data/backups}:/data/backups
+    environment:
+      - RESERVED_DISK_SPACE_GB=${RESERVED_DISK_SPACE_GB:-10}
+      - MAX_SHARE_FILE_SIZE_GB=${MAX_SHARE_FILE_SIZE_GB:-1}
     networks:
       - workbench
 
@@ -75,7 +78,10 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ${NAS_FILES_PATH:-./data/files}:/data/files
+      - ${FILE_STORAGE_PATH:-./data/files}:/data/files
+    environment:
+      - RESERVED_DISK_SPACE_GB=${RESERVED_DISK_SPACE_GB:-10}
+      - MAX_SHARE_FILE_SIZE_GB=${MAX_SHARE_FILE_SIZE_GB:-1}
     networks:
       - workbench
 

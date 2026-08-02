@@ -37,15 +37,11 @@ class Settings(BaseSettings):
     INITIAL_ADMIN_USERNAME: str = "admin"
     INITIAL_ADMIN_PASSWORD: str = "admin123"
 
-    # 文件存储配置
-    NAS_FILES_PATH: str = "/data/files"
-    MAX_FILE_SIZE: int = 100 * 1024 * 1024  # 100MB
-    MAX_IMAGE_SIZE: int = 20 * 1024 * 1024  # 20MB
-    THUMBNAIL_SIZE: int = 200  # 200x200
-
-    # MediaMTX 配置
-    MEDIAMTX_HTTP_PORT: int = 8889
-    MEDIAMTX_RTMP_PORT: int = 1935
+    # 文件分享配置
+    NAS_FILES_PATH: str = "/data/files"  # 向后兼容
+    FILE_STORAGE_PATH: str = "/data/files"
+    RESERVED_DISK_SPACE_GB: int = 10
+    MAX_SHARE_FILE_SIZE_GB: int = 1
 
     # 加密配置
     ENCRYPTION_MASTER_KEY: str = "7433947cd794fc1c74ca1a2063baf5defd908128356ac1f6e36b6861a1d283eb"

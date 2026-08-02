@@ -19,7 +19,7 @@ import { createRecord, updateRecord } from '../../api/records';
 import type { WorkRecord, RecordCreate, RecordUpdate } from '../../types/record';
 import type { TemplateField } from '../../types/template';
 import ContentEditor from '../content/ContentEditor';
-import VisibilitySetting from '../files/VisibilitySetting';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import type { Visibility } from '../../utils/visibility';
 import styles from './RecordForm.module.css';
 

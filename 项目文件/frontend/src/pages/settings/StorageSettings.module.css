@@ -1,0 +1,26 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.statsRow {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.statCard {
+  flex: 1;
+}
+
+.progressBar {
+  margin: 16px 0;
+}
+
+.reservedSection {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+}

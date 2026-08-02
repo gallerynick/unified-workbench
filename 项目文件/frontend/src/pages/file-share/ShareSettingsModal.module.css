@@ -1,0 +1,26 @@
+.modal {
+  width: 520px;
+}
+
+.readonlyRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.readonlyLabel {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.expiryRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expiryInput {
+  flex: 1;
+  min-width: 0;
+}

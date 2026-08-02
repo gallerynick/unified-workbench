@@ -27,7 +27,7 @@ const DEFAULT_ITEMS: SidebarItem[] = [
   { key: '/members', label: '成员目录', icon: 'TeamOutlined', visible: true, hasData: false, builtin: true },
   { key: '/announcements', label: '公告通知', icon: 'SoundOutlined', visible: true, hasData: false, builtin: true },
   { key: '/notes', label: '笔记知识库', icon: 'BookOutlined', visible: true, hasData: false, builtin: true },
-  { key: '/files', label: '文件中心', icon: 'FileOutlined', visible: true, hasData: true, builtin: true },
+  { key: '/file-shares', label: '文件共享', icon: 'FileOutlined', visible: true, hasData: true, builtin: true },
   { key: '/content', label: '内容编辑', icon: 'FileTextOutlined', visible: true, hasData: true, builtin: true },
   { key: '/projects', label: '项目管理', icon: 'ProjectOutlined', visible: true, hasData: true, builtin: true },
   { key: '/inventory', label: '物品管理', icon: 'AppstoreOutlined', visible: true, hasData: false, builtin: true },

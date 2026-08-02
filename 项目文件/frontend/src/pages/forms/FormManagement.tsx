@@ -7,7 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { listForms, createForm, deleteForm } from '../../api/forms';
 import type { FormItem, FormField } from '../../types/form';
 import type { Visibility } from '../../utils/visibility';
-import VisibilitySetting from '../files/VisibilitySetting';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import styles from './FormManagement.module.css';
 
 const { Title, Text } = Typography;

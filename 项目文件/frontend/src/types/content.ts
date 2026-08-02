@@ -20,7 +20,6 @@ export interface ContentCreateRequest {
   restricted_users?: string[];
   restricted_tags?: string[];
   tags?: string[];
-  file_ids?: string[];
 }
 
 export interface ContentUpdateRequest {
@@ -30,7 +29,6 @@ export interface ContentUpdateRequest {
   restricted_users?: string[];
   restricted_tags?: string[];
   tags?: string[];
-  file_ids?: string[];
 }
 
 export interface ContentListResponse {

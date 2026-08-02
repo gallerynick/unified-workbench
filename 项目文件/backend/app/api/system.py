@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db, Base
+from app.core.config import get_settings
+from app.core.database import get_db
 from app.services.updater import (
     check_update,
     get_github_repo,
@@ -79,6 +80,8 @@ async def api_reset_system(
     """重置系统：删除所有数据，需要密码验证，可选保留文件"""
     from sqlalchemy import text
 
+    settings = get_settings()
+
     # 0. 验证管理员密码
     from app.core.security import verify_password
     result = await db.execute(text("SELECT password_hash FROM \"user\" WHERE username = 'admin'"))
@@ -88,8 +91,8 @@ async def api_reset_system(
 
     # 1. 删除所有表的数据（按依赖顺序，包括所有用户）
     tables = [
-        "vote_record", "vote", "content_file", "content",
-        "file", "folder", "form_response", "form",
+        "vote_record", "vote", "content",
+        "file_share", "form_response", "form",
         "calendar_event", "note", "inventory", "contact",
         "reminder", "budget", "subscription",
         "task", "record", "template", "secret", "secret_category",
@@ -105,7 +108,7 @@ async def api_reset_system(
     # 2. 删除文件（如果不保留）
     if not request.keep_files:
         import shutil
-        data_dir = "/data/files"
+        data_dir = settings.FILE_STORAGE_PATH
         try:
             shutil.rmtree(data_dir, ignore_errors=True)
         except Exception:

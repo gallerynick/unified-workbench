@@ -7,10 +7,12 @@ import NotFound from './pages/NotFound';
 import Login from '@/pages/Login';
 import Welcome from '@/pages/Welcome';
 import AuthGuard from '@/components/AuthGuard';
+import ShareDownloadPage from '@/pages/public/ShareDownloadPage';
 
 const UserManagement = lazy(() => import('@/pages/settings/UserManagement'));
 const ContentManagement = lazy(() => import('@/pages/content/ContentManagement'));
-const FileManagement = lazy(() => import('@/pages/files/FileManagement'));
+const FileSharePage = lazy(() => import('@/pages/file-share/FileSharePage'));
+const StorageSettings = lazy(() => import('@/pages/settings/StorageSettings'));
 const AuditLog = lazy(() => import('@/pages/audit/AuditLog'));
 const TemplateManagement = lazy(() => import('@/pages/templates/TemplateManagement'));
 const RecordManagement = lazy(() => import('@/pages/records/RecordManagement'));
@@ -72,6 +74,10 @@ export const router = createBrowserRouter([
     element: <LazyPage><StreamWatch /></LazyPage>,
   },
   {
+    path: 'share/:code',
+    element: <ShareDownloadPage />,
+  },
+  {
     path: 'forms/:id/fill',
     element: <FormFill />,
   },
@@ -87,8 +93,8 @@ export const router = createBrowserRouter([
             element: <Home />,
           },
           {
-            path: 'files',
-            element: <LazyPage><FileManagement /></LazyPage>,
+            path: 'file-shares',
+            element: <LazyPage><FileSharePage /></LazyPage>,
           },
           {
             path: 'content',
@@ -209,6 +215,10 @@ export const router = createBrowserRouter([
           {
             path: 'settings/system',
             element: <LazyPage><SystemSettings /></LazyPage>,
+          },
+          {
+            path: 'settings/storage',
+            element: <LazyPage><StorageSettings /></LazyPage>,
           },
           {
             path: 'profile',
