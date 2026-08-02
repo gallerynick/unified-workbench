@@ -10,7 +10,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/members': '成员目录',
   '/announcements': '公告通知',
   '/notes': '笔记知识库',
-  '/file-shares': '文件共享',
+  '/shares': '文件共享',
   '/content': '内容编辑',
   '/projects': '项目管理',
   '/inventory': '物品管理',

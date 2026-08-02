@@ -24,6 +24,8 @@ export interface FileShareItem {
   share_code: string;
   has_password: boolean;
   expires_at: string;
+  is_expired: boolean;
+  deleted_at: string | null;
   max_downloads: number | null;
   download_count: number;
   created_at: string;
@@ -42,6 +44,7 @@ export interface SharePublicInfo {
   mime_type: string | null;
   has_password: boolean;
   expires_at: string;
+  is_expired: boolean;
   max_downloads: number | null;
   download_count: number;
 }

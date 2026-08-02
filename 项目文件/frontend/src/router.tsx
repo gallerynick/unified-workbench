@@ -93,7 +93,7 @@ export const router = createBrowserRouter([
             element: <Home />,
           },
           {
-            path: 'file-shares',
+            path: 'shares',
             element: <LazyPage><FileSharePage /></LazyPage>,
           },
           {

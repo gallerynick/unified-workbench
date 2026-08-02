@@ -38,6 +38,7 @@ class FileShare(Base):
     )  # null = 不限
     download_count: Mapped[int] = mapped_column(Integer, default=0)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
     owner_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("user.id"), nullable=True
     )  # null = 管理员创建

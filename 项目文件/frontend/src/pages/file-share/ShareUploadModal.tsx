@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Modal, Upload, Form, Input, InputNumber, Button, message } from 'antd';
+import { Modal, Upload, Form, Input, InputNumber, Button, message, Progress } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import type { UploadFile, RcFile, UploadProps } from 'antd/es/upload';
-import { getToken } from '../../utils/auth';
-import { UPLOAD_BASE } from '../../api/file-shares';
+import { uploadWithProgress } from '../../utils/request';
 import styles from './ShareUploadModal.module.css';
 
 const { Dragger } = Upload;
 
 const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
+
+interface ShareFormValues {
+  password?: string;
+  max_downloads?: number | null;
+}
 
 interface ShareUploadModalProps {
   visible: boolean;
@@ -17,24 +21,35 @@ interface ShareUploadModalProps {
 }
 
 export default function ShareUploadModal({ visible, onClose, onSuccess }: ShareUploadModalProps) {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<ShareFormValues>();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [minutes, setMinutes] = useState(0);
   const [hours, setHours] = useState(0);
   const [days, setDays] = useState(0);
+  const [expiryError, setExpiryError] = useState<string | undefined>(undefined);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     if (visible) {
       setFileList([]);
+      setSelectedFile(null);
       setMinutes(0);
       setHours(0);
       setDays(0);
+      setExpiryError(undefined);
+      setUploading(false);
+      setProgress(0);
       form.resetFields();
     }
   }, [visible, form]);
 
   const handleClose = () => {
     setFileList([]);
+    setSelectedFile(null);
+    setUploading(false);
+    setProgress(0);
     onClose();
   };
 
@@ -47,54 +62,74 @@ export default function ShareUploadModal({ visible, onClose, onSuccess }: ShareU
   };
 
   const uploadProps: UploadProps = {
-    action: UPLOAD_BASE,
-    method: 'post',
-    headers: { Authorization: `Bearer ${getToken() ?? ''}` },
-    data: (file: UploadFile) => {
-      const values = form.getFieldsValue();
-      const extra: Record<string, string | number> = {
-        file_name: file.name,
-        file_size: file.size ?? 0,
-        expires_in_minutes: minutes,
-        expires_in_hours: hours,
-        expires_in_days: days,
-      };
-      if (file.type) extra.mime_type = file.type;
-      if (values.password) extra.password = values.password;
-      if (values.max_downloads != null) extra.max_downloads = values.max_downloads;
-      return extra;
-    },
-    beforeUpload: async (file: RcFile) => {
-      if (!validateFileSize(file)) return false;
-      try {
-        await form.validateFields();
-        return true;
-      } catch {
-        return false;
-      }
+    beforeUpload: (file: RcFile) => {
+      if (!validateFileSize(file)) return Upload.LIST_IGNORE;
+      setSelectedFile(file);
+      return false; // 阻止 antd 自动上传，改由「确定上传」统一校验后手动发起
     },
     onChange: (info) => {
       setFileList(info.fileList);
-      const { status } = info.file;
-      if (status === 'done') {
-        const response = info.file.response as { code?: number; msg?: string } | undefined;
-        if (response && response.code === 0) {
-          message.success('文件分享创建成功');
-          onClose();
-          onSuccess();
-        } else {
-          message.error(response?.msg || '上传失败');
-          setFileList([]);
-        }
-      } else if (status === 'error') {
-        message.error('上传失败');
-        setFileList([]);
+      if (info.fileList.length === 0) {
+        setSelectedFile(null);
       }
     },
     fileList,
     maxCount: 1,
     multiple: false,
     showUploadList: true,
+  };
+
+  const handleConfirm = async () => {
+    // 1. 校验文件已选
+    if (!selectedFile) {
+      message.warning('请先选择文件');
+      return;
+    }
+    // 2. 校验有效期至少一项 > 0
+    if (minutes <= 0 && hours <= 0 && days <= 0) {
+      const errorMsg = '至少需指定一个过期时间（分钟/小时/天）';
+      setExpiryError(errorMsg);
+      message.error(errorMsg);
+      return;
+    }
+    setExpiryError(undefined);
+
+    // 3. 校验表单（密码 >= 4 位 / 下载次数 >= 1），失败时表单已显示对应错误
+    let values: ShareFormValues;
+    try {
+      values = await form.validateFields();
+    } catch {
+      return;
+    }
+
+    // 4. 全部通过 → 手动上传（带进度）
+    setUploading(true);
+    setProgress(0);
+    try {
+      const extraData: Record<string, string> = {
+        file_name: selectedFile.name,
+        file_size: String(selectedFile.size),
+        expires_in_minutes: String(minutes),
+        expires_in_hours: String(hours),
+        expires_in_days: String(days),
+      };
+      if (selectedFile.type) extraData.mime_type = selectedFile.type;
+      if (values.password) extraData.password = values.password;
+      if (values.max_downloads != null) extraData.max_downloads = String(values.max_downloads);
+
+      const res = await uploadWithProgress('/file-shares/', selectedFile, setProgress, extraData);
+      if (res.code === 0) {
+        message.success('文件分享创建成功');
+        onClose();
+        onSuccess();
+      } else {
+        message.error(res.msg || '上传失败');
+        setUploading(false);
+      }
+    } catch {
+      message.error('上传失败');
+      setUploading(false);
+    }
   };
 
   return (
@@ -105,6 +140,9 @@ export default function ShareUploadModal({ visible, onClose, onSuccess }: ShareU
       footer={[
         <Button key="cancel" onClick={handleClose}>
           取消
+        </Button>,
+        <Button key="confirm" type="primary" loading={uploading} onClick={handleConfirm}>
+          确定上传
         </Button>,
       ]}
       width={560}
@@ -126,16 +164,7 @@ export default function ShareUploadModal({ visible, onClose, onSuccess }: ShareU
         <Form.Item
           label="有效期"
           required
-          rules={[
-            {
-              validator: () => {
-                if (minutes <= 0 && hours <= 0 && days <= 0) {
-                  return Promise.reject(new Error('至少需指定一个过期时间（分钟/小时/天）'));
-                }
-                return Promise.resolve();
-              },
-            },
-          ]}
+          {...(expiryError ? { validateStatus: 'error' as const, help: expiryError } : {})}
         >
           <div className={styles.expiryRow}>
             <InputNumber
@@ -143,7 +172,10 @@ export default function ShareUploadModal({ visible, onClose, onSuccess }: ShareU
               min={0}
               placeholder="分钟"
               value={minutes}
-              onChange={(value) => setMinutes(value ?? 0)}
+              onChange={(value) => {
+                setExpiryError(undefined);
+                setMinutes(value ?? 0);
+              }}
               addonAfter="分钟"
             />
             <InputNumber
@@ -151,7 +183,10 @@ export default function ShareUploadModal({ visible, onClose, onSuccess }: ShareU
               min={0}
               placeholder="小时"
               value={hours}
-              onChange={(value) => setHours(value ?? 0)}
+              onChange={(value) => {
+                setExpiryError(undefined);
+                setHours(value ?? 0);
+              }}
               addonAfter="小时"
             />
             <InputNumber
@@ -159,7 +194,10 @@ export default function ShareUploadModal({ visible, onClose, onSuccess }: ShareU
               min={0}
               placeholder="天"
               value={days}
-              onChange={(value) => setDays(value ?? 0)}
+              onChange={(value) => {
+                setExpiryError(undefined);
+                setDays(value ?? 0);
+              }}
               addonAfter="天"
             />
           </div>
@@ -173,10 +211,20 @@ export default function ShareUploadModal({ visible, onClose, onSuccess }: ShareU
           <Input.Password placeholder="设置后他人需输入密码才能下载" autoComplete="new-password" />
         </Form.Item>
 
-        <Form.Item name="max_downloads" label="最大下载次数（可选）">
+        <Form.Item
+          name="max_downloads"
+          label="最大下载次数（可选）"
+          rules={[{ type: 'number', min: 1, message: '下载次数至少为 1' }]}
+        >
           <InputNumber min={1} placeholder="留空表示不限" style={{ width: '100%' }} />
         </Form.Item>
       </Form>
+
+      {uploading && (
+        <div className={styles.progress}>
+          <Progress percent={progress} />
+        </div>
+      )}
     </Modal>
   );
 }

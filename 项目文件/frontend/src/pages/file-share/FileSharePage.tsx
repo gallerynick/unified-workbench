@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Typography, Modal, Space, message, Tooltip } from 'antd';
+import { Table, Button, Typography, Modal, Space, message, Tooltip, Input, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, SettingOutlined, ShareAltOutlined, CopyOutlined } from '@ant-design/icons';
 import { listFileShares, deleteFileShare } from '../../api/file-shares';
+import { QRCodeSVG } from 'qrcode.react';
 import type { FileShareRecord } from '../../types/file-share';
 import ShareUploadModal from './ShareUploadModal';
 import ShareSettingsModal from './ShareSettingsModal';
@@ -30,6 +31,15 @@ export function FileSharePage() {
   const [loading, setLoading] = useState(false);
   const [uploadVisible, setUploadVisible] = useState(false);
   const [settingsRecord, setSettingsRecord] = useState<FileShareRecord | null>(null);
+  const [qrRecord, setQrRecord] = useState<FileShareRecord | null>(null);
+
+  const getShareUrls = (code: string) => {
+    const path = `/share/${code}`;
+    const protocol = window.location.protocol;
+    const local = `${protocol}//localhost${path}`;
+    const network = `${protocol}//192.168.0.106${path}`;
+    return { local, network };
+  };
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -51,6 +61,18 @@ export function FileSharePage() {
   useEffect(() => {
     fetchRecords();
   }, [fetchRecords]);
+
+  // 每 30 秒刷新一次数据，驱动"已过期但未清理"记录的自动清理倒计时
+  useEffect(() => {
+    const hasExpiring = records.some((r) => r.is_expired && !r.deleted_at);
+    if (!hasExpiring) return;
+
+    const timer = setInterval(() => {
+      fetchRecords();
+    }, 30000);
+
+    return () => clearInterval(timer);
+  }, [records, fetchRecords]);
 
   const handleDelete = (record: FileShareRecord) => {
     Modal.confirm({
@@ -81,6 +103,7 @@ export function FileSharePage() {
       dataIndex: 'original_name',
       key: 'original_name',
       ellipsis: true,
+      render: (name: string) => name,
     },
     {
       title: '大小',
@@ -88,13 +111,6 @@ export function FileSharePage() {
       key: 'file_size',
       width: 110,
       render: (size: number) => formatBytes(size),
-    },
-    {
-      title: '分享码',
-      dataIndex: 'share_code',
-      key: 'share_code',
-      width: 150,
-      render: (code: string) => <Text copyable={{ text: code }}>{code}</Text>,
     },
     {
       title: '下载次数',
@@ -117,11 +133,53 @@ export function FileSharePage() {
       render: (value: string) => formatDateTime(value),
     },
     {
+      title: '状态',
+      key: 'status',
+      width: 180,
+      render: (_, record) => {
+        // 已清理（物理文件已被 Celery 清理，仅保留记录）
+        if (record.deleted_at) {
+          return <Tag>已清理</Tag>;
+        }
+        // 已过期但未清理：展示自动清理倒计时（过期后 10 分钟宽限期）
+        if (record.is_expired) {
+          const expiresAt = new Date(record.expires_at).getTime();
+          const cleanupAt = expiresAt + 10 * 60 * 1000;
+          const now = Date.now();
+          const remaining = Math.max(0, cleanupAt - now);
+
+          if (remaining <= 0) {
+            return <Tag color="red">已过期</Tag>;
+          }
+
+          const minutes = Math.floor(remaining / 60000);
+          return (
+            <span>
+              <Tag color="red">已过期</Tag>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                {minutes} 分后清理
+              </span>
+            </span>
+          );
+        }
+        // 正常
+        return <Tag color="green">正常</Tag>;
+      },
+    },
+    {
       title: '操作',
       key: 'actions',
-      width: 110,
+      width: 150,
       render: (_, record) => (
         <Space size={0}>
+          <Tooltip title="共享">
+            <Button
+              type="link"
+              size="small"
+              icon={<ShareAltOutlined />}
+              onClick={() => setQrRecord(record)}
+            />
+          </Tooltip>
           <Tooltip title="设置">
             <Button
               type="link"
@@ -146,24 +204,29 @@ export function FileSharePage() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.toolbar}>
+      <div className={styles.header}>
         <Title level={4} className={styles.title ?? ''}>
           文件共享
         </Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadVisible(true)}>
-          上传分享
-        </Button>
+        <Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadVisible(true)}>
+            上传分享
+          </Button>
+        </Space>
       </div>
 
       <Table<FileShareRecord>
+        className={styles.table ?? ''}
         rowKey="id"
         columns={columns}
         dataSource={records}
         loading={loading}
+        rowClassName={(record) => (record.is_expired ? (styles.expiredRow ?? '') : '')}
         pagination={{
           current: page,
           pageSize,
           total,
+          showQuickJumper: true,
           showSizeChanger: true,
           showTotal: (t) => `共 ${t} 条`,
           onChange: (p, ps) => {
@@ -190,6 +253,66 @@ export function FileSharePage() {
           fetchRecords();
         }}
       />
+
+      <Modal
+        title="分享"
+        open={!!qrRecord}
+        onCancel={() => setQrRecord(null)}
+        footer={null}
+        width={420}
+        destroyOnClose
+      >
+        {qrRecord && (
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <QRCodeSVG
+                value={getShareUrls(qrRecord.share_code).network}
+                size={200}
+                level="M"
+                includeMargin
+              />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>分享码</Text>
+              <Input
+                value={qrRecord.share_code}
+                readOnly
+                suffix={
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CopyOutlined />}
+                    onClick={() => {
+                      navigator.clipboard.writeText(qrRecord.share_code);
+                      message.success('已复制');
+                    }}
+                  />
+                }
+                style={{ marginTop: 4 }}
+              />
+            </div>
+            <div>
+              <Text strong>内网下载地址</Text>
+              <Input
+                value={getShareUrls(qrRecord.share_code).network}
+                readOnly
+                suffix={
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CopyOutlined />}
+                    onClick={() => {
+                      navigator.clipboard.writeText(getShareUrls(qrRecord.share_code).network);
+                      message.success('已复制');
+                    }}
+                  />
+                }
+                style={{ marginTop: 4 }}
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

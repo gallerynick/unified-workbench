@@ -48,7 +48,7 @@ export default function StatsWidget() {
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} sm={12} lg={6}>
-        <Card hoverable onClick={() => navigate('/file-shares')}>
+        <Card hoverable onClick={() => navigate('/shares')}>
           <Statistic title="文件数量" value={stats.files} prefix={<FileOutlined />} />
         </Card>
       </Col>

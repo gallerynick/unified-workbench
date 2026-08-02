@@ -6,7 +6,7 @@ import os
 import secrets
 import string
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, status
@@ -59,7 +59,7 @@ async def upload_file_share(
     file_uuid = uuid.uuid4()
     stored_name = f"{file_uuid}{ext}"
 
-    now = datetime.now(UTC)
+    now = datetime.now()
     date_dir = Path(settings.FILE_STORAGE_PATH) / now.strftime("%Y") / now.strftime("%m")
     date_dir.mkdir(parents=True, exist_ok=True)
     dest_path = date_dir / stored_name
@@ -146,14 +146,7 @@ async def get_share_by_code(db: AsyncSession, share_code: str) -> FileShare | No
             ~FileShare.is_deleted,
         )
     )
-    share = result.scalar_one_or_none()
-    if share and share.expires_at < datetime.now(UTC):
-        share.is_deleted = True
-        await db.commit()
-        return None
-    if share and share.max_downloads is not None and share.download_count >= share.max_downloads:
-        return None
-    return share
+    return result.scalar_one_or_none()
 
 
 async def verify_share_password(db: AsyncSession, share_code: str, password: str) -> bool:
@@ -174,6 +167,16 @@ async def download_share(db: AsyncSession, share_code: str) -> tuple[str, str, s
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="分享不存在或已过期",
+        )
+    if share.expires_at and share.expires_at < datetime.now():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="文件分享已过期",
+        )
+    if share.max_downloads is not None and share.download_count >= share.max_downloads:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="已达到最大下载次数",
         )
     if not os.path.exists(share.file_path):
         raise HTTPException(
@@ -259,6 +262,9 @@ async def delete_share(
             detail="权限不足",
         )
     share.is_deleted = True
+    share.deleted_at = datetime.now()
+    if share.file_path and os.path.exists(share.file_path):
+        os.remove(share.file_path)
     await db.commit()
 
 
@@ -297,7 +303,7 @@ async def update_share_settings(
         minutes = data.get("expires_in_minutes", 0) or 0
         hours = data.get("expires_in_hours", 0) or 0
         days = data.get("expires_in_days", 0) or 0
-        share.expires_at = datetime.now(UTC) + timedelta(
+        share.expires_at = datetime.now() + timedelta(
             minutes=minutes,
             hours=hours,
             days=days,

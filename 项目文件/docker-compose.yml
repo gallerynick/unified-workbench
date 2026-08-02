@@ -7,6 +7,7 @@ services:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
+      TZ: Asia/Shanghai
       POSTGRES_USER: ${POSTGRES_USER:-workbench}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: ${POSTGRES_DB:-unified_workbench}
@@ -58,6 +59,7 @@ services:
       - ${FILE_STORAGE_PATH:-./data/files}:/data/files
       - ${FILE_BACKUPS_PATH:-./data/backups}:/data/backups
     environment:
+      - TZ=Asia/Shanghai
       - RESERVED_DISK_SPACE_GB=${RESERVED_DISK_SPACE_GB:-10}
       - MAX_SHARE_FILE_SIZE_GB=${MAX_SHARE_FILE_SIZE_GB:-1}
     networks:
@@ -80,6 +82,7 @@ services:
     volumes:
       - ${FILE_STORAGE_PATH:-./data/files}:/data/files
     environment:
+      - TZ=Asia/Shanghai
       - RESERVED_DISK_SPACE_GB=${RESERVED_DISK_SPACE_GB:-10}
       - MAX_SHARE_FILE_SIZE_GB=${MAX_SHARE_FILE_SIZE_GB:-1}
     networks:
@@ -93,6 +96,7 @@ services:
     restart: unless-stopped
     working_dir: /tmp
     environment:
+      - TZ=Asia/Shanghai
       - PYTHONPATH=/app
     command: celery -A app.tasks beat --loglevel=info --schedule=/tmp/celerybeat-schedule
     env_file:

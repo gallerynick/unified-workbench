@@ -13,7 +13,7 @@ import styles from './ShareDownloadPage.module.css';
 
 const { Text } = Typography;
 
-type PageStatus = 'loading' | 'notFound' | 'error' | 'password' | 'verifying' | 'ready';
+type PageStatus = 'loading' | 'notFound' | 'error' | 'expired' | 'password' | 'verifying' | 'ready';
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) {
@@ -46,6 +46,10 @@ export default function ShareDownloadPage() {
       .then((data) => {
         if (cancelled) return;
         setInfo(data);
+        if (data.is_expired) {
+          setStatus('expired');
+          return;
+        }
         setStatus(data.has_password ? 'password' : 'ready');
       })
       .catch((err: unknown) => {
@@ -107,6 +111,30 @@ export default function ShareDownloadPage() {
       <div className={styles.container}>
         <Card className={styles.card ?? ''}>
           <Result status="500" title="加载失败" subTitle="无法获取分享信息，请稍后重试" />
+        </Card>
+      </div>
+    );
+  }
+
+  if (status === 'expired') {
+    return (
+      <div className={styles.container}>
+        <Card className={styles.card ?? ''}>
+          <div className={styles.fileIcon}>
+            <FileOutlined />
+          </div>
+          <div className={styles.fileName}>{info?.original_name}</div>
+          {info && (
+            <div className={styles.meta}>
+              <Text>文件大小：{formatFileSize(info.file_size)}</Text>
+              <Text>过期时间：{new Date(info.expires_at).toLocaleString()}</Text>
+            </div>
+          )}
+          <Result
+            status="warning"
+            title="此分享已过期"
+            subTitle="分享已超过有效期，无法下载。请联系分享者延长有效期。"
+          />
         </Card>
       </div>
     );

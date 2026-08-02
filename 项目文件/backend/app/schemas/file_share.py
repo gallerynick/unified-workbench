@@ -22,7 +22,9 @@ class ShareResponse(BaseModel):
     expires_at: str
     max_downloads: int | None = None
     download_count: int
-    created_at: datetime
+    is_expired: bool
+    created_at: str
+    deleted_at: str | None = None
 
 
 class SharePublicInfo(BaseModel):
@@ -38,6 +40,7 @@ class SharePublicInfo(BaseModel):
     expires_at: str
     max_downloads: int | None = None
     download_count: int
+    is_expired: bool
 
 
 class SharePasswordVerify(BaseModel):

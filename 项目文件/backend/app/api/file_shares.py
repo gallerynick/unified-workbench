@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timedelta, timezone
+
+TZ_SHANGHAI = timezone(timedelta(hours=8))
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
@@ -32,6 +35,7 @@ public_router = APIRouter(prefix="/public/shares", tags=["文件共享（公开�
 
 
 def _build_share_response(share: FileShare) -> ShareResponse:
+    now = datetime.now()
     return ShareResponse(
         id=share.id,
         original_name=share.original_name,
@@ -39,23 +43,27 @@ def _build_share_response(share: FileShare) -> ShareResponse:
         mime_type=share.mime_type,
         share_code=share.share_code,
         has_password=share.password_hash is not None,
-        expires_at=share.expires_at.isoformat(),
+        expires_at=share.expires_at.replace(tzinfo=TZ_SHANGHAI).isoformat(),
         max_downloads=share.max_downloads,
         download_count=share.download_count,
-        created_at=share.created_at,
+        is_expired=share.expires_at is not None and share.expires_at < now,
+        created_at=share.created_at.replace(tzinfo=TZ_SHANGHAI).isoformat(),
+        deleted_at=share.deleted_at.replace(tzinfo=TZ_SHANGHAI).isoformat() if share.deleted_at else None,
     )
 
 
 def _build_public_info(share: FileShare) -> SharePublicInfo:
+    now = datetime.now()
     return SharePublicInfo(
         share_code=share.share_code,
         original_name=share.original_name,
         file_size=share.file_size,
         mime_type=share.mime_type,
         has_password=share.password_hash is not None,
-        expires_at=share.expires_at.isoformat(),
+        expires_at=share.expires_at.replace(tzinfo=TZ_SHANGHAI).isoformat(),
         max_downloads=share.max_downloads,
         download_count=share.download_count,
+        is_expired=share.expires_at is not None and share.expires_at < now,
     )
 
 
