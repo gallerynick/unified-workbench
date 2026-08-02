@@ -260,12 +260,22 @@
   --canvas-parchment: #1a1a1a;
   --surface-pearl: #1f1f1f;
   --surface-chip-translucent: rgba(210, 210, 215, 0.3);
+  --surface-tile-1: #262626;             /* 近黑区块 1 */
+  --surface-tile-2: #303030;             /* 近黑区块 2 */
+  --surface-tile-3: #1f1f1f;             /* 近黑区块 3 */
+  --surface-black: #000000;              /* 纯黑 — 全局导航/视频 */
 
   /* === 文本色 === */
   --ink: var(--body-on-dark);
   --body: var(--body-on-dark);
   --ink-muted-80: #a6a6a6;
   --ink-muted-48: #595959;
+  --body-muted: #595959;                 /* 深色区块次级文案 */
+  --text-disabled: #595959;              /* 禁用状态文本色 — 同 ink-muted-48 */
+
+  /* === 描边线 === */
+  --divider-soft: #303030;               /* 分隔浅线 — 次级按钮"边框" */
+  --hairline: #434343;                   /* 发丝线 — 工具卡片描边 */
 
   /* === 状态色（深色变体） === */
   --color-success: var(--color-success-dark);

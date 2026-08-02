@@ -33,6 +33,7 @@ export default function ReminderFormModal({
   const [form] = Form.useForm();
   const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
   const [triggerType, setTriggerType] = useState<string>('timed');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -72,6 +73,7 @@ export default function ReminderFormModal({
   }, [visible, mode, reminder, form]);
 
   const handleSubmit = async () => {
+    setSubmitting(true);
     try {
       const values = await form.validateFields();
 
@@ -116,14 +118,21 @@ export default function ReminderFormModal({
       if (err instanceof Error) {
         message.error(err.message);
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <Modal
-      title={mode === 'create' ? '新建提醒' : '编辑提醒'}
+      title={
+        <span className={styles.modalTitle ?? ''}>
+          {mode === 'create' ? '新建提醒' : '编辑提醒'}
+        </span>
+      }
       open={visible}
       onOk={handleSubmit}
+      confirmLoading={submitting}
       onCancel={onClose}
       destroyOnClose
       className={styles.modal ?? ''}

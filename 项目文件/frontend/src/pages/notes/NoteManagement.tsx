@@ -67,13 +67,13 @@ function renderTreeTitle(node: TreeNodeData, onPin: (note: Note) => void, onEdit
       </span>
       <span className={styles.treeNodeActions}>
         <Tooltip title={note.is_pinned ? '取消置顶' : '置顶'}>
-          <Button type="text" size="small" icon={<PushpinOutlined style={{ fontSize: 'var(--text-body-mono-size)' }} />} onClick={(e) => { e.stopPropagation(); onPin(note); }} />
+          <Button type="text" size="small" icon={<PushpinOutlined style={{ fontSize: 'var(--text-body-xs-size)' }} />} aria-label="切换置顶" onClick={(e) => { e.stopPropagation(); onPin(note); }} />
         </Tooltip>
         <Tooltip title="编辑">
-          <Button type="text" size="small" icon={<EditOutlined style={{ fontSize: 'var(--text-body-mono-size)' }} />} onClick={(e) => { e.stopPropagation(); onEdit(note); }} />
+          <Button type="text" size="small" icon={<EditOutlined style={{ fontSize: 'var(--text-body-xs-size)' }} />} aria-label="编辑" onClick={(e) => { e.stopPropagation(); onEdit(note); }} />
         </Tooltip>
         <Tooltip title="删除">
-          <Button type="text" size="small" danger icon={<DeleteOutlined style={{ fontSize: 'var(--text-body-mono-size)' }} />} onClick={(e) => { e.stopPropagation(); onDelete(note); }} />
+          <Button type="text" size="small" danger icon={<DeleteOutlined style={{ fontSize: 'var(--text-body-xs-size)' }} />} aria-label="删除" onClick={(e) => { e.stopPropagation(); onDelete(note); }} />
         </Tooltip>
       </span>
     </span>
@@ -314,6 +314,7 @@ export default function NoteManagement() {
         okText={editingNote ? '保存' : '创建'}
         cancelText="取消"
         width={560}
+        destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">

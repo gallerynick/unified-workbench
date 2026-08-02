@@ -212,6 +212,7 @@ export default function BackupManagement() {
       </div>
 
       <Table<BackupInfo>
+        className={styles.table ?? ''}
         columns={columns}
         dataSource={backups}
         rowKey="filename"

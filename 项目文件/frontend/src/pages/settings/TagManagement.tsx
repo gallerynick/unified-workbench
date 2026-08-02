@@ -138,6 +138,7 @@ export default function TagManagement() {
       </div>
 
       <Table<TagType>
+        className={styles.table ?? ''}
         columns={columns}
         dataSource={tags}
         rowKey="id"
@@ -152,6 +153,7 @@ export default function TagManagement() {
         okText="保存"
         cancelText="取消"
         width={560}
+        destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">

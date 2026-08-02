@@ -44,7 +44,6 @@ export default function StreamWatch() {
     clientRef.current?.stop();
     setStatus('connecting');
     const url = `http://${window.location.hostname}:${MEDIAMTX_PORT}/${roomId}/whep`;
-    console.log('[WATCH] connecting:', url);
     startConnection(url, videoRef.current!);
     return () => {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
@@ -66,7 +65,7 @@ export default function StreamWatch() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', background: 'var(--surface-black)', color: 'var(--body-on-dark)', padding: "var(--spacing-lg)" }}>
       <Space style={{ marginBottom: "var(--spacing-card-gap)" }}>
-        <VideoCameraOutlined style={{ fontSize: 24 }} />
+        <VideoCameraOutlined style={{ fontSize: 'var(--text-heading-2-size)' }} />
         <Title level={3} style={{ color: 'var(--body-on-dark)', margin: 0 }}>直播播放</Title>
         {roomId && <Tag color="blue">房间: {roomId.slice(0, 8)}...</Tag>}
         {status === 'playing' && <Tag color="green">播放中</Tag>}

@@ -204,7 +204,7 @@ export default function Profile() {
                     border: 'var(--border-width-thin) solid var(--canvas)',
                   }}
                 >
-                  <CameraOutlined style={{ color: 'var(--canvas)', fontSize: 'var(--text-body-mono-size)' }} />
+                  <CameraOutlined style={{ color: 'var(--canvas)', fontSize: 'var(--text-caption-size)' }} />
                 </div>
               </div>
             </Upload>
@@ -326,6 +326,7 @@ export default function Profile() {
         onCancel={() => { setDeleteModalVisible(false); setDeletePassword(''); }}
         footer={null}
         width={560}
+        destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Typography.Paragraph type="danger">

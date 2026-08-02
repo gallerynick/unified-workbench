@@ -27,3 +27,26 @@
   align-items: center;
   gap: var(--spacing-card-gap);
 }
+
+.table {
+  flex: 1;
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding: var(--spacing-xs);
+  }
+
+  .header {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .header > * {
+    width: 100%;
+  }
+
+  .table {
+    overflow-x: auto;
+  }
+}

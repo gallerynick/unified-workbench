@@ -15,19 +15,19 @@ interface GraphViewProps {
 }
 
 const CATEGORY_PALETTE = [
-  '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-  '#ec4899', '#f43f5e', '#f97316', '#eab308',
-  '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6',
+  'var(--color-indigo)', 'var(--color-violet)', 'var(--color-purple)', 'var(--color-magenta)',
+  'var(--color-rose)', 'var(--color-red)', 'var(--color-orange)', 'var(--color-gold)',
+  'var(--color-lime)', 'var(--color-cyan)', 'var(--color-info)', 'var(--color-cornflower)',
 ];
 
-function categoryColor(category: string | null): string {
+function categoryColor(category: string | null, palette: string[]): string {
   if (!category) return 'var(--text-secondary)';
   let hash = 0;
   for (let i = 0; i < category.length; i++) {
     hash = ((hash << 5) - hash) + category.charCodeAt(i);
     hash |= 0;
   }
-  return CATEGORY_PALETTE[Math.abs(hash) % CATEGORY_PALETTE.length] ?? 'var(--text-secondary)';
+  return palette[Math.abs(hash) % palette.length] ?? 'var(--text-secondary)';
 }
 
 /** 读取 CSS 自定义属性用于 canvas 绘制（canvas 无法直接使用 CSS var） */
@@ -40,6 +40,13 @@ function readTokens(): { bg: string; text: string; textSecondary: string; warnin
     textSecondary: style.getPropertyValue('--text-secondary').trim() || 'var(--text-secondary)',
     warning: style.getPropertyValue('--color-warning').trim() || 'var(--color-warning)',
   };
+}
+
+/** canvas 无法直接使用 CSS var，运行时将 token 引用解析为具体颜色值 */
+function resolveCssVar(cssVar: string): string {
+  const m = /^var\((--[^)]+)\)$/.exec(cssVar);
+  if (!m?.[1]) return cssVar;
+  return getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || cssVar;
 }
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -58,6 +65,8 @@ export default function GraphView({ notes, onNodeClick, isDark: _isDark, search 
 
   // 运行时读取 CSS token（每次渲染时重新读取，确保主题切换时更新）
   const tokens = readTokens();
+  // 节点色板需在运行时解析为具体色值供 canvas 绘制
+  const palette = CATEGORY_PALETTE.map(resolveCssVar);
   // 将 textSecondary hex 转为 rgb 分量用于 rgba 构造
   const textSecondaryRgb = useMemo(() => hexToRgb(tokens.textSecondary) ?? { r: 140, g: 140, b: 140 }, [tokens.textSecondary]);
 
@@ -154,7 +163,7 @@ export default function GraphView({ notes, onNodeClick, isDark: _isDark, search 
     const x = node.x ?? 0;
     const y = node.y ?? 0;
     const baseRadius = Math.log(node.degree + 2) * 4 + 6;
-    const color = categoryColor(node.category);
+    const color = categoryColor(node.category, palette);
     const isHovered = hoveredNode === node.id;
     const isNeighbor = hoveredNeighbors.current.has(node.id);
     const isDimmed = hoveredNode !== null && !isHovered && !isNeighbor;
@@ -178,7 +187,7 @@ export default function GraphView({ notes, onNodeClick, isDark: _isDark, search 
 
     if (globalScale >= 0.6) {
       const fontSize = Math.min(14, Math.max(10, 12 / globalScale));
-      ctx.font = `500 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
@@ -187,7 +196,7 @@ export default function GraphView({ notes, onNodeClick, isDark: _isDark, search 
       ctx.fillStyle = tokens.text;
       ctx.fillText(label, x, y + radius + 4);
     }
-  }, [hoveredNode, tokens]);
+  }, [hoveredNode, tokens, palette]);
 
   const nodePointerAreaPaint = useCallback((node: NodeObject<GraphNodeData>, color: string, ctx: CanvasRenderingContext2D) => {
     const x = node.x ?? 0;

@@ -216,7 +216,7 @@ export default function CategoryDetail({ categoryId, onBack }: CategoryDetailPro
       label: (
         <Space>
           <FolderOutlined style={{ color: 'var(--color-info)' }} />
-          <span style={{ fontWeight: 500 }}>{subCat}</span>
+          <span style={{ fontWeight: 600 }}>{subCat}</span>
           <Tag>{items.length} 项</Tag>
         </Space>
       ),

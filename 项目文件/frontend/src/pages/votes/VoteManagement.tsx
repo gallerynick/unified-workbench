@@ -146,9 +146,9 @@ export default function VoteManagement() {
         <Title level={4} className={styles.title ?? ''}>投票决策</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建投票</Button>
       </div>
-      <Table<Vote> columns={columns} dataSource={votes} rowKey="id" loading={loading}
-        pagination={{ current: page, pageSize: 20, total, onChange: (p) => setPage(p) }} />
-      <Modal title="新建投票" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
+      <Table<Vote> className={styles.table ?? ''} columns={columns} dataSource={votes} rowKey="id" loading={loading}
+        pagination={{ current: page, pageSize: 20, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p) => setPage(p) }} />
+      <Modal title="新建投票" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="投票标题" rules={[{ required: true, message: '请输入投票标题' }]}>
             <Input placeholder="请输入投票标题" />
@@ -175,7 +175,7 @@ export default function VoteManagement() {
           </div>
         </Form>
       </Modal>
-      <Modal title="投票结果" open={resultsVisible} onCancel={() => setResultsVisible(false)} footer={null} width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
+      <Modal title="投票结果" open={resultsVisible} onCancel={() => setResultsVisible(false)} footer={null} width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         {results.map((r) => (
           <div key={r.option} style={{ marginBottom: 'var(--spacing-xs)' }}>
             <Text>{r.option}</Text>
@@ -192,6 +192,7 @@ export default function VoteManagement() {
         cancelText="取消"
         confirmLoading={submitting}
         width={560}
+        destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         {currentVote && (

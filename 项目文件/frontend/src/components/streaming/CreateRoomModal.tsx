@@ -105,11 +105,11 @@ export default function CreateRoomModal({ open, onClose, onCreated }: CreateRoom
             getFieldValue('mode') === 'external' ? (
               <div
                 style={{
-                  padding: '8px 12px',
-                  marginBottom: 16,
+                  padding: 'var(--spacing-xs) var(--spacing-sm)',
+                  marginBottom: 'var(--spacing-card-gap)',
                   background: 'var(--bg-tertiary)',
                   borderRadius: 'var(--rounded-sm)',
-                  fontSize: 'var(--text-body-mono-size)',
+                  fontSize: 'var(--text-caption-size)',
                   color: 'var(--text-secondary)',
                   lineHeight: 1.6,
                 }}
@@ -136,11 +136,11 @@ export default function CreateRoomModal({ open, onClose, onCreated }: CreateRoom
             getFieldValue('room_type') === 'temporary' ? (
               <div
                 style={{
-                  padding: '8px 12px',
-                  marginBottom: 16,
+                  padding: 'var(--spacing-xs) var(--spacing-sm)',
+                  marginBottom: 'var(--spacing-card-gap)',
                   background: 'var(--bg-tertiary)',
                   borderRadius: 'var(--rounded-sm)',
-                  fontSize: 'var(--text-body-mono-size)',
+                  fontSize: 'var(--text-caption-size)',
                   color: 'var(--text-secondary)',
                   lineHeight: 1.6,
                 }}

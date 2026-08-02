@@ -177,6 +177,7 @@ export function FileSharePage() {
               type="link"
               size="small"
               icon={<ShareAltOutlined />}
+              aria-label="分享"
               onClick={() => setQrRecord(record)}
             />
           </Tooltip>
@@ -185,6 +186,7 @@ export function FileSharePage() {
               type="link"
               size="small"
               icon={<SettingOutlined />}
+              aria-label="设置"
               onClick={() => setSettingsRecord(record)}
             />
           </Tooltip>
@@ -194,6 +196,7 @@ export function FileSharePage() {
               size="small"
               danger
               icon={<DeleteOutlined />}
+              aria-label="删除"
               onClick={() => handleDelete(record)}
             />
           </Tooltip>
@@ -282,6 +285,7 @@ export function FileSharePage() {
                     type="text"
                     size="small"
                     icon={<CopyOutlined />}
+                    aria-label="复制"
                     onClick={() => {
                       navigator.clipboard.writeText(qrRecord.share_code);
                       message.success('已复制');
@@ -301,6 +305,7 @@ export function FileSharePage() {
                     type="text"
                     size="small"
                     icon={<CopyOutlined />}
+                    aria-label="复制"
                     onClick={() => {
                       navigator.clipboard.writeText(getShareUrls(qrRecord.share_code).network);
                       message.success('已复制');

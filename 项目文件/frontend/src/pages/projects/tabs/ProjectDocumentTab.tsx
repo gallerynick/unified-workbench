@@ -590,13 +590,13 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
           <div>
             <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>创建时间</Text>
             <div>
-              <Text type="secondary" style={{ fontSize: 'var(--text-body-mono-size)' }}>{formatDate(activeDoc.created_at)}</Text>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>{formatDate(activeDoc.created_at)}</Text>
             </div>
           </div>
           <div>
             <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>更新时间</Text>
             <div>
-              <Text type="secondary" style={{ fontSize: 'var(--text-body-mono-size)' }}>{formatDate(activeDoc.updated_at)}</Text>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>{formatDate(activeDoc.updated_at)}</Text>
             </div>
           </div>
         </div>
@@ -772,6 +772,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                         type="text"
                         size="small"
                         icon={<FormOutlined />}
+                        aria-label="重命名"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenRenameCategory(category);
@@ -784,6 +785,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                         size="small"
                         danger
                         icon={<DeleteOutlined />}
+                        aria-label="删除"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteCategory(category);
@@ -803,7 +805,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                         display: 'flex',
                         alignItems: 'center',
                         gap: "var(--spacing-sm)",
-                        padding: '8px 12px',
+                        padding: 'var(--spacing-xs) var(--spacing-sm)',
                         borderRadius: 'var(--rounded-xs)',
                         cursor: 'pointer',
                         transition: 'background 0.2s',
@@ -843,6 +845,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                               type="text"
                               size="small"
                               icon={<CopyOutlined />}
+                              aria-label="复制"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleCopyDocument(doc.id);
@@ -854,6 +857,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                               type="text"
                               size="small"
                               icon={<ExportOutlined />}
+                              aria-label="导出"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleExportDocument(doc.id);
@@ -866,6 +870,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                               size="small"
                               danger
                               icon={<DeleteOutlined />}
+                              aria-label="删除"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteDocument(doc.id, doc.title);

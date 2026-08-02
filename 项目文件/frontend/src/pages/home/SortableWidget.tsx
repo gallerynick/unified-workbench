@@ -25,7 +25,7 @@ export default function SortableWidget({ id, children, onRemove }: SortableWidge
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 100 : 'auto',
+    zIndex: isDragging ? 'var(--z-dropdown)' : 'auto',
   };
 
   return (

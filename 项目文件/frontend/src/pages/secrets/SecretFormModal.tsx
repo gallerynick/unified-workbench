@@ -179,6 +179,7 @@ export default function SecretFormModal({
                 size="small"
                 danger
                 icon={<MinusCircleOutlined />}
+                aria-label="移除"
                 className={styles.kvRemoveBtn ?? ''}
                 onClick={() => handleRemoveKv(index)}
                 disabled={kvPairs.length <= 1}

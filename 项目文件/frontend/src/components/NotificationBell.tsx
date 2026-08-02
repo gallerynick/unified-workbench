@@ -34,7 +34,7 @@ export default function NotificationBell({
     >
       <div
         style={{
-          padding: '12px 16px',
+          padding: 'var(--spacing-sm) var(--spacing-card-gap)',
           borderBottom: '1px solid var(--border-secondary)',
           display: 'flex',
           justifyContent: 'space-between',
@@ -54,7 +54,7 @@ export default function NotificationBell({
         )}
       </div>
       {recentNotifications.length === 0 ? (
-        <Empty description="暂无通知" style={{ padding: 24 }} />
+        <Empty description="暂无通知" style={{ padding: 'var(--spacing-lg)' }} />
       ) : (
         <>
           <List
@@ -62,7 +62,7 @@ export default function NotificationBell({
             renderItem={(item) => (
               <List.Item
                 style={{
-                  padding: '12px 16px',
+                  padding: 'var(--spacing-sm) var(--spacing-card-gap)',
                   cursor: 'pointer',
                     background: item.read ? 'transparent' : 'var(--color-success-bg)',
                 }}
@@ -101,7 +101,7 @@ export default function NotificationBell({
             )}
           />
           {notifications.length > 10 && (
-            <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-secondary)', textAlign: 'center' }}>
+            <div style={{ padding: 'var(--spacing-xs) var(--spacing-card-gap)', borderTop: '1px solid var(--border-secondary)', textAlign: 'center' }}>
               <Button type="link" size="small" icon={<ExpandOutlined />} onClick={onOpenDrawer}>
                 查看全部通知
               </Button>

@@ -48,5 +48,5 @@
 .fc .fc-col-header-cell {
   padding: var(--spacing-sm) var(--spacing-xxs);
   font-weight: 600;
-  font-size: var(--text-body-mono-size);
+  font-size: var(--text-caption-size);
 }

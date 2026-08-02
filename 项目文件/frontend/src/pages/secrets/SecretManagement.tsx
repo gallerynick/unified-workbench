@@ -179,6 +179,7 @@ export default function SecretManagement() {
                     type="text"
                     size="small"
                     icon={<EditOutlined />}
+                    aria-label="编辑"
                     onClick={(e) => handleEdit(category, e)}
                   />
                   <Button
@@ -186,6 +187,7 @@ export default function SecretManagement() {
                     size="small"
                     danger
                     icon={<DeleteOutlined />}
+                    aria-label="删除"
                     onClick={(e) => handleDelete(category, e)}
                   />
                 </div>

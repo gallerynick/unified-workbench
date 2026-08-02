@@ -156,14 +156,14 @@ export default function TaskManagement() {
         </Space>
       </div>
 
-      <Table<Task> columns={columns} dataSource={tasks} rowKey="id" loading={loading}
-        pagination={{ current: page, pageSize, total, showSizeChanger: true, showTotal: (t) => `共 ${t} 条`,
+      <Table<Task> className={styles.table ?? ''} columns={columns} dataSource={tasks} rowKey="id" loading={loading}
+        pagination={{ current: page, pageSize, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`,
           onChange: (p, ps) => { setPage(p); setPageSize(ps); },
         }}
       />
 
       <Modal title={editingTask ? '编辑待办' : '新建待办'} open={modalVisible} onOk={handleSave}
-        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
+        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical" initialValues={{ priority: 'medium' }}>
           <Form.Item name="title" label="待办标题" rules={[{ required: true, message: '请输入待办标题' }]}>
             <Input placeholder="请输入待办标题" />

@@ -555,8 +555,6 @@ export default function StreamStudio() {
     const destTrack = dest.stream.getAudioTracks()[0];
     if (destTrack) compositeStream.addTrack(destTrack);
 
-    console.log('[PUSH] tracks:', compositeStream.getTracks().map(t => t.kind));
-
     const fpsInterval = 1000 / streamFps;
     const drawLoop = () => {
       renderLoopRef.current = window.setTimeout(() => {
@@ -565,7 +563,6 @@ export default function StreamStudio() {
       }, fpsInterval);
     };
     drawLoop();
-    console.log(`[PUSH] canvas=${canvasW}x${canvasH} fps=${streamFps} bitrate=${streamBitrate}kbps`);
 
     const client = new WhipClient();
     client.onStateChange = (s) => {
@@ -907,7 +904,7 @@ export default function StreamStudio() {
     <div className={styles.container}>
       {isExternalMode ? (
         /* Todo 12: External mode — 只显示 RTMP 地址和观看地址 */
-        <div style={{ textAlign: 'center', padding: '60px 24px', maxWidth: 640, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', padding: '60px var(--spacing-lg)', maxWidth: 640, margin: '0 auto' }}>
           <Title level={4} style={{ marginBottom: "var(--spacing-xl)" }}>
             {roomInfo?.name || '直播间'}
             <Badge status={roomInfo?.is_active ? 'processing' : 'default'} style={{ marginLeft: "var(--spacing-sm)" }} text={roomInfo?.is_active ? '推流中' : '空闲'} />
@@ -915,9 +912,9 @@ export default function StreamStudio() {
           <div style={{ background: 'var(--bg-primary)', border: 'var(--border-width-thin) solid var(--border-secondary)', borderRadius: 'var(--rounded-sm)', padding: "var(--spacing-lg)", marginBottom: "var(--spacing-card-gap)", textAlign: 'left' }}>
             <div style={{ marginBottom: "var(--spacing-card-gap)" }}>
               <Text strong style={{ display: 'block', marginBottom: "var(--spacing-xxs)" }}>RTMP 推流地址</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", background: 'var(--bg-tertiary)', padding: '8px 12px', borderRadius: 'var(--rounded-xs)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", background: 'var(--bg-tertiary)', padding: 'var(--spacing-xs) var(--spacing-sm)', borderRadius: 'var(--rounded-xs)' }}>
                 <code style={{ flex: 1, fontSize: 'var(--text-caption-size)', wordBreak: 'break-all' }}>{roomInfo?.rtmp_url}</code>
-                <Button type="text" icon={<CopyOutlined />} onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', 'RTMP 地址')} />
+                <Button type="text" icon={<CopyOutlined />} aria-label="复制" onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', 'RTMP 地址')} />
               </div>
             </div>
             <Text type="secondary" style={{ display: 'block', marginBottom: "var(--spacing-lg)" }}>
@@ -925,9 +922,9 @@ export default function StreamStudio() {
             </Text>
             <div>
               <Text strong style={{ display: 'block', marginBottom: "var(--spacing-xxs)" }}>观看地址</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", background: 'var(--bg-tertiary)', padding: '8px 12px', borderRadius: 'var(--rounded-xs)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", background: 'var(--bg-tertiary)', padding: 'var(--spacing-xs) var(--spacing-sm)', borderRadius: 'var(--rounded-xs)' }}>
                 <code style={{ flex: 1, fontSize: 'var(--text-caption-size)', wordBreak: 'break-all' }}>{roomInfo?.watch_url}</code>
-                <Button type="text" icon={<CopyOutlined />} onClick={() => copyToClipboard(roomInfo?.watch_url || '', '观看地址')} />
+                <Button type="text" icon={<CopyOutlined />} aria-label="复制" onClick={() => copyToClipboard(roomInfo?.watch_url || '', '观看地址')} />
               </div>
             </div>
           </div>
@@ -972,6 +969,7 @@ export default function StreamStudio() {
                         size="small"
                         danger
                         icon={<DeleteOutlined />}
+                        aria-label="删除场景"
                         onClick={(e) => {
                           e.stopPropagation();
                           removeScene(scene.id);
@@ -996,9 +994,9 @@ export default function StreamStudio() {
             <div className={styles.sectionTitle}>画面源</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xxs)", marginBottom: "var(--spacing-xxs)" }}>
               <Tooltip title={activeScene.sources.every((s) => s.visible) ? '全部隐藏' : '全部显示'}>
-                <Button type="text" size="small" icon={activeScene.sources.every((s) => s.visible) ? <EyeOutlined /> : <EyeOutlined style={{ opacity: 0.3 }} />} onClick={toggleAllSourcesVisibility} />
+                <Button type="text" size="small" icon={activeScene.sources.every((s) => s.visible) ? <EyeOutlined /> : <EyeOutlined style={{ opacity: 0.3 }} />} aria-label="切换显示" onClick={toggleAllSourcesVisibility} />
               </Tooltip>
-              <span style={{ fontSize: 'var(--text-body-xs-size)', fontWeight: 500 }}>黑屏</span>
+              <span style={{ fontSize: 'var(--text-body-xs-size)', fontWeight: 600 }}>黑屏</span>
             </div>
             <div className={styles.sourceList}>
               {activeScene.sources.map((source, idx) => (
@@ -1018,6 +1016,7 @@ export default function StreamStudio() {
                       type="text"
                       size="small"
                       icon={<ArrowUpOutlined />}
+                      aria-label="上移"
                       disabled={idx === 0}
                       onClick={() => moveSourceOrder(source.id, -1)}
                     />
@@ -1025,6 +1024,7 @@ export default function StreamStudio() {
                       type="text"
                       size="small"
                       icon={<ArrowDownOutlined />}
+                      aria-label="下移"
                       disabled={idx === activeScene.sources.length - 1}
                       onClick={() => moveSourceOrder(source.id, 1)}
                     />
@@ -1038,6 +1038,7 @@ export default function StreamStudio() {
                           <EyeOutlined style={{ opacity: 0.3 }} />
                         )
                       }
+                      aria-label="切换可见性"
                       onClick={() => toggleSourceVisibility(source.id)}
                     />
                     <Button
@@ -1045,6 +1046,7 @@ export default function StreamStudio() {
                       size="small"
                       danger
                       icon={<DeleteOutlined />}
+                      aria-label="删除画面源"
                       onClick={() => removeSource(source.id)}
                     />
                   </Space>
@@ -1085,19 +1087,19 @@ export default function StreamStudio() {
             <div className={styles.sectionTitle}>音频源</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xxs)", marginBottom: "var(--spacing-xxs)" }}>
               <Tooltip title={masterMuted ? '取消静音' : '全部静音'}>
-                <Button type="text" size="small" icon={masterMuted ? <MutedOutlined /> : <SoundOutlined />} onClick={toggleMasterMute} />
+                <Button type="text" size="small" icon={masterMuted ? <MutedOutlined /> : <SoundOutlined />} aria-label="切换静音" onClick={toggleMasterMute} />
               </Tooltip>
-              <span style={{ fontSize: 'var(--text-body-xs-size)', fontWeight: 500 }}>静音</span>
+              <span style={{ fontSize: 'var(--text-body-xs-size)', fontWeight: 600 }}>静音</span>
             </div>
             {audioTracks.map((track, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xxs)", padding: '4px 0' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xxs)", padding: 'var(--spacing-xxs) 0' }}>
                 {track.stream ? (
                   <>
                     <Tooltip title={track.muted ? '取消静音' : '静音'}>
-                      <Button type="text" size="small" icon={track.muted ? <MutedOutlined /> : <SoundOutlined />} onClick={() => toggleTrackMute(i)} />
+                      <Button type="text" size="small" icon={track.muted ? <MutedOutlined /> : <SoundOutlined />} aria-label="切换静音" onClick={() => toggleTrackMute(i)} />
                     </Tooltip>
                     <Text style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--color-success)', flex: 1 }}>{track.name}</Text>
-                    <Tooltip title="移除"><Button type="text" size="small" icon={<DeleteOutlined />} onClick={() => removeAudioFromTrack(i)} /></Tooltip>
+                    <Tooltip title="移除"><Button type="text" size="small" icon={<DeleteOutlined />} aria-label="移除音轨" onClick={() => removeAudioFromTrack(i)} /></Tooltip>
                   </>
                 ) : (
                   <Select
@@ -1170,7 +1172,7 @@ export default function StreamStudio() {
               {activeScene.sources.length === 0 ? (
                 <div className={styles.emptyPreview}>
                   <VideoCameraOutlined
-                    style={{ fontSize: 48, color: 'var(--text-secondary)' }}
+                    style={{ fontSize: '48px', color: 'var(--text-secondary)' }}
                   />
                   <div>点击"添加画面源"开始</div>
                 </div>
@@ -1196,16 +1198,16 @@ export default function StreamStudio() {
                       {hoveredSourceId === source.id && (
                         <>
                           {/* 四角调整控制点 */}
-                          <div style={{ position: 'absolute', left: -5, top: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nwse-resize', borderRadius: 'var(--rounded-chip)', zIndex: 10 }}
+                          <div style={{ position: 'absolute', left: -5, top: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nwse-resize', borderRadius: 'var(--rounded-chip)', zIndex: 'var(--z-dropdown)' }}
                             onMouseDown={(e) => { e.stopPropagation(); const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect(); if (!rect) return; setResizeSourceId(source.id); setResizeCorner('nw'); setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height }); }}
                           />
-                          <div style={{ position: 'absolute', right: -5, top: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nesw-resize', borderRadius: 'var(--rounded-chip)', zIndex: 10 }}
+                          <div style={{ position: 'absolute', right: -5, top: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nesw-resize', borderRadius: 'var(--rounded-chip)', zIndex: 'var(--z-dropdown)' }}
                             onMouseDown={(e) => { e.stopPropagation(); const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect(); if (!rect) return; setResizeSourceId(source.id); setResizeCorner('ne'); setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height }); }}
                           />
-                          <div style={{ position: 'absolute', left: -5, bottom: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nesw-resize', borderRadius: 'var(--rounded-chip)', zIndex: 10 }}
+                          <div style={{ position: 'absolute', left: -5, bottom: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nesw-resize', borderRadius: 'var(--rounded-chip)', zIndex: 'var(--z-dropdown)' }}
                             onMouseDown={(e) => { e.stopPropagation(); const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect(); if (!rect) return; setResizeSourceId(source.id); setResizeCorner('sw'); setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height }); }}
                           />
-                          <div style={{ position: 'absolute', right: -5, bottom: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nwse-resize', borderRadius: 'var(--rounded-chip)', zIndex: 10 }}
+                          <div style={{ position: 'absolute', right: -5, bottom: -5, width: 10, height: 10, background: 'var(--color-info)', cursor: 'nwse-resize', borderRadius: 'var(--rounded-chip)', zIndex: 'var(--z-dropdown)' }}
                             onMouseDown={(e) => { e.stopPropagation(); const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect(); if (!rect) return; setResizeSourceId(source.id); setResizeCorner('se'); setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, sourceX: source.x, sourceY: source.y, sourceW: source.width, sourceH: source.height }); }}
                           />
                         </>
@@ -1256,16 +1258,16 @@ export default function StreamStudio() {
               </Tooltip>
             </Space>
           </div>
-          <div style={{ display: 'flex', gap: "var(--spacing-xs)", padding: '8px 12px', borderTop: '1px solid var(--border-secondary)', fontSize: 'var(--text-body-xs-size)', flexShrink: 0, visibility: isStreaming ? 'visible' : 'hidden' }}>
+          <div style={{ display: 'flex', gap: "var(--spacing-xs)", padding: 'var(--spacing-xs) var(--spacing-sm)', borderTop: '1px solid var(--border-secondary)', fontSize: 'var(--text-body-xs-size)', flexShrink: 0, visibility: isStreaming ? 'visible' : 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)" }}>
                 <Text style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>观看:</Text>
               <code style={{ color: 'var(--color-success)', fontSize: 'var(--text-body-xs-size)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{watchUrl || '设置中配置'}</code>
-              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(watchUrl, '观看地址')} /></Tooltip>
+              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} aria-label="复制" onClick={() => copyToClipboard(watchUrl, '观看地址')} /></Tooltip>
             </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)" }}>
                 <Text style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>拉流:</Text>
               <code style={{ color: 'var(--color-warning)', fontSize: 'var(--text-body-xs-size)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roomInfo?.rtmp_url || '配置中'}</code>
-              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', '拉流地址')} /></Tooltip>
+              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} aria-label="复制" onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', '拉流地址')} /></Tooltip>
             </div>
           </div>
           </div>
@@ -1277,6 +1279,7 @@ export default function StreamStudio() {
         onCancel={() => setShowSourceModal(false)}
         footer={null}
         width={560}
+        destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Space
@@ -1334,6 +1337,7 @@ export default function StreamStudio() {
         open={showSettingsModal}
         onCancel={() => setShowSettingsModal(false)}
         width={560}
+        destroyOnClose
         footer={
           <Space>
             <Button onClick={() => setShowSettingsModal(false)}>关闭</Button>
@@ -1465,7 +1469,7 @@ export default function StreamStudio() {
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         {!speedTestRunning && speedTestResults.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <div style={{ textAlign: 'center', padding: 'var(--spacing-lg) 0' }}>
             <Text type="secondary" style={{ display: 'block', marginBottom: "var(--spacing-xs)" }}>
               上行 / 下行 / 并发带宽综合测试
             </Text>
@@ -1476,7 +1480,7 @@ export default function StreamStudio() {
           </div>
         )}
         {speedTestRunning && (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <div style={{ textAlign: 'center', padding: 'var(--spacing-lg) 0' }}>
             <Spin size="large" />
             <div style={{ marginTop: "var(--spacing-card-gap)" }}>
               <Text type="secondary">已测 {speedTestResults.length} 次</Text>
@@ -1499,7 +1503,7 @@ export default function StreamStudio() {
           const med = sorted[Math.floor(sorted.length / 2)]!;
           const recommend = Math.round(med * 0.7);
           return (
-             <div style={{ padding: '8px 0' }}>
+             <div style={{ padding: 'var(--spacing-xs) 0' }}>
               <Title level={5} style={{ marginBottom: "var(--spacing-sm)" }}>上下行带宽</Title>
               {allResults.length > 0 && (() => {
                 const dlData = downloadResults;

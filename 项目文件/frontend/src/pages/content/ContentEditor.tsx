@@ -57,11 +57,11 @@ const FontSize = Extension.create({
   },
 });
 
-// 预设颜色列表
+// 预设颜色列表（优先引用设计 token，无对应 token 的色值保留原值）
 const COLORS = [
-  '#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', '#ffffff',
-  '#ff0000', '#ff5722', '#ff9800', '#ffc107', '#ffeb3b', '#8bc34a', '#4caf50', '#009688',
-  '#00bcd4', '#03a9f4', '#2196f3', '#3f51b5', '#673ab7', '#9c27b0', '#e91e63', '#f44336',
+  'var(--ink)', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', 'var(--body-on-dark)',
+  'var(--color-red)', 'var(--color-orange-bright)', 'var(--color-orange)', '#ffc107', '#ffeb3b', 'var(--color-lime)', 'var(--color-success)', '#009688',
+  'var(--color-cyan)', '#03a9f4', 'var(--color-info)', 'var(--color-indigo)', 'var(--color-violet)', 'var(--color-purple)', 'var(--color-magenta)', 'var(--color-red)',
   '#b71c1c', '#bf360c', '#e65100', '#f57f17', '#f9a825', '#33691e', '#1b5e20', '#004d40',
   '#006064', '#01579b', '#0d47a1', '#1a237e', '#311b92', '#4a148c', '#880e4f', '#c62828',
 ];

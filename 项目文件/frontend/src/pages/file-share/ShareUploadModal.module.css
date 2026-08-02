@@ -5,7 +5,7 @@
 .expiryRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
 }
 
 .expiryInput {
@@ -14,5 +14,5 @@
 }
 
 .progress {
-  margin-top: 16px;
+  margin-top: var(--spacing-card-gap);
 }

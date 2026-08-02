@@ -158,14 +158,14 @@ export default function ContactManagement() {
         </Space>
       </div>
 
-      <Table<Contact> columns={columns} dataSource={contacts} rowKey="id" loading={loading}
+      <Table<Contact> className={styles.table ?? ''} columns={columns} dataSource={contacts} rowKey="id" loading={loading}
         pagination={{ current: page, pageSize, total, showSizeChanger: true, showTotal: (t) => `共 ${t} 条`,
           onChange: (p, ps) => { setPage(p); setPageSize(ps); },
         }}
       />
 
       <Modal title={editingContact ? '编辑联系人' : '新建联系人'} open={modalVisible} onOk={handleSave}
-        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
+        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical">
           <Form.Item label="姓名" required>
             <Input placeholder="请输入姓名" value={formName} onChange={(e) => setFormName(e.target.value)} />
@@ -184,7 +184,7 @@ export default function ContactManagement() {
           </Form.Item>
           {formType === 'other' && (
             <div style={{ border: 'var(--border-width-thin) solid var(--border-primary)', borderRadius: 'var(--rounded-chip)', padding: "var(--spacing-sm)" }}>
-              <div style={{ marginBottom: "var(--spacing-xs)", fontWeight: 500 }}>自定义字段</div>
+              <div style={{ marginBottom: "var(--spacing-xs)", fontWeight: 600 }}>自定义字段</div>
               {customFields.map((f, i) => (
                 <Space key={i} style={{ marginBottom: "var(--spacing-xs)", display: 'flex' }}>
                   <Input placeholder="字段名" value={f.key} style={{ width: 120 }}

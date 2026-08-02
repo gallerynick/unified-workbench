@@ -100,7 +100,7 @@ export default function FormManagement() {
               <Button type="link" size="small" icon={<ShareAltOutlined />}>分享</Button>
             </Dropdown>
           )}
-          <Button type="link" size="small" danger icon={<DeleteOutlined />}
+          <Button type="link" size="small" danger icon={<DeleteOutlined />} aria-label="删除"
             onClick={() => handleDelete(record)} />
         </Space>
       )
@@ -113,9 +113,9 @@ export default function FormManagement() {
         <Title level={4} className={styles.title ?? ''}>表单收集</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建表单</Button>
       </div>
-      <Table<FormItem> columns={columns} dataSource={forms} rowKey="id" loading={loading}
-        pagination={{ current: page, pageSize: 20, total, onChange: (p) => setPage(p) }} />
-      <Modal title="新建表单" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
+      <Table<FormItem> className={styles.table ?? ''} columns={columns} dataSource={forms} rowKey="id" loading={loading}
+        pagination={{ current: page, pageSize: 20, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p) => setPage(p) }} />
+      <Modal title="新建表单" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="表单标题" rules={[{ required: true, message: '请输入表单标题' }]}>
             <Input placeholder="请输入表单标题" />
@@ -146,7 +146,7 @@ export default function FormManagement() {
           </div>
         </Form>
       </Modal>
-      <Modal title="分享表单" open={showQrModal} onCancel={() => setShowQrModal(false)} footer={null} width={420} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
+      <Modal title="分享表单" open={showQrModal} onCancel={() => setShowQrModal(false)} footer={null} width={420} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         {qrForm && (
           <div style={{ textAlign: 'center' }}>
             <QRCodeSVG value={`${window.location.origin}/forms/${qrForm.id}/fill`} size={200} />

@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-card-gap);
-  min-height: 48px;
+  min-height: var(--spacing-xxl);
 }
 
 .main {

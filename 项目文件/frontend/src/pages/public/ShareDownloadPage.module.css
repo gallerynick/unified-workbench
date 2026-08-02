@@ -10,7 +10,7 @@
 .card {
   width: 100%;
   max-width: 480px;
-  margin: 16px;
+  margin: var(--spacing-card-gap);
   background: var(--card-bg);
   border: var(--card-border);
   border-radius: var(--rounded-md);
@@ -21,14 +21,14 @@
 .fileIcon {
   font-size: 48px;
   color: var(--color-primary);
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-card-gap);
   text-align: center;
 }
 
 .fileName {
-  font-size: 18px;
+  font-size: var(--text-button-large-size);
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-xs);
   color: var(--text-primary);
   text-align: center;
   word-break: break-all;
@@ -40,19 +40,19 @@
   align-items: center;
   gap: var(--spacing-xxs);
   color: var(--text-secondary);
-  font-size: 13px;
-  margin-bottom: 8px;
+  font-size: var(--text-body-mono-size);
+  margin-bottom: var(--spacing-xs);
 }
 
 .downloadButton {
   width: 100%;
-  margin-top: 24px;
+  margin-top: var(--spacing-lg);
 }
 
 .passwordSection {
   display: flex;
-  gap: 8px;
-  margin-top: 16px;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-card-gap);
 }
 
 .passwordInput {

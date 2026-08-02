@@ -83,6 +83,7 @@ export default function VotePopup() {
       footer={null}
       width={420}
       maskClosable={false}
+      destroyOnClose
     >
       {currentVote && (
         <div>

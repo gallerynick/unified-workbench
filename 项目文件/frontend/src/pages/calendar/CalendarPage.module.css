@@ -10,7 +10,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--spacing-card-gap);
-  min-height: 48px;
+  min-height: var(--spacing-xxl);
 }
 
 .title {

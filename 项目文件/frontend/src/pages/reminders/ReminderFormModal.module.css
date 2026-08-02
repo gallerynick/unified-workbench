@@ -2,6 +2,14 @@
   top: calc(var(--spacing-xl) + var(--spacing-xs));
 }
 
+.modalTitle {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .form {
   padding-top: var(--spacing-xs);
 }

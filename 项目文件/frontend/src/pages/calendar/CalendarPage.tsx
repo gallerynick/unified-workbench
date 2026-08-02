@@ -224,7 +224,7 @@ export default function CalendarPage() {
 
       <Modal title={editingEvent ? '编辑事件' : '新建事件'} open={modalVisible} onOk={handleSave}
         onCancel={() => { setModalVisible(false); resetForm(); }} okText="保存" cancelText="取消"
-        okButtonProps={{ loading: saving }} confirmLoading={saving} width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
+        okButtonProps={{ loading: saving }} confirmLoading={saving} width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical">
           <Form.Item label="事件标题" required>
             <Input placeholder="请输入事件标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />

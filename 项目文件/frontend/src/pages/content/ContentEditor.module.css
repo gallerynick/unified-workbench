@@ -103,7 +103,7 @@
 .fontSizeSelect {
   min-width: 80px;
   height: 28px;
-  font-size: var(--text-body-mono-size);
+  font-size: var(--text-body-sm-size);
 }
 
 .editorContent {

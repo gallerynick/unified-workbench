@@ -92,6 +92,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
               type="text"
               size="small"
               icon={<EditOutlined />}
+              aria-label="编辑"
               onClick={() => {
                 setNameInput(room.name);
                 setEditingName(true);
@@ -177,6 +178,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
                 type="text"
                 size="small"
                 icon={<CopyOutlined />}
+                aria-label="复制"
                 onClick={() => copyToClipboard(room.push_url, '推流地址')}
               />
             </Tooltip>
@@ -202,6 +204,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
                 type="text"
                 size="small"
                 icon={<CopyOutlined />}
+                aria-label="复制"
                 onClick={() => copyToClipboard(room.rtmp_url, 'RTMP 地址')}
               />
             </Tooltip>
@@ -235,6 +238,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
               type="text"
               size="small"
               icon={<CopyOutlined />}
+              aria-label="复制"
               onClick={() => copyToClipboard(room.watch_url, '观看地址')}
             />
           </Tooltip>
@@ -257,7 +261,7 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
               padding: '10px 14px',
               background: 'var(--bg-tertiary)',
               borderRadius: 'var(--rounded-sm)',
-              fontSize: 'var(--text-body-mono-size)',
+              fontSize: 'var(--text-caption-size)',
               color: 'var(--text-secondary)',
               lineHeight: 1.6,
               border: 'var(--border-width-thin) solid var(--border-tertiary)',

@@ -65,7 +65,7 @@
   display: inline-block;
   min-width: 80px;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .detailValue {

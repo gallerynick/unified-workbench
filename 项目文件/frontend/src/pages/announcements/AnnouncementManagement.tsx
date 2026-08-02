@@ -164,9 +164,11 @@ export default function AnnouncementManagement() {
         <Title level={4} className={styles.title ?? ''}>
           公告通知
         </Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
-          发布公告
-        </Button>
+        <Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
+            发布公告
+          </Button>
+        </Space>
       </div>
 
       <Tabs activeKey={activeTab} items={tabItems} onChange={handleTabChange} className={styles.tabs ?? ''} />
@@ -265,6 +267,7 @@ export default function AnnouncementManagement() {
         okText="发布"
         cancelText="取消"
         width={560}
+        destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">
@@ -300,6 +303,7 @@ export default function AnnouncementManagement() {
         okText="保存"
         cancelText="取消"
         width={560}
+        destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={editForm} layout="vertical">

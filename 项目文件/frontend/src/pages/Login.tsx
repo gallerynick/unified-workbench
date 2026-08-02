@@ -68,7 +68,7 @@ export default function Login() {
     <div className={`login-page ${styles.container ?? ''} ${transitioning ? styles.containerLeaving : ''}`}>
       <Card className={`${styles.card ?? ''} ${transitioning ? styles.cardLeaving : ''}`} bordered={false}>
         <div className={styles.header ?? ''}>
-          <Title level={3} className={styles.title ?? ''}>
+          <Title level={2} className={styles.title ?? ''}>
             {customization.app.name}
           </Title>
           <Text type="secondary">请登录以继续</Text>
@@ -88,6 +88,7 @@ export default function Login() {
             <Input
               prefix={<UserOutlined />}
               placeholder="用户名"
+              aria-label="用户名"
             />
           </Form.Item>
 
@@ -98,6 +99,7 @@ export default function Login() {
             <Input.Password
               prefix={<LockOutlined />}
               placeholder="密码"
+              aria-label="密码"
             />
           </Form.Item>
 

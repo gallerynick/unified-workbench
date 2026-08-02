@@ -253,7 +253,7 @@ export default function FinanceManagement() {
                     新增预算
                   </Button>
                 </div>
-                <Table columns={budgetColumns} dataSource={budgets} rowKey="id" />
+                <Table className={styles.table ?? ''} columns={budgetColumns} dataSource={budgets} rowKey="id" />
               </>
             ),
           },
@@ -267,14 +267,14 @@ export default function FinanceManagement() {
                     新增订阅
                   </Button>
                 </div>
-                <Table columns={subColumns} dataSource={subscriptions} rowKey="id" />
+                <Table className={styles.table ?? ''} columns={subColumns} dataSource={subscriptions} rowKey="id" />
               </>
             ),
           },
         ]}
       />
 
-        <Modal title={editingBudget ? '编辑预算' : '新增预算'} open={budgetModalVisible} onOk={handleSaveBudget} onCancel={() => setBudgetModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading} width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
+        <Modal title={editingBudget ? '编辑预算' : '新增预算'} open={budgetModalVisible} onOk={handleSaveBudget} onCancel={() => setBudgetModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading} width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={budgetForm} layout="vertical">
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="预算名称" />
@@ -291,7 +291,7 @@ export default function FinanceManagement() {
         </Form>
       </Modal>
 
-        <Modal title={editingSub ? '编辑订阅' : '新增订阅'} open={subModalVisible} onOk={handleSaveSubscription} onCancel={() => setSubModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading} width={560} styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
+        <Modal title={editingSub ? '编辑订阅' : '新增订阅'} open={subModalVisible} onOk={handleSaveSubscription} onCancel={() => setSubModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading} width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={subForm} layout="vertical">
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="订阅名称" />

@@ -387,9 +387,9 @@ export default function TopologyManagement() {
   }, [topologies]);
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container ?? ''}>
       {contextHolder}
-      <div className={styles.header}>
+      <div className={styles.header ?? ''}>
         <div className={styles.headerLeft}>
           <Title level={4} className={styles.title ?? ''}>拓扑结构</Title>
           {isEditing && (
@@ -399,7 +399,7 @@ export default function TopologyManagement() {
           )}
         </div>
         <Space>
-          <Button icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>新建拓扑</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>新建拓扑</Button>
           {isEditing && (
             <>
               <Button icon={<SaveOutlined />} onClick={handleSave} loading={saving}>保存</Button>
@@ -424,7 +424,7 @@ export default function TopologyManagement() {
                     className={`${styles.topologyItem} ${currentTopology?.id === item.id ? styles.topologyItemActive : ''}`}
                     onClick={() => loadTopology(item)}
                     actions={[
-                      <Button key="delete" type="text" size="small" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDelete(item); }} />
+                      <Button key="delete" type="text" size="small" danger icon={<DeleteOutlined />} aria-label="删除" onClick={(e) => { e.stopPropagation(); handleDelete(item); }} />
                     ]}
                   >
                     <div className={styles.topologyItemContent}>
@@ -515,7 +515,10 @@ export default function TopologyManagement() {
                               <Tooltip key={t.type} title={t.label}>
                                 <button type="button" className={styles.shapeItem} onClick={() => addNode(t.type)}>
                                   {svgContent ? (
-                                    <span style={{ width: 18, height: 18, color: t.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                    <>
+                                      {/* SVG content is trusted — generated and sanitized server-side */}
+                                      <span style={{ width: 18, height: 18, color: t.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                    </>
                                   ) : null}
                                   <span className={styles.deviceLabel}>{t.label}</span>
                                 </button>
@@ -647,6 +650,7 @@ export default function TopologyManagement() {
     {/* SVG icon (device nodes only) */}
     {!isCustom && svgContent ? (
                             <foreignObject x={-12} y={-12} width={24} height={24} style={{ pointerEvents: 'none' }}>
+                              {/* SVG content is trusted — generated and sanitized server-side */}
                               <div style={{ width: 24, height: 24, color: 'var(--body-on-dark)' }} dangerouslySetInnerHTML={{ __html: svgContent }} />
                             </foreignObject>
                           ) : null}
@@ -661,21 +665,21 @@ export default function TopologyManagement() {
             </>
           ) : (
             <div className={styles.emptyState}>
-              <ApartmentOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: "var(--spacing-card-gap)" }} />
+              <ApartmentOutlined style={{ fontSize: '48px', color: 'var(--text-secondary)', marginBottom: "var(--spacing-card-gap)" }} />
               <div>选择一个拓扑或创建新拓扑开始编辑</div>
             </div>
           )}
         </div>
       </div>
 
-      <Modal title="新建拓扑" open={createModalVisible} onOk={handleCreate} onCancel={() => { setCreateModalVisible(false); setNewTopologyName(''); setNewCategory(''); }} okText="创建" cancelText="取消" width={480} styles={{ body: { paddingBottom: "var(--spacing-card-gap)" } }}>
+      <Modal title="新建拓扑" open={createModalVisible} onOk={handleCreate} onCancel={() => { setCreateModalVisible(false); setNewTopologyName(''); setNewCategory(''); }} okText="创建" cancelText="取消" width={480} destroyOnClose styles={{ body: { paddingBottom: "var(--spacing-card-gap)" } }}>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <div>
-            <div style={{ marginBottom: "var(--spacing-xxs)", fontSize: 'var(--text-body-mono-size)', color: 'var(--text-secondary)' }}>拓扑名称</div>
+            <div style={{ marginBottom: "var(--spacing-xxs)", fontSize: 'var(--text-caption-size)', color: 'var(--text-secondary)' }}>拓扑名称</div>
             <Input placeholder="输入拓扑名称" value={newTopologyName} onChange={(e) => setNewTopologyName(e.target.value)} />
           </div>
           <div>
-            <div style={{ marginBottom: "var(--spacing-xxs)", fontSize: 'var(--text-body-mono-size)', color: 'var(--text-secondary)' }}>分类标签（可选）</div>
+            <div style={{ marginBottom: "var(--spacing-xxs)", fontSize: 'var(--text-caption-size)', color: 'var(--text-secondary)' }}>分类标签（可选）</div>
             <AutoComplete
               style={{ width: '100%' }}
               placeholder="输入分类名称或选择已有分类"

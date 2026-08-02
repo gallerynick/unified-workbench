@@ -5,8 +5,8 @@
 .readonlyRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
 .readonlyLabel {
@@ -17,7 +17,7 @@
 .expiryRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
 }
 
 .expiryInput {

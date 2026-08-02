@@ -147,9 +147,7 @@ export class WhepClient {
       this.pc.onconnectionstatechange = () => this.handleConnectionStateChange();
 
       // 5. POST SDP offer → WHEP endpoint
-      console.log('[WHEP] POST', whepUrl);
       const resourceUrl = await this.postOffer(whepUrl, sdp);
-      console.log('[WHEP] POST OK, resourceUrl:', resourceUrl.location);
 
       // 6. 用 answer 设置 remote description
       await this.pc.setRemoteDescription(
@@ -235,7 +233,6 @@ export class WhepClient {
    * 绑定远端媒体流到 video 元素。
    */
   private handleTrack(evt: RTCTrackEvent): void {
-    console.log('[WHEP] ontrack fired, kind:', evt.track.kind, 'streams:', evt.streams.length);
     if (this.savedVideoElement && evt.streams[0]) {
       this.savedVideoElement.srcObject = evt.streams[0];
       this.savedVideoElement.play().catch((e) => { console.warn('Failed to play video:', e); });
@@ -249,7 +246,6 @@ export class WhepClient {
    */
   private handleConnectionStateChange(): void {
     const connectionState = this.pc?.connectionState;
-    console.log('[WHEP] connectionState →', connectionState);
     if (!connectionState) return;
 
     switch (connectionState) {

@@ -1,13 +1,13 @@
 .container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 24px;
+  padding: var(--spacing-lg);
 }
 
 .statsRow {
   display: flex;
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .statCard {
@@ -15,12 +15,12 @@
 }
 
 .progressBar {
-  margin: 16px 0;
+  margin: var(--spacing-card-gap) 0;
 }
 
 .reservedSection {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-xs);
   align-items: center;
-  margin-top: 16px;
+  margin-top: var(--spacing-card-gap);
 }

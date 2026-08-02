@@ -316,9 +316,10 @@ export default function ContentManagement() {
         onCancel={() => setDraftModalVisible(false)}
         footer={null}
         width={560}
+        destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
-        <div style={{ padding: '8px 0' }}>
+        <div style={{ padding: 'var(--spacing-xs) 0' }}>
           {drafts.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-xs)" }}>
               {drafts.map((draft) => (
@@ -329,7 +330,7 @@ export default function ContentManagement() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '12px 16px',
+                    padding: 'var(--spacing-sm) var(--spacing-card-gap)',
                     border: 'var(--border-width-thin) solid var(--border-secondary)',
                     borderRadius: 'var(--rounded-xs)',
                     cursor: 'pointer',
@@ -346,7 +347,7 @@ export default function ContentManagement() {
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 500 }}>{draft.title}</div>
+                    <div style={{ fontWeight: 600 }}>{draft.title}</div>
                     <div style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--text-secondary)', marginTop: "var(--spacing-xxs)" }}>
                       {new Date(draft.timestamp).toLocaleString('zh-CN')}
                     </div>

@@ -133,7 +133,7 @@ export default function PasswordVerifyModal({
           column={1}
           bordered
           size="small"
-          labelStyle={{ width: 120, fontWeight: 500 }}
+          labelStyle={{ width: 120, fontWeight: 600 }}
         >
           <Descriptions.Item label="名称">{decryptedData.name}</Descriptions.Item>
           <Descriptions.Item label="类型">
@@ -149,7 +149,7 @@ export default function PasswordVerifyModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
               {Object.entries(decryptedData.data).map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', gap: "var(--spacing-xs)" }}>
-                  <span style={{ fontWeight: 500, minWidth: 100, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontWeight: 600, minWidth: 100, color: 'var(--text-secondary)' }}>
                     {k}
                   </span>
                   <span style={{ wordBreak: 'break-all', fontFamily: 'monospace' }}>
