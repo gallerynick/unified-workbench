@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.vote import Vote, VoteRecord, VoteStatus
+from app.core.visibility import Visibility
 from app.schemas.vote import VoteCreate, VoteSubmit
 from app.services.visibility import check_visibility as visibility_filter
 from app.services.notification_crud import create_notification
@@ -42,11 +43,11 @@ async def create_vote(db: AsyncSession, owner_id: uuid.UUID, request: VoteCreate
     db.add(vote)
     await db.flush()
 
-    if request.visibility in ("public", "restricted"):
+    if request.visibility in (Visibility.PUBLIC, Visibility.RESTRICTED):
         result = await db.execute(select(User).where(User.id != owner_id))
         all_users = list(result.scalars().all())
         for user in all_users:
-            if request.visibility == "public":
+            if request.visibility == Visibility.PUBLIC:
                 await create_notification(db, user.id, f"新投票：{request.title}", "info")
             elif request.restricted_users and str(user.id) in request.restricted_users:
                 await create_notification(db, user.id, f"您被邀请参与投票：{request.title}", "info")

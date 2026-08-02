@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.permissions import check_visibility
+from app.core.visibility import Visibility
 from app.models.file import File
 from app.models.folder import Folder
 from app.models.user import User, UserRole
@@ -63,7 +64,7 @@ async def upload_file(
     file: UploadFile,
     current_user: User,
     folder_id: uuid.UUID | None = None,
-    visibility: str = "private",
+    visibility: Visibility = Visibility.PRIVATE,
     restricted_users: list[str] | None = None,
     restricted_tags: list[str] | None = None,
     expires_at: datetime | None = None,
@@ -198,8 +199,8 @@ async def list_files(
 
     if current_user.role != UserRole.ADMIN:
         vis_filter = (
-            (File.visibility == "public")
-            | (File.visibility == "restricted")
+            (File.visibility == Visibility.PUBLIC)
+            | (File.visibility == Visibility.RESTRICTED)
             | (File.owner_id == current_user.id)
         )
         query = query.where(vis_filter)
@@ -211,7 +212,7 @@ async def list_files(
     if current_user.role != UserRole.ADMIN:
         visible = []
         for f in all_files:
-            if f.visibility == "restricted":
+            if f.visibility == Visibility.RESTRICTED:
                 r_users = (
                     {uuid.UUID(uid) for uid in f.restricted_users}
                     if f.restricted_users

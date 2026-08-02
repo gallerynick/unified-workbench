@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 def check_visibility(
     user: User,
-    visibility: str,
+    visibility: Visibility,
     owner_id: uuid.UUID,
     restricted_users: set[uuid.UUID] | None = None,
     restricted_tags: set[str] | None = None,
@@ -24,13 +24,13 @@ def check_visibility(
     """检查用户对资源的可见性。
 
     三态模型：
-      - "public"     → 所有人可见
-      - "private"    → 仅 owner 可见
-      - "restricted" → owner + restricted_users 中的用户 + 拥有 restricted_tags 中任意标签的用户
+      - Visibility.PUBLIC     → 所有人可见
+      - Visibility.PRIVATE    → 仅 owner 可见
+      - Visibility.RESTRICTED → owner + restricted_users 中的用户 + 拥有 restricted_tags 中任意标签的用户
 
     Args:
         user: 当前请求用户
-        visibility: 可见性类型 ("public" | "private" | "restricted")
+        visibility: 可见性类型 (Visibility 枚举)
         owner_id: 资源所有者的用户 ID
         restricted_users: 被授权查看的用户 ID 集合（仅 restricted 有效）
         restricted_tags: 被授权查看的标签名称集合（仅 restricted 有效）

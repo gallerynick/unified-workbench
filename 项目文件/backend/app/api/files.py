@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.visibility import Visibility
 from app.models.user import User
 from app.schemas.common import UnifiedResponse
 from app.schemas.file import (
@@ -40,7 +41,7 @@ router = APIRouter()
 async def upload_file_endpoint(
     file: UploadFile = File(...),
     folder_id: uuid.UUID | None = Form(None),
-    visibility: str = Form("private"),
+    visibility: Visibility = Form(Visibility.PRIVATE),
     restricted_users: str | None = Form(None),
     restricted_tags: str | None = Form(None),
     expires_at: str | None = Form(None),

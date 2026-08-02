@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_current_user_optional
+from app.core.visibility import Visibility
 from app.models.user import User, UserRole
 from app.schemas.common import UnifiedResponse
 from app.schemas.form import FormCreate, FormListResponse, FormSubmit
@@ -54,9 +55,9 @@ async def get_form_public(
     form = await get_form(db, uuid.UUID(form_id))
     if not form:
         raise HTTPException(status_code=404, detail="表单不存在")
-    if not form.is_active or form.visibility != "public":
+    if not form.is_active or form.visibility != Visibility.PUBLIC:
         raise HTTPException(status_code=404, detail="表单不存在")
-    if current_user and form.visibility == "restricted" and form.restricted_users:
+    if current_user and form.visibility == Visibility.RESTRICTED and form.restricted_users:
         if str(current_user.id) not in (form.restricted_users or []):
             raise HTTPException(status_code=404, detail="表单不存在")
     return {

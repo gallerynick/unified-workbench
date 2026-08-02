@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.visibility import Visibility
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -32,7 +33,7 @@ class Topology(Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("user.id"), nullable=False
     )
-    visibility: Mapped[str] = mapped_column(
+    visibility: Mapped[Visibility] = mapped_column(
         String(20), default="private"
     )  # public/private/restricted
     restricted_users: Mapped[list | None] = mapped_column(

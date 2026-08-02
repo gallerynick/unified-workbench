@@ -40,7 +40,7 @@ class FormResponse(BaseModel):
     is_active: bool
     allow_anonymous: bool
     owner_id: uuid.UUID
-    visibility: str
+    visibility: Visibility
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     response_count: int = 0

@@ -81,6 +81,7 @@
 /* ====== Home widget stagger animation ====== */
 .widgetGrid > * {
   animation: widgetFadeUp 350ms ease-out both;
+  will-change: transform, opacity;
 }
 
 .widgetGrid > *:nth-child(1) { animation-delay: 0ms; }

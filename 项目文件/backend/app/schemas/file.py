@@ -19,7 +19,7 @@ class FileResponse(BaseModel):
     mime_type: str
     folder_id: uuid.UUID | None = None
     owner_id: uuid.UUID
-    visibility: str
+    visibility: Visibility
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     expires_at: datetime | None = None
@@ -59,7 +59,7 @@ class FileUpdateRequest(BaseModel):
 class FolderUpdateRequest(BaseModel):
     """文件夹更新请求"""
     name: str | None = None
-    visibility: str | None = None
+    visibility: Visibility | None = None
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     expires_at: datetime | None = None

@@ -30,7 +30,7 @@ class RecordUpdate(BaseModel):
 
     title: str | None = None
     data: dict[str, Any] | None = None
-    visibility: str | None = None
+    visibility: Visibility | None = None
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
 
@@ -55,7 +55,7 @@ class RecordResponse(BaseModel):
     status: str
     owner_id: uuid.UUID
     owner_name: str
-    visibility: str
+    visibility: Visibility
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     created_at: datetime

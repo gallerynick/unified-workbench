@@ -50,7 +50,7 @@ class TopologyResponse(BaseModel):
     nodes: list[dict]
     edges: list[dict]
     owner_id: uuid.UUID
-    visibility: str
+    visibility: Visibility
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     created_at: datetime

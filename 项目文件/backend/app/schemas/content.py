@@ -25,7 +25,7 @@ class ContentUpdateRequest(BaseModel):
 
     title: str | None = None
     body: dict | None = None
-    visibility: str | None = None
+    visibility: Visibility | None = None
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     tags: list[str] | None = None
@@ -41,7 +41,7 @@ class ContentResponse(BaseModel):
     title: str
     body: dict
     owner_id: uuid.UUID
-    visibility: str
+    visibility: Visibility
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     tags: list[str] | None = None

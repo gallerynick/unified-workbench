@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.permissions import check_visibility
+from app.core.visibility import Visibility
 from app.models.record import Record, RecordStatus
 from app.models.template import Template
 from app.models.user import User
@@ -47,7 +48,7 @@ async def create_record(
         title=data["title"],
         status=RecordStatus.DRAFT,
         owner_id=owner_id,
-        visibility=data.get("visibility", "private"),
+        visibility=data.get("visibility", Visibility.PRIVATE),
         restricted_users=data.get("restricted_users"),
         restricted_tags=data.get("restricted_tags"),
     )
@@ -84,9 +85,9 @@ async def list_records(
     for record in all_records:
         if record.owner_id == current_user.id:
             visible_records.append(record)
-        elif record.visibility == "public":
+        elif record.visibility == Visibility.PUBLIC:
             visible_records.append(record)
-        elif record.visibility == "restricted":
+        elif record.visibility == Visibility.RESTRICTED:
             r_users = set(record.restricted_users) if record.restricted_users else set()
             r_tags = set(record.restricted_tags) if record.restricted_tags else set()
             if check_visibility(current_user, record.visibility, record.owner_id, r_users, r_tags):
@@ -106,11 +107,11 @@ async def get_record(db: AsyncSession, record_id: uuid.UUID, current_user: User)
             status_code=status.HTTP_404_NOT_FOUND, detail="记录不存在"
         )
     # 可见性检查
-    if record.visibility == "private" and record.owner_id != current_user.id:
+    if record.visibility == Visibility.PRIVATE and record.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="记录不存在"
         )
-    if record.visibility == "restricted":
+    if record.visibility == Visibility.RESTRICTED:
         r_users = set(record.restricted_users) if record.restricted_users else set()
         r_tags = set(record.restricted_tags) if record.restricted_tags else set()
         if not check_visibility(current_user, record.visibility, record.owner_id, r_users, r_tags):

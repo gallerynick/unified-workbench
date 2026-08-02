@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.visibility import Visibility
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -28,7 +29,7 @@ class Form(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     allow_anonymous: Mapped[bool] = mapped_column(Boolean, default=False)
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
-    visibility: Mapped[str] = mapped_column(
+    visibility: Mapped[Visibility] = mapped_column(
         String(20), default="private"
     )  # public/private/restricted
     restricted_users: Mapped[list | None] = mapped_column(
