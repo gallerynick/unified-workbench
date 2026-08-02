@@ -72,13 +72,19 @@
   /* === 模态框遮罩 === */
   --modal-overlay: rgba(0, 0, 0, 0.7);
 
-  /* === 扩展强调色（日历/拓扑） === */
+  /* === 扩展强调色（日历/拓扑/设备） === */
   --color-purple: #722ed1;
   --color-cyan: #13c2c2;
   --color-magenta: #eb2f96;
   --color-orange-bright: #fa541c;
   --color-orange: #fa8c16;
   --color-red: #f5222d;
+  --color-indigo: #2f54eb;        /* 服务器蓝 */
+  --color-lime: #a0d911;          /* 存储设备绿 */
+  --color-violet: #531dab;        /* IoT紫 */
+  --color-gold: #fadb14;          /* 数据库金 */
+  --color-cornflower: #597ef7;    /* 交换机蓝 */
+  --color-rose: #ff85c0;          /* 无线AP粉 */
 
   /* === 圆角 === */
   --rounded-none: 0px;
@@ -302,6 +308,20 @@
   --header-bg: var(--canvas);
   --header-border: 1px solid var(--border-secondary);
   --tag-bg: var(--bg-tertiary);
+
+  /* === 扩展强调色（深色适配 → 提亮以保持深底辨识度） === */
+  --color-purple: #9254de;
+  --color-cyan: #36cfc9;
+  --color-magenta: #ff4dab;
+  --color-orange-bright: #ff7a45;
+  --color-orange: #ffa940;
+  --color-red: #ff4d4f;
+  --color-indigo: #597ef7;
+  --color-lime: #bae637;
+  --color-violet: #7b3fe4;
+  --color-gold: #ffec3d;
+  --color-cornflower: #85a5ff;
+  --color-rose: #ffadd2;
 
   /* === 滚动条（深色） === */
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);

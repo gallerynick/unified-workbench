@@ -42,18 +42,18 @@ const DEVICE_SVGS: Record<TopologyNodeType, string> = {
 
 const DEVICE_NODE_TYPES: { type: TopologyNodeType; label: string; color: string; icon?: string }[] = [
   { type: 'router', label: '路由器', color: 'var(--color-info)' },
-  { type: 'switch', label: '交换机', color: '#52c41a' },
-  { type: 'server', label: '服务器', color: '#722ed1' },
-  { type: 'computer', label: '电脑', color: '#fa8c16' },
-  { type: 'smartphone', label: '手机', color: '#13c2c2' },
-  { type: 'headphone', label: '耳机', color: '#eb2f96' },
-  { type: 'internet', label: '互联网', color: '#2f54eb' },
-  { type: 'keyboard', label: '键盘', color: '#fa541c' },
-  { type: 'mouse', label: '鼠标', color: '#a0d911' },
-  { type: 'printer', label: '打印机', color: '#531dab' },
-  { type: 'projector', label: '投影仪', color: '#fadb14' },
-  { type: 'speaker', label: '音箱', color: '#597ef7' },
-  { type: 'television', label: '电视', color: '#ff85c0' },
+  { type: 'switch', label: '交换机', color: 'var(--color-success)' },
+  { type: 'server', label: '服务器', color: 'var(--color-purple)' },
+  { type: 'computer', label: '电脑', color: 'var(--color-orange)' },
+  { type: 'smartphone', label: '手机', color: 'var(--color-cyan)' },
+  { type: 'headphone', label: '耳机', color: 'var(--color-magenta)' },
+  { type: 'internet', label: '互联网', color: 'var(--color-indigo)' },
+  { type: 'keyboard', label: '键盘', color: 'var(--color-orange-bright)' },
+  { type: 'mouse', label: '鼠标', color: 'var(--color-lime)' },
+  { type: 'printer', label: '打印机', color: 'var(--color-violet)' },
+  { type: 'projector', label: '投影仪', color: 'var(--color-gold)' },
+  { type: 'speaker', label: '音箱', color: 'var(--color-cornflower)' },
+  { type: 'television', label: '电视', color: 'var(--color-rose)' },
 ];
 
 const SHAPES: { type: TopologyShape; label: string }[] = [

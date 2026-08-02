@@ -36,7 +36,7 @@
 .sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
   border: 1px solid var(--border-secondary);
   border-radius: var(--rounded-sm);
   padding: var(--spacing-sm);
@@ -60,6 +60,7 @@
   padding: var(--spacing-sm) !important;
   border: 1px solid var(--border-secondary);
   border-radius: var(--rounded-xs);
+  background: var(--bg-tertiary);
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s, transform 0.2s;
 }
@@ -68,8 +69,8 @@
 }
 
 .topologyItem:hover {
-  background: var(--bg-tertiary);
   border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-sm);
   transform: scale(1.01);
 }
 
@@ -87,7 +88,7 @@
 }
 
 .topologyName {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -121,7 +122,7 @@
   align-items: center;
   gap: var(--spacing-xxs);
   padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
   border-bottom: 1px solid var(--border-secondary);
   border-radius: var(--rounded-sm) var(--rounded-sm) 0 0;
 }
@@ -155,7 +156,7 @@
 }
 
 .toolIcon:hover {
-  background: var(--bg-tertiary);
+  border-color: var(--color-primary-hover);
 }
 
 .toolIconActive {
@@ -180,7 +181,7 @@
   top: 8px;
   left: 8px;
   z-index: 10;
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
   border: var(--border-width-thin) solid var(--border-secondary);
   border-radius: var(--rounded-sm);
   padding: var(--spacing-xxs);
@@ -251,7 +252,6 @@
 
 .shapeItem:hover {
   border-color: var(--color-primary-hover);
-  background: var(--bg-tertiary);
   transform: scale(1.05);
 }
 
@@ -262,9 +262,13 @@
 
 .deviceLabel,
 .shapeLabel {
-  font-size: var(--text-body-mono-size);
+  font-size: var(--text-fine-print-size);
   color: var(--text-secondary);
   margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* 颜色色板 */
