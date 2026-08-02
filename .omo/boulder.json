@@ -6,9 +6,9 @@
       "work_id": "server-management-554787ff",
       "active_plan": "/Users/gallerynick/Documents/Project/Project_UnifiedWorkbench/.omo/plans/server-management.md",
       "plan_name": "server-management",
-      "status": "active",
+      "status": "completed",
       "started_at": "2026-08-02T10:10:33.255Z",
-      "updated_at": "2026-08-02T10:36:50.750Z",
+      "updated_at": "2026-08-02T10:37:00.000Z",
       "session_ids": [
         "opencode:ses_03f6af0d5ffeWVwR1kwwVvjKkp"
       ],
@@ -48,8 +48,8 @@
   },
   "active_plan": "/Users/gallerynick/Documents/Project/Project_UnifiedWorkbench/.omo/plans/server-management.md",
   "started_at": "2026-08-02T10:10:33.255Z",
-  "status": "active",
-  "updated_at": "2026-08-02T10:36:50.750Z",
+  "status": "completed",
+  "updated_at": "2026-08-02T10:37:00.000Z",
   "session_ids": [
     "opencode:ses_03f6af0d5ffeWVwR1kwwVvjKkp"
   ],
