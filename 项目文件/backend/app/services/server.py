@@ -73,7 +73,6 @@ async def create_server(
         purpose=data.purpose,
         location=data.location,
         ip=data.ip,
-        port=data.port,
         description=data.description,
         notes=data.notes,
         status=data.status,
@@ -89,8 +88,8 @@ async def create_server(
     if data.server_type == "SINGLE":
         system = System(
             server_id=server.id,
-            name=f"{server.name}-系统",
-            description=None,
+            name=data.system_name or f"{server.name}-系统",
+            description=data.system_description,
             maintainer_ids=[],
         )
         db.add(system)
@@ -122,8 +121,6 @@ async def update_server(
         server.location = data.location
     if data.ip is not None:
         server.ip = data.ip
-    if data.port is not None:
-        server.port = data.port
     if data.description is not None:
         server.description = data.description
     if data.notes is not None:

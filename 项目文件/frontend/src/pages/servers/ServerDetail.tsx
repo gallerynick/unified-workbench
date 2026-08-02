@@ -449,10 +449,8 @@ export default function ServerDetail() {
             <Text className={styles.infoValue ?? ''}>{server.location || '-'}</Text>
           </div>
           <div className={styles.infoItem}>
-            <Text className={styles.infoLabel ?? ''}>IP:端口</Text>
-            <Text className={styles.infoValue ?? ''}>
-              {server.ip ? (server.port ? `${server.ip}:${server.port}` : server.ip) : '-'}
-            </Text>
+            <Text className={styles.infoLabel ?? ''}>IP</Text>
+            <Text className={styles.infoValue ?? ''}>{server.ip || '-'}</Text>
           </div>
           <div className={styles.infoItem}>
             <Text className={styles.infoLabel ?? ''}>维护人员</Text>

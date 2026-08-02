@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -35,8 +35,8 @@ class Service(Base):
     target_name: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="目标名称"
     )
-    target_ref: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True, comment="目标引用 UUID"
+    port: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="服务端口"
     )
     maintainer_ids: Mapped[list] = mapped_column(
         JSONB, default=list, comment="维护者 UUID 列表"

@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-card-gap);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .header {
@@ -10,6 +13,7 @@
   justify-content: space-between;
   gap: var(--spacing-card-gap);
   min-height: var(--spacing-xxl);
+  flex-wrap: wrap;
 }
 
 .title {
@@ -18,8 +22,116 @@
   white-space: nowrap;
 }
 
-.table {
+.empty {
+  margin: var(--spacing-xxl) 0;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-card-gap);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow var(--anim-normal) var(--anim-ease), transform var(--anim-normal) var(--anim-ease);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.card :global(.ant-card-body) {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.cardTitleBtn {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-info);
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+}
+
+.cardTitleBtn:hover {
+  color: var(--color-primary);
+}
+
+.cardTitleText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.infoRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.label {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xxs);
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-secondary);
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}
+
+.metaItem b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--spacing-card-gap);
+}
+
+@media (max-width: 1024px) {
+  .cardGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 767px) {
@@ -29,6 +141,7 @@
 
   .header {
     flex-direction: column;
+    align-items: stretch;
     gap: var(--spacing-xs);
   }
 
@@ -36,7 +149,11 @@
     width: 100%;
   }
 
-  .table {
-    overflow-x: auto;
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    justify-content: center;
   }
 }

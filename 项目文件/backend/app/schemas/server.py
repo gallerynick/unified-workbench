@@ -20,7 +20,8 @@ class ServerCreate(BaseModel):
     purpose: str | None = None
     location: str | None = None
     ip: str | None = None
-    port: int | None = None
+    system_name: str | None = None
+    system_description: str | None = None
     description: str | None = None
     notes: str | None = None
     status: str = "active"
@@ -36,15 +37,6 @@ class ServerCreate(BaseModel):
             ipaddress.ip_address(v)
         except ValueError:
             raise ValueError(f"ip 必须是合法的 IPv4 或 IPv6 地址，收到: {v}")
-        return v
-
-    @field_validator("port")
-    @classmethod
-    def validate_port(cls, v: int | None) -> int | None:
-        if v is None:
-            return v
-        if not 1 <= v <= 65535:
-            raise ValueError(f"port 必须在 1~65535 之间，收到: {v}")
         return v
 
     @field_validator("status")
@@ -69,7 +61,6 @@ class ServerUpdate(BaseModel):
     purpose: str | None = None
     location: str | None = None
     ip: str | None = None
-    port: int | None = None
     description: str | None = None
     notes: str | None = None
     status: str | None = None
@@ -86,15 +77,6 @@ class ServerUpdate(BaseModel):
             ipaddress.ip_address(v)
         except ValueError:
             raise ValueError(f"ip 必须是合法的 IPv4 或 IPv6 地址，收到: {v}")
-        return v
-
-    @field_validator("port")
-    @classmethod
-    def validate_port(cls, v: int | None) -> int | None:
-        if v is None:
-            return v
-        if not 1 <= v <= 65535:
-            raise ValueError(f"port 必须在 1~65535 之间，收到: {v}")
         return v
 
     @field_validator("status")
@@ -122,7 +104,6 @@ class ServerResponse(BaseModel):
     purpose: str | None
     location: str | None
     ip: str | None
-    port: int | None
     description: str | None
     notes: str | None
     status: str

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Row, Col, message } from 'antd';
+import { Modal, Form, Input, Select, message } from 'antd';
 import { createServer, updateServer } from '../../api/servers';
 import { listUsers } from '../../api/users';
 import type { ServerRecord, ServerFormValues, ServerType, ServerStatus } from '../../types/server';
@@ -40,6 +40,12 @@ export default function ServerFormModal({
   const [submitting, setSubmitting] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
 
+  // 监听服务器类型与名称，用于条件显示单系统字段
+  const serverType = Form.useWatch('server_type', form) as ServerType | undefined;
+  const nameValue = Form.useWatch('name', form) as string | undefined;
+  // 后端 ServerUpdate 不支持 system_name/system_description，仅新建时展示
+  const showSingleSystemFields = mode === 'create' && serverType === 'SINGLE';
+
   // 加载成员列表，供维护人员选择器使用
   useEffect(() => {
     if (!visible) return;
@@ -67,7 +73,6 @@ export default function ServerFormModal({
         purpose: record.purpose ?? '',
         location: record.location ?? '',
         ip: record.ip ?? '',
-        ...(record.port != null ? { port: record.port } : {}),
         description: record.description ?? '',
         notes: record.notes ?? '',
         status: record.status,
@@ -92,7 +97,8 @@ export default function ServerFormModal({
       if (values.purpose) payload.purpose = values.purpose;
       if (values.location) payload.location = values.location;
       if (values.ip) payload.ip = values.ip;
-      if (values.port != null) payload.port = values.port;
+      if (values.system_name) payload.system_name = values.system_name;
+      if (values.system_description) payload.system_description = values.system_description;
       if (values.description) payload.description = values.description;
       if (values.notes) payload.notes = values.notes;
 
@@ -145,25 +151,28 @@ export default function ServerFormModal({
           <Select options={TYPE_OPTIONS} disabled={mode === 'edit'} placeholder="请选择服务器类型" />
         </Form.Item>
 
-        <Row gutter={16}>
-          <Col span={16}>
-            <Form.Item
-              name="ip"
-              label="IP 地址"
-              rules={[
-                { required: true, message: '请输入 IP 地址' },
-                { pattern: IP_PATTERN, message: '请输入有效的 IPv4 或 IPv6 地址' },
-              ]}
-            >
-              <Input placeholder="例如 192.168.1.10" />
+        <Form.Item
+          name="ip"
+          label="IP 地址"
+          rules={[
+            { required: true, message: '请输入 IP 地址' },
+            { pattern: IP_PATTERN, message: '请输入有效的 IPv4 或 IPv6 地址' },
+          ]}
+        >
+          <Input placeholder="例如 192.168.1.10" />
+        </Form.Item>
+
+        {showSingleSystemFields && (
+          <>
+            <Form.Item name="system_name" label="系统名称">
+              <Input placeholder={`默认为 ${nameValue || '服务器名称'}-系统`} />
             </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item name="port" label="端口" rules={[{ required: true, message: '请输入端口号' }]}>
-              <InputNumber min={1} max={65535} style={{ width: '100%' }} placeholder="端口" />
+
+            <Form.Item name="system_description" label="系统描述">
+              <TextArea placeholder="可选，系统用途说明" rows={2} />
             </Form.Item>
-          </Col>
-        </Row>
+          </>
+        )}
 
         <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]}>
           <Select options={STATUS_OPTIONS} />

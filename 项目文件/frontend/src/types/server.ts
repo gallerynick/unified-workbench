@@ -12,7 +12,6 @@ export interface ServerRecord {
   purpose?: string | null;
   location?: string | null;
   ip?: string | null;
-  port?: number | null;
   description?: string | null;
   notes?: string | null;
   status: ServerStatus;
@@ -30,7 +29,8 @@ export interface ServerFormValues {
   purpose?: string;
   location?: string;
   ip?: string;
-  port?: number;
+  system_name?: string;
+  system_description?: string;
   description?: string;
   notes?: string;
   status?: ServerStatus;

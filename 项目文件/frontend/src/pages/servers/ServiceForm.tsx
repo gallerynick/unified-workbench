@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, message } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, message } from 'antd';
 import { createService, updateService } from '../../api/services';
 import { listUsers } from '../../api/users';
 import type { ServiceRecord, ServiceFormValues, TargetType } from '../../types/service';
@@ -61,7 +61,7 @@ export default function ServiceForm({
         description: record.description ?? '',
         ...(record.target_type ? { target_type: record.target_type } : {}),
         target_name: record.target_name ?? '',
-        target_ref: record.target_ref ?? '',
+        port: record.port ?? null,
         maintainer_ids: record.maintainer_ids ?? [],
       });
     } else {
@@ -80,7 +80,7 @@ export default function ServiceForm({
       if (values.description) payload.description = values.description;
       if (values.target_type) payload.target_type = values.target_type;
       if (values.target_name) payload.target_name = values.target_name;
-      if (values.target_ref) payload.target_ref = values.target_ref;
+      if (values.port != null) payload.port = values.port;
 
       setSubmitting(true);
       const res =
@@ -133,8 +133,8 @@ export default function ServiceForm({
           <Input placeholder="例如：核心数据库 / 张三 / 运营部（可选）" />
         </Form.Item>
 
-        <Form.Item name="target_ref" label="目标引用键">
-          <Input placeholder="目标引用键（可选）" />
+        <Form.Item name="port" label="端口号（可选）">
+          <InputNumber min={1} max={65535} placeholder="服务端口号" style={{ width: '100%' }} />
         </Form.Item>
 
         <Form.Item name="maintainer_ids" label="维护人员">

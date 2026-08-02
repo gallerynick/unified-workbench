@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Table,
+  Card,
   Button,
   Input,
   Select,
@@ -10,6 +10,9 @@ import {
   Space,
   Tooltip,
   Tag,
+  Empty,
+  Spin,
+  Pagination,
 } from 'antd';
 import {
   PlusOutlined,
@@ -17,9 +20,8 @@ import {
   DeleteOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
-import { listServers, deleteServer } from '../../api/servers';
+import { listServers, deleteServer, getServerSystems } from '../../api/servers';
 import type { ServerRecord, ServerType, DeployStatus, ServerStatus } from '../../types/server';
 import ServerFormModal from './ServerFormModal';
 import styles from './ServerManagement.module.css';
@@ -43,20 +45,6 @@ const DEPLOY_STATUS_MAP: Record<DeployStatus, { color: string; text: string }> =
   REDEPLOYING: { color: 'processing', text: '重新部署中' },
 };
 
-function formatDateTime(value: string): string {
-  try {
-    return new Date(value).toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return value;
-  }
-}
-
 export default function ServerManagement() {
   const navigate = useNavigate();
 
@@ -68,6 +56,9 @@ export default function ServerManagement() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 多系统服务器的系统数量（列表接口不返回，按页补充查询）
+  const [systemCountMap, setSystemCountMap] = useState<Record<string, number>>({});
 
   // 弹窗状态
   const [formVisible, setFormVisible] = useState(false);
@@ -81,6 +72,24 @@ export default function ServerManagement() {
       if (res.code === 0) {
         setRecords(res.data.items);
         setTotal(res.data.total);
+        const multiIds = res.data.items
+          .filter((r) => r.server_type === 'MULTI')
+          .map((r) => r.id);
+        if (multiIds.length > 0) {
+          const entries = await Promise.all(
+            multiIds.map(async (id): Promise<[string, number]> => {
+              try {
+                const sysRes = await getServerSystems(id);
+                return [id, sysRes.code === 0 ? sysRes.data.items.length : 0];
+              } catch {
+                return [id, 0];
+              }
+            })
+          );
+          setSystemCountMap(Object.fromEntries(entries));
+        } else {
+          setSystemCountMap({});
+        }
       } else {
         message.error(res.msg || '获取服务器列表失败');
       }
@@ -157,107 +166,10 @@ export default function ServerManagement() {
     fetchServers();
   };
 
-  const columns: ColumnsType<ServerRecord> = [
-    {
-      title: '名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 160,
-      ellipsis: true,
-      render: (name: string, record: ServerRecord) => (
-        <Button type="link" size="small" style={{ padding: 0, height: 'auto' }} onClick={() => handleDetail(record)}>
-          {name}
-        </Button>
-      ),
-    },
-    {
-      title: '用途',
-      dataIndex: 'purpose',
-      key: 'purpose',
-      width: 200,
-      ellipsis: true,
-      render: (purpose: string | null) => purpose || '-',
-    },
-    {
-      title: '位置',
-      dataIndex: 'location',
-      key: 'location',
-      width: 140,
-      ellipsis: true,
-      render: (location: string | null) => location || '-',
-    },
-    {
-      title: 'IP:端口',
-      key: 'ipPort',
-      width: 160,
-      ellipsis: true,
-      render: (_: unknown, record: ServerRecord) => {
-        if (!record.ip) return '-';
-        return record.port ? `${record.ip}:${record.port}` : record.ip;
-      },
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (value: ServerStatus) => {
-        const cfg = STATUS_MAP[value] ?? { color: 'default', text: value };
-        return <Tag color={cfg.color}>{cfg.text}</Tag>;
-      },
-    },
-    {
-      title: '类型',
-      dataIndex: 'server_type',
-      key: 'server_type',
-      width: 100,
-      render: (value: ServerType) => {
-        const cfg = SERVER_TYPE_MAP[value] ?? { color: 'default', text: value };
-        return <Tag color={cfg.color}>{cfg.text}</Tag>;
-      },
-    },
-    {
-      title: '部署状态',
-      dataIndex: 'deploy_status',
-      key: 'deploy_status',
-      width: 130,
-      render: (value: DeployStatus) => {
-        const cfg = DEPLOY_STATUS_MAP[value] ?? { color: 'default', text: value };
-        return <Tag color={cfg.color}>{cfg.text}</Tag>;
-      },
-    },
-    {
-      title: '维护人员',
-      key: 'maintainer_count',
-      width: 100,
-      render: (_: unknown, record: ServerRecord) => record.maintainer_ids.length,
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 170,
-      render: (value: string) => formatDateTime(value),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 150,
-      render: (_: unknown, record: ServerRecord) => (
-        <Space size="small">
-          <Tooltip title="编辑">
-            <Button type="link" size="small" icon={<EditOutlined />} aria-label="编辑" onClick={() => handleEdit(record)} />
-          </Tooltip>
-          <Tooltip title="删除">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} aria-label="删除" onClick={() => handleDelete(record)} />
-          </Tooltip>
-          <Tooltip title="详情">
-            <Button type="link" size="small" icon={<EyeOutlined />} aria-label="详情" onClick={() => handleDetail(record)} />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+  const getSystemCount = (record: ServerRecord): number => {
+    if (record.server_type === 'SINGLE') return record.system_id ? 1 : 0;
+    return systemCountMap[record.id] ?? 0;
+  };
 
   return (
     <div className={styles.container}>
@@ -289,25 +201,112 @@ export default function ServerManagement() {
         </Space>
       </div>
 
-      <Table<ServerRecord>
-        className={styles.table ?? ''}
-        rowKey="id"
-        columns={columns}
-        dataSource={records}
-        loading={loading}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (t) => `共 ${t} 条`,
-          onChange: (p, ps) => {
-            setPage(p);
-            setPageSize(ps);
-          },
-        }}
-      />
+      {records.length === 0 && !loading ? (
+        <Empty description="暂无服务器" className={styles.empty ?? ''} />
+      ) : (
+        <>
+          <Spin spinning={loading}>
+            <div className={styles.cardGrid}>
+              {records.map((record) => (
+                <Card
+                  key={record.id}
+                  className={styles.card ?? ''}
+                  title={
+                    <button
+                      type="button"
+                      className={styles.cardTitleBtn}
+                      onClick={() => handleDetail(record)}
+                      aria-label={`查看 ${record.name} 详情`}
+                    >
+                      <span className={styles.cardTitleText}>{record.name}</span>
+                    </button>
+                  }
+                  extra={
+                    <Tag color={STATUS_MAP[record.status]?.color ?? 'default'}>
+                      {STATUS_MAP[record.status]?.text ?? record.status}
+                    </Tag>
+                  }
+                  actions={[
+                    <Tooltip key="detail" title="详情">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<EyeOutlined />}
+                        aria-label="详情"
+                        onClick={() => handleDetail(record)}
+                      />
+                    </Tooltip>,
+                    <Tooltip key="edit" title="编辑">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<EditOutlined />}
+                        aria-label="编辑"
+                        onClick={() => handleEdit(record)}
+                      />
+                    </Tooltip>,
+                    <Tooltip key="delete" title="删除">
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        aria-label="删除"
+                        onClick={() => handleDelete(record)}
+                      />
+                    </Tooltip>,
+                  ]}
+                >
+                  <div className={styles.cardBody}>
+                    <div className={styles.infoRow}>
+                      <span className={styles.label}>用途</span>
+                      <span className={styles.value} title={record.purpose ?? ''}>
+                        {record.purpose || '-'}
+                      </span>
+                    </div>
+                    <div className={styles.infoRow}>
+                      <span className={styles.label}>IP 地址</span>
+                      <span className={styles.value} title={record.ip ?? ''}>
+                        {record.ip || '-'}
+                      </span>
+                    </div>
+                    <div className={styles.tags}>
+                      <Tag color={SERVER_TYPE_MAP[record.server_type]?.color ?? 'default'}>
+                        {SERVER_TYPE_MAP[record.server_type]?.text ?? record.server_type}
+                      </Tag>
+                      <Tag color={DEPLOY_STATUS_MAP[record.deploy_status]?.color ?? 'default'}>
+                        {DEPLOY_STATUS_MAP[record.deploy_status]?.text ?? record.deploy_status}
+                      </Tag>
+                    </div>
+                    <div className={styles.meta}>
+                      <span className={styles.metaItem}>
+                        系统数 <b>{getSystemCount(record)}</b>
+                      </span>
+                      <span className={styles.metaItem}>
+                        维护人员 <b>{record.maintainer_ids.length}</b>
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </Spin>
+          <div className={styles.pagination}>
+            <Pagination
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              showSizeChanger
+              showQuickJumper
+              showTotal={(t) => `共 ${t} 条`}
+              onChange={(p, ps) => {
+                setPage(p);
+                setPageSize(ps);
+              }}
+            />
+          </div>
+        </>
+      )}
 
       <ServerFormModal
         visible={formVisible}

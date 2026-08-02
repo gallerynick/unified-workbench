@@ -79,7 +79,7 @@ async def create_service(
     user_id: uuid.UUID,
     data: ServiceCreate,
 ) -> Service:
-    """创建服务。先校验 system 的 owner；target_type/target_name/target_ref 仅在 target_type 不为空时写入"""
+    """创建服务。先校验 system 的 owner；target_type/target_name 仅在 target_type 不为空时写入"""
     # 校验 system 是否存在且属于当前用户
     sys_stmt = (
         select(System)
@@ -96,11 +96,9 @@ async def create_service(
     # 仅在 target_type 不为空时写入 target 相关字段
     target_type: str | None = None
     target_name: str | None = None
-    target_ref: uuid.UUID | None = None
     if data.target_type:
         target_type = data.target_type
         target_name = data.target_name
-        target_ref = data.target_ref
 
     service = Service(
         name=data.name,
@@ -108,7 +106,7 @@ async def create_service(
         system_id=data.system_id,
         target_type=target_type,
         target_name=target_name,
-        target_ref=target_ref,
+        port=data.port,
         maintainer_ids=data.maintainer_ids,
     )
     db.add(service)
@@ -149,8 +147,8 @@ async def update_service(
         service.target_type = data.target_type
     if data.target_name is not None:
         service.target_name = data.target_name
-    if data.target_ref is not None:
-        service.target_ref = data.target_ref
+    if data.port is not None:
+        service.port = data.port
     if data.maintainer_ids is not None:
         service.maintainer_ids = data.maintainer_ids
 

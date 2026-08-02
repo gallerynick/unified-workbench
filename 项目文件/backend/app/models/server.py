@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,7 +29,6 @@ class Server(Base):
     purpose: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="用途")
     location: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="物理位置")
     ip: Mapped[str | None] = mapped_column(String(45), nullable=True, comment="IP 地址")
-    port: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="端口")
     description: Mapped[str | None] = mapped_column(Text(), nullable=True, comment="描述")
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True, comment="备注")
     status: Mapped[str] = mapped_column(

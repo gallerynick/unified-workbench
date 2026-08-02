@@ -9,9 +9,9 @@ export interface ServiceRecord {
   name: string;
   description?: string | null;
   system_id: string;
+  port?: number | null;
   target_type?: TargetType | null;
   target_name?: string | null;
-  target_ref?: string | null;
   maintainer_ids: string[];
   created_at: string;
   updated_at: string;
@@ -20,9 +20,9 @@ export interface ServiceRecord {
 export interface ServiceFormValues {
   name: string;
   description?: string;
+  port?: number | null;
   target_type?: TargetType;
   target_name?: string;
-  target_ref?: string;
   maintainer_ids?: string[];
 }
 
