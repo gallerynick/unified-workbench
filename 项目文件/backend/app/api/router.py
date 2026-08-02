@@ -22,10 +22,13 @@ from app.api.records import router as records_router
 from app.api.reminders import router as reminders_router
 from app.api.secret_categories import router as secret_categories_router
 from app.api.secrets import router as secrets_router
+from app.api.servers import router as servers_router
+from app.api.services import router as services_router
 from app.api.stream import router as stream_router
 from app.api.stream_room import router as stream_room_router
 from app.api.system import router as system_router
 from app.api.system_config import router as system_config_router
+from app.api.systems import router as systems_router
 from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
 from app.api.templates import router as templates_router
@@ -65,3 +68,6 @@ api_router.include_router(tags_router, prefix="/tags", tags=["标签管理"])
 api_router.include_router(topology_router, prefix="/topologies", tags=["拓扑管理"])
 api_router.include_router(notifications_router, prefix="/notifications", tags=["通知"])
 api_router.include_router(system_router)
+api_router.include_router(servers_router, prefix="/servers", tags=["服务器管理"])
+api_router.include_router(systems_router, prefix="/systems", tags=["系统管理"])
+api_router.include_router(services_router, prefix="/services", tags=["服务管理"])

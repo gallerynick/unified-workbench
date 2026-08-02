@@ -15,8 +15,11 @@ from app.models.record import Record, RecordStatus, RecordType
 from app.models.reminder import Reminder, ReminderStatus, TriggerType
 from app.models.secret import Secret
 from app.models.secret_category import SecretCategory
+from app.models.server import Server
+from app.models.service import Service
 from app.models.stream_room import StreamRoom, StreamRoomMode, StreamRoomType
 from app.models.subscription import BillingCycle, Subscription, SubscriptionStatus
+from app.models.system import System
 from app.models.system_config import SystemConfig
 from app.models.tag import Tag
 from app.models.task import Task, TaskPriority, TaskStatus
@@ -50,12 +53,15 @@ __all__ = [
     "TriggerType",
     "Secret",
     "SecretCategory",
+    "Server",
+    "Service",
     "StreamRoom",
     "StreamRoomMode",
     "StreamRoomType",
     "Subscription",
     "SubscriptionStatus",
     "BillingCycle",
+    "System",
     "SystemConfig",
     "Tag",
     "Task",
