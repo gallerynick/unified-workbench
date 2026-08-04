@@ -9,7 +9,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 
-class ProjectDocumentCreate(BaseModel):
+class ProjectCreate(BaseModel):
     """创建项目文档请求"""
 
     project_id: uuid.UUID
@@ -18,14 +18,14 @@ class ProjectDocumentCreate(BaseModel):
     template_id: uuid.UUID | None = None
 
 
-class ProjectDocumentUpdate(BaseModel):
+class ProjectUpdate(BaseModel):
     """更新项目文档请求"""
 
     title: str | None = None
     content: dict[str, Any] | None = None
 
 
-class ProjectDocumentResponse(BaseModel):
+class ProjectResponse(BaseModel):
     """项目文档响应"""
 
     model_config = ConfigDict(from_attributes=True)
@@ -40,8 +40,8 @@ class ProjectDocumentResponse(BaseModel):
     updated_at: datetime
 
 
-class ProjectDocumentListResponse(BaseModel):
+class ProjectListResponse(BaseModel):
     """项目文档列表响应"""
 
-    items: list[ProjectDocumentResponse]
+    items: list[ProjectResponse]
     total: int

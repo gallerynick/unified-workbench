@@ -11,6 +11,7 @@ from app.models.form import Form, FormResponse
 from app.models.inventory import Inventory
 from app.models.note import Note
 from app.models.notification import Notification
+from app.models.project import Project
 from app.models.record import Record, RecordStatus, RecordType
 from app.models.reminder import Reminder, ReminderStatus, TriggerType
 from app.models.secret import Secret
@@ -45,6 +46,7 @@ __all__ = [
     "Inventory",
     "Note",
     "Notification",
+    "Project",
     "Record",
     "RecordStatus",
     "RecordType",

@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.project_document import ProjectDocument
+from app.models.project import Project
 from app.models.user import User
 
 
@@ -16,9 +16,9 @@ async def create_project_document(
     db: AsyncSession,
     data: dict,
     owner_id: uuid.UUID,
-) -> ProjectDocument:
+) -> Project:
     """创建项目文档"""
-    doc = ProjectDocument(
+    doc = Project(
         project_id=data["project_id"],
         title=data["title"],
         content=data.get("content", {}),
@@ -36,26 +36,26 @@ async def list_project_documents(
     page: int = 1,
     page_size: int = 20,
     project_id: uuid.UUID | None = None,
-) -> tuple[list[ProjectDocument], int]:
+) -> tuple[list[Project], int]:
     """列出项目文档，支持按项目和所有者过滤。非管理员仅能看到自己的文档。"""
-    query = select(ProjectDocument)
-    count_query = select(func.count()).select_from(ProjectDocument)
+    query = select(Project)
+    count_query = select(func.count()).select_from(Project)
 
     # 非管理员只能查看自己的文档
     if current_user.role.value != "admin":
-        query = query.where(ProjectDocument.owner_id == current_user.id)
-        count_query = count_query.where(ProjectDocument.owner_id == current_user.id)
+        query = query.where(Project.owner_id == current_user.id)
+        count_query = count_query.where(Project.owner_id == current_user.id)
 
     if project_id:
-        query = query.where(ProjectDocument.project_id == project_id)
-        count_query = count_query.where(ProjectDocument.project_id == project_id)
+        query = query.where(Project.project_id == project_id)
+        count_query = count_query.where(Project.project_id == project_id)
 
     # 总数
     total_result = await db.execute(count_query)
     total = total_result.scalar_one()
 
     # 分页
-    query = query.order_by(ProjectDocument.created_at.desc())
+    query = query.order_by(Project.created_at.desc())
     query = query.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
     docs = list(result.scalars().all())
@@ -65,10 +65,10 @@ async def list_project_documents(
 
 async def get_project_document(
     db: AsyncSession, document_id: uuid.UUID, current_user: User
-) -> ProjectDocument:
+) -> Project:
     """获取单个项目文档，非管理员只能访问自己的文档。"""
     result = await db.execute(
-        select(ProjectDocument).where(ProjectDocument.id == document_id)
+        select(Project).where(Project.id == document_id)
     )
     doc = result.scalar_one_or_none()
     if not doc:
@@ -87,7 +87,7 @@ async def update_project_document(
     document_id: uuid.UUID,
     data: dict,
     current_user: User,
-) -> ProjectDocument:
+) -> Project:
     """更新项目文档，仅所有者可修改。"""
     doc = await get_project_document(db, document_id, current_user)
     if doc.owner_id != current_user.id:

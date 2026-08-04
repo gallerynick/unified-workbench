@@ -18,10 +18,10 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class ProjectDocument(Base):
+class Project(Base):
     """项目文档表"""
 
-    __tablename__ = "project_document"
+    __tablename__ = "project"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     project_id: Mapped[uuid.UUID] = mapped_column(

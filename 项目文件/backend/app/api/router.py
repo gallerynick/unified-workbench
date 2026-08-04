@@ -17,7 +17,7 @@ from app.api.health import router as health_router
 from app.api.inventory import router as inventory_router
 from app.api.notes import router as notes_router
 from app.api.notifications import router as notifications_router
-from app.api.project_documents import router as project_documents_router
+from app.api.projects import router as projects_router
 from app.api.records import router as records_router
 from app.api.reminders import router as reminders_router
 from app.api.secret_categories import router as secret_categories_router
@@ -63,7 +63,7 @@ api_router.include_router(stream_room_router, prefix="/stream/rooms", tags=["直
 api_router.include_router(forms_router, prefix="/forms", tags=["表单"])
 api_router.include_router(announcements_router, prefix="/announcements", tags=["公告"])
 api_router.include_router(notes_router, prefix="/notes", tags=["笔记"])
-api_router.include_router(project_documents_router, prefix="/project-documents", tags=["项目文档"])
+api_router.include_router(projects_router, prefix="/projects", tags=["项目文档"])
 api_router.include_router(tags_router, prefix="/tags", tags=["标签管理"])
 api_router.include_router(topology_router, prefix="/topologies", tags=["拓扑管理"])
 api_router.include_router(notifications_router, prefix="/notifications", tags=["通知"])
