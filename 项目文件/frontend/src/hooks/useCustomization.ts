@@ -58,15 +58,13 @@ export function useCustomization(): CustomizationConfig {
 
         setConfig(mergedConfig);
 
-        if (mergedConfig.branding.favicon) {
-          let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-          if (!link) {
-            link = document.createElement('link');
-            link.rel = 'icon';
-            document.head.appendChild(link);
-          }
-          link.href = mergedConfig.branding.favicon;
+        let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
         }
+        link.href = mergedConfig.branding.favicon || '/favicon.svg';
 
         document.title = mergedConfig.app.name;
       } catch {

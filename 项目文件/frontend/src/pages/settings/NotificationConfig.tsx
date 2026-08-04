@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Switch, Button, Typography, Card, message, Space, Result } from 'antd';
-import { SaveOutlined, LockOutlined } from '@ant-design/icons';
+import { Form, Input, Switch, Button, Typography, Card, message, Space, Result, Modal } from 'antd';
+import { SaveOutlined, LockOutlined, SendOutlined } from '@ant-design/icons';
 import { getConfig, updateConfig } from '../../api/system_config';
 import { isAdmin } from '../../utils/auth';
+import { request } from '../../utils/request';
 import type { NotificationConfig as NotificationConfigType } from '../../types/system_config';
 import styles from './NotificationConfig.module.css';
 
@@ -15,6 +16,7 @@ export default function NotificationConfig() {
 
   useEffect(() => {
     fetchConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!isAdmin()) {
@@ -46,6 +48,22 @@ export default function NotificationConfig() {
       // 静默失败，使用默认值
     } finally {
       setLoading(false);
+    }
+  };
+
+  const testChannel = async (channel: string) => {
+    try {
+      const res = await request<{ code: number; msg: string }>('/system/test-notification', {
+        method: 'POST',
+        body: { channel },
+      });
+      if (res.code === 0) {
+        message.success(res.msg || `${channel} 测试成功`);
+      } else {
+        message.error(res.msg || `${channel} 测试失败`);
+      }
+    } catch {
+      message.error(`${channel} 测试请求失败`);
     }
   };
 
@@ -118,9 +136,12 @@ export default function NotificationConfig() {
           <div className={styles.channelSection ?? ''}>
             <div className={styles.channelHeader ?? ''}>
               <Text strong>飞书通知</Text>
-              <Form.Item name="feishu_enabled" valuePropName="checked" noStyle>
-                <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-              </Form.Item>
+              <div className={styles.headerActions ?? ''}>
+                <Form.Item name="feishu_enabled" valuePropName="checked" noStyle>
+                  <Switch checkedChildren="启用" unCheckedChildren="禁用" />
+                </Form.Item>
+                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel('feishu')}>测试</Button>
+              </div>
             </div>
             <Form.Item
               name="feishu_webhook_url"
@@ -136,9 +157,12 @@ export default function NotificationConfig() {
           <div className={styles.channelSection ?? ''}>
             <div className={styles.channelHeader ?? ''}>
               <Text strong>钉钉通知</Text>
-              <Form.Item name="dingtalk_enabled" valuePropName="checked" noStyle>
-                <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-              </Form.Item>
+              <div className={styles.headerActions ?? ''}>
+                <Form.Item name="dingtalk_enabled" valuePropName="checked" noStyle>
+                  <Switch checkedChildren="启用" unCheckedChildren="禁用" />
+                </Form.Item>
+                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel('dingtalk')}>测试</Button>
+              </div>
             </div>
             <Form.Item
               name="dingtalk_webhook_url"
@@ -154,9 +178,12 @@ export default function NotificationConfig() {
           <div className={styles.channelSection ?? ''}>
             <div className={styles.channelHeader ?? ''}>
               <Text strong>邮件通知</Text>
-              <Form.Item name="email_enabled" valuePropName="checked" noStyle>
-                <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-              </Form.Item>
+              <div className={styles.headerActions ?? ''}>
+                <Form.Item name="email_enabled" valuePropName="checked" noStyle>
+                  <Switch checkedChildren="启用" unCheckedChildren="禁用" />
+                </Form.Item>
+                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel('email')}>测试</Button>
+              </div>
             </div>
             <Form.Item name="smtp_host" label="SMTP 服务器">
               <Input placeholder="请输入 SMTP 服务器地址" />
@@ -180,9 +207,12 @@ export default function NotificationConfig() {
           <div className={styles.channelSection ?? ''}>
             <div className={styles.channelHeader ?? ''}>
               <Text strong>企业微信通知</Text>
-              <Form.Item name="wecom_enabled" valuePropName="checked" noStyle>
-                <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-              </Form.Item>
+              <div className={styles.headerActions ?? ''}>
+                <Form.Item name="wecom_enabled" valuePropName="checked" noStyle>
+                  <Switch checkedChildren="启用" unCheckedChildren="禁用" />
+                </Form.Item>
+                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel('wecom')}>测试</Button>
+              </div>
             </div>
             <Form.Item
               name="wecom_webhook_url"
@@ -204,8 +234,36 @@ export default function NotificationConfig() {
             >
               保存配置
             </Button>
-            <Button onClick={fetchConfig}>
-              重置
+             <Button onClick={() => {
+               Modal.confirm({
+                 title: '确认全部重置',
+                 content: '所有通知配置（飞书、钉钉、邮件、企微等）将被恢复为默认值。',
+                 okText: '确认重置',
+                 okType: 'danger',
+                 cancelText: '取消',
+                 onOk: async () => {
+                   form.resetFields();
+                   try {
+                     const defaultConfig = {
+                       feishu_webhook_url: '',
+                       dingtalk_webhook_url: '',
+                       enabled_channels: ['websocket'],
+                       smtp_host: '',
+                       smtp_port: 587,
+                       smtp_user: '',
+                       smtp_password: '',
+                       smtp_use_tls: true,
+                       wecom_webhook_url: '',
+                     };
+                     await updateConfig('notification', defaultConfig as unknown as Record<string, unknown>);
+                     message.success('已重置为默认配置');
+                   } catch {
+                     message.error('重置失败');
+                   }
+                 },
+               });
+             }}>
+               全部重置
             </Button>
           </Space>
         </div>

@@ -1,8 +1,9 @@
 """系统更新 API，支持仓库地址配置与验证、数据重置"""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 from app.core.config import get_settings
 from app.core.database import get_db
@@ -124,3 +125,64 @@ async def api_reset_system(
         "msg": "系统已重置，所有用户已被清除" + ("（文件已保留）" if request.keep_files else ""),
         "data": None,
     }
+
+
+class TestNotificationRequest(BaseModel):
+    channel: str  # 'feishu' | 'dingtalk' | 'email' | 'wecom'
+
+
+@router.post("/test-notification")
+async def test_notification(
+    request: TestNotificationRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """测试通知渠道"""
+    from app.services.system_config import get_config
+    from app.services.notification.feishu_channel import FeishuChannel
+    from app.services.notification.dingtalk_channel import DingTalkChannel
+    from app.services.notification.email_channel import EmailChannel
+    from app.services.notification.wecom_channel import WeComChannel
+
+    config = await get_config(db, "notification")
+    if not config:
+        raise HTTPException(status_code=400, detail="通知配置未找到")
+
+    channel_map = {
+        "feishu": (FeishuChannel, "feishu_webhook_url"),
+        "dingtalk": (DingTalkChannel, "dingtalk_webhook_url"),
+        "email": (EmailChannel, None),
+        "wecom": (WeComChannel, "wecom_webhook_url"),
+    }
+
+    if request.channel not in channel_map:
+        raise HTTPException(status_code=400, detail=f"未知通知渠道: {request.channel}")
+
+    channel_cls, url_key = channel_map[request.channel]
+
+    if url_key is not None:
+        webhook_url = config.get(url_key, "")
+        if not webhook_url:
+            raise HTTPException(status_code=400, detail=f"{request.channel} Webhook 地址未配置，请先保存配置")
+        channel = channel_cls(webhook_url=webhook_url)
+    else:
+        smtp_host = config.get("smtp_host", "")
+        if not smtp_host:
+            raise HTTPException(status_code=400, detail="SMTP 服务器未配置，请先保存配置")
+        channel = channel_cls(
+            smtp_host=smtp_host,
+            smtp_port=config.get("smtp_port", 587),
+            smtp_user=config.get("smtp_user", ""),
+            smtp_password=config.get("smtp_password", ""),
+            use_tls=config.get("smtp_use_tls", True),
+        )
+
+    success = await channel.send(
+        user_ids=["test"],
+        title="一站式工作台 - 测试通知",
+        content=f"这是一条来自 {request.channel} 渠道的测试通知。如果您收到此消息，说明通知配置正确。",
+    )
+
+    if success:
+        return {"code": 0, "msg": f"{request.channel} 测试通知发送成功", "data": None}
+    else:
+        raise HTTPException(status_code=500, detail=f"{request.channel} 测试通知发送失败，请检查配置")

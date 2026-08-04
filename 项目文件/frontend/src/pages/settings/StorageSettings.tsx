@@ -63,12 +63,14 @@ export default function StorageSettings() {
 
   const usedPercent =
     info && info.total_space_gb > 0
-      ? Math.min(100, (info.used_space_gb / info.total_space_gb) * 100)
+      ? Math.min(100, parseFloat(((info.used_space_gb / info.total_space_gb) * 100).toFixed(1)))
       : 0;
 
   return (
     <div className={styles.container}>
-      <Title level={4}>存储设置</Title>
+      <div className={styles.header}>
+        <Title level={4} className={styles.title ?? ''}>存储设置</Title>
+      </div>
       <Card title="磁盘空间">
         <div className={styles.statsRow}>
           <Card className={styles.statCard ?? ''}>

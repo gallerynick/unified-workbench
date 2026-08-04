@@ -1,7 +1,21 @@
 .container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-card-gap);
+  min-height: var(--spacing-xxl);
+}
+
+.title {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .statsRow {
@@ -23,4 +37,17 @@
   gap: var(--spacing-xs);
   align-items: center;
   margin-top: var(--spacing-card-gap);
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding: var(--spacing-xs);
+  }
+  .header {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  .header > * {
+    width: 100%;
+  }
 }

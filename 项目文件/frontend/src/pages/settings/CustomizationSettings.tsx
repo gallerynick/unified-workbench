@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, message, Space, Alert, Result, Upload, Radio } from 'antd';
+import { Card, Form, Input, Button, Typography, message, Space, Alert, Result, Upload, Radio, Modal } from 'antd';
 import { ReloadOutlined, SaveOutlined, PictureOutlined, FontSizeOutlined, LockOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import { useCustomization, saveAppSettings } from '../../hooks/useCustomization';
@@ -169,11 +169,29 @@ export default function CustomizationSettings() {
   };
 
   const handleResetAll = () => {
-    form.resetFields();
-    setFaviconFile([]);
-    setLogoExpandedFile([]);
-    setLogoCollapsedFile([]);
-    message.success('已全部重置');
+    Modal.confirm({
+      title: '确认全部重置',
+      content: '所有自定义配置（名称、图标、展示模式等）将被恢复为默认值，刷新后生效。',
+      okText: '确认重置',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => {
+        form.resetFields();
+        setFaviconFile([]);
+        setLogoExpandedFile([]);
+        setLogoCollapsedFile([]);
+        saveAppSettings({
+          name: DEFAULT_CONFIG.app.name,
+          shortName: DEFAULT_CONFIG.app.shortName,
+          description: DEFAULT_CONFIG.app.description,
+          favicon: '',
+          logoExpanded: '',
+          logoCollapsed: '',
+          displayMode: DEFAULT_CONFIG.branding.displayMode,
+        });
+        message.success('已全部重置为默认值，刷新页面后生效');
+      },
+    });
   };
 
   const renderUploadItem = (
