@@ -31,11 +31,14 @@ async def list_systems_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     server_id: uuid.UUID | None = Query(None),
+    parent_system_id: uuid.UUID | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """查询系统列表，支持按 server_id 过滤"""
-    systems, total = await list_systems(db, current_user.id, server_id=server_id, page=page, page_size=page_size)
+    """查询系统列表，支持按 server_id / parent_system_id 过滤"""
+    systems, total = await list_systems(
+        db, current_user.id, server_id=server_id, parent_system_id=parent_system_id, page=page, page_size=page_size,
+    )
     return UnifiedResponse(
         data=SystemListResponse(
             items=[SystemResponse.model_validate(s) for s in systems],

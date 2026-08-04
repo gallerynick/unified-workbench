@@ -10,7 +10,6 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.common import UnifiedResponse
 from app.schemas.server import (
-    ChangeServerTypeRequest,
     ServerCreate,
     ServerListResponse,
     ServerResponse,
@@ -18,7 +17,6 @@ from app.schemas.server import (
 )
 from app.schemas.system import SystemListResponse, SystemResponse
 from app.services.server import (
-    change_server_type,
     create_server,
     delete_server,
     get_server,
@@ -55,11 +53,9 @@ async def create_server_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """创建服务器。SINGLE 类型自动附带 system_id"""
-    server, system_id = await create_server(db, current_user.id, request)
-    response = ServerResponse.model_validate(server)
-    response.system_id = system_id
-    return UnifiedResponse(data=response)
+    """创建服务器"""
+    server = await create_server(db, current_user.id, request)
+    return UnifiedResponse(data=ServerResponse.model_validate(server))
 
 
 @router.get("/{server_id}", response_model=UnifiedResponse[ServerResponse])
@@ -118,13 +114,3 @@ async def get_server_systems_endpoint(
     )
 
 
-@router.put("/{server_id}/change-type", response_model=UnifiedResponse[ServerResponse])
-async def change_server_type_endpoint(
-    server_id: uuid.UUID,
-    request: ChangeServerTypeRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """变更服务器类型，成功后 deploy_status 变为 PENDING_REDEPLOY"""
-    server, changed = await change_server_type(db, server_id, current_user.id, request.server_type)
-    return UnifiedResponse(data=ServerResponse.model_validate(server))

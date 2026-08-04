@@ -104,6 +104,9 @@ async def create_service(
         name=data.name,
         description=data.description,
         system_id=data.system_id,
+        protocol=data.protocol,
+        status=data.status,
+        health_check_url=data.health_check_url,
         target_type=target_type,
         target_name=target_name,
         port=data.port,
@@ -143,6 +146,12 @@ async def update_service(
         if new_system.server.owner_id != user_id:
             raise HTTPException(status_code=403, detail="无权操作该资源")
         service.system_id = data.system_id
+    if data.protocol is not None:
+        service.protocol = data.protocol
+    if data.status is not None:
+        service.status = data.status
+    if data.health_check_url is not None:
+        service.health_check_url = data.health_check_url
     if data.target_type is not None:
         service.target_type = data.target_type
     if data.target_name is not None:

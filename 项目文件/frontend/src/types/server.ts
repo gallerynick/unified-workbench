@@ -2,39 +2,49 @@
  * 服务器（Server）相关类型定义
  */
 
-export type ServerType = 'SINGLE' | 'MULTI';
-export type DeployStatus = 'NORMAL' | 'PENDING_REDEPLOY' | 'REDEPLOYING';
 export type ServerStatus = 'active' | 'maintenance' | 'retired';
 
 export interface ServerRecord {
   id: string;
   name: string;
+  hostname?: string | null;
   purpose?: string | null;
   location?: string | null;
   ip?: string | null;
+  os?: string | null;
+  cpu_cores?: number | null;
+  ram_gb?: number | null;
+  disk_gb?: number | null;
+  model?: string | null;
+  serial_number?: string | null;
+  tags: string[];
   description?: string | null;
   notes?: string | null;
   status: ServerStatus;
-  server_type: ServerType;
-  deploy_status: DeployStatus;
   owner_id: string;
   maintainer_ids: string[];
-  system_id?: string | null; // 单系统创建后返回
   created_at: string;
   updated_at: string;
 }
 
 export interface ServerFormValues {
   name: string;
+  hostname?: string;
   purpose?: string;
   location?: string;
   ip?: string;
-  system_name?: string;
-  system_description?: string;
+  os?: string;
+  cpu_cores?: number;
+  ram_gb?: number;
+  disk_gb?: number;
+  model?: string;
+  serial_number?: string;
+  tags?: string[];
   description?: string;
   notes?: string;
   status?: ServerStatus;
-  server_type?: ServerType;
+  system_name?: string;
+  system_description?: string;
   maintainer_ids?: string[];
 }
 

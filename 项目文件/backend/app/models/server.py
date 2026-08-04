@@ -1,4 +1,4 @@
-"""服务器管理模型"""
+"""服务器管理模型 — 物理机"""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,19 +26,21 @@ class Server(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False, comment="服务器名称")
+    hostname: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="主机名")
     purpose: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="用途")
     location: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="物理位置")
     ip: Mapped[str | None] = mapped_column(String(45), nullable=True, comment="IP 地址")
+    os: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="操作系统")
+    cpu_cores: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="CPU 核心数")
+    ram_gb: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="内存 GB")
+    disk_gb: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="磁盘 GB")
+    model: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="型号")
+    serial_number: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="序列号")
+    tags: Mapped[list] = mapped_column(JSONB, default=list, comment="标签列表")
     description: Mapped[str | None] = mapped_column(Text(), nullable=True, comment="描述")
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True, comment="备注")
     status: Mapped[str] = mapped_column(
         String(20), server_default="active", comment="状态: active/maintenance/offline"
-    )
-    server_type: Mapped[str] = mapped_column(
-        String(20), nullable=False, comment="类型: SINGLE/MULTI"
-    )
-    deploy_status: Mapped[str] = mapped_column(
-        String(20), server_default="NORMAL", comment="部署状态: NORMAL/PENDING_REDEPLOY/REDEPLOYING"
     )
     owner_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("user.id"), nullable=False
@@ -56,5 +58,8 @@ class Server(Base):
     # 关系
     owner: Mapped[User] = relationship("User", lazy="selectin")
     systems: Mapped[list["System"]] = relationship(
-        "System", back_populates="server", cascade="all, delete-orphan"
+        "System",
+        back_populates="server",
+        cascade="all, delete-orphan",
+        foreign_keys="System.server_id",
     )

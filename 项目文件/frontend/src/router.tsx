@@ -48,7 +48,8 @@ const StreamStudio = lazy(() => import('@/pages/streaming/StreamStudio'));
 const StreamWatch = lazy(() => import('@/pages/streaming/StreamWatch'));
 const RoomListPage = lazy(() => import('@/pages/streaming/RoomListPage'));
 const ServerManagement = lazy(() => import('@/pages/servers/ServerManagement'));
-const ServerDetail = lazy(() => import('@/pages/servers/ServerDetail'));
+const ServerSystemsPage = lazy(() => import('@/pages/servers/ServerSystemsPage'));
+const SystemDetail = lazy(() => import('@/pages/servers/SystemDetail'));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -235,8 +236,12 @@ export const router = createBrowserRouter([
             element: <LazyPage><ServerManagement /></LazyPage>,
           },
           {
-            path: 'servers/:id',
-            element: <LazyPage><ServerDetail /></LazyPage>,
+            path: 'servers/:serverId',
+            element: <LazyPage><ServerSystemsPage /></LazyPage>,
+          },
+          {
+            path: 'servers/:serverId/systems/:systemId',
+            element: <LazyPage><SystemDetail /></LazyPage>,
           },
           {
             path: 'streaming',

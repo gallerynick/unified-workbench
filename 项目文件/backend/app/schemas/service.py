@@ -8,6 +8,8 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 VALID_TARGET_TYPES = {"DEVICE", "PERSONNEL", "ORGANIZATION"}
+VALID_PROTOCOLS = {"tcp", "udp", "http", "https"}
+VALID_SERVICE_STATUSES = {"running", "stopped", "error"}
 
 
 def _validate_port(v: int | None) -> int | None:
@@ -23,10 +25,27 @@ class ServiceCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str | None = None
     system_id: uuid.UUID
+    protocol: str | None = None
+    status: str = "running"
+    health_check_url: str | None = None
     target_type: str | None = None
     target_name: str | None = None
     port: int | None = None
     maintainer_ids: list[uuid.UUID] = Field(default_factory=list)
+
+    @field_validator("protocol")
+    @classmethod
+    def validate_protocol(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_PROTOCOLS:
+            raise ValueError(f"protocol 必须是 {VALID_PROTOCOLS} 之一")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def validate_service_status(cls, v: str) -> str:
+        if v not in VALID_SERVICE_STATUSES:
+            raise ValueError(f"status 必须是 {VALID_SERVICE_STATUSES} 之一")
+        return v
 
     @field_validator("target_type")
     @classmethod
@@ -47,10 +66,27 @@ class ServiceUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
     system_id: uuid.UUID | None = None
+    protocol: str | None = None
+    status: str | None = None
+    health_check_url: str | None = None
     target_type: str | None = None
     target_name: str | None = None
     port: int | None = None
     maintainer_ids: list[uuid.UUID] | None = None
+
+    @field_validator("protocol")
+    @classmethod
+    def validate_protocol(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_PROTOCOLS:
+            raise ValueError(f"protocol 必须是 {VALID_PROTOCOLS} 之一")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def validate_service_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_SERVICE_STATUSES:
+            raise ValueError(f"status 必须是 {VALID_SERVICE_STATUSES} 之一")
+        return v
 
     @field_validator("target_type")
     @classmethod
@@ -73,11 +109,14 @@ class ServiceResponse(BaseModel):
     id: uuid.UUID
     system_id: uuid.UUID
     name: str
-    description: str | None
-    target_type: str | None
-    target_name: str | None
-    port: int | None
-    maintainer_ids: list[str]
+    description: str | None = None
+    protocol: str | None = None
+    status: str = "running"
+    health_check_url: str | None = None
+    target_type: str | None = None
+    target_name: str | None = None
+    port: int | None = None
+    maintainer_ids: list[str] = []
     created_at: datetime
     updated_at: datetime
 

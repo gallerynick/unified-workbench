@@ -1,0 +1,146 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.loadingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+
+/* ── 顶部服务器信息卡 ──────────────────────────────── */
+.infoCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-card-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.infoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-card-gap);
+}
+
+.infoHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  min-width: 0;
+}
+
+.breadcrumb {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+}
+
+.title {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm) var(--spacing-lg);
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  min-width: 0;
+}
+
+.infoItemFull {
+  grid-column: 1 / -1;
+}
+
+.infoLabel {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.infoValue {
+  font-size: var(--text-body-sm-size);
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.maintainerTag {
+  margin: 0;
+}
+
+.tagsWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xxs);
+}
+
+/* ── 系统列表区块 ─────────────────────────────────── */
+.sectionCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-card-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.sectionTitle {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── 系统卡片网格 ─────────────────────────────────── */
+.systemCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-card-gap);
+}
+
+.systemCard {
+  border-radius: var(--rounded-sm);
+}
+
+/* ── 响应式 ───────────────────────────────────────── */
+@media (max-width: 767px) {
+  .container {
+    padding: var(--spacing-xs);
+  }
+
+  .infoHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionHeader {
+    flex-wrap: wrap;
+  }
+}

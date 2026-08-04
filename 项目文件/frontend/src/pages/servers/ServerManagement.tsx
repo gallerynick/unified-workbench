@@ -8,7 +8,6 @@ import {
   Modal,
   message,
   Space,
-  Tooltip,
   Tag,
   Empty,
   Spin,
@@ -21,8 +20,8 @@ import {
   EyeOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { listServers, deleteServer, getServerSystems } from '../../api/servers';
-import type { ServerRecord, ServerType, DeployStatus, ServerStatus } from '../../types/server';
+import { listServers, deleteServer } from '../../api/servers';
+import type { ServerRecord, ServerStatus } from '../../types/server';
 import ServerFormModal from './ServerFormModal';
 import styles from './ServerManagement.module.css';
 
@@ -32,17 +31,6 @@ const STATUS_MAP: Record<ServerStatus, { color: string; text: string }> = {
   active: { color: 'success', text: '运行中' },
   maintenance: { color: 'warning', text: '维护中' },
   retired: { color: 'default', text: '已退役' },
-};
-
-const SERVER_TYPE_MAP: Record<ServerType, { color: string; text: string }> = {
-  SINGLE: { color: 'blue', text: '单系统' },
-  MULTI: { color: 'purple', text: '多系统' },
-};
-
-const DEPLOY_STATUS_MAP: Record<DeployStatus, { color: string; text: string }> = {
-  NORMAL: { color: 'success', text: '正常' },
-  PENDING_REDEPLOY: { color: 'error', text: '待重新部署' },
-  REDEPLOYING: { color: 'processing', text: '重新部署中' },
 };
 
 export default function ServerManagement() {
@@ -57,9 +45,6 @@ export default function ServerManagement() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 多系统服务器的系统数量（列表接口不返回，按页补充查询）
-  const [systemCountMap, setSystemCountMap] = useState<Record<string, number>>({});
-
   // 弹窗状态
   const [formVisible, setFormVisible] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -72,24 +57,6 @@ export default function ServerManagement() {
       if (res.code === 0) {
         setRecords(res.data.items);
         setTotal(res.data.total);
-        const multiIds = res.data.items
-          .filter((r) => r.server_type === 'MULTI')
-          .map((r) => r.id);
-        if (multiIds.length > 0) {
-          const entries = await Promise.all(
-            multiIds.map(async (id): Promise<[string, number]> => {
-              try {
-                const sysRes = await getServerSystems(id);
-                return [id, sysRes.code === 0 ? sysRes.data.items.length : 0];
-              } catch {
-                return [id, 0];
-              }
-            })
-          );
-          setSystemCountMap(Object.fromEntries(entries));
-        } else {
-          setSystemCountMap({});
-        }
       } else {
         message.error(res.msg || '获取服务器列表失败');
       }
@@ -166,11 +133,6 @@ export default function ServerManagement() {
     fetchServers();
   };
 
-  const getSystemCount = (record: ServerRecord): number => {
-    if (record.server_type === 'SINGLE') return record.system_id ? 1 : 0;
-    return systemCountMap[record.id] ?? 0;
-  };
-
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -227,34 +189,37 @@ export default function ServerManagement() {
                     </Tag>
                   }
                   actions={[
-                    <Tooltip key="detail" title="详情">
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<EyeOutlined />}
-                        aria-label="详情"
-                        onClick={() => handleDetail(record)}
-                      />
-                    </Tooltip>,
-                    <Tooltip key="edit" title="编辑">
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<EditOutlined />}
-                        aria-label="编辑"
-                        onClick={() => handleEdit(record)}
-                      />
-                    </Tooltip>,
-                    <Tooltip key="delete" title="删除">
-                      <Button
-                        type="text"
-                        size="small"
-                        danger
-                        icon={<DeleteOutlined />}
-                        aria-label="删除"
-                        onClick={() => handleDelete(record)}
-                      />
-                    </Tooltip>,
+                    <Button
+                      key="detail"
+                      type="text"
+                      size="small"
+                      icon={<EyeOutlined />}
+                      aria-label="详情"
+                      onClick={() => handleDetail(record)}
+                    >
+                      详情
+                    </Button>,
+                    <Button
+                      key="edit"
+                      type="text"
+                      size="small"
+                      icon={<EditOutlined />}
+                      aria-label="编辑"
+                      onClick={() => handleEdit(record)}
+                    >
+                      编辑
+                    </Button>,
+                    <Button
+                      key="delete"
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      aria-label="删除"
+                      onClick={() => handleDelete(record)}
+                    >
+                      删除
+                    </Button>,
                   ]}
                 >
                   <div className={styles.cardBody}>
@@ -265,23 +230,57 @@ export default function ServerManagement() {
                       </span>
                     </div>
                     <div className={styles.infoRow}>
+                      <span className={styles.label}>位置</span>
+                      <span className={styles.value} title={record.location ?? ''}>
+                        {record.location || '-'}
+                      </span>
+                    </div>
+                    <div className={styles.infoRow}>
                       <span className={styles.label}>IP 地址</span>
                       <span className={styles.value} title={record.ip ?? ''}>
                         {record.ip || '-'}
                       </span>
                     </div>
-                    <div className={styles.tags}>
-                      <Tag color={SERVER_TYPE_MAP[record.server_type]?.color ?? 'default'}>
-                        {SERVER_TYPE_MAP[record.server_type]?.text ?? record.server_type}
-                      </Tag>
-                      <Tag color={DEPLOY_STATUS_MAP[record.deploy_status]?.color ?? 'default'}>
-                        {DEPLOY_STATUS_MAP[record.deploy_status]?.text ?? record.deploy_status}
-                      </Tag>
-                    </div>
-                    <div className={styles.meta}>
-                      <span className={styles.metaItem}>
-                        系统数 <b>{getSystemCount(record)}</b>
+                    <div className={styles.infoRow}>
+                      <span className={styles.label}>操作系统</span>
+                      <span className={styles.value} title={record.os ?? ''}>
+                        {record.os || '-'}
                       </span>
+                    </div>
+                    <div className={styles.infoRow}>
+                      <span className={styles.label}>CPU</span>
+                      <span className={styles.value}>
+                        {record.cpu_cores != null ? `${record.cpu_cores} 核` : '-'}
+                      </span>
+                    </div>
+                    <div className={styles.infoRow}>
+                      <span className={styles.label}>内存</span>
+                      <span className={styles.value}>
+                        {record.ram_gb != null ? `${record.ram_gb} GB` : '-'}
+                      </span>
+                    </div>
+                    <div className={styles.infoRow}>
+                      <span className={styles.label}>磁盘</span>
+                      <span className={styles.value}>
+                        {record.disk_gb != null ? `${record.disk_gb} GB` : '-'}
+                      </span>
+                    </div>
+                    <div className={styles.infoRow}>
+                      <span className={styles.label}>型号</span>
+                      <span className={styles.value} title={record.model ?? ''}>
+                        {record.model || '-'}
+                      </span>
+                    </div>
+                    {record.tags.length > 0 && (
+                      <div className={styles.tags}>
+                        {record.tags.map((tag) => (
+                          <Tag key={tag} color="blue">
+                            {tag}
+                          </Tag>
+                        ))}
+                      </div>
+                    )}
+                    <div className={styles.meta}>
                       <span className={styles.metaItem}>
                         维护人员 <b>{record.maintainer_ids.length}</b>
                       </span>

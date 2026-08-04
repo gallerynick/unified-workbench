@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, message } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, Row, Col, message } from 'antd';
 import { createServer, updateServer } from '../../api/servers';
 import { listUsers } from '../../api/users';
-import type { ServerRecord, ServerFormValues, ServerType, ServerStatus } from '../../types/server';
+import type { ServerRecord, ServerFormValues, ServerStatus } from '../../types/server';
 import type { User } from '../../types/user';
 
 const { TextArea } = Input;
@@ -11,11 +11,6 @@ const STATUS_OPTIONS: { value: ServerStatus; label: string }[] = [
   { value: 'active', label: '运行中' },
   { value: 'maintenance', label: '维护中' },
   { value: 'retired', label: '已退役' },
-];
-
-const TYPE_OPTIONS: { value: ServerType; label: string }[] = [
-  { value: 'SINGLE', label: '单系统' },
-  { value: 'MULTI', label: '多系统' },
 ];
 
 // 兼容 IPv4 与 IPv6 的宽松匹配
@@ -39,12 +34,6 @@ export default function ServerFormModal({
   const [form] = Form.useForm<ServerFormValues>();
   const [submitting, setSubmitting] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-
-  // 监听服务器类型与名称，用于条件显示单系统字段
-  const serverType = Form.useWatch('server_type', form) as ServerType | undefined;
-  const nameValue = Form.useWatch('name', form) as string | undefined;
-  // 后端 ServerUpdate 不支持 system_name/system_description，仅新建时展示
-  const showSingleSystemFields = mode === 'create' && serverType === 'SINGLE';
 
   // 加载成员列表，供维护人员选择器使用
   useEffect(() => {
@@ -70,18 +59,25 @@ export default function ServerFormModal({
     if (mode === 'edit' && record) {
       form.setFieldsValue({
         name: record.name,
+        hostname: record.hostname ?? '',
         purpose: record.purpose ?? '',
         location: record.location ?? '',
         ip: record.ip ?? '',
+        os: record.os ?? '',
+        ...(record.cpu_cores != null ? { cpu_cores: record.cpu_cores } : {}),
+        ...(record.ram_gb != null ? { ram_gb: record.ram_gb } : {}),
+        ...(record.disk_gb != null ? { disk_gb: record.disk_gb } : {}),
+        model: record.model ?? '',
+        serial_number: record.serial_number ?? '',
+        tags: record.tags ?? [],
         description: record.description ?? '',
         notes: record.notes ?? '',
         status: record.status,
-        server_type: record.server_type,
         maintainer_ids: record.maintainer_ids ?? [],
       });
     } else {
       form.resetFields();
-      form.setFieldsValue({ status: 'active', server_type: 'SINGLE', maintainer_ids: [] });
+      form.setFieldsValue({ status: 'active', maintainer_ids: [] });
     }
   }, [visible, mode, record, form]);
 
@@ -91,14 +87,19 @@ export default function ServerFormModal({
       const payload: ServerFormValues = {
         name: values.name,
         status: values.status ?? 'active',
-        server_type: values.server_type ?? 'SINGLE',
         maintainer_ids: values.maintainer_ids ?? [],
       };
+      if (values.hostname) payload.hostname = values.hostname;
       if (values.purpose) payload.purpose = values.purpose;
       if (values.location) payload.location = values.location;
       if (values.ip) payload.ip = values.ip;
-      if (values.system_name) payload.system_name = values.system_name;
-      if (values.system_description) payload.system_description = values.system_description;
+      if (values.os) payload.os = values.os;
+      if (values.cpu_cores !== undefined) payload.cpu_cores = values.cpu_cores;
+      if (values.ram_gb !== undefined) payload.ram_gb = values.ram_gb;
+      if (values.disk_gb !== undefined) payload.disk_gb = values.disk_gb;
+      if (values.model) payload.model = values.model;
+      if (values.serial_number) payload.serial_number = values.serial_number;
+      if (values.tags && values.tags.length > 0) payload.tags = values.tags;
       if (values.description) payload.description = values.description;
       if (values.notes) payload.notes = values.notes;
 
@@ -132,51 +133,97 @@ export default function ServerFormModal({
       onCancel={onClose}
       okText="保存"
       cancelText="取消"
-      width={600}
+      width={640}
       confirmLoading={submitting}
       destroyOnClose
       styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入服务器名称' }]}>
-          <Input placeholder="请输入服务器名称" />
-        </Form.Item>
-
-        <Form.Item
-          name="server_type"
-          label="服务器类型"
-          rules={[{ required: true, message: '请选择服务器类型' }]}
-          tooltip={mode === 'edit' ? '创建后不可更改' : undefined}
-        >
-          <Select options={TYPE_OPTIONS} disabled={mode === 'edit'} placeholder="请选择服务器类型" />
-        </Form.Item>
-
-        <Form.Item
-          name="ip"
-          label="IP 地址"
-          rules={[
-            { required: true, message: '请输入 IP 地址' },
-            { pattern: IP_PATTERN, message: '请输入有效的 IPv4 或 IPv6 地址' },
-          ]}
-        >
-          <Input placeholder="例如 192.168.1.10" />
-        </Form.Item>
-
-        {showSingleSystemFields && (
-          <>
-            <Form.Item name="system_name" label="系统名称">
-              <Input placeholder={`默认为 ${nameValue || '服务器名称'}-系统`} />
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入服务器名称' }]}>
+              <Input placeholder="请输入服务器名称" />
             </Form.Item>
-
-            <Form.Item name="system_description" label="系统描述">
-              <TextArea placeholder="可选，系统用途说明" rows={2} />
+          </Col>
+          <Col span={12}>
+            <Form.Item name="hostname" label="主机名">
+              <Input placeholder="例如 srv-01" />
             </Form.Item>
-          </>
-        )}
+          </Col>
+        </Row>
 
-        <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]}>
-          <Select options={STATUS_OPTIONS} />
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="ip"
+              label="IP 地址"
+              rules={[
+                { required: true, message: '请输入 IP 地址' },
+                { pattern: IP_PATTERN, message: '请输入有效的 IPv4 或 IPv6 地址' },
+              ]}
+            >
+              <Input placeholder="例如 192.168.1.10" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="os" label="操作系统">
+              <Input placeholder="例如 Ubuntu 22.04 LTS" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item name="cpu_cores" label="CPU 核心数">
+              <InputNumber min={1} style={{ width: '100%' }} placeholder="例如 8" />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="ram_gb" label="内存">
+              <InputNumber min={1} style={{ width: '100%' }} placeholder="例如 16" suffix="GB" />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="disk_gb" label="磁盘">
+              <InputNumber min={1} style={{ width: '100%' }} placeholder="例如 500" suffix="GB" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="model" label="设备型号">
+              <Input placeholder="例如 Dell PowerEdge R740" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="serial_number" label="序列号">
+              <Input placeholder="请输入序列号" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Form.Item name="tags" label="标签">
+          <Select
+            mode="tags"
+            placeholder="输入标签后回车创建"
+            tokenSeparators={[',']}
+            maxTagCount="responsive"
+          />
         </Form.Item>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]}>
+              <Select options={STATUS_OPTIONS} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="location" label="位置">
+              <Input placeholder="请输入位置（可选）" />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Form.Item name="maintainer_ids" label="维护人员">
           <Select
@@ -189,10 +236,6 @@ export default function ServerFormModal({
 
         <Form.Item name="purpose" label="用途">
           <TextArea placeholder="请输入用途（可选）" rows={2} />
-        </Form.Item>
-
-        <Form.Item name="location" label="位置">
-          <Input placeholder="请输入位置（可选）" />
         </Form.Item>
 
         <Form.Item name="description" label="描述">

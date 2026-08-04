@@ -1,10 +1,8 @@
 import { request } from '../utils/request';
 import type {
-  DeployStatus,
-  ServerRecord,
   ServerFormValues,
   ServerListResponse,
-  ServerType,
+  ServerRecord,
 } from '../types/server';
 import type { SystemListResponse } from '../types/system';
 import type { UnifiedResponse } from '../types/user';
@@ -47,24 +45,4 @@ export async function getServerSystems(
   id: string
 ): Promise<UnifiedResponse<SystemListResponse>> {
   return request<SystemListResponse>(`/servers/${id}/systems/`);
-}
-
-export async function changeServerType(
-  id: string,
-  server_type: ServerType
-): Promise<UnifiedResponse<ServerRecord>> {
-  return request<ServerRecord>(`/servers/${id}/change-type/`, {
-    method: 'PUT',
-    body: { server_type },
-  });
-}
-
-export async function updateServerDeployStatus(
-  id: string,
-  deploy_status: DeployStatus
-): Promise<UnifiedResponse<ServerRecord>> {
-  return request<ServerRecord>(`/servers/${id}/`, {
-    method: 'PUT',
-    body: { deploy_status },
-  });
 }

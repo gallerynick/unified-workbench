@@ -29,6 +29,15 @@ class Service(Base):
     system_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("systems.id", ondelete="CASCADE"), nullable=False
     )
+    protocol: Mapped[str] = mapped_column(
+        String(10), server_default="tcp", nullable=False, comment="协议: tcp/udp/http/https"
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), server_default="running", comment="状态: running/stopped/error"
+    )
+    health_check_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, comment="健康检查 URL"
+    )
     target_type: Mapped[str | None] = mapped_column(
         String(20), nullable=True, comment="目标类型"
     )

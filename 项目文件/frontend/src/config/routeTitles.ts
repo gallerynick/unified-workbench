@@ -46,6 +46,9 @@ export function getRouteTitle(pathname: string): string {
     return '项目详情';
   }
   if (pathname.startsWith('/servers/')) {
+    if (pathname.includes('/systems/')) {
+      return '系统详情';
+    }
     return '服务器详情';
   }
   if (pathname.startsWith('/secrets/category/')) {

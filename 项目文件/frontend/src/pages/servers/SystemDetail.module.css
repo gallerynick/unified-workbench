@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-card-gap);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .loadingWrap {
@@ -27,6 +30,18 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-card-gap);
+}
+
+.infoHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  min-width: 0;
+}
+
+.breadcrumb {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
 }
 
 .title {
@@ -64,34 +79,10 @@
   margin: 0;
 }
 
-/* ── deploy_status 提醒条 ───────────────────────────── */
-.deployBanner {
+.tagsWrap {
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
-  background: var(--color-warning-bg);
-  border: 1px solid var(--color-warning);
-  border-radius: var(--rounded-sm);
-  padding: var(--spacing-sm) var(--spacing-card-gap);
-}
-
-.deployBannerIcon {
-  color: var(--color-warning);
-  font-size: var(--text-heading-3-size);
-  margin-top: 2px;
-}
-
-.deployBannerText {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: var(--spacing-xxs);
-}
-
-.deployBannerHint {
-  margin: 0 !important;
-  font-size: var(--text-caption-size);
 }
 
 /* ── 通用区块卡片 ───────────────────────────────────── */
@@ -122,72 +113,15 @@
   flex: 1;
 }
 
-/* ── 单系统：系统信息展示 ───────────────────────────── */
-.systemInfo {
+/* ── 虚拟机卡片网格 ─────────────────────────────────── */
+.systemCardGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-sm) var(--spacing-lg);
-}
-
-/* ── 多系统：树 + 内容区 ────────────────────────────── */
-.multiRow {
-  display: flex;
-  align-items: flex-start;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--spacing-card-gap);
 }
 
-.treePanel {
-  flex-shrink: 0;
-  width: 260px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-secondary);
+.systemCard {
   border-radius: var(--rounded-sm);
-  padding: var(--spacing-card-gap);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  max-height: 560px;
-  overflow: auto;
-}
-
-.systemTree {
-  background: transparent;
-}
-
-.treeNode {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xxs) 0;
-}
-
-.treeNodeTitle {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  font-size: var(--text-caption-size);
-  color: var(--text-primary);
-}
-
-.treeNodeActions {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  opacity: 0;
-  transition: opacity var(--anim-fast) var(--anim-ease);
-}
-
-.treeNode:hover .treeNodeActions {
-  opacity: 1;
-}
-
-.contentPanel {
-  flex: 1;
-  min-width: 0;
 }
 
 /* ── 响应式 ─────────────────────────────────────────── */
@@ -204,24 +138,6 @@
 
   .infoGrid {
     grid-template-columns: 1fr;
-  }
-
-  .systemInfo {
-    grid-template-columns: 1fr;
-  }
-
-  .deployBanner {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .multiRow {
-    flex-direction: column;
-  }
-
-  .treePanel {
-    width: 100%;
-    max-height: 240px;
   }
 
   .sectionHeader {
