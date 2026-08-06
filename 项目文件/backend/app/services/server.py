@@ -9,6 +9,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.server import Server
+from app.models.user import User, UserRole
 from app.schemas.server import ServerCreate, ServerUpdate
 
 
@@ -51,14 +52,22 @@ async def get_server(
     server_id: uuid.UUID,
     user_id: uuid.UUID,
 ) -> Server:
-    """根据 ID 获取服务器，owner 校验"""
+    """根据 ID 获取服务器，所有者/管理员/维护者 均可操作"""
     result = await db.execute(select(Server).where(Server.id == server_id))
     server = result.scalar_one_or_none()
     if not server:
         raise HTTPException(status_code=404, detail="服务器不存在")
-    if server.owner_id != user_id:
-        raise HTTPException(status_code=403, detail="无权操作该资源")
-    return server
+    # 权限校验：所有者或管理员或维护者（maintainer_ids）可操作
+    if server.owner_id == user_id:
+        return server
+    result = await db.execute(select(User.role).where(User.id == user_id))
+    user_role = result.scalar_one_or_none()
+    if user_role == UserRole.ADMIN:
+        return server
+    maintainers = [str(m) for m in (server.maintainer_ids or [])]
+    if str(user_id) in maintainers:
+        return server
+    raise HTTPException(status_code=403, detail="仅所有者可操作此服务器")
 
 
 async def create_server(

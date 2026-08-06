@@ -13,7 +13,7 @@ from app.core.visibility import Visibility
 from app.schemas.vote import VoteCreate, VoteSubmit
 from app.services.visibility import check_visibility as visibility_filter
 from app.services.notification_crud import create_notification
-from app.models.user import User
+from app.models.user import User, UserRole
 
 
 async def list_votes(db: AsyncSession, owner_id: uuid.UUID, page: int = 1, page_size: int = 20) -> tuple[list[Vote], int]:
@@ -57,7 +57,13 @@ async def create_vote(db: AsyncSession, owner_id: uuid.UUID, request: VoteCreate
 
 
 async def delete_vote(db: AsyncSession, vote_id: uuid.UUID, owner_id: uuid.UUID) -> bool:
-    vote = await db.execute(select(Vote).where(Vote.id == vote_id, Vote.owner_id == owner_id))
+    # Admin 可删除任意投票
+    role_result = await db.execute(select(User.role).where(User.id == owner_id))
+    user_role = role_result.scalar_one_or_none()
+    if user_role == UserRole.ADMIN:
+        vote = await db.execute(select(Vote).where(Vote.id == vote_id))
+    else:
+        vote = await db.execute(select(Vote).where(Vote.id == vote_id, Vote.owner_id == owner_id))
     v = vote.scalar_one_or_none()
     if not v:
         return False

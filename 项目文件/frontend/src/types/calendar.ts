@@ -1,3 +1,5 @@
+import type { Visibility } from '../utils/visibility';
+
 export type EventRepeat = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export interface CalendarEvent {
@@ -11,6 +13,8 @@ export interface CalendarEvent {
   repeat: EventRepeat;
   color: string | null;
   owner_id?: string;
+  visibility?: Visibility;
+  restricted_users?: string[] | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -24,6 +28,8 @@ export interface CalendarEventCreate {
   location?: string | undefined;
   repeat?: EventRepeat | undefined;
   color?: string | undefined;
+  visibility?: Visibility | undefined;
+  restricted_users?: string[] | undefined;
 }
 
 export interface CalendarEventUpdate {
@@ -35,6 +41,8 @@ export interface CalendarEventUpdate {
   location?: string | undefined;
   repeat?: EventRepeat | undefined;
   color?: string | undefined;
+  visibility?: Visibility | undefined;
+  restricted_users?: string[] | undefined;
 }
 
 export interface CalendarEventListResponse {

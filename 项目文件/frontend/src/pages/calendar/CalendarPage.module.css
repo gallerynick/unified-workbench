@@ -54,3 +54,29 @@
   min-width: 0;
 }
 
+.permissionList {
+  margin: var(--spacing-xxs) 0 var(--spacing-xs) 0;
+  padding-left: var(--spacing-md);
+}
+
+.permissionList li {
+  margin-bottom: var(--spacing-xxs);
+}
+
+.permissionList li:last-child {
+  margin-bottom: 0;
+}
+
+.permissionContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.permissionContent .ant-typography {
+  margin-bottom: var(--spacing-xxs);
+}
+
+.permissionContent > :last-child {
+  margin-bottom: 0 !important;
+}
+

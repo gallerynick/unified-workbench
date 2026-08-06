@@ -87,7 +87,6 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { key: '/calendar', label: '日程日历', icon: 'CalendarOutlined' },
   { key: '/votes', label: '投票决策', icon: 'LikeOutlined' },
   { key: '/forms', label: '表单收集', icon: 'FormOutlined' },
-  { key: '/members', label: '成员目录', icon: 'TeamOutlined' },
   { key: '/announcements', label: '公告通知', icon: 'SoundOutlined' },
   { key: '/notes', label: '笔记知识库', icon: 'BookOutlined' },
   { key: '/shares', label: '文件共享', icon: 'FileOutlined' },
@@ -99,6 +98,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { key: '/reminders', label: '提醒事项', icon: 'BellOutlined' },
   { key: '/topology', label: '拓扑结构', icon: 'ApartmentOutlined' },
   { key: '/servers', label: '服务器管理', icon: 'CloudServerOutlined' },
+  { key: '/members', label: '成员目录', icon: 'TeamOutlined' },
   { key: '/streaming', label: '直播工作室', icon: 'VideoCameraOutlined' },
 ];
 

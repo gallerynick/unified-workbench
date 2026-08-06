@@ -1,3 +1,5 @@
+import type { Visibility } from '../utils/visibility';
+
 export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -11,6 +13,8 @@ export interface Task {
   assigned_to: string | null;
   owner_id: string;
   tags: string[] | null;
+  visibility?: Visibility;
+  restricted_users?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +27,8 @@ export interface TaskCreate {
   due_date?: string;
   assigned_to?: string;
   tags?: string[];
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface TaskUpdate {
@@ -33,6 +39,8 @@ export interface TaskUpdate {
   due_date?: string;
   assigned_to?: string;
   tags?: string[];
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface TaskListResponse {

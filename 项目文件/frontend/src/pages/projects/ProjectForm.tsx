@@ -1,8 +1,9 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { Modal, Form, Input, Select, message } from 'antd';
 import { createProject, updateProject } from '../../api/projects';
 import type { Project, ProjectCreate, ProjectUpdate } from '../../types/project';
-import { getVisibilityOptions } from '../../utils/visibility';
+import type { Visibility } from '../../utils/visibility';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 
 const { TextArea } = Input;
 
@@ -24,7 +25,8 @@ interface ProjectFormProps {
 export default function ProjectForm({ visible, mode, project, onClose, onSuccess }: ProjectFormProps) {
   const [form] = Form.useForm();
   const isEdit = mode === 'edit';
-  const visibilityOptions = getVisibilityOptions();
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
 
   // 初始化表单
   useEffect(() => {
@@ -35,15 +37,16 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           project_id: project.project_id,
           description: project.description,
           status: project.status,
-          visibility: project.visibility,
-          restricted_users: project.restricted_users || [],
         });
+        setVisibility((project.visibility as Visibility) || 'private');
+        setRestrictedUsers(project.restricted_users || []);
       } else {
         form.resetFields();
         form.setFieldsValue({
           status: 'draft',
-          visibility: 'private',
         });
+        setVisibility('private');
+        setRestrictedUsers([]);
       }
     }
   }, [visible, isEdit, project, form]);
@@ -57,8 +60,8 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           project_id: values.project_id || null,
           description: values.description || null,
           status: values.status,
-          visibility: values.visibility,
-          restricted_users: values.visibility === 'restricted' ? values.restricted_users : undefined,
+          visibility,
+          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
         };
         const res = await updateProject(project.id, data);
         if (res.code === 0) {
@@ -73,8 +76,8 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           project_id: values.project_id || undefined,
           description: values.description || undefined,
           status: values.status,
-          visibility: values.visibility,
-          restricted_users: values.visibility === 'restricted' ? values.restricted_users : undefined,
+          visibility,
+          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
         };
         const res = await createProject(data);
         if (res.code === 0) {
@@ -89,7 +92,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
         message.error(err.message);
       }
     }
-  }, [form, isEdit, project, onSuccess]);
+  }, [form, isEdit, project, onSuccess, visibility, restrictedUsers]);
 
   return (
     <Modal
@@ -129,32 +132,15 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
         >
           <Select options={STATUS_OPTIONS} />
         </Form.Item>
-        <Form.Item
-          name="visibility"
-          label="可见性"
-          rules={[{ required: true, message: '请选择可见性' }]}
-        >
-          <Select options={visibilityOptions} />
-        </Form.Item>
-        <Form.Item
-          noStyle
-          shouldUpdate={(prev, cur) => prev.visibility !== cur.visibility}
-        >
-          {({ getFieldValue }) =>
-            getFieldValue('visibility') === 'restricted' && (
-              <Form.Item
-                name="restricted_users"
-                label="指定用户"
-                tooltip="输入用户ID，按回车添加"
-              >
-                <Select
-                  mode="tags"
-                  placeholder="输入用户ID"
-                  tokenSeparators={[',']}
-                />
-              </Form.Item>
-            )
-          }
+        <Form.Item label="可见性">
+          <VisibilitySetting
+            value={visibility}
+            restrictedUsers={restrictedUsers}
+            onChange={setVisibility}
+            onRestrictedUsersChange={setRestrictedUsers}
+            showRestrictedTags={false}
+            label=""
+          />
         </Form.Item>
       </Form>
     </Modal>

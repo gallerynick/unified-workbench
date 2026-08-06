@@ -48,6 +48,31 @@
   font-weight: 600;
 }
 
+.manageBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.manageActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.permissionContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.permissionContent .ant-typography {
+  margin-bottom: var(--spacing-xxs);
+}
+
+.permissionContent > :last-child {
+  margin-bottom: 0 !important;
+}
+
+
 @media (max-width: 767px) {
   .container {
     padding: var(--spacing-sm);

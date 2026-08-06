@@ -7,6 +7,7 @@ from sqlalchemy import String, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import check_visibility
+from app.core.visibility import Visibility
 from app.models.content import Content
 from app.models.user import User, UserRole
 from app.schemas.content import ContentCreateRequest, ContentUpdateRequest
@@ -110,7 +111,7 @@ async def update_content(
 async def delete_content(
     db: AsyncSession, content_id: uuid.UUID, current_user: User
 ) -> None:
-    """删除内容，仅 owner 或 admin 可操作。"""
+    """删除内容。owner 直接可删；admin 仅可删除 own+designated（PUBLIC 或 restricted_users 中的内容）。"""
     result = await db.execute(select(Content).where(Content.id == content_id))
     content = result.scalar_one_or_none()
 
@@ -119,11 +120,20 @@ async def delete_content(
             status_code=status.HTTP_404_NOT_FOUND, detail="内容不存在"
         )
 
-    # 权限检查：owner 或 admin
-    if content.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="无权删除此内容"
-        )
+    # 权限检查
+    if content.owner_id != current_user.id:
+        if current_user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权删除此内容"
+            )
+        # Admin：仅可删除 own+designated（PUBLIC 或在 restricted_users 中）
+        if content.visibility != Visibility.PUBLIC and (
+            not content.restricted_users
+            or str(current_user.id) not in content.restricted_users
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权删除此内容"
+            )
 
     # 删除内容
     await db.delete(content)

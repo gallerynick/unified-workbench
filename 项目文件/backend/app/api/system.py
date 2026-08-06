@@ -7,6 +7,7 @@ import json
 
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.deps import require_admin
 from app.services.updater import (
     check_update,
     get_github_repo,
@@ -28,19 +29,29 @@ class TokenConfig(BaseModel):
 
 
 @router.get("/check-update")
-async def api_check_update(db: AsyncSession = Depends(get_db)):
+async def api_check_update(
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(require_admin),
+):
     result = await check_update(db)
     return {"code": 0, "msg": "", "data": result}
 
 
 @router.get("/repo")
-async def api_get_repo(db: AsyncSession = Depends(get_db)):
+async def api_get_repo(
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(require_admin),
+):
     repo = await get_github_repo(db)
     return {"code": 0, "msg": "", "data": {"repo": repo}}
 
 
 @router.put("/repo")
-async def api_set_repo(config: RepoConfig, db: AsyncSession = Depends(get_db)):
+async def api_set_repo(
+    config: RepoConfig,
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(require_admin),
+):
     parts = config.repo.split("/")
     if len(parts) != 2:
         return {"code": 1, "msg": "仓库地址格式错误，应为 owner/repo", "data": None}
@@ -55,14 +66,21 @@ async def api_set_repo(config: RepoConfig, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/token")
-async def api_get_token(db: AsyncSession = Depends(get_db)):
+async def api_get_token(
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(require_admin),
+):
     token = await get_github_token(db)
     masked = token[:4] + "****" + token[-4:] if len(token) > 8 else ""
     return {"code": 0, "msg": "", "data": {"token": masked, "has_token": bool(token)}}
 
 
 @router.put("/token")
-async def api_set_token(config: TokenConfig, db: AsyncSession = Depends(get_db)):
+async def api_set_token(
+    config: TokenConfig,
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(require_admin),
+):
     await set_github_token(db, config.token)
     return {"code": 0, "msg": "GitHub Token 已保存", "data": None}
 
@@ -77,6 +95,7 @@ class ResetRequest(BaseModel):
 async def api_reset_system(
     request: ResetRequest,
     db: AsyncSession = Depends(get_db),
+    admin=Depends(require_admin),
 ):
     """重置系统：删除所有数据，需要密码验证，可选保留文件"""
     from sqlalchemy import text
@@ -135,6 +154,7 @@ class TestNotificationRequest(BaseModel):
 async def test_notification(
     request: TestNotificationRequest,
     db: AsyncSession = Depends(get_db),
+    admin=Depends(require_admin),
 ):
     """测试通知渠道"""
     from app.services.system_config import get_config

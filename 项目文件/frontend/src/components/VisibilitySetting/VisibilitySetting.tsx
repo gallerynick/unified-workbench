@@ -11,6 +11,7 @@ import styles from './VisibilitySetting.module.css';
 export type { Visibility };
 
 interface VisibilitySettingProps {
+  label?: string;
   value?: Visibility;
   restrictedUsers?: string[];
   restrictedTags?: string[];
@@ -19,9 +20,12 @@ interface VisibilitySettingProps {
   onRestrictedTagsChange?: (tags: string[]) => void;
   showDescription?: boolean;
   layout?: 'horizontal' | 'vertical';
+  hideRestricted?: boolean;
+  showRestrictedTags?: boolean;
 }
 
 export default function VisibilitySetting({
+  label = '可见性',
   value = 'public',
   restrictedUsers = [],
   restrictedTags = [],
@@ -30,8 +34,11 @@ export default function VisibilitySetting({
   onRestrictedTagsChange,
   showDescription = false,
   layout = 'horizontal',
+  hideRestricted = false,
+  showRestrictedTags = true,
 }: VisibilitySettingProps) {
-  const options = getVisibilityOptions();
+  const allOptions = getVisibilityOptions();
+  const options = hideRestricted ? allOptions.filter((o) => o.value !== 'restricted') : allOptions;
   const { tags } = useTagContext();
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -66,6 +73,7 @@ export default function VisibilitySetting({
 
   return (
     <div className={styles.container ?? ''}>
+      {label ? <div className={styles.label}>{label}</div> : null}
       <Radio.Group
         className={styles.radioGroup ?? ''}
         value={value}
@@ -114,21 +122,23 @@ export default function VisibilitySetting({
             />
           </div>
 
-            <div>
-              <p className={styles.sectionLabel ?? ''}>指定标签</p>
-              <Select
-                className={styles.userSelect ?? ''}
-                mode="multiple"
-                placeholder="选择可访问的标签"
-                value={restrictedTags}
-                onChange={(v) => onRestrictedTagsChange?.(v)}
-                allowClear
-                options={tags.map((t) => ({
-                  value: t.id,
-                  label: t.name,
-                }))}
-              />
-            </div>
+            {showRestrictedTags && (
+              <div>
+                <p className={styles.sectionLabel ?? ''}>指定标签</p>
+                <Select
+                  className={styles.userSelect ?? ''}
+                  mode="multiple"
+                  placeholder="选择可访问的标签"
+                  value={restrictedTags}
+                  onChange={(v) => onRestrictedTagsChange?.(v)}
+                  allowClear
+                  options={tags.map((t) => ({
+                    value: t.id,
+                    label: t.name,
+                  }))}
+                />
+              </div>
+            )}
         </div>
       )}
     </div>

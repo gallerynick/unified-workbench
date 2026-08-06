@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Typography, Modal, message, Space, Input, Tag, Progress, Tooltip, Form, Checkbox, Radio } from 'antd';
-import { PlusOutlined, DeleteOutlined, BarChartOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, BarChartOutlined, CheckCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listVotes, createVote, deleteVote, getVoteResults, submitVote } from '../../api/votes';
 import type { Vote, VoteResult } from '../../types/vote';
@@ -9,7 +9,7 @@ import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting'
 import { useUser } from '../../contexts/UserContext';
 import styles from './VoteManagement.module.css';
 
-const { Title, Text } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 export default function VoteManagement() {
   const { user } = useUser();
@@ -29,6 +29,7 @@ export default function VoteManagement() {
   const [currentVote, setCurrentVote] = useState<Vote | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchVotes = useCallback(async () => {
     setLoading(true);
@@ -144,7 +145,17 @@ export default function VoteManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>投票决策</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建投票</Button>
+        <Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建投票</Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
+        </Space>
       </div>
       <Table<Vote> className={styles.table ?? ''} columns={columns} dataSource={votes} rowKey="id" loading={loading}
         pagination={{ current: page, pageSize: 20, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p) => setPage(p) }} />
@@ -213,6 +224,43 @@ export default function VoteManagement() {
             )}
           </div>
         )}
+      </Modal>
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+      >
+        <div className={styles.permissionContent ?? ''}>
+          <Title level={5}>创建者权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有投票的完整管理权限，可以编辑投票内容、查看结果和删除投票。</Paragraph>
+          <Title level={5}>成员/指定用户权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以参与投票并查看结果；被指定的用户只能参与被授权给自己的投票。</Paragraph>
+          <Title level={5}>可见范围</Title>
+          <ul className={styles.permissionList ?? ''}>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                公开：所有成员都可以查看并参与该投票
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                私有：仅创建者和被授权成员可以查看
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                指定用户：仅被指定的用户可以看到并参与该投票
+              </Text>
+            </li>
+          </ul>
+          <Title level={5}>管理员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以查看和管理所有投票。</Paragraph>
+          <Title level={5}>创建权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建投票，创建时需设定可见范围。</Paragraph>
+        </div>
       </Modal>
     </div>
   );

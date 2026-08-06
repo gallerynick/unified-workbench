@@ -12,12 +12,14 @@ import {
   Empty,
   Spin,
   Pagination,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { listServers, deleteServer } from '../../api/servers';
@@ -25,7 +27,7 @@ import type { ServerRecord, ServerStatus } from '../../types/server';
 import ServerFormModal from './ServerFormModal';
 import styles from './ServerManagement.module.css';
 
-const { Title } = Typography;
+const { Title, Paragraph } = Typography;
 
 const STATUS_MAP: Record<ServerStatus, { color: string; text: string }> = {
   active: { color: 'success', text: '运行中' },
@@ -49,6 +51,7 @@ export default function ServerManagement() {
   const [formVisible, setFormVisible] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editingServer, setEditingServer] = useState<ServerRecord | null>(null);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchServers = useCallback(async () => {
     setLoading(true);
@@ -160,6 +163,14 @@ export default function ServerManagement() {
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建服务器
           </Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -314,6 +325,38 @@ export default function ServerManagement() {
         onClose={handleFormClose}
         onSuccess={handleFormSuccess}
       />
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+        destroyOnClose
+      >
+        <div>
+          <Title level={5}>
+            查看权限
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以查看服务器列表和详细信息。</Paragraph>
+          <Title level={5}>
+            管理权限
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>被指定为维护人员的成员可以编辑服务器信息并管理关联系统。</Paragraph>
+          <Title level={5}>
+            新建权限
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以登记新的服务器，登记时可指定维护人员。</Paragraph>
+          <Title level={5}>
+            删除权限
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>删除服务器属于高风险操作，仅系统管理员可以执行。</Paragraph>
+          <Title level={5}>
+            管理员
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员拥有所有服务器及关联系统的管理权限。</Paragraph>
+        </div>
+      </Modal>
     </div>
   );
 }

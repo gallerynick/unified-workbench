@@ -1093,6 +1093,35 @@ components:
 
 - **大模态框：** `{component.modal-large}`——宽度 800px，用于富文本编辑、复杂表单等需要更大空间的内容。
 - **小模态框：** `{component.modal-small}`——宽度 480px，用于确认弹窗、轻量表单等简单操作。
+- **权限说明浮窗：** `{component.modal-permission}`——用于各功能模块页面展示权限规则说明的只读信息浮窗。由 header 区域的 `QuestionCircleOutlined` 按钮 + `Tooltip title="权限说明"` 触发，Modal 宽度 560px，`footer={null}`（无操作按钮）。内容采用四级字号递减结构：
+
+  | 层级 | 元素 | 字号 | 字重 | 颜色 | 说明 |
+  |------|------|------|------|------|------|
+  | 1 | Modal 标题 | 16px | bold | `{colors.ink}` | antd Modal title 默认 |
+  | 2 | 分类标题 | 14px | bold | `{colors.ink}` | `<Title level={5}>`，margin-bottom 由全局规则覆盖为 4px |
+  | 3 | 正文段落 | 14px | normal | `{colors.ink}` | `<Paragraph>`，margin-bottom 由全局规则覆盖为 4px |
+  | 4 | 列表条目 | 12px | normal | `{colors.text-secondary}` | `<Text type="secondary">`，置于 `<ul><li>` 内 |
+
+  **标准内容结构**（五个分类，逐模块定制语义）：
+  1. **创建者权限**——谁可查看/管理自己创建的记录
+  2. **成员权限**——指定成员可执行的操作范围
+  3. **可见范围**——public（全员可见）/ private（仅负责人及成员）/ restricted（仅指定用户）三态的规则说明
+  4. **管理员权限**——管理员对该模块的管理边界
+  5. **创建权限**——谁可以新建记录
+
+  **CSS 规则**（所有模块的 `*.module.css` 统一声明）：
+  ```css
+  .permissionContent { display: flex; flex-direction: column; }
+  .permissionContent .ant-typography { margin-bottom: var(--spacing-xxs); }
+  .permissionContent > :last-child { margin-bottom: 0 !important; }
+  .permissionList { padding-left: var(--spacing-md); }
+  .sectionTitle { margin: var(--spacing-sm) 0 var(--spacing-xxs) !important; }
+  ```
+  - `.permissionContent`：弹性列布局，使子元素垂直排列
+  - `.ant-typography`：将 antd Title/Paragraph 默认 margin-bottom（8-16px）压缩至 `--spacing-xxs`（4px），保持紧凑
+  - `> :last-child`：末尾元素不保留多余底部间距
+  - `.permissionList`：统一 `<ul>` 左缩进为 `--spacing-md`（16px），替代浏览器默认 40px
+  - `.sectionTitle`：分类标题上间距 12px / 下间距 4px，视觉层次分明
 
 ### 表格组件
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
-import { Button, Typography, Modal, message, Space, Input, Switch, Select, Form } from 'antd';
-import { PlusOutlined, DeleteOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { Button, Typography, Modal, message, Space, Input, Switch, Select, Form, Tooltip } from 'antd';
+import { PlusOutlined, DeleteOutlined, EnvironmentOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -9,10 +9,12 @@ import zhLocale from '@fullcalendar/core/locales/zh-cn';
 import type { DateSelectArg, EventClickArg, EventDropArg, EventInput } from '@fullcalendar/core';
 import { listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '../../api/calendar';
 import type { CalendarEvent, EventRepeat } from '../../types/calendar';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
+import type { Visibility } from '../../utils/visibility';
 import styles from './CalendarPage.module.css';
 import './CalendarPage.global.css';
 
-const { Title } = Typography;
+const { Title, Paragraph, Text } = Typography;
 const { Option } = Select;
 
 const REPEAT_OPTIONS: { label: string; value: EventRepeat }[] = [
@@ -43,7 +45,10 @@ export default function CalendarPage() {
   const [formLocation, setFormLocation] = useState('');
   const [formColor, setFormColor] = useState(PRESET_COLORS[0]);
   const [formRepeat, setFormRepeat] = useState<EventRepeat>('none');
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const resetForm = useCallback(() => {
     setFormTitle('');
@@ -54,6 +59,8 @@ export default function CalendarPage() {
     setFormLocation('');
     setFormColor(PRESET_COLORS[0]);
     setFormRepeat('none');
+    setVisibility('private');
+    setRestrictedUsers([]);
     setEditingEvent(null);
   }, []);
 
@@ -78,6 +85,8 @@ export default function CalendarPage() {
     setFormLocation(event.location || '');
     setFormColor(event.color || PRESET_COLORS[0]);
     setFormRepeat(event.repeat || 'none');
+    setVisibility((event.visibility as Visibility) || 'private');
+    setRestrictedUsers(event.restricted_users || []);
     setModalVisible(true);
   }, []);
 
@@ -95,6 +104,8 @@ export default function CalendarPage() {
         location: formLocation || undefined,
         color: formColor,
         repeat: formRepeat,
+        visibility,
+        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
       };
       if (editingEvent) {
         const res = await updateCalendarEvent(editingEvent.id, payload);
@@ -179,7 +190,17 @@ export default function CalendarPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <Title level={4} className={styles.title ?? ''}>日程日历</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreateModal()}>新建事件</Button>
+        <Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreateModal()}>新建事件</Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
+        </Space>
       </div>
 
       <FullCalendar
@@ -269,12 +290,59 @@ export default function CalendarPage() {
               {REPEAT_OPTIONS.map((o) => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
           </Form.Item>
+          <Form.Item label="可见性">
+            <VisibilitySetting
+              value={visibility}
+              restrictedUsers={restrictedUsers}
+              onChange={setVisibility}
+              onRestrictedUsersChange={setRestrictedUsers}
+              showRestrictedTags={false}
+              label=""
+            />
+          </Form.Item>
           {editingEvent && (
             <Button danger onClick={() => { setModalVisible(false); handleDelete(editingEvent); }} icon={<DeleteOutlined />}>
               删除此事件
             </Button>
           )}
         </Form>
+      </Modal>
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+      >
+        <div className={styles.permissionContent ?? ''}>
+          <Title level={5}>创建者权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有日程事件的完整管理权限，可以编辑事件信息、删除事件和设置可见范围。</Paragraph>
+          <Title level={5}>成员/指定用户权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以查看日程事件；被指定的用户只能查看被授权给自己的事件。</Paragraph>
+          <Title level={5}>可见范围</Title>
+          <ul className={styles.permissionList ?? ''}>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                公开：所有成员都可以查看该日程事件
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                私有：仅创建者和被授权成员可以查看
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                指定用户：仅被指定的用户可以看到该日程事件
+              </Text>
+            </li>
+          </ul>
+          <Title level={5}>管理员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理自己创建以及被指定给自己的日程事件。</Paragraph>
+          <Title level={5}>创建权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建日程事件，创建时需设定可见范围。</Paragraph>
+        </div>
       </Modal>
     </div>
   );

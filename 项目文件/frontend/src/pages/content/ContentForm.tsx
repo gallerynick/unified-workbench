@@ -259,6 +259,7 @@ export default function ContentForm({
             onChange={setVisibility}
             onRestrictedUsersChange={setRestrictedUsers}
             onRestrictedTagsChange={setRestrictedTags}
+            label=""
           />
         </Form.Item>
       </Form>

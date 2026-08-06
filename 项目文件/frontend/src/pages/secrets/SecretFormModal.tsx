@@ -3,6 +3,8 @@ import { Modal, Form, Input, Select, Button, message } from 'antd';
 import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { createSecret } from '../../api/secrets';
 import type { SecretCreate } from '../../types/secret';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
+import type { Visibility } from '../../utils/visibility';
 import styles from './SecretFormModal.module.css';
 
 interface SecretFormModalProps {
@@ -33,11 +35,15 @@ export default function SecretFormModal({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [kvPairs, setKvPairs] = useState<KeyValue[]>([{ key: '', value: '' }]);
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
 
   useEffect(() => {
     if (visible) {
       form.resetFields();
       setKvPairs([{ key: '', value: '' }]);
+      setVisibility('private');
+      setRestrictedUsers([]);
     }
   }, [visible, form]);
 
@@ -85,6 +91,8 @@ export default function SecretFormModal({
         data,
         note: values.note || undefined,
         sub_category: values.sub_category || undefined,
+        visibility,
+        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
         ...(categoryId ? { category_id: categoryId } : {}),
       };
 
@@ -190,6 +198,17 @@ export default function SecretFormModal({
 
         <Form.Item name="note" label="备注" style={{ marginTop: "var(--spacing-card-gap)" }}>
           <Input.TextArea placeholder="请输入备注（选填）" rows={3} />
+        </Form.Item>
+
+        <Form.Item label="可见性">
+          <VisibilitySetting
+            value={visibility}
+            restrictedUsers={restrictedUsers}
+            onChange={setVisibility}
+            onRestrictedUsersChange={setRestrictedUsers}
+            showRestrictedTags={false}
+            label=""
+          />
         </Form.Item>
       </Form>
     </Modal>

@@ -9,12 +9,14 @@ import {
   Modal,
   message,
   Space,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listReminders, deleteReminder } from '../../api/reminders';
@@ -22,7 +24,7 @@ import type { Reminder, ReminderStatus } from '../../types/reminder';
 import ReminderFormModal from './ReminderFormModal';
 import styles from './ReminderManagement.module.css';
 
-const { Title } = Typography;
+const { Title, Paragraph } = Typography;
 
 const STATUS_TAG_MAP: Record<ReminderStatus, { color: string; text: string }> = {
   pending: { color: 'default', text: '待发送' },
@@ -54,6 +56,7 @@ export default function ReminderManagement() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchReminders = useCallback(async () => {
     setLoading(true);
@@ -258,6 +261,14 @@ export default function ReminderManagement() {
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建提醒
           </Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -288,6 +299,29 @@ export default function ReminderManagement() {
         onClose={handleModalClose}
         onSuccess={handleModalSuccess}
       />
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+        destroyOnClose
+      >
+        <div>
+          <Title level={5}>创建者权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>提醒为纯私有，仅创建者本人可以查看、编辑和删除提醒。</Paragraph>
+
+          <Title level={5}>提醒方式</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>支持定时触发和站内弹窗提醒。</Paragraph>
+
+          <Title level={5}>管理员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员无权管理他人的提醒（提醒为纯私有）。</Paragraph>
+
+          <Title level={5}>创建权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建提醒，提醒仅对创建者可见。</Paragraph>
+        </div>
+      </Modal>
     </div>
   );
 }

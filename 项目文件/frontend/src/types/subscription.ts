@@ -1,3 +1,5 @@
+import type { Visibility } from '../utils/visibility';
+
 export interface Subscription {
   id: string;
   name: string;
@@ -7,6 +9,8 @@ export interface Subscription {
   next_billing: string | null;
   status: 'active' | 'cancelled' | 'paused';
   owner_id: string;
+  visibility?: Visibility;
+  restricted_users?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -17,6 +21,8 @@ export interface SubscriptionCreate {
   amount: number;
   billing_cycle?: string;
   next_billing?: string;
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface SubscriptionUpdate {
@@ -26,6 +32,8 @@ export interface SubscriptionUpdate {
   billing_cycle?: string;
   next_billing?: string;
   status?: string;
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface SubscriptionListResponse {

@@ -1,3 +1,5 @@
+import type { Visibility } from '../utils/visibility';
+
 export interface Budget {
   id: string;
   name: string;
@@ -7,6 +9,8 @@ export interface Budget {
   period: 'monthly' | 'quarterly' | 'yearly';
   status: 'active' | 'exceeded' | 'completed';
   owner_id: string;
+  visibility?: Visibility;
+  restricted_users?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -16,6 +20,8 @@ export interface BudgetCreate {
   category: string;
   amount: number;
   period?: string;
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface BudgetUpdate {
@@ -25,6 +31,8 @@ export interface BudgetUpdate {
   spent?: number;
   period?: string;
   status?: string;
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface BudgetListResponse {

@@ -37,6 +37,10 @@
   flex-direction: column;
 }
 
+.permissionContent .ant-typography {
+  margin-bottom: var(--spacing-xxs);
+}
+
 .sectionTitle {
   margin: var(--spacing-sm) 0 var(--spacing-xxs) 0 !important;
 }

@@ -23,13 +23,14 @@ import {
   EditOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import { listAnnouncements, createAnnouncement, deleteAnnouncement, updateAnnouncement } from '../../api/announcements';
 import type { Announcement } from '../../types/announcement';
 import { getUserId, isAdmin } from '../../utils/auth';
 import styles from './AnnouncementManagement.module.css';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 type TabKey = 'all' | 'mine';
 
@@ -47,6 +48,7 @@ export default function AnnouncementManagement() {
   const [formPinned, setFormPinned] = useState(false);
   const [editFormPinned, setEditFormPinned] = useState(false);
   const [editFormPublished, setEditFormPublished] = useState(false);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const currentUserId = getUserId();
   const userIsAdmin = isAdmin();
@@ -168,6 +170,14 @@ export default function AnnouncementManagement() {
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
             发布公告
           </Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -330,6 +340,39 @@ export default function AnnouncementManagement() {
             />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 权限说明弹窗 */}
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+        destroyOnClose
+      >
+        <div>
+          <Title level={5}>
+            发布权限
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>只有管理员可以发布公告通知，所有成员都可以查看已发布的公告。</Paragraph>
+          <Title level={5}>
+            发布状态
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>已发布的公告对所有成员可见；草稿状态的公告仅创建者和管理员可见。</Paragraph>
+          <Title level={5}>
+            编辑与删除
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>公告创建者和管理员可以编辑、删除自己创建的公告。</Paragraph>
+          <Title level={5}>
+            置顶
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>管理员可以将重要公告置顶显示，置顶公告优先展示在所有成员首页。</Paragraph>
+          <Title level={5}>
+            管理员
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以发布、编辑和删除所有公告。</Paragraph>
+        </div>
       </Modal>
     </div>
   );

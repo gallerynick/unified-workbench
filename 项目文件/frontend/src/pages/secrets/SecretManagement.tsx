@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Typography, Modal, message, Space, Card, Empty, Spin, Input } from 'antd';
-import { PlusOutlined, FolderOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Typography, Modal, message, Space, Card, Empty, Spin, Input, Tooltip } from 'antd';
+import { PlusOutlined, FolderOutlined, EditOutlined, DeleteOutlined, SearchOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { listSecretCategories, deleteSecretCategory } from '../../api/secret_categories';
 import { listSecrets } from '../../api/secrets';
 import type { SecretCategory } from '../../types/secret_category';
@@ -18,6 +18,7 @@ export default function SecretManagement() {
   const [search, setSearch] = useState('');
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<SecretCategory | null>(null);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
@@ -129,6 +130,14 @@ export default function SecretManagement() {
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新增类
           </Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -211,6 +220,38 @@ export default function SecretManagement() {
         onClose={handleFormModalClose}
         onSuccess={handleFormModalSuccess}
       />
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+        destroyOnClose
+      >
+        <div>
+          <Title level={5}>
+            密钥私有
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有密钥强制私有，仅创建者本人可见，其他成员无法查看密钥内容。</Paragraph>
+          <Title level={5}>
+            查看密钥值
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>查看密钥值需要再次输入登录密码进行身份验证，验证通过后才能解密查看。</Paragraph>
+          <Title level={5}>
+            加密保护
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>密钥使用 AES-256-GCM 加密后存储，即使数据库泄露也无法直接读取明文。</Paragraph>
+          <Title level={5}>
+            分类管理
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建密钥分类；删除分类后，该分类下的密钥将变为未分类。</Paragraph>
+          <Title level={5}>
+            管理员
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以查看和管理所有密钥分类。</Paragraph>
+        </div>
+      </Modal>
     </div>
   );
 }

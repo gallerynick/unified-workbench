@@ -128,6 +128,20 @@
   margin-top: var(--spacing-card-gap);
 }
 
+.permissionContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.permissionContent .ant-typography {
+  margin-bottom: var(--spacing-xxs);
+}
+
+.permissionContent > :last-child {
+  margin-bottom: 0 !important;
+}
+
+
 @media (max-width: 1024px) {
   .cardGrid {
     grid-template-columns: repeat(2, 1fr);

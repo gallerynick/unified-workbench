@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.websocket import manager
 from app.models.stream_room import StreamRoom, StreamRoomMode, StreamRoomType
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.stream_room import (
     StreamRoomCreate,
     StreamRoomListResponse,
@@ -143,9 +143,13 @@ async def update_room(
             status_code=status.HTTP_404_NOT_FOUND, detail="直播间不存在"
         )
     if room.creator_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="仅创建者可更新直播间"
-        )
+        # 检查是否为管理员
+        role_result = await db.execute(select(User.role).where(User.id == user_id))
+        user_role = role_result.scalar_one_or_none()
+        if user_role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="仅创建者或管理员可更新直播间"
+            )
 
     if data.name is not None:
         room.name = data.name
@@ -178,9 +182,13 @@ async def delete_room(
             status_code=status.HTTP_404_NOT_FOUND, detail="直播间不存在"
         )
     if room.creator_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="仅创建者可删除直播间"
-        )
+        # 检查是否为管理员
+        role_result = await db.execute(select(User.role).where(User.id == user_id))
+        user_role = role_result.scalar_one_or_none()
+        if user_role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="仅创建者或管理员可删除直播间"
+            )
 
     await db.delete(room)
     await db.flush()
@@ -200,6 +208,15 @@ async def takeover_room(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="直播间不存在"
         )
+
+    # 权限检查：仅创建者或管理员可接管
+    if room.creator_id != new_user_id:
+        role_result = await db.execute(select(User.role).where(User.id == new_user_id))
+        user_role = role_result.scalar_one_or_none()
+        if user_role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="仅创建者或管理员可接管直播间"
+            )
 
     old_pusher_id = room.pusher_id
     room.pusher_id = new_user_id

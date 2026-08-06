@@ -10,22 +10,28 @@ import {
   Typography,
   Space,
   Popconfirm,
+  Modal,
+  Descriptions,
   message,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
   EnterOutlined,
+  SettingOutlined,
+  PoweroffOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { listRooms, deleteRoom, updateRoom } from '../../api/stream';
 import type { StreamRoom } from '../../types/stream';
-import { getUserId } from '../../utils/auth';
+import { getUserId, isAdmin } from '../../utils/auth';
 import CreateRoomModal from '../../components/streaming/CreateRoomModal';
 import styles from './RoomListPage.module.css';
 
-const { Title } = Typography;
+const { Title, Paragraph } = Typography;
 
 const MODE_LABELS: Record<string, { text: string; color: string }> = {
   builtin: { text: '内置推流', color: 'blue' },
@@ -49,6 +55,8 @@ export default function RoomListPage() {
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('');
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [manageRoom, setManageRoom] = useState<StreamRoom | null>(null);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchRooms = useCallback(async () => {
     setLoading(true);
@@ -113,6 +121,22 @@ export default function RoomListPage() {
           reject(err);
         });
     });
+  };
+
+  const handleForceClose = async (room: StreamRoom) => {
+    try {
+      const res = await updateRoom(room.id, { is_active: false });
+      if (res.code === 0) {
+        message.success('直播间已强制关闭');
+        setManageRoom(null);
+        fetchRooms();
+      } else {
+        message.error(res.msg || '关闭失败');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '关闭失败';
+      message.error(msg);
+    }
   };
 
   const handleSearchChange = (value: string) => {
@@ -207,7 +231,7 @@ export default function RoomListPage() {
     {
       title: '操作',
       key: 'action',
-      width: 160,
+      width: 220,
       render: (_: unknown, record: StreamRoom) => (
         <Space size="small">
           <Button
@@ -218,6 +242,16 @@ export default function RoomListPage() {
           >
             进入
           </Button>
+          {isAdmin() && (
+            <Button
+              type="link"
+              size="small"
+              icon={<SettingOutlined />}
+              onClick={() => setManageRoom(record)}
+            >
+              管理
+            </Button>
+          )}
           {(currentUserId === record.creator_id) && (
             <Popconfirm
               title="确认删除"
@@ -293,6 +327,14 @@ export default function RoomListPage() {
           >
             新建房间
           </Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -316,6 +358,68 @@ export default function RoomListPage() {
         }}
       />
 
+      <Modal
+        title="房间管理"
+        open={manageRoom !== null}
+        onCancel={() => setManageRoom(null)}
+        footer={null}
+        destroyOnClose
+        width={480}
+        styles={{
+          body: { padding: 'var(--modal-padding)' },
+          content: {
+            background: 'var(--modal-bg)',
+            borderRadius: 'var(--modal-rounded)',
+            boxShadow: 'var(--modal-shadow)',
+          },
+        }}
+      >
+        {manageRoom && (
+          <div className={styles.manageBody ?? ''}>
+            <Descriptions
+              size="small"
+              column={1}
+              items={[
+                { key: 'name', label: '房间名称', children: manageRoom.name },
+                { key: 'creator', label: '创建者', children: manageRoom.creator_nickname || '-' },
+                {
+                  key: 'status',
+                  label: '状态',
+                  children: manageRoom.is_active ? '活跃' : '离线',
+                },
+              ]}
+            />
+            <div className={styles.manageActions ?? ''}>
+              <Space>
+                {manageRoom.is_active && (
+                  <Button
+                    icon={<PoweroffOutlined />}
+                    onClick={() => handleForceClose(manageRoom)}
+                  >
+                    强制关闭
+                  </Button>
+                )}
+                <Popconfirm
+                  title="确认删除"
+                  description={`确定要删除房间「${manageRoom.name}」吗？删除后不可恢复。`}
+                  onConfirm={async () => {
+                    await handleDelete(manageRoom);
+                    setManageRoom(null);
+                  }}
+                  okText="删除"
+                  cancelText="取消"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Button danger icon={<DeleteOutlined />}>
+                    删除直播间
+                  </Button>
+                </Popconfirm>
+              </Space>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <CreateRoomModal
         open={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
@@ -324,6 +428,38 @@ export default function RoomListPage() {
           fetchRooms();
         }}
       />
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+        destroyOnClose
+      >
+        <div>
+          <Title level={5}>
+            查看与进入
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以查看直播间列表并进入直播间观看。</Paragraph>
+          <Title level={5}>
+            创建权限
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建直播间，创建者默认为该房间的管理员。</Paragraph>
+          <Title level={5}>
+            开放访问
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>开启开放访问后所有成员均可进入直播间；关闭后仅房间创建者和管理员可进入。</Paragraph>
+          <Title level={5}>
+            删除权限
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>房间创建者可以删除自己创建的直播间。</Paragraph>
+          <Title level={5}>
+            管理员
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理所有直播间，包括强制关闭和删除任何直播间。</Paragraph>
+        </div>
+      </Modal>
     </div>
   );
 }

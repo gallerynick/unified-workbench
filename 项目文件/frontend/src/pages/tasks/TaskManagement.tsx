@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip, Form } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listTasks, createTask, updateTask, deleteTask } from '../../api/tasks';
 import type { Task, TaskStatus, TaskPriority } from '../../types/task';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
+import type { Visibility } from '../../utils/visibility';
 import styles from './TaskManagement.module.css';
 
-const { Title } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 const STATUS_MAP: Record<TaskStatus, { color: string; text: string }> = {
   todo: { color: 'default', text: '待办' },
@@ -33,6 +35,9 @@ export default function TaskManagement() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form] = Form.useForm();
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -60,12 +65,16 @@ export default function TaskManagement() {
   const handleCreate = () => {
     setEditingTask(null);
     form.resetFields();
+    setVisibility('private');
+    setRestrictedUsers([]);
     setModalVisible(true);
   };
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
     form.setFieldsValue({ title: task.title, description: task.description ?? '', priority: task.priority });
+    setVisibility((task.visibility as Visibility) || 'private');
+    setRestrictedUsers(task.restricted_users || []);
     setModalVisible(true);
   };
 
@@ -73,10 +82,18 @@ export default function TaskManagement() {
     try {
       const values = await form.validateFields();
       if (editingTask) {
-        const res = await updateTask(editingTask.id, { title: values.title, description: values.description, priority: values.priority });
+        const res = await updateTask(editingTask.id, {
+          title: values.title, description: values.description, priority: values.priority,
+          visibility,
+          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
+        });
         if (res.code === 0) { message.success('任务已更新'); setModalVisible(false); fetchTasks(); }
       } else {
-        const res = await createTask({ title: values.title, description: values.description, priority: values.priority });
+        const res = await createTask({
+          title: values.title, description: values.description, priority: values.priority,
+          visibility,
+          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
+        });
         if (res.code === 0) { message.success('任务已创建'); setModalVisible(false); fetchTasks(); }
       }
     } catch { message.error('操作失败'); }
@@ -153,6 +170,14 @@ export default function TaskManagement() {
             options={[{ value: '', label: '全部' }, ...Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建待办</Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -174,7 +199,54 @@ export default function TaskManagement() {
           <Form.Item name="priority" label="优先级">
             <Select options={Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
           </Form.Item>
+          <Form.Item label="可见性">
+            <VisibilitySetting
+              value={visibility}
+              restrictedUsers={restrictedUsers}
+              onChange={setVisibility}
+              onRestrictedUsersChange={setRestrictedUsers}
+              showRestrictedTags={false}
+              label=""
+            />
+          </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+      >
+        <div className={styles.permissionContent ?? ''}>
+          <Title level={5}>创建者权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有待办的完整管理权限，可以编辑内容、调整状态、删除待办和设置可见范围。</Paragraph>
+          <Title level={5}>成员/指定用户权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以查看和处理待办；被指定的用户只能查看被授权给自己的待办。</Paragraph>
+          <Title level={5}>可见范围</Title>
+          <ul className={styles.permissionList ?? ''}>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                公开：所有成员都可以查看该待办
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                私有：仅创建者和被授权成员可以查看
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                指定用户：仅被指定的用户可以看到该待办
+              </Text>
+            </li>
+          </ul>
+          <Title level={5}>管理员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理自己创建以及被指定给自己的待办。</Paragraph>
+          <Title level={5}>创建权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建待办，创建时需设定可见范围。</Paragraph>
+        </div>
       </Modal>
     </div>
   );

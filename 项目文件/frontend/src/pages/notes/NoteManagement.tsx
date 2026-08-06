@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Tree, Button, Typography, Modal, message, Space, Input, Tag, Tooltip, TreeSelect, Switch, Segmented, Form } from 'antd';
-import { PlusOutlined, DeleteOutlined, PushpinOutlined, SearchOutlined, EditOutlined, FileOutlined, FolderOutlined, ApartmentOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, PushpinOutlined, SearchOutlined, EditOutlined, FileOutlined, FolderOutlined, ApartmentOutlined, ShareAltOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { DataNode, TreeProps } from 'antd/es/tree';
 import { listAllNotes, createNote, updateNote, deleteNote, moveNote } from '../../api/notes';
 import type { Note } from '../../types/note';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
+import type { Visibility } from '../../utils/visibility';
 import { useTheme } from '../../contexts/ThemeContext';
 import GraphView from './GraphView';
 import styles from './NoteManagement.module.css';
 
-const { Title } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 interface TreeNodeData extends DataNode {
   note: Note;
@@ -121,7 +123,10 @@ export default function NoteManagement() {
   const [formCategory, setFormCategory] = useState('');
   const [formParentId, setFormParentId] = useState<string | null>(null);
   const [formPinned, setFormPinned] = useState(false);
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchNotes = useCallback(async () => {
     setLoading(true);
@@ -141,6 +146,8 @@ export default function NoteManagement() {
     setFormCategory('');
     setFormParentId(null);
     setFormPinned(false);
+    setVisibility('private');
+    setRestrictedUsers([]);
     setModalVisible(true);
   }, []);
 
@@ -151,6 +158,8 @@ export default function NoteManagement() {
     setFormCategory(note.category || '');
     setFormParentId(note.parent_id);
     setFormPinned(note.is_pinned);
+    setVisibility((note.visibility as Visibility) || 'private');
+    setRestrictedUsers(note.restricted_users || []);
     setSelectedKeys([note.id]);
     setModalVisible(true);
   }, []);
@@ -215,6 +224,8 @@ export default function NoteManagement() {
         category: formCategory || undefined,
         parent_id: formParentId,
         is_pinned: formPinned,
+        visibility,
+        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
       };
       const res = await createNote(payload);
       if (res.code === 0) { message.success('笔记已创建'); setModalVisible(false); setSelectedKeys([]); fetchNotes(); }
@@ -231,6 +242,8 @@ export default function NoteManagement() {
         category: formCategory || undefined,
         parent_id: formParentId,
         is_pinned: formPinned,
+        visibility,
+        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
       };
       const res = await updateNote(editingNote.id, payload);
       if (res.code === 0) { message.success('笔记已更新'); setModalVisible(false); setSelectedKeys([]); fetchNotes(); }
@@ -277,6 +290,14 @@ export default function NoteManagement() {
           />
           <Input placeholder="搜索笔记" prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 220 }} variant="filled" />
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>新建笔记</Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -343,7 +364,54 @@ export default function NoteManagement() {
           <Form.Item label="笔记内容">
             <Input.TextArea placeholder="请输入笔记内容" value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={8} variant="filled" style={{ fontSize: 'var(--text-caption-size)', lineHeight: 1.6 }} />
           </Form.Item>
+          <Form.Item label="可见性">
+            <VisibilitySetting
+              value={visibility}
+              restrictedUsers={restrictedUsers}
+              onChange={setVisibility}
+              onRestrictedUsersChange={setRestrictedUsers}
+              showRestrictedTags={false}
+              label=""
+            />
+          </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+      >
+        <div className={styles.permissionContent ?? ''}>
+          <Title level={5}>创建者权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有笔记的完整管理权限，可以编辑内容、移动笔记、置顶、删除和设置可见范围。</Paragraph>
+          <Title level={5}>成员/指定用户权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以查看笔记；被指定的用户只能查看被授权给自己的笔记。</Paragraph>
+          <Title level={5}>可见范围</Title>
+          <ul className={styles.permissionList ?? ''}>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                公开：所有成员都可以查看该笔记
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                私有：仅创建者和被授权成员可以查看
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                指定用户：仅被指定的用户可以看到该笔记
+              </Text>
+            </li>
+          </ul>
+          <Title level={5}>管理员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理自己创建以及被指定给自己的笔记。</Paragraph>
+          <Title level={5}>创建权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建笔记，创建时需设定可见范围。</Paragraph>
+        </div>
       </Modal>
     </div>
   );

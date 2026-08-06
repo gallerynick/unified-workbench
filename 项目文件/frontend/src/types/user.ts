@@ -7,6 +7,8 @@ export interface User {
   status: 'active' | 'disabled';
   tags: Tag[];
   created_at: string;
+  email?: string | null;
+  bio?: string | null;
 }
 
 export interface Tag {

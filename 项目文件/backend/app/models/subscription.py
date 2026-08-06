@@ -8,9 +8,11 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.visibility import Visibility
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -44,6 +46,10 @@ class Subscription(Base):
         Enum(SubscriptionStatus, create_type=False), default=SubscriptionStatus.ACTIVE
     )
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
+    visibility: Mapped[Visibility] = mapped_column(
+        String(20), nullable=False, server_default="private"
+    )
+    restricted_users: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

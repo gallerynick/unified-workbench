@@ -44,6 +44,7 @@ class Project(Base):
     )
     restricted_users: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     restricted_tags: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    member_ids: Mapped[list | None] = mapped_column(JSONB, default=list)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

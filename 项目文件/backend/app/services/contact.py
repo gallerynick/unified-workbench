@@ -4,11 +4,42 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func, select
+from fastapi import HTTPException, status
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.visibility import Visibility
 from app.models.contact import Contact, ContactType
+from app.models.user import User, UserRole
 from app.schemas.contact import ContactCreate, ContactUpdate
+from app.services.visibility import check_visibility as build_visibility_filter
+
+
+# ── 辅助函数 ──────────────────────────────────────────────────────────
+
+
+def _visibility_get_check(item: Contact, user_id: uuid.UUID) -> bool:
+    if item.owner_id == user_id:
+        return True
+    if item.visibility == Visibility.PUBLIC:
+        return True
+    if item.visibility == Visibility.RESTRICTED and item.restricted_users:
+        if str(user_id) in item.restricted_users:
+            return True
+    return False
+
+
+def _admin_can_manage_own_designated(item: Contact, user_id: uuid.UUID) -> bool:
+    if item.owner_id == user_id:
+        return True
+    if item.visibility == Visibility.PUBLIC:
+        return True
+    if item.restricted_users and str(user_id) in item.restricted_users:
+        return True
+    return False
+
+
+# ── 列表 ──────────────────────────────────────────────────────────────
 
 
 async def list_contacts(
@@ -19,7 +50,10 @@ async def list_contacts(
     contact_type: str | None = None,
     search: str | None = None,
 ) -> tuple[list[Contact], int]:
-    query = select(Contact).where(Contact.owner_id == owner_id)
+    user_id = owner_id
+    visibility_cond = build_visibility_filter(Contact, user_id)
+    query = select(Contact).where(visibility_cond)
+
     if contact_type:
         query = query.where(Contact.contact_type == ContactType(contact_type))
     if search:
@@ -36,14 +70,32 @@ async def list_contacts(
     return list(result.scalars().all()), total
 
 
-async def get_contact(db: AsyncSession, contact_id: uuid.UUID, owner_id: uuid.UUID) -> Contact | None:
+# ── 获取 ──────────────────────────────────────────────────────────────
+
+
+async def get_contact(
+    db: AsyncSession, contact_id: uuid.UUID, owner_id: uuid.UUID
+) -> Contact | None:
+    user_id = owner_id
     result = await db.execute(
-        select(Contact).where(Contact.id == contact_id, Contact.owner_id == owner_id)
+        select(Contact).where(Contact.id == contact_id)
     )
-    return result.scalar_one_or_none()
+    item = result.scalar_one_or_none()
+    if not item:
+        return None
+    if not _visibility_get_check(item, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="无权访问"
+        )
+    return item
 
 
-async def create_contact(db: AsyncSession, owner_id: uuid.UUID, request: ContactCreate) -> Contact:
+# ── 创建（不变）─────────────────────────────────────────────────────
+
+
+async def create_contact(
+    db: AsyncSession, owner_id: uuid.UUID, request: ContactCreate
+) -> Contact:
     contact = Contact(
         name=request.name,
         company=request.company,
@@ -61,10 +113,31 @@ async def create_contact(db: AsyncSession, owner_id: uuid.UUID, request: Contact
     return contact
 
 
-async def update_contact(db: AsyncSession, contact_id: uuid.UUID, owner_id: uuid.UUID, request: ContactUpdate) -> Contact | None:
-    contact = await get_contact(db, contact_id, owner_id)
+# ── 更新 ──────────────────────────────────────────────────────────────
+
+
+async def update_contact(
+    db: AsyncSession,
+    contact_id: uuid.UUID,
+    owner_id: uuid.UUID,
+    request: ContactUpdate,
+) -> Contact | None:
+    user_id = owner_id
+    contact = await get_contact(db, contact_id, user_id)
     if not contact:
         return None
+
+    if contact.owner_id != user_id:
+        _role_result = await db.execute(
+            select(User.role).where(User.id == user_id)
+        )
+        _user_role = _role_result.scalar_one_or_none()
+        _is_admin = _user_role == UserRole.ADMIN
+        if not (_is_admin and _admin_can_manage_own_designated(contact, user_id)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权修改"
+            )
+
     if request.name is not None:
         contact.name = request.name
     if request.company is not None:
@@ -86,10 +159,28 @@ async def update_contact(db: AsyncSession, contact_id: uuid.UUID, owner_id: uuid
     return contact
 
 
-async def delete_contact(db: AsyncSession, contact_id: uuid.UUID, owner_id: uuid.UUID) -> bool:
-    contact = await get_contact(db, contact_id, owner_id)
+# ── 删除 ──────────────────────────────────────────────────────────────
+
+
+async def delete_contact(
+    db: AsyncSession, contact_id: uuid.UUID, owner_id: uuid.UUID
+) -> bool:
+    user_id = owner_id
+    contact = await get_contact(db, contact_id, user_id)
     if not contact:
         return False
+
+    if contact.owner_id != user_id:
+        _role_result = await db.execute(
+            select(User.role).where(User.id == user_id)
+        )
+        _user_role = _role_result.scalar_one_or_none()
+        _is_admin = _user_role == UserRole.ADMIN
+        if not (_is_admin and _admin_can_manage_own_designated(contact, user_id)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权删除"
+            )
+
     await db.delete(contact)
     await db.flush()
     return True

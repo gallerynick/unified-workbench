@@ -1,3 +1,5 @@
+import type { Visibility } from '../utils/visibility';
+
 export type InventoryStatus = 'available' | 'in_use' | 'maintenance' | 'retired';
 
 export interface Inventory {
@@ -10,6 +12,8 @@ export interface Inventory {
   status: InventoryStatus;
   tags: string[] | null;
   owner_id: string;
+  visibility?: Visibility;
+  restricted_users?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -22,6 +26,8 @@ export interface InventoryCreate {
   description?: string;
   status?: InventoryStatus;
   tags?: string[];
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface InventoryUpdate {
@@ -32,6 +38,8 @@ export interface InventoryUpdate {
   description?: string;
   status?: InventoryStatus;
   tags?: string[];
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface InventoryListResponse {

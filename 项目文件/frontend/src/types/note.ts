@@ -1,3 +1,5 @@
+import type { Visibility } from '../utils/visibility';
+
 export interface Note {
   id: string;
   title: string;
@@ -7,6 +9,8 @@ export interface Note {
   is_pinned: boolean;
   parent_id: string | null;
   owner_id: string;
+  visibility?: Visibility;
+  restricted_users?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -18,6 +22,8 @@ export interface NoteCreate {
   tags?: string[] | undefined;
   is_pinned?: boolean | undefined;
   parent_id?: string | null | undefined;
+  visibility?: Visibility | undefined;
+  restricted_users?: string[] | undefined;
 }
 
 export interface NoteUpdate {
@@ -27,6 +33,8 @@ export interface NoteUpdate {
   tags?: string[] | undefined;
   is_pinned?: boolean | undefined;
   parent_id?: string | null | undefined;
+  visibility?: Visibility | undefined;
+  restricted_users?: string[] | undefined;
 }
 
 export interface NoteListResponse {

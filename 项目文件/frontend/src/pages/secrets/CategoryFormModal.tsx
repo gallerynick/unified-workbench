@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Modal, Form, Input, message } from 'antd';
 import { createSecretCategory, updateSecretCategory } from '../../api/secret_categories';
 import type { SecretCategory, SecretCategoryCreate } from '../../types/secret_category';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
+import type { Visibility } from '../../utils/visibility';
 
 interface CategoryFormModalProps {
   visible: boolean;
@@ -13,6 +15,8 @@ interface CategoryFormModalProps {
 export default function CategoryFormModal({ visible, category, onClose, onSuccess }: CategoryFormModalProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
 
   useEffect(() => {
     if (visible) {
@@ -21,8 +25,12 @@ export default function CategoryFormModal({ visible, category, onClose, onSucces
           name: category.name,
           description: category.description,
         });
+        setVisibility((category.visibility as Visibility) || 'private');
+        setRestrictedUsers(category.restricted_users || []);
       } else {
         form.resetFields();
+        setVisibility('private');
+        setRestrictedUsers([]);
       }
     }
   }, [visible, category, form]);
@@ -35,6 +43,8 @@ export default function CategoryFormModal({ visible, category, onClose, onSucces
       const data: SecretCategoryCreate = {
         name: values.name,
         description: values.description || '',
+        visibility,
+        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
       };
 
       let res: { code: number; msg?: string };
@@ -88,6 +98,16 @@ export default function CategoryFormModal({ visible, category, onClose, onSucces
           label="描述"
         >
           <Input.TextArea placeholder="可选，描述该分类的用途" rows={3} maxLength={200} />
+        </Form.Item>
+        <Form.Item label="可见性">
+          <VisibilitySetting
+            value={visibility}
+            restrictedUsers={restrictedUsers}
+            onChange={setVisibility}
+            onRestrictedUsersChange={setRestrictedUsers}
+            showRestrictedTags={false}
+            label=""
+          />
         </Form.Item>
       </Form>
     </Modal>

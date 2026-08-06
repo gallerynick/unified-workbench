@@ -1,3 +1,5 @@
+import type { Visibility } from '../utils/visibility';
+
 export type ContactType = 'customer' | 'supplier' | 'partner' | 'other';
 
 export interface Contact {
@@ -11,6 +13,8 @@ export interface Contact {
   tags: Record<string, unknown> | string[] | null;
   notes: string | null;
   owner_id: string;
+  visibility?: Visibility;
+  restricted_users?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +28,8 @@ export interface ContactCreate {
   contact_type?: ContactType;
   tags?: Record<string, unknown> | string[] | null;
   notes?: string;
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface ContactUpdate {
@@ -35,6 +41,8 @@ export interface ContactUpdate {
   contact_type?: ContactType;
   tags?: Record<string, unknown> | string[] | null;
   notes?: string;
+  visibility?: Visibility;
+  restricted_users?: string[];
 }
 
 export interface ContactListResponse {

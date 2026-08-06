@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Button, Typography, Modal, message, Space, Input, Tooltip, Spin, Tag, List, AutoComplete } from 'antd';
-import { SaveOutlined, ZoomInOutlined, ZoomOutOutlined, PlusOutlined, DeleteOutlined, ApartmentOutlined, DragOutlined, LinkOutlined, ExpandOutlined, ShrinkOutlined, AimOutlined, AppstoreOutlined, EditOutlined } from '@ant-design/icons';
+import { SaveOutlined, ZoomInOutlined, ZoomOutOutlined, PlusOutlined, DeleteOutlined, ApartmentOutlined, DragOutlined, LinkOutlined, ExpandOutlined, ShrinkOutlined, AimOutlined, AppstoreOutlined, EditOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { listTopologies, createTopology, updateTopology, deleteTopology } from '../../api/topology';
 import type { Topology, TopologyNode, TopologyEdge, TopologyNodeType, TopologyShape } from '../../types/topology';
 import styles from './TopologyManagement.module.css';
@@ -18,7 +18,7 @@ import projectorSvg from '../../assets/topology-icons/projector.svg?raw';
 import speakerSvg from '../../assets/topology-icons/speaker.svg?raw';
 import televisionSvg from '../../assets/topology-icons/television.svg?raw';
 
-const { Title } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 type ToolMode = 'select' | 'move' | 'connect' | 'delete';
 type PanelType = 'tools' | 'nodes' | null;
@@ -107,6 +107,7 @@ export default function TopologyManagement() {
   const [customLabel, setCustomLabel] = useState('');
   const [systemExpanded, setSystemExpanded] = useState(true);
   const [customExpanded, setCustomExpanded] = useState(true);
+  const [permissionVisible, setPermissionVisible] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const fetchTopologies = useCallback(async () => {
@@ -406,6 +407,14 @@ export default function TopologyManagement() {
               <Button onClick={() => { setIsEditing(false); setSidebarVisible(true); }}>返回列表</Button>
             </>
           )}
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -690,6 +699,48 @@ export default function TopologyManagement() {
             />
           </div>
         </Space>
+      </Modal>
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+        destroyOnClose
+      >
+        <div>
+          <Title level={5}>创建者权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有拓扑的完整管理权限，可以编辑拓扑内容、修改节点和删除拓扑。</Paragraph>
+
+          <Title level={5}>成员/指定用户权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以查看拓扑画布；被指定的用户只能查看被授权给自己的拓扑。</Paragraph>
+
+          <Title level={5}>可见范围</Title>
+          <ul className={styles.permissionList ?? ''}>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                公开：所有成员都可以查看该拓扑
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                私有：仅创建者和被授权成员可以查看
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                指定用户：仅被指定的用户可以看到该拓扑
+              </Text>
+            </li>
+          </ul>
+
+          <Title level={5}>管理员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理自己创建以及被指定给自己的拓扑。</Paragraph>
+
+          <Title level={5}>创建权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建拓扑，创建时需设定可见范围。</Paragraph>
+        </div>
       </Modal>
     </div>
   );

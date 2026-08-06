@@ -16,6 +16,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   FileTextOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listContents, deleteContent } from '../../api/contents';
@@ -24,7 +25,7 @@ import { getVisibilityConfig } from '../../utils/visibility';
 import ContentForm from './ContentForm';
 import styles from './ContentManagement.module.css';
 
-const { Title } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 interface Draft {
   id: string;
@@ -63,6 +64,7 @@ export default function ContentManagement() {
   const [editingDraftId, setEditingDraftId] = useState<string | undefined>(undefined);
   const [draftModalVisible, setDraftModalVisible] = useState(false);
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const updateDrafts = useCallback(() => {
     setDrafts(getDrafts());
@@ -278,6 +280,14 @@ export default function ContentManagement() {
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建内容
           </Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -371,6 +381,55 @@ export default function ContentManagement() {
           ) : (
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>暂无草稿</p>
           )}
+        </div>
+      </Modal>
+
+      {/* 权限说明弹窗 */}
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+        destroyOnClose
+      >
+        <div>
+          <Title level={5}>
+            创建权限
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建内容，创建时需设定可见范围。</Paragraph>
+          <Title level={5}>
+            编辑与删除
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>内容创建者和管理员可以编辑、删除内容，其他成员只能查看。</Paragraph>
+          <Title level={5}>
+            可见范围
+          </Title>
+          <ul className={styles.permissionList ?? ''}>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                公开：所有成员都可以查看该内容
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                私有：仅创建者和管理员可以查看
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                指定用户：仅被指定的用户可以看到该内容
+              </Text>
+            </li>
+          </ul>
+          <Title level={5}>
+            草稿箱
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>未保存到服务器的草稿仅保存在本机浏览器中，不会同步给其他成员。</Paragraph>
+          <Title level={5}>
+            管理员
+          </Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以查看和管理所有内容。</Paragraph>
         </div>
       </Modal>
     </div>

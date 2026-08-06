@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.form import Form, FormResponse as FormResponseModel
+from app.models.user import User, UserRole
 from app.schemas.form import FormCreate, FormSubmit
 from app.services.visibility import check_visibility as visibility_filter
 
@@ -55,7 +56,13 @@ async def create_form(db: AsyncSession, owner_id: uuid.UUID, request: FormCreate
 
 
 async def delete_form(db: AsyncSession, form_id: uuid.UUID, owner_id: uuid.UUID) -> bool:
-    form = await db.execute(select(Form).where(Form.id == form_id, Form.owner_id == owner_id))
+    # Admin 可删除任意表单
+    role_result = await db.execute(select(User.role).where(User.id == owner_id))
+    user_role = role_result.scalar_one_or_none()
+    if user_role == UserRole.ADMIN:
+        form = await db.execute(select(Form).where(Form.id == form_id))
+    else:
+        form = await db.execute(select(Form).where(Form.id == form_id, Form.owner_id == owner_id))
     f = form.scalar_one_or_none()
     if not f:
         return False

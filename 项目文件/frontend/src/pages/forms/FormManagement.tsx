@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Button, Typography, Modal, message, Space, Input, Tag, Switch, Tooltip, Form, Dropdown } from 'antd';
-import { PlusOutlined, DeleteOutlined, FormOutlined, BarChartOutlined, ShareAltOutlined, QrcodeOutlined, CopyOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, FormOutlined, BarChartOutlined, ShareAltOutlined, QrcodeOutlined, CopyOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { QRCodeSVG } from 'qrcode.react';
 import { listForms, createForm, deleteForm } from '../../api/forms';
@@ -10,7 +10,7 @@ import type { Visibility } from '../../utils/visibility';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import styles from './FormManagement.module.css';
 
-const { Title, Text } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 export default function FormManagement() {
   const [forms, setForms] = useState<FormItem[]>([]);
@@ -25,6 +25,7 @@ export default function FormManagement() {
   const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
   const [showQrModal, setShowQrModal] = useState(false);
   const [qrForm, setQrForm] = useState<FormItem | null>(null);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const navigate = useNavigate();
 
@@ -111,7 +112,17 @@ export default function FormManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>表单收集</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建表单</Button>
+        <Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>新建表单</Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
+        </Space>
       </div>
       <Table<FormItem> className={styles.table ?? ''} columns={columns} dataSource={forms} rowKey="id" loading={loading}
         pagination={{ current: page, pageSize: 20, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p) => setPage(p) }} />
@@ -155,6 +166,43 @@ export default function FormManagement() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+      >
+        <div className={styles.permissionContent ?? ''}>
+          <Title level={5}>创建者权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有表单的完整管理权限，可以编辑表单内容、查看回复和删除表单。</Paragraph>
+          <Title level={5}>成员/指定用户权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以填写表单并查看自己的回复；被指定的用户只能填写被授权给自己的表单。</Paragraph>
+          <Title level={5}>可见范围</Title>
+          <ul className={styles.permissionList ?? ''}>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                公开：所有成员都可以填写该表单
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                私有：仅创建者和被授权成员可以填写
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                指定用户：仅被指定的用户可以看到并填写该表单
+              </Text>
+            </li>
+          </ul>
+          <Title level={5}>管理员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以查看和管理所有表单。</Paragraph>
+          <Title level={5}>创建权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建表单，创建时需设定可见范围。</Paragraph>
+        </div>
       </Modal>
     </div>
   );

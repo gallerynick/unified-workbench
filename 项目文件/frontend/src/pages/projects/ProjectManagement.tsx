@@ -276,19 +276,20 @@ export default function ProjectManagement() {
         width={560}
         footer={null}
         onCancel={() => setPermissionVisible(false)}
+        destroyOnClose
       >
         <div className={styles.permissionContent ?? ''}>
-          <Text strong style={{ fontSize: 'var(--text-caption-strong-size)' }}>
+          <Title level={5}>
             项目负责人
-          </Text>
+          </Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>拥有项目的最高管理权限，可以删除项目、修改项目基本信息、管理项目成员。</Paragraph>
-          <Text strong style={{ fontSize: 'var(--text-caption-strong-size)' }}>
+          <Title level={5}>
             项目成员
-          </Text>
+          </Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可以编辑项目文档、创建新文档，但不能修改项目的基本信息。</Paragraph>
-          <Text strong style={{ fontSize: 'var(--text-caption-strong-size)' }}>
+          <Title level={5}>
             可见范围
-          </Text>
+          </Title>
           <ul className={styles.permissionList ?? ''}>
             <li>
               <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
@@ -306,13 +307,13 @@ export default function ProjectManagement() {
               </Text>
             </li>
           </ul>
-          <Text strong style={{ fontSize: 'var(--text-caption-strong-size)' }}>
+          <Title level={5}>
             管理员
-          </Text>
+          </Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以查看和管理所有项目。</Paragraph>
-          <Text strong style={{ fontSize: 'var(--text-caption-strong-size)' }}>
+          <Title level={5}>
             创建权限
-          </Text>
+          </Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建项目，创建时需设定可见范围。</Paragraph>
         </div>
       </Modal>

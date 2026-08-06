@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Typography, Modal, Space, message, Tooltip, Input, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, DeleteOutlined, SettingOutlined, ShareAltOutlined, CopyOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, SettingOutlined, ShareAltOutlined, CopyOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { listFileShares, deleteFileShare } from '../../api/file-shares';
 import { QRCodeSVG } from 'qrcode.react';
 import type { FileShareRecord } from '../../types/file-share';
@@ -9,7 +9,7 @@ import ShareUploadModal from './ShareUploadModal';
 import ShareSettingsModal from './ShareSettingsModal';
 import styles from './FileSharePage.module.css';
 
-const { Title, Text } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
@@ -32,6 +32,7 @@ export function FileSharePage() {
   const [uploadVisible, setUploadVisible] = useState(false);
   const [settingsRecord, setSettingsRecord] = useState<FileShareRecord | null>(null);
   const [qrRecord, setQrRecord] = useState<FileShareRecord | null>(null);
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const getShareUrls = (code: string) => {
     const path = `/share/${code}`;
@@ -215,6 +216,14 @@ export function FileSharePage() {
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadVisible(true)}>
             上传分享
           </Button>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -317,6 +326,32 @@ export function FileSharePage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+        destroyOnClose
+      >
+        <div>
+          <Title level={5}>创建分享</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以上传文件创建分享。</Paragraph>
+
+          <Title level={5}>管理</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>分享创建者可以修改分享设置（密码、有效期、下载次数）和删除分享。</Paragraph>
+
+          <Title level={5}>访问</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>拥有分享链接的任何人（包括未登录用户）都可以通过密码验证后下载。</Paragraph>
+
+          <Title level={5}>自动清理</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>过期的分享文件会在宽限期（10分钟）后自动清理。</Paragraph>
+
+          <Title level={5}>管理员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理所有分享记录和存储设置。</Paragraph>
+        </div>
       </Modal>
     </div>
   );

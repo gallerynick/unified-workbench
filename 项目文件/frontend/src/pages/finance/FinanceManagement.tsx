@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Tabs, Table, Button, Input, Typography, Space, Tag, Modal, Form, InputNumber, Select, message, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listBudgets, createBudget, updateBudget, deleteBudget } from '../../api/budgets';
 import { listSubscriptions, createSubscription, updateSubscription, deleteSubscription } from '../../api/subscriptions';
 import type { Budget } from '../../types/budget';
 import type { Subscription } from '../../types/subscription';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
+import type { Visibility } from '../../utils/visibility';
 import styles from './FinanceManagement.module.css';
 
-const { Title } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 const PERIOD_MAP: Record<string, string> = {
   monthly: '月度',
@@ -43,6 +45,8 @@ export default function FinanceManagement() {
   const [budgetForm] = Form.useForm();
   const [subForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [budgetVisibility, setBudgetVisibility] = useState<Visibility>('private');
+  const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchBudgets = useCallback(async () => {
     try {
@@ -70,12 +74,14 @@ export default function FinanceManagement() {
   const handleAddBudget = () => {
     setEditingBudget(null);
     budgetForm.resetFields();
+    setBudgetVisibility('private');
     setBudgetModalVisible(true);
   };
 
   const handleEditBudget = (item: Budget) => {
     setEditingBudget(item);
     budgetForm.setFieldsValue(item);
+    setBudgetVisibility((item.visibility as Visibility) || 'private');
     setBudgetModalVisible(true);
   };
 
@@ -84,10 +90,10 @@ export default function FinanceManagement() {
       const values = await budgetForm.validateFields();
       setLoading(true);
       if (editingBudget) {
-        await updateBudget(editingBudget.id, values);
+        await updateBudget(editingBudget.id, { ...values, visibility: budgetVisibility });
         message.success('预算已更新');
       } else {
-        await createBudget(values);
+        await createBudget({ ...values, visibility: budgetVisibility });
         message.success('预算已添加');
       }
       setBudgetModalVisible(false);
@@ -240,6 +246,16 @@ export default function FinanceManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>财务中心</Title>
+        <Space>
+          <Tooltip title="权限说明">
+            <Button
+              type="text"
+              size="small"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => setPermissionVisible(true)}
+            />
+          </Tooltip>
+        </Space>
       </div>
       <Tabs
         items={[
@@ -288,6 +304,15 @@ export default function FinanceManagement() {
           <Form.Item name="period" label="周期" initialValue="monthly">
             <Select options={[{ value: 'monthly', label: '月度' }, { value: 'quarterly', label: '季度' }, { value: 'yearly', label: '年度' }]} />
           </Form.Item>
+          <Form.Item label="可见性">
+            <VisibilitySetting
+              value={budgetVisibility}
+              onChange={setBudgetVisibility}
+              hideRestricted
+              showRestrictedTags={false}
+              label=""
+            />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -309,6 +334,38 @@ export default function FinanceManagement() {
             <Input type="date" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="权限说明"
+        open={permissionVisible}
+        width={560}
+        footer={null}
+        onCancel={() => setPermissionVisible(false)}
+      >
+        <div className={styles.permissionContent ?? ''}>
+          <Title level={5}>创建者权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有预算记录的完整管理权限，可以编辑预算信息、删除记录和设置可见范围。</Paragraph>
+          <Title level={5}>成员权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以查看预算信息；订阅记录对所有成员可见。</Paragraph>
+          <Title level={5}>可见范围</Title>
+          <ul className={styles.permissionList ?? ''}>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                公开：所有成员都可以查看该预算
+              </Text>
+            </li>
+            <li>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                私有：仅创建者和被授权成员可以查看
+              </Text>
+            </li>
+          </ul>
+          <Title level={5}>管理员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理自己创建以及被指定给自己的预算。</Paragraph>
+          <Title level={5}>创建权限</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建预算和订阅，创建时需设定预算可见范围。</Paragraph>
+        </div>
       </Modal>
     </div>
   );

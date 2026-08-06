@@ -1,7 +1,23 @@
 .container {
   display: flex;
   flex-direction: column;
+}
+
+.restrictedSection {
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--rounded-xs);
+}
+
+.label {
+  font-size: var(--text-body-sm-size);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+  font-weight: 400;
 }
 
 .radioGroup {
@@ -21,15 +37,6 @@
 .visibilityOptionDesc {
   font-size: var(--text-body-xs-size);
   color: var(--text-tertiary);
-}
-
-.restrictedSection {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  background: var(--bg-secondary);
-  border-radius: var(--rounded-xs);
 }
 
 .sectionLabel {

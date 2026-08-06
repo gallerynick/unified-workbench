@@ -5,11 +5,36 @@ from __future__ import annotations
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.visibility import Visibility
 from app.models.budget import Budget, BudgetPeriod, BudgetStatus
+from app.models.user import User, UserRole
 from app.schemas.budget import BudgetCreate, BudgetUpdate
+from app.services.visibility import check_visibility as build_visibility_filter
+
+
+# ── 辅助函数 ──────────────────────────────────────────────────────────
+
+
+def _visibility_get_check(item: Budget, user_id: uuid.UUID) -> bool:
+    if item.owner_id == user_id:
+        return True
+    if item.visibility == Visibility.PUBLIC:
+        return True
+    if item.visibility == Visibility.RESTRICTED and item.restricted_users:
+        if str(user_id) in item.restricted_users:
+            return True
+    return False
+
+
+def _admin_can_manage_all_public(item: Budget) -> bool:
+    """Admin 管理规则（budget）：只能管理 visibility==PUBLIC 的预算。"""
+    return item.visibility == Visibility.PUBLIC
+
+
+# ── 列表 ──────────────────────────────────────────────────────────────
 
 
 async def list_budgets(
@@ -18,7 +43,9 @@ async def list_budgets(
     page: int = 1,
     page_size: int = 20,
 ) -> tuple[list[Budget], int]:
-    query = select(Budget).where(Budget.owner_id == owner_id)
+    user_id = owner_id
+    visibility_cond = build_visibility_filter(Budget, user_id)
+    query = select(Budget).where(visibility_cond)
     count_query = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_query)).scalar() or 0
 
@@ -28,15 +55,29 @@ async def list_budgets(
     return list(result.scalars().all()), total
 
 
+# ── 获取 ──────────────────────────────────────────────────────────────
+
+
 async def get_budget(
     db: AsyncSession,
     budget_id: uuid.UUID,
     owner_id: uuid.UUID,
 ) -> Budget | None:
+    user_id = owner_id
     result = await db.execute(
-        select(Budget).where(Budget.id == budget_id, Budget.owner_id == owner_id)
+        select(Budget).where(Budget.id == budget_id)
     )
-    return result.scalar_one_or_none()
+    item = result.scalar_one_or_none()
+    if not item:
+        return None
+    if not _visibility_get_check(item, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="无权访问"
+        )
+    return item
+
+
+# ── 创建（不变）─────────────────────────────────────────────────────
 
 
 async def create_budget(
@@ -57,15 +98,32 @@ async def create_budget(
     return budget
 
 
+# ── 更新 ──────────────────────────────────────────────────────────────
+
+
 async def update_budget(
     db: AsyncSession,
     budget_id: uuid.UUID,
     owner_id: uuid.UUID,
     request: BudgetUpdate,
 ) -> Budget | None:
-    budget = await get_budget(db, budget_id, owner_id)
+    user_id = owner_id
+    budget = await get_budget(db, budget_id, user_id)
     if not budget:
         return None
+
+    # 权限检查：owner 或 admin（仅 ALL public）
+    if budget.owner_id != user_id:
+        _role_result = await db.execute(
+            select(User.role).where(User.id == user_id)
+        )
+        _user_role = _role_result.scalar_one_or_none()
+        _is_admin = _user_role == UserRole.ADMIN
+        if not (_is_admin and _admin_can_manage_all_public(budget)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权修改"
+            )
+
     if request.name is not None:
         budget.name = request.name
     if request.category is not None:
@@ -83,14 +141,31 @@ async def update_budget(
     return budget
 
 
+# ── 删除 ──────────────────────────────────────────────────────────────
+
+
 async def delete_budget(
     db: AsyncSession,
     budget_id: uuid.UUID,
     owner_id: uuid.UUID,
 ) -> bool:
-    budget = await get_budget(db, budget_id, owner_id)
+    user_id = owner_id
+    budget = await get_budget(db, budget_id, user_id)
     if not budget:
         return False
+
+    # 权限检查：owner 或 admin（仅 ALL public）
+    if budget.owner_id != user_id:
+        _role_result = await db.execute(
+            select(User.role).where(User.id == user_id)
+        )
+        _user_role = _role_result.scalar_one_or_none()
+        _is_admin = _user_role == UserRole.ADMIN
+        if not (_is_admin and _admin_can_manage_all_public(budget)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权删除"
+            )
+
     await db.delete(budget)
     await db.flush()
     return True
