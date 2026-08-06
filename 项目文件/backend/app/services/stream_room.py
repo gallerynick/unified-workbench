@@ -18,7 +18,6 @@ from app.schemas.stream_room import (
     StreamRoomResponse,
     StreamRoomUpdate,
 )
-from app.services.audit import log_audit
 from app.services.mediamtx import get_active_paths
 
 
@@ -73,7 +72,6 @@ async def create_room(
     )
     db.add(room)
     await db.flush()
-    await log_audit(db, user_id, "create_room", "stream_room", str(room.id))
     await db.refresh(room)
     return await _build_response(room, host)
 
@@ -163,7 +161,6 @@ async def update_room(
         room.is_active = data.is_active
 
     await db.flush()
-    await log_audit(db, user_id, "update_room", "stream_room", str(room.id))
     await db.refresh(room)
     return await _build_response(room, host)
 
@@ -187,7 +184,6 @@ async def delete_room(
 
     await db.delete(room)
     await db.flush()
-    await log_audit(db, user_id, "delete_room", "stream_room", str(room_id))
 
 
 async def takeover_room(
@@ -221,7 +217,6 @@ async def takeover_room(
             "nickname": new_user_obj.nickname if new_user_obj else "其他用户",
         })
 
-    await log_audit(db, new_user_id, "takeover_room", "stream_room", str(room.id))
     await db.refresh(room)
     return await _build_response(room, host)
 

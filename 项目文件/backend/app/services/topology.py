@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.topology import Topology
 from app.schemas.topology import TopologyCreate, TopologyUpdate
-from app.services.audit import log_audit
 from app.services.visibility import check_visibility as visibility_filter
 
 
@@ -56,7 +55,6 @@ async def create_topology(
     )
     db.add(topology)
     await db.flush()
-    await log_audit(db, owner_id, "create_topology", "topology", str(topology.id))
     await db.refresh(topology)
     return topology
 
@@ -82,7 +80,6 @@ async def update_topology(
     if request.edges is not None:
         topology.edges = request.edges
     await db.flush()
-    await log_audit(db, owner_id, "update_topology", "topology", str(topology.id))
     await db.refresh(topology)
     return topology
 
@@ -96,5 +93,4 @@ async def delete_topology(
         return False
     await db.delete(topology)
     await db.flush()
-    await log_audit(db, owner_id, "delete_topology", "topology", str(topology_id))
     return True

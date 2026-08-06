@@ -13,7 +13,6 @@ from app.models.server import Server
 from app.models.service import Service
 from app.models.system import System
 from app.schemas.service import ServiceCreate, ServiceUpdate
-from app.services.audit import log_audit
 
 
 async def _check_service_owner(
@@ -114,7 +113,6 @@ async def create_service(
     )
     db.add(service)
     await db.flush()
-    await log_audit(db, user_id, "create_service", "service", str(service.id))
     await db.refresh(service)
     return service
 
@@ -162,7 +160,6 @@ async def update_service(
         service.maintainer_ids = data.maintainer_ids
 
     await db.flush()
-    await log_audit(db, user_id, "update_service", "service", str(service.id))
     await db.refresh(service)
     return service
 
@@ -176,5 +173,4 @@ async def delete_service(
     service = await _check_service_owner(db, service_id, user_id)
     await db.delete(service)
     await db.flush()
-    await log_audit(db, user_id, "delete_service", "service", str(service_id))
     return True

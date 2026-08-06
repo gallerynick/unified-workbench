@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.inventory import Inventory
 from app.schemas.inventory import InventoryCreate, InventoryUpdate
-from app.services.audit import log_audit
 
 
 async def list_inventories(
@@ -56,7 +55,6 @@ async def create_inventory(db: AsyncSession, owner_id: uuid.UUID, request: Inven
     )
     db.add(inventory)
     await db.flush()
-    await log_audit(db, owner_id, "create_inventory", "inventory", str(inventory.id))
     await db.refresh(inventory)
     return inventory
 
@@ -81,7 +79,6 @@ async def update_inventory(db: AsyncSession, inventory_id: uuid.UUID, owner_id: 
     if request.tags is not None:
         inventory.tags = request.tags
     await db.flush()
-    await log_audit(db, owner_id, "update_inventory", "inventory", str(inventory.id))
     await db.refresh(inventory)
     return inventory
 
@@ -93,5 +90,4 @@ async def delete_inventory(db: AsyncSession, inventory_id: uuid.UUID, owner_id: 
         return False
     await db.delete(inventory)
     await db.flush()
-    await log_audit(db, owner_id, "delete_inventory", "inventory", str(inventory.id))
     return True

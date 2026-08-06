@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.server import Server
 from app.schemas.server import ServerCreate, ServerUpdate
-from app.services.audit import log_audit
 
 
 async def list_servers(
@@ -89,7 +88,6 @@ async def create_server(
     )
     db.add(server)
     await db.flush()
-    await log_audit(db, owner_id, "create_server", "server", str(server.id))
     await db.refresh(server)
     return server
 
@@ -137,7 +135,6 @@ async def update_server(
         server.maintainer_ids = data.maintainer_ids
 
     await db.flush()
-    await log_audit(db, user_id, "update_server", "server", str(server.id))
     await db.refresh(server)
     return server
 
@@ -151,5 +148,4 @@ async def delete_server(
     server = await get_server(db, server_id, user_id)
     await db.delete(server)
     await db.flush()
-    await log_audit(db, user_id, "delete_server", "server", str(server_id))
     return True

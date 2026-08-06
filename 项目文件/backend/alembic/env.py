@@ -24,7 +24,6 @@ from app.models import (  # noqa: F401
     Inventory,
     Note,
     Notification,
-    Record,
     Reminder,
     Secret,
     SecretCategory,

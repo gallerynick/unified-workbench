@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import { listFileShares } from '../../../api/file-shares';
 import { listContents } from '../../../api/contents';
-import { listRecords } from '../../../api/records';
+import { listProjects } from '../../../api/projects';
 import { listUsers } from '../../../api/users';
 
 export default function StatsWidget() {
@@ -23,7 +23,7 @@ export default function StatsWidget() {
         const [filesRes, contentsRes, projectsRes, membersRes] = await Promise.all([
           listFileShares(1, 1).catch(() => ({ code: -1, data: { total: 0 } })),
           listContents({ page_size: 1 }).catch(() => ({ code: -1, data: { total: 0 } })),
-          listRecords({ page: 1, page_size: 1, type: 'project' }).catch(() => ({ code: -1, data: { total: 0 } })),
+          listProjects({ page: 1, page_size: 1 }).catch(() => ({ code: -1, data: { total: 0 } })),
           listUsers({ page_size: 1 }).catch(() => ({ code: -1, data: { total: 0 } })),
         ]);
         setStats({

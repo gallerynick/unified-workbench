@@ -96,9 +96,9 @@ async def api_reset_system(
         "file_share", "form_response", "form",
         "calendar_event", "note", "inventory", "contact",
         "reminder", "budget", "subscription",
-        "task", "record", "template", "secret", "secret_category",
+        "task", "template", "secret", "secret_category",
         "topology", "stream_room",
-        "announcement", "notification", "audit_log",
+        "announcement", "notification",
         "refresh_token", "user_tag", "system_config",
         "\"user\"",  # 删除所有用户包括管理员
     ]

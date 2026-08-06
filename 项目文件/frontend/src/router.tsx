@@ -13,9 +13,8 @@ const UserManagement = lazy(() => import('@/pages/settings/UserManagement'));
 const ContentManagement = lazy(() => import('@/pages/content/ContentManagement'));
 const FileSharePage = lazy(() => import('@/pages/file-share/FileSharePage'));
 const StorageSettings = lazy(() => import('@/pages/settings/StorageSettings'));
-const AuditLog = lazy(() => import('@/pages/audit/AuditLog'));
 const TemplateManagement = lazy(() => import('@/pages/templates/TemplateManagement'));
-const RecordManagement = lazy(() => import('@/pages/records/RecordManagement'));
+const ProjectManagement = lazy(() => import('@/pages/projects/ProjectManagement'));
 const SecretManagement = lazy(() => import('@/pages/secrets/SecretManagement'));
 const SecretCategoryPage = lazy(() => import('@/pages/secrets/SecretCategoryPage'));
 const ReminderManagement = lazy(() => import('@/pages/reminders/ReminderManagement'));
@@ -23,7 +22,6 @@ const NotificationConfig = lazy(() => import('@/pages/settings/NotificationConfi
 const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'));
 const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationSettings'));
 const SiteSettings = lazy(() => import('@/pages/settings/SiteSettings'));
-const SidebarManagement = lazy(() => import('@/pages/settings/SidebarManagement'));
 const DeviceManagement = lazy(() => import('@/pages/settings/DeviceManagement'));
 const UserPersonalization = lazy(() => import('@/pages/settings/UserPersonalization'));
 const InventoryManagement = lazy(() => import('@/pages/inventory/InventoryManagement'));
@@ -105,7 +103,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'projects',
-            element: <LazyPage><RecordManagement defaultType="project" /></LazyPage>,
+            element: <LazyPage><ProjectManagement /></LazyPage>,
           },
           {
             path: 'projects/:id',
@@ -156,10 +154,6 @@ export const router = createBrowserRouter([
             element: <LazyPage><NoteManagement /></LazyPage>,
           },
           {
-            path: 'records',
-            element: <LazyPage><RecordManagement defaultType="record" /></LazyPage>,
-          },
-          {
             path: 'settings/templates',
             element: <LazyPage><TemplateManagement /></LazyPage>,
           },
@@ -170,10 +164,6 @@ export const router = createBrowserRouter([
           {
             path: 'secrets/category/:categoryId',
             element: <LazyPage><SecretCategoryPage /></LazyPage>,
-          },
-          {
-            path: 'audit',
-            element: <LazyPage><AuditLog /></LazyPage>,
           },
           {
             path: 'reminders',
@@ -202,10 +192,6 @@ export const router = createBrowserRouter([
           {
             path: 'settings/site',
             element: <LazyPage><SiteSettings /></LazyPage>,
-          },
-          {
-            path: 'settings/sidebar',
-            element: <LazyPage><SidebarManagement /></LazyPage>,
           },
           {
             path: 'settings/tags',

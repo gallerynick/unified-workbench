@@ -117,3 +117,11 @@
     transform: translateY(0);
   }
 }
+
+/* Hide scrollbar on sidebar menu */
+:global(.sider-menu-scroll::-webkit-scrollbar) {
+  display: none;
+}
+:global(.sider-menu-scroll) {
+  scrollbar-width: none;
+}

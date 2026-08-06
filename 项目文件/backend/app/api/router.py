@@ -3,7 +3,6 @@
 from fastapi import APIRouter
 
 from app.api.announcements import router as announcements_router
-from app.api.audit import router as audit_router
 from app.api.auth import router as auth_router
 from app.api.backups import router as backups_router
 from app.api.calendar_events import router as calendar_events_router
@@ -18,7 +17,7 @@ from app.api.inventory import router as inventory_router
 from app.api.notes import router as notes_router
 from app.api.notifications import router as notifications_router
 from app.api.projects import router as projects_router
-from app.api.records import router as records_router
+
 from app.api.reminders import router as reminders_router
 from app.api.secret_categories import router as secret_categories_router
 from app.api.secrets import router as secrets_router
@@ -45,12 +44,10 @@ api_router.include_router(content_router, prefix="/contents", tags=["内容管�
 api_router.include_router(file_shares_router, prefix="/file-shares", tags=["文件共享"])
 api_router.include_router(file_shares_public_router)
 api_router.include_router(templates_router, prefix="/templates", tags=["模板管理"])
-api_router.include_router(records_router, prefix="/records", tags=["记录管理"])
 api_router.include_router(reminders_router, prefix="/reminders", tags=["提醒管理"])
 api_router.include_router(secrets_router, prefix="/secrets", tags=["密钥管理"])
 api_router.include_router(secret_categories_router, prefix="/secret-categories", tags=["密钥分类"])
 api_router.include_router(system_config_router, prefix="/system-config", tags=["系统配置"])
-api_router.include_router(audit_router, prefix="/audit-logs", tags=["审计日志"])
 api_router.include_router(backups_router, prefix="/backups", tags=["备份管理"])
 api_router.include_router(finance_router, prefix="/finance", tags=["财务管理"])
 api_router.include_router(tasks_router, prefix="/tasks", tags=["任务管理"])

@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, ConfigProvider, Avatar, Dropdown, Space, Drawer, Button, Typography } from 'antd';
 import {
-  AuditOutlined,
   SettingOutlined,
   UserOutlined,
   MenuFoldOutlined,
@@ -13,7 +12,6 @@ import {
   TeamOutlined,
   SkinOutlined,
   GlobalOutlined,
-  LayoutOutlined,
   DesktopOutlined,
   FormOutlined,
   HomeOutlined,
@@ -43,7 +41,6 @@ import { useCustomization } from '../hooks/useCustomization';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import { clearTokens, isAdmin } from '../utils/auth';
-import { getVisibleSidebarItems } from '../pages/settings/SidebarManagement';
 import { TagProvider } from '../contexts/TagContext';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
@@ -72,14 +69,41 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   SoundOutlined: <SoundOutlined />,
   BookOutlined: <BookOutlined />,
   SettingOutlined: <SettingOutlined />,
-  AuditOutlined: <AuditOutlined />,
   ApartmentOutlined: <ApartmentOutlined />,
   VideoCameraOutlined: <VideoCameraOutlined />,
   CloudServerOutlined: <CloudServerOutlined />,
 };
 
+interface SidebarItem {
+  key: string;
+  label: string;
+  icon: string;
+}
+
+const SIDEBAR_ITEMS: SidebarItem[] = [
+  { key: '/', label: '首页', icon: 'HomeOutlined' },
+  { key: '/tasks', label: '任务中心', icon: 'CheckSquareOutlined' },
+  { key: '/contacts', label: '联系人管理', icon: 'ContactsOutlined' },
+  { key: '/calendar', label: '日程日历', icon: 'CalendarOutlined' },
+  { key: '/votes', label: '投票决策', icon: 'LikeOutlined' },
+  { key: '/forms', label: '表单收集', icon: 'FormOutlined' },
+  { key: '/members', label: '成员目录', icon: 'TeamOutlined' },
+  { key: '/announcements', label: '公告通知', icon: 'SoundOutlined' },
+  { key: '/notes', label: '笔记知识库', icon: 'BookOutlined' },
+  { key: '/shares', label: '文件共享', icon: 'FileOutlined' },
+  { key: '/content', label: '内容编辑', icon: 'FileTextOutlined' },
+  { key: '/projects', label: '项目管理', icon: 'ProjectOutlined' },
+  { key: '/inventory', label: '物品管理', icon: 'AppstoreOutlined' },
+  { key: '/finance', label: '财务中心', icon: 'MoneyCollectOutlined' },
+  { key: '/secrets', label: '密钥保险箱', icon: 'KeyOutlined' },
+  { key: '/reminders', label: '提醒事项', icon: 'BellOutlined' },
+  { key: '/topology', label: '拓扑结构', icon: 'ApartmentOutlined' },
+  { key: '/servers', label: '服务器管理', icon: 'CloudServerOutlined' },
+  { key: '/streaming', label: '直播工作室', icon: 'VideoCameraOutlined' },
+];
+
 function getMenuItems(): MenuProps['items'] {
-  const sidebarItems = getVisibleSidebarItems();
+  const sidebarItems = SIDEBAR_ITEMS;
   const items: MenuProps['items'] = sidebarItems.map((item) => ({
     key: item.key,
     label: item.label,
@@ -103,11 +127,6 @@ function getMenuItems(): MenuProps['items'] {
   if (isAdmin()) {
     items.push(
       {
-        key: '/audit',
-        icon: <AuditOutlined />,
-        label: '审计',
-      },
-      {
         key: '/settings',
         icon: <SettingOutlined />,
         label: '系统设置',
@@ -117,7 +136,6 @@ function getMenuItems(): MenuProps['items'] {
           { key: '/settings/tags', label: '标签分类', icon: <TagOutlined /> },
           { key: '/settings/templates', label: '模板库', icon: <FormOutlined /> },
           { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
-          { key: '/settings/sidebar', label: '侧边栏配置', icon: <LayoutOutlined /> },
           { key: '/settings/devices', label: '设备终端', icon: <DesktopOutlined /> },
           { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
           { key: '/settings/backups', label: '数据备份', icon: <CloudServerOutlined /> },
@@ -157,7 +175,7 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedKey = useMemo(() => {
-    const keys = getVisibleSidebarItems().map((i) => i.key);
+    const keys = SIDEBAR_ITEMS.map((i) => i.key);
     if (keys.includes(location.pathname)) return location.pathname;
     for (const key of keys.sort((a, b) => b.length - a.length)) {
       if (location.pathname.startsWith(key + '/') || location.pathname.startsWith(key + '?')) {
@@ -187,7 +205,7 @@ export default function MainLayout() {
     <TagProvider>
       <Layout style={{ minHeight: '100vh', background: 'var(--canvas-parchment)' }}>
         {!isMobile && (
-        <div className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`} style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 80 : 240, display: 'flex', flexDirection: 'column' }}>
+        <div className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`} style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)', display: 'flex', flexDirection: 'column' }}>
           <div
             style={{
               height: 64,
@@ -239,7 +257,8 @@ export default function MainLayout() {
             }}
           >
           <Sider
-            width={240}
+            width="var(--sider-width)"
+            collapsedWidth="var(--sider-collapsed-width)"
             collapsible
             collapsed={collapsed}
             onCollapse={setCollapsed}
@@ -307,7 +326,7 @@ export default function MainLayout() {
         </Drawer>
       )}
 
-      <Layout className={`${styles.appLayout}${sidebarEntered ? ` ${styles.appEntered}` : ''}`} style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 240), transition: 'margin-left 0.2s', background: 'var(--canvas-parchment)' }}>
+      <Layout className={`${styles.appLayout}${sidebarEntered ? ` ${styles.appEntered}` : ''}`} style={{ marginLeft: isMobile ? 0 : (collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)'), transition: 'margin-left 0.2s', background: 'var(--canvas-parchment)', height: '100vh', overflowY: 'auto' }}>
         <Header
           style={{
             padding: isMobile ? '0 16px' : '0 24px',

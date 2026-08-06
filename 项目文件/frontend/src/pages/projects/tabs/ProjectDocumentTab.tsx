@@ -27,7 +27,7 @@ import {
   FormOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
-import type { WorkRecord } from '../../../types/record';
+import type { Project } from '../../../types/project';
 import type { Template } from '../../../types/template';
 import ContentEditor, { type ContentEditorHandle } from '../../content/ContentEditor';
 import TemplateSelector from '../TemplateSelector';
@@ -101,7 +101,7 @@ function formatDate(iso: string): string {
 // ─── Props ──────────────────────────────────────────────────
 
 interface ProjectDocumentTabProps {
-  project: WorkRecord;
+  project: Project;
   onUpdate: (data: Record<string, unknown>) => Promise<void>;
 }
 
@@ -110,13 +110,13 @@ interface ProjectDocumentTabProps {
 export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumentTabProps) {
   // ── 数据状态 ──
   const [documents, setDocuments] = useState<ProjectDocument[]>(() => {
-    const data = project.data as Record<string, unknown>;
+    const data = (project.content as Record<string, unknown>) || {};
     return (data?.documents as ProjectDocument[]) || [];
   });
 
   // ── 自定义分类（尚未包含文档的分类） ──
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
-    const data = project.data as Record<string, unknown>;
+    const data = (project.content as Record<string, unknown>) || {};
     return (data?.customCategories as string[]) || [];
   });
 
@@ -181,7 +181,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
       try {
         await onUpdate({
           data: {
-            ...project.data,
+            ...project.content,
             documents: docs,
             customCategories,
           },
@@ -192,7 +192,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         setSaving(false);
       }
     },
-    [project.data, onUpdate, customCategories],
+    [project.content, onUpdate, customCategories],
   );
 
   // ── 防抖保存 ──

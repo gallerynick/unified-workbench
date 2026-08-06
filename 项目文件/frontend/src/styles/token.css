@@ -133,7 +133,7 @@
   --anim-ease-in-out: ease-in-out;
 
   /* === 布局 === */
-  --sider-width: 240px;
+  --sider-width: 260px;
   --sider-collapsed-width: 80px;
   --header-height: 64px;
   --content-max-width-text: 980px;
@@ -337,3 +337,9 @@
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
 }
+
+/* Timeline solid dots */
+.ant-timeline-item-head-blue { background-color: var(--color-info) !important; border-color: var(--color-info) !important; }
+.ant-timeline-item-head-green { background-color: var(--color-success) !important; border-color: var(--color-success) !important; }
+.ant-timeline-item-head-red { background-color: var(--color-error) !important; border-color: var(--color-error) !important; }
+.ant-timeline-item-head-gray { background-color: var(--text-tertiary) !important; border-color: var(--text-tertiary) !important; }

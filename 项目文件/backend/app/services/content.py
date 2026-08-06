@@ -10,7 +10,6 @@ from app.core.permissions import check_visibility
 from app.models.content import Content
 from app.models.user import User, UserRole
 from app.schemas.content import ContentCreateRequest, ContentUpdateRequest
-from app.services.audit import log_audit
 
 
 async def create_content(
@@ -28,16 +27,6 @@ async def create_content(
     )
     db.add(content)
     await db.flush()
-
-    # 审计日志
-    await log_audit(
-        db,
-        user_id=current_user.id,
-        action="create_content",
-        target_type="content",
-        target_id=str(content.id),
-        detail={"title": content.title},
-    )
 
     return content
 
@@ -115,16 +104,6 @@ async def update_content(
     await db.flush()
     await db.refresh(content)
 
-    # 审计日志
-    await log_audit(
-        db,
-        user_id=current_user.id,
-        action="update_content",
-        target_type="content",
-        target_id=str(content.id),
-        detail={"title": content.title},
-    )
-
     return content
 
 
@@ -145,16 +124,6 @@ async def delete_content(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="无权删除此内容"
         )
-
-    # 审计日志（先记再删）
-    await log_audit(
-        db,
-        user_id=current_user.id,
-        action="delete_content",
-        target_type="content",
-        target_id=str(content.id),
-        detail={"title": content.title},
-    )
 
     # 删除内容
     await db.delete(content)

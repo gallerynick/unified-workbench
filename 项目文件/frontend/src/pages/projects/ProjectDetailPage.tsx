@@ -14,10 +14,8 @@ import {
   ArrowLeftOutlined,
   ExportOutlined,
 } from '@ant-design/icons';
-import { getRecord, updateRecord } from '../../api/records';
-import { getTemplate } from '../../api/templates';
-import type { WorkRecord } from '../../types/record';
-import type { Template } from '../../types/template';
+import { getProject, updateProject } from '../../api/projects';
+import type { Project } from '../../types/project';
 import { getVisibilityConfig } from '../../utils/visibility';
 import ProjectInfoTab from './tabs/ProjectInfoTab';
 import ProjectProgressTab from './tabs/ProjectProgressTab';
@@ -30,24 +28,16 @@ export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [project, setProject] = useState<WorkRecord | null>(null);
-  const [template, setTemplate] = useState<Template | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProject = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const res = await getRecord(id);
+      const res = await getProject(id);
       if (res.code === 0) {
         setProject(res.data);
-        // 获取关联的模板信息
-        if (res.data.template_id) {
-          const tplRes = await getTemplate(res.data.template_id);
-          if (tplRes.code === 0) {
-            setTemplate(tplRes.data);
-          }
-        }
       } else {
         message.error(res.msg || '获取项目详情失败');
         navigate('/projects');
@@ -69,7 +59,7 @@ export default function ProjectDetailPage() {
     async (data: Record<string, unknown>) => {
       if (!id) return;
       try {
-        const res = await updateRecord(id, data);
+        const res = await updateProject(id, data);
         if (res.code === 0) {
           setProject(res.data);
           message.success('更新成功');
@@ -108,7 +98,6 @@ export default function ProjectDetailPage() {
       children: (
         <ProjectInfoTab
           project={project}
-          template={template}
           onUpdate={handleUpdate}
         />
       ),

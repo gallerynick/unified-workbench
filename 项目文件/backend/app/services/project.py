@@ -1,118 +1,141 @@
-"""项目文档业务逻辑"""
+"""项目业务逻辑"""
 
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import check_visibility
+from app.core.visibility import Visibility
 from app.models.project import Project
 from app.models.user import User
 
 
-async def create_project_document(
+async def create_project(
     db: AsyncSession,
     data: dict,
     owner_id: uuid.UUID,
 ) -> Project:
-    """创建项目文档"""
-    doc = Project(
-        project_id=data["project_id"],
+    """创建项目"""
+    project = Project(
+        project_id=data.get("project_id"),
         title=data["title"],
+        description=data.get("description"),
         content=data.get("content", {}),
-        template_id=data.get("template_id"),
+        status=data.get("status", "draft"),
         owner_id=owner_id,
+        visibility=data.get("visibility", Visibility.PRIVATE),
+        restricted_users=data.get("restricted_users"),
+        restricted_tags=data.get("restricted_tags"),
     )
-    db.add(doc)
+    db.add(project)
     await db.flush()
-    return doc
+    return project
 
 
-async def list_project_documents(
+async def list_projects(
     db: AsyncSession,
     current_user: User,
     page: int = 1,
     page_size: int = 20,
-    project_id: uuid.UUID | None = None,
+    status: str | None = None,
+    search: str | None = None,
 ) -> tuple[list[Project], int]:
-    """列出项目文档，支持按项目和所有者过滤。非管理员仅能看到自己的文档。"""
+    """列出项目，支持按 status 筛选、搜索 title，并过滤可见性。"""
     query = select(Project)
-    count_query = select(func.count()).select_from(Project)
 
-    # 非管理员只能查看自己的文档
-    if current_user.role.value != "admin":
-        query = query.where(Project.owner_id == current_user.id)
-        count_query = count_query.where(Project.owner_id == current_user.id)
+    if status is not None:
+        query = query.where(Project.status == status)
+    if search:
+        query = query.where(Project.title.ilike(f"%{search}%"))
 
-    if project_id:
-        query = query.where(Project.project_id == project_id)
-        count_query = count_query.where(Project.project_id == project_id)
-
-    # 总数
-    total_result = await db.execute(count_query)
-    total = total_result.scalar_one()
-
-    # 分页
     query = query.order_by(Project.created_at.desc())
-    query = query.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
-    docs = list(result.scalars().all())
+    all_projects = list(result.scalars().all())
 
-    return docs, total
+    # 按可见性过滤
+    visible: list[Project] = []
+    for proj in all_projects:
+        if proj.owner_id == current_user.id:
+            visible.append(proj)
+        elif proj.visibility == Visibility.PUBLIC:
+            visible.append(proj)
+        elif proj.visibility == Visibility.RESTRICTED:
+            r_users = set(proj.restricted_users) if proj.restricted_users else set()
+            r_tags = set(proj.restricted_tags) if proj.restricted_tags else set()
+            if check_visibility(current_user, proj.visibility, proj.owner_id, r_users, r_tags):
+                visible.append(proj)
+
+    total = len(visible)
+    start = (page - 1) * page_size
+    return visible[start : start + page_size], total
 
 
-async def get_project_document(
-    db: AsyncSession, document_id: uuid.UUID, current_user: User
-) -> Project:
-    """获取单个项目文档，非管理员只能访问自己的文档。"""
-    result = await db.execute(
-        select(Project).where(Project.id == document_id)
-    )
-    doc = result.scalar_one_or_none()
-    if not doc:
+async def get_project(db: AsyncSession, project_id: uuid.UUID, current_user: User) -> Project:
+    """获取单个项目，不存在或无权访问则 404。"""
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    proj = result.scalar_one_or_none()
+    if not proj:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="项目文档不存在"
+            status_code=status.HTTP_404_NOT_FOUND, detail="项目不存在"
         )
-    if current_user.role.value != "admin" and doc.owner_id != current_user.id:
+    # 可见性检查
+    if proj.visibility == Visibility.PRIVATE and proj.owner_id != current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="无权访问此项目文档"
+            status_code=status.HTTP_404_NOT_FOUND, detail="项目不存在"
         )
-    return doc
+    if proj.visibility == Visibility.RESTRICTED:
+        r_users = set(proj.restricted_users) if proj.restricted_users else set()
+        r_tags = set(proj.restricted_tags) if proj.restricted_tags else set()
+        if not check_visibility(current_user, proj.visibility, proj.owner_id, r_users, r_tags):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="项目不存在"
+            )
+    return proj
 
 
-async def update_project_document(
+async def update_project(
     db: AsyncSession,
-    document_id: uuid.UUID,
+    project_id: uuid.UUID,
     data: dict,
     current_user: User,
 ) -> Project:
-    """更新项目文档，仅所有者可修改。"""
-    doc = await get_project_document(db, document_id, current_user)
-    if doc.owner_id != current_user.id:
+    """更新项目字段，仅所有者可修改。"""
+    proj = await get_project(db, project_id, current_user)
+    if proj.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="仅所有者可修改"
         )
-
-    if "title" in data and data["title"] is not None:
-        doc.title = data["title"]
-    if "content" in data and data["content"] is not None:
-        doc.content = data["content"]
-
+    for field in ("project_id", "title", "description", "content", "status", "visibility"):
+        if field in data and data[field] is not None:
+            if field == "status" and data[field] != proj.status:
+                log = list(proj.status_log) if proj.status_log else []
+                log.append({
+                    "from_status": proj.status,
+                    "to_status": data[field],
+                    "timestamp": datetime.now().isoformat(),
+                })
+                proj.status_log = log
+            setattr(proj, field, data[field])
+    if "restricted_users" in data:
+        proj.restricted_users = data["restricted_users"]
+    if "restricted_tags" in data:
+        proj.restricted_tags = data["restricted_tags"]
     await db.flush()
-    await db.refresh(doc)
-    return doc
+    await db.refresh(proj)
+    return proj
 
 
-async def delete_project_document(
-    db: AsyncSession, document_id: uuid.UUID, current_user: User
-) -> None:
-    """删除项目文档，仅所有者可删除。"""
-    doc = await get_project_document(db, document_id, current_user)
-    if doc.owner_id != current_user.id:
+async def delete_project(db: AsyncSession, project_id: uuid.UUID, current_user: User) -> None:
+    """删除项目，仅所有者可删除。"""
+    proj = await get_project(db, project_id, current_user)
+    if proj.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="仅所有者可删除"
         )
-    await db.delete(doc)
+    await db.delete(proj)
     await db.flush()

@@ -1,7 +1,6 @@
 """数据库模型统一导出"""
 
 from app.models.announcement import Announcement
-from app.models.audit_log import AuditLog
 from app.models.budget import Budget, BudgetPeriod, BudgetStatus
 from app.models.calendar_event import CalendarEvent, EventRepeat
 from app.models.contact import Contact, ContactType
@@ -12,7 +11,7 @@ from app.models.inventory import Inventory
 from app.models.note import Note
 from app.models.notification import Notification
 from app.models.project import Project
-from app.models.record import Record, RecordStatus, RecordType
+
 from app.models.reminder import Reminder, ReminderStatus, TriggerType
 from app.models.secret import Secret
 from app.models.secret_category import SecretCategory
@@ -32,7 +31,6 @@ from app.models.vote import Vote, VoteRecord, VoteStatus
 
 __all__ = [
     "Announcement",
-    "AuditLog",
     "Budget",
     "BudgetPeriod",
     "BudgetStatus",
@@ -47,9 +45,7 @@ __all__ = [
     "Note",
     "Notification",
     "Project",
-    "Record",
-    "RecordStatus",
-    "RecordType",
+
     "Reminder",
     "ReminderStatus",
     "TriggerType",

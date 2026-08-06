@@ -11,12 +11,12 @@ import {
   Divider,
 } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
-import type { WorkRecord, RecordStatus } from '../../../types/record';
+import type { Project, ProjectStatus } from '../../../types/project';
 import type { Template } from '../../../types/template';
 import { getVisibilityConfig, getVisibilityOptions } from '../../../utils/visibility';
 
 // 状态标签配置
-const STATUS_MAP: Record<RecordStatus, { color: string; text: string }> = {
+const STATUS_MAP: Record<ProjectStatus, { color: string; text: string }> = {
   draft: { color: 'default', text: '草稿' },
   ongoing: { color: 'processing', text: '进行中' },
   done: { color: 'success', text: '已完成' },
@@ -24,8 +24,8 @@ const STATUS_MAP: Record<RecordStatus, { color: string; text: string }> = {
 };
 
 interface ProjectInfoTabProps {
-  project: WorkRecord;
-  template: Template | null;
+  project: Project;
+  template?: Template | null;
   onUpdate: (data: Record<string, unknown>) => Promise<void>;
 }
 
@@ -87,7 +87,7 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
           <Tag color={statusCfg.color}>{statusCfg.text}</Tag>
         </Descriptions.Item>
         <Descriptions.Item label="项目类型">
-          <Tag color="blue">{project.type === 'project' ? '项目' : '记录'}</Tag>
+          <Tag color="blue">项目</Tag>
         </Descriptions.Item>
         <Descriptions.Item label="可见性">
           <Tag color={visibilityCfg.color}>{visibilityCfg.text}</Tag>

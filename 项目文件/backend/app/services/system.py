@@ -12,7 +12,6 @@ from sqlalchemy.orm import joinedload
 from app.models.server import Server
 from app.models.system import System
 from app.schemas.system import SystemCreate, SystemUpdate
-from app.services.audit import log_audit
 
 
 async def _check_system_owner(
@@ -130,7 +129,6 @@ async def create_system(
     )
     db.add(system)
     await db.flush()
-    await log_audit(db, user_id, "create_system", "system", str(system.id))
     await db.refresh(system)
     return system
 
@@ -185,7 +183,6 @@ async def update_system(
         system.maintainer_ids = data.maintainer_ids
 
     await db.flush()
-    await log_audit(db, user_id, "update_system", "system", str(system.id))
     await db.refresh(system)
     return system
 
@@ -199,5 +196,4 @@ async def delete_system(
     system = await _check_system_owner(db, system_id, user_id)
     await db.delete(system)
     await db.flush()
-    await log_audit(db, user_id, "delete_system", "system", str(system_id))
     return True

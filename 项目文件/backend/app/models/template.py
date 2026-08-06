@@ -13,7 +13,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.record import Record
     from app.models.user import User
 
 
@@ -46,6 +45,3 @@ class Template(Base):
 
     # 关系
     owner: Mapped[User] = relationship("User", lazy="selectin")
-    records: Mapped[list[Record]] = relationship(
-        "Record", back_populates="template", lazy="selectin"
-    )
