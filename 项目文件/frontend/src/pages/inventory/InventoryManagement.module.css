@@ -18,6 +18,11 @@
   white-space: nowrap;
 }
 
+.searchInput {
+  max-width: 320px;
+  border-radius: var(--rounded-pill);
+}
+
 .table {
   flex: 1;
 }
@@ -61,6 +66,10 @@
 
   .header > * {
     width: 100%;
+  }
+
+  .searchInput {
+    max-width: 100%;
   }
 
   .table {

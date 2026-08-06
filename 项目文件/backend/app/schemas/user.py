@@ -27,6 +27,9 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     username: str
     nickname: str
+    email: str | None = None
+    phone: str | None = None
+    gender: str | None = None
     avatar: str | None
     role: UserRole
     status: UserStatus
@@ -94,6 +97,9 @@ class UserUpdateRequest(BaseModel):
     """更新用户请求。"""
 
     nickname: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    gender: str | None = None
     avatar: str | None = None
     role: str | None = None
     status: str | None = None

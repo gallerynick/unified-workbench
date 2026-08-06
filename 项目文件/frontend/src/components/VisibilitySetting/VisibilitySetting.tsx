@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Radio, Select } from 'antd';
-import type { RadioChangeEvent } from 'antd';
+import { Segmented, Select } from 'antd';
 import { getVisibilityOptions } from '../../utils/visibility';
 import type { Visibility } from '../../utils/visibility';
 import { listUsers } from '../../api/users';
@@ -18,8 +17,6 @@ interface VisibilitySettingProps {
   onChange?: (visibility: Visibility) => void;
   onRestrictedUsersChange?: (users: string[]) => void;
   onRestrictedTagsChange?: (tags: string[]) => void;
-  showDescription?: boolean;
-  layout?: 'horizontal' | 'vertical';
   hideRestricted?: boolean;
   showRestrictedTags?: boolean;
 }
@@ -32,8 +29,6 @@ export default function VisibilitySetting({
   onChange,
   onRestrictedUsersChange,
   onRestrictedTagsChange,
-  showDescription = false,
-  layout = 'horizontal',
   hideRestricted = false,
   showRestrictedTags = true,
 }: VisibilitySettingProps) {
@@ -63,43 +58,20 @@ export default function VisibilitySetting({
     }
   }, [value, fetchUsers]);
 
-  const handleVisibilityChange = (e: RadioChangeEvent) => {
-    onChange?.(e.target.value as Visibility);
-  };
-
-  const handleUserChange = (selectedUsers: string[]) => {
-    onRestrictedUsersChange?.(selectedUsers);
-  };
+  const segmentedOptions = options.map((opt) => ({
+    label: opt.label,
+    value: opt.value,
+  }));
 
   return (
     <div className={styles.container ?? ''}>
       {label ? <div className={styles.label}>{label}</div> : null}
-      <Radio.Group
-        className={styles.radioGroup ?? ''}
+      <Segmented
+        block
+        options={segmentedOptions}
         value={value}
-        onChange={handleVisibilityChange}
-      >
-        {layout === 'vertical' ? (
-          <div className={styles.visibilitySection ?? ''}>
-            {options.map((opt) => (
-              <Radio key={opt.value} value={opt.value}>
-                <div>
-                  <div className={styles.visibilityOptionTitle ?? ''}>{opt.label}</div>
-                  {showDescription && opt.description && (
-                    <div className={styles.visibilityOptionDesc ?? ''}>{opt.description}</div>
-                  )}
-                </div>
-              </Radio>
-            ))}
-          </div>
-        ) : (
-          options.map((opt) => (
-            <Radio.Button key={opt.value} value={opt.value}>
-              {opt.label}
-            </Radio.Button>
-          ))
-        )}
-      </Radio.Group>
+        onChange={(val) => onChange?.(val as Visibility)}
+      />
 
       {value === 'restricted' && (
         <div className={styles.restrictedSection ?? ''}>
@@ -110,7 +82,7 @@ export default function VisibilitySetting({
               mode="multiple"
               placeholder="选择可访问的用户"
               value={restrictedUsers}
-              onChange={handleUserChange}
+              onChange={(v) => onRestrictedUsersChange?.(v)}
               loading={loadingUsers}
               allowClear
               showSearch

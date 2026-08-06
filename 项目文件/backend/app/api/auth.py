@@ -57,6 +57,12 @@ async def update_me_endpoint(
     """更新当前用户信息（昵称、头像）。"""
     if request.nickname is not None:
         current_user.nickname = request.nickname
+    if request.email is not None:
+        current_user.email = request.email
+    if request.phone is not None:
+        current_user.phone = request.phone
+    if request.gender is not None:
+        current_user.gender = request.gender
     if "avatar" in request.model_fields_set:
         current_user.avatar = request.avatar
     await db.flush()

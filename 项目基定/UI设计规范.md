@@ -936,7 +936,22 @@ components:
 
 ### 输入与表单
 
-**`search-input`**——搜索输入框。背景 `{colors.canvas}`，文本 `{colors.ink}` 使用 `{typography.body}`（17px），1px 实线 `rgba(0, 0, 0, 0.08)` 描边，圆角 `{rounded.pill}`（全胶囊形——搜索同样采用胶囊形，匹配 CTA 语法），内边距 12px × 20px，高度 44px。前导图标：搜索 glyph 14px，弱化色调。
+**`search-input`**——搜索输入框。使用 `variant="filled"` 灰底样式，文本 `{colors.ink}` 使用 `{typography.body}`（17px），圆角 `{rounded.pill}`（全胶囊形），前导 SearchOutlined 图标 14px 弱化色调 `{colors.text-secondary}`。全局 CSS 类 `.searchInput { max-width: 320px; border-radius: var(--rounded-pill); }` 统一约束宽度与胶囊形状。
+
+标准实现模式（所有管理页统一）：
+```tsx
+<Input
+  placeholder="搜索..."
+  prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
+  allowClear
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  variant="filled"
+  className={styles.searchInput ?? ''}
+/>
+```
+
+> **来源：** 笔记知识库（`NoteManagement.tsx`）的搜索框实现——经全局标准化后，所有管理页搜索框统一使用此模式。
 
 错误和验证状态在分析页面中未出现。
 
@@ -1055,7 +1070,7 @@ components:
 
 - **侧边栏**（`{component.sider}`）：宽度 240px，折叠宽度 80px，高度 100vh（全视口高度），背景 `{colors.canvas}`，右侧 1px `{colors.border-secondary}` 描边。折叠状态下仅显示图标，展开状态显示图标 + 文字标签。
 - **表头**（`{component.header}`）：高度 64px，背景 `{colors.canvas}`，底部 1px `{colors.border-secondary}` 描边，内边距 0 × 24px，`position: sticky` 固定于顶部，`zIndex: 100`。承载页面标题、面包屑导航和操作按钮。
-- **内容区**：位于侧边栏右侧、表头下方，水平外边距与侧边栏宽度匹配，内部填充使用 `{spacing.content-pad}`（24px）。页面采用 flex column 布局，子元素间使用 `{spacing.section-gap}`（16px）垂直间距。内容卡片使用 `{component.card}`，背景 `{colors.canvas}`，`{rounded.sm}` 圆角，1px `{colors.border-secondary}` 描边，内边距 16px。
+- **内容区**：位于侧边栏右侧、表头下方，水平外边距 `{spacing.content-pad}`（24px）、内边距 24px，背景 `{colors.canvas}`，`{rounded.sm}`（8px）圆角。`display: flex; flex-direction: column`，`overflow: auto` 触发圆角矩形内独立滚动。底部边距生效的关键：子元素 `flex: 1` **不加 `min-height: 0`**——否则子元素高度被裁剪，Content 感知不到溢出，底部留白消失。底部用 `::after { content: ''; display: block; height: 24px; flex-shrink: 0; }` 伪元素提供与圆角底边的固定间距。
 - **页面容器模式**：功能页面采用固定框架——左侧 Sider、顶部 Header、右侧下方 Content 区域。Content 区域为 flex column，元素间以 `{spacing.section-gap}` 间隙分隔。卡片网格使用 `{component.card-grid}`，`grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))`，列间隙 `{spacing.sm}`（12px）。
 
 ## 图标规范
@@ -1324,7 +1339,7 @@ components:
 
 **`segmented`**——分段控制器，用于在同一行展示多个互斥选项。背景 `{colors.bg-tertiary}`，选项文字 `{colors.text-secondary}`，使用 `{typography.body-sm}`（14px），`{rounded.sm}` 圆角，选中项文字 `{colors.color-info}`，背景 `{colors.canvas}`。
 
-**实际使用场景：** UserPersonalization（个性化设置选项切换）、NoteManagement（笔记视图切换：列表/树形/图）。
+**实际使用场景：** UserPersonalization（个性化设置选项切换）、NoteManagement（笔记视图切换：列表/树形/图）、VisibilitySetting（可见性选择器：公开/私有/指定用户三态切换）。
 
 ### List 组件
 

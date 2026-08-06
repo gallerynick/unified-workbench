@@ -18,6 +18,11 @@
   white-space: nowrap;
 }
 
+.searchInput {
+  max-width: 320px;
+  border-radius: var(--rounded-pill);
+}
+
 .noteTree {
   background: var(--bg-primary);
   border-radius: var(--rounded-chip);
@@ -109,6 +114,10 @@
 
   .header > * {
     width: 100%;
+  }
+
+  .searchInput {
+    max-width: 100%;
   }
 
   .table {

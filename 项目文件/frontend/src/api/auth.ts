@@ -25,7 +25,16 @@ export async function getMe(): Promise<UnifiedResponse<User>> {
   return request<User>('/auth/me');
 }
 
-export async function updateMe(data: Partial<User>): Promise<UnifiedResponse<User>> {
+export interface UpdateMeRequest {
+  username?: string;
+  nickname: string;
+  email?: string | null;
+  phone?: string | null;
+  gender?: string | null;
+  avatar?: string;
+}
+
+export async function updateMe(data: UpdateMeRequest): Promise<UnifiedResponse<User>> {
   return request<User>('/auth/me', {
     method: 'PUT',
     body: data,

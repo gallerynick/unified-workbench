@@ -1,7 +1,14 @@
 .modal {
-  top: 60px;
+  top: var(--spacing-xxl);
 }
 
 .form {
   padding-top: var(--spacing-xs);
+}
+
+.warning {
+  padding: var(--spacing-sm);
+  background: var(--color-warning-bg);
+  border-radius: var(--rounded-xs);
+  margin-top: var(--spacing-sm);
 }

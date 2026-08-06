@@ -22,7 +22,6 @@ const NotificationConfig = lazy(() => import('@/pages/settings/NotificationConfi
 const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'));
 const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationSettings'));
 const SiteSettings = lazy(() => import('@/pages/settings/SiteSettings'));
-const DeviceManagement = lazy(() => import('@/pages/settings/DeviceManagement'));
 const UserPersonalization = lazy(() => import('@/pages/settings/UserPersonalization'));
 const InventoryManagement = lazy(() => import('@/pages/inventory/InventoryManagement'));
 const FinanceManagement = lazy(() => import('@/pages/finance/FinanceManagement'));
@@ -34,10 +33,12 @@ const FormManagement = lazy(() => import('@/pages/forms/FormManagement'));
 const FormFill = lazy(() => import('@/pages/forms/FormFill'));
 const FormResponses = lazy(() => import('@/pages/forms/FormResponses'));
 const MemberDirectory = lazy(() => import('@/pages/members/MemberDirectory'));
+const MemberDetail = lazy(() => import('@/pages/members/MemberDetail'));
 const AnnouncementManagement = lazy(() => import('@/pages/announcements/AnnouncementManagement'));
 const NoteManagement = lazy(() => import('@/pages/notes/NoteManagement'));
 const TagManagement = lazy(() => import('@/pages/settings/TagManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
+const DevicesPage = lazy(() => import('@/pages/settings/DevicesPage'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
 const ProjectDetailPage = lazy(() => import('@/pages/projects/ProjectDetailPage'));
 const SystemSettings = lazy(() => import('@/pages/settings/SystemSettings'));
@@ -142,9 +143,13 @@ export const router = createBrowserRouter([
     element: <FormResponses />,
           },
           {
-            path: 'members',
-            element: <LazyPage><MemberDirectory /></LazyPage>,
-          },
+path: 'members',
+element: <LazyPage><MemberDirectory /></LazyPage>,
+},
+{
+path: 'members/:userId',
+element: <LazyPage><MemberDetail /></LazyPage>,
+},
           {
             path: 'announcements',
             element: <LazyPage><AnnouncementManagement /></LazyPage>,
@@ -198,10 +203,6 @@ export const router = createBrowserRouter([
             element: <LazyPage><TagManagement /></LazyPage>,
           },
           {
-            path: 'settings/devices',
-            element: <LazyPage><DeviceManagement /></LazyPage>,
-          },
-          {
             path: 'settings/system',
             element: <LazyPage><SystemSettings /></LazyPage>,
           },
@@ -212,6 +213,10 @@ export const router = createBrowserRouter([
           {
             path: 'profile',
             element: <LazyPage><Profile /></LazyPage>,
+          },
+          {
+            path: 'devices',
+            element: <LazyPage><DevicesPage /></LazyPage>,
           },
           {
             path: 'topology',

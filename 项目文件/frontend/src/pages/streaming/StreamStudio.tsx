@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Space, Input, Tag, message, Modal, Tooltip, Dropdown, Typography, Form, InputNumber, Select, Slider, Switch, Spin, Table, Badge } from 'antd';
 import {
   VideoCameraOutlined, DesktopOutlined,
@@ -8,7 +8,7 @@ import {
   SoundOutlined, MutedOutlined, EyeOutlined, GlobalOutlined,
   FontSizeOutlined, CopyOutlined, ExclamationCircleOutlined,
   AudioOutlined,
-  ArrowUpOutlined, ArrowDownOutlined,
+  ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined,
   DashboardOutlined,
 } from '@ant-design/icons';
 import { getRoom, updateRoom, getRoomStatus, takeoverRoom, runSpeedTest, runDownloadTest } from '../../api/stream';
@@ -65,6 +65,7 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
 };
 
 export default function StreamStudio() {
+  const navigate = useNavigate();
   const [scenes, setScenes] = useState<Scene[]>([
     { id: 'scene_1', name: '场景 1', sources: [] },
   ]);
@@ -175,12 +176,7 @@ export default function StreamStudio() {
           if (cfg.default_resolution) setStreamResolution(cfg.default_resolution);
           if (cfg.default_fps) setStreamFps(cfg.default_fps);
           if (cfg.default_bitrate) setStreamBitrate(cfg.default_bitrate);
-          settingsForm.setFieldsValue({
-            ...cfg,
-            server_url: room.push_url,
-            server_port: 8889,
-            enable_auth: true,
-          });
+          settingsForm.setFieldsValue(cfg);
           audioConfigRef.current = {
             sampleRate: cfg.audio_sample_rate ?? 48000,
             channels: cfg.audio_channels ?? 2,
@@ -905,6 +901,7 @@ export default function StreamStudio() {
       {isExternalMode ? (
         /* Todo 12: External mode — 只显示 RTMP 地址和观看地址 */
         <div style={{ textAlign: 'center', padding: '60px var(--spacing-lg)', maxWidth: 640, margin: '0 auto' }}>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/streaming')} style={{ marginBottom: 'var(--spacing-lg)' }}>返回直播列表</Button>
           <Title level={4} style={{ marginBottom: "var(--spacing-xl)" }}>
             {roomInfo?.name || '直播间'}
             <Badge status={roomInfo?.is_active ? 'processing' : 'default'} style={{ marginLeft: "var(--spacing-sm)" }} text={roomInfo?.is_active ? '推流中' : '空闲'} />
@@ -945,6 +942,7 @@ export default function StreamStudio() {
           )}
         </Space>
         <Space>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/streaming')}>返回直播列表</Button>
           <Button icon={<SettingOutlined />} onClick={async () => { await loadSettings(); setShowSettingsModal(true); }}>设置</Button>
         </Space>
       </div>
@@ -1351,6 +1349,9 @@ export default function StreamStudio() {
         ) : (
           <div style={{ maxHeight: 500, overflowY: 'auto', overflowX: 'hidden' }}>
             <Form form={settingsForm} layout="vertical" initialValues={{
+              default_resolution: '1920x1080',
+              default_fps: 30,
+              default_bitrate: 8000,
               audio_sample_rate: 48000,
               audio_channels: 2,
               audio_processing_mode: 'standard',
@@ -1363,34 +1364,12 @@ export default function StreamStudio() {
               audio_limiter_threshold: -3,
               audio_output_gain: 0.85,
             }}>
-              <div className={styles.sectionTitle}>服务器设置</div>
-              <Form.Item name="server_url" label="推流服务器地址" rules={[{ required: true, message: '请输入推流服务器地址' }]}>
-                <Input placeholder="http://localhost:8889" />
-              </Form.Item>
-              <Form.Item name="server_port" label="服务器端口" rules={[{ required: true, message: '请输入服务器端口' }]}>
-                <InputNumber min={1} max={65535} style={{ width: '100%' }} />
-              </Form.Item>
-              <Form.Item name="enable_auth" label="启用推流认证" valuePropName="checked">
-                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
-              </Form.Item>
-
-              <div className={styles.sectionTitle} style={{ marginTop: "var(--spacing-card-gap)" }}>编码参数</div>
+              <div className={styles.sectionTitle}>编码参数</div>
               <Form.Item name="default_resolution" label="默认分辨率" rules={[{ required: true, message: '请选择默认分辨率' }]}>
                 <Select options={RESOLUTION_OPTIONS} />
               </Form.Item>
               <Form.Item name="default_fps" label="默认帧率" rules={[{ required: true, message: '请选择默认帧率' }]}>
                 <Select options={FPS_OPTIONS} />
-              </Form.Item>
-              <Form.Item label="码率范围 (kbps)">
-                <Space style={{ width: '100%' }} align="start">
-                  <Form.Item name="min_bitrate" noStyle rules={[{ required: true }]}>
-                    <InputNumber min={100} placeholder="最小" addonAfter="kbps" />
-                  </Form.Item>
-                  <Text style={{ lineHeight: '32px' }}>—</Text>
-                  <Form.Item name="max_bitrate" noStyle rules={[{ required: true }]}>
-                    <InputNumber placeholder="最大" addonAfter="kbps" />
-                  </Form.Item>
-                </Space>
               </Form.Item>
               <Form.Item name="default_bitrate" label="默认码率 (kbps)">
                 <Slider min={500} max={20000} step={500} marks={{ 500: '500', 5000: '5M', 10000: '10M', 20000: '20M' }} />

@@ -181,7 +181,6 @@ export default function VoteManagement() {
               onChange={setVisibility}
               onRestrictedUsersChange={setRestrictedUsers}
               onRestrictedTagsChange={setRestrictedTags}
-              showDescription
             />
           </div>
         </Form>

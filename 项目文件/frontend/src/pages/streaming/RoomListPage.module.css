@@ -21,7 +21,8 @@
 }
 
 .searchInput {
-  width: 200px;
+  max-width: 320px;
+  border-radius: var(--rounded-pill);
 }
 
 .filterSelect {
@@ -86,5 +87,6 @@
   .searchInput,
   .filterSelect {
     width: 100%;
+    max-width: 100%;
   }
 }

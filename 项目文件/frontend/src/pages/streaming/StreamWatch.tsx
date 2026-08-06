@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Typography, Tag, Space, Button, Spin, message } from 'antd';
-import { VideoCameraOutlined, CopyOutlined } from '@ant-design/icons';
+import { VideoCameraOutlined, ArrowLeftOutlined, CopyOutlined } from '@ant-design/icons';
 import { WhepClient } from '../../utils/WhepClient';
 
 const { Title, Text } = Typography;
@@ -9,6 +9,7 @@ const MEDIAMTX_PORT = 8889;
 const RETRY_DELAY = 3000;
 
 export default function StreamWatch() {
+  const navigate = useNavigate();
   const { roomId } = useParams<{ roomId: string }>();
   const videoRef = useRef<HTMLVideoElement>(null);
   const clientRef = useRef<WhepClient | null>(null);
@@ -65,6 +66,7 @@ export default function StreamWatch() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', background: 'var(--surface-black)', color: 'var(--body-on-dark)', padding: "var(--spacing-lg)" }}>
       <Space style={{ marginBottom: "var(--spacing-card-gap)" }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/streaming')}>返回直播列表</Button>
         <VideoCameraOutlined style={{ fontSize: 'var(--text-heading-2-size)' }} />
         <Title level={3} style={{ color: 'var(--body-on-dark)', margin: 0 }}>直播播放</Title>
         {roomId && <Tag color="blue">房间: {roomId.slice(0, 8)}...</Tag>}

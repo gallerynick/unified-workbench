@@ -162,8 +162,15 @@ export default function ContactManagement() {
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>联系人管理</Title>
         <Space>
-          <Input placeholder="搜索姓名/公司/邮箱" prefix={<SearchOutlined />} allowClear value={search}
-            onChange={(e) => setSearch(e.target.value)} style={{ width: 200 }} />
+          <Input
+            placeholder="搜索姓名/公司/邮箱"
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
+            allowClear
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            variant="filled"
+            className={styles.searchInput ?? ''}
+          />
           <Select value={typeFilter} onChange={setTypeFilter} placeholder="类型筛选" allowClear style={{ width: 120 }}
             options={[{ value: '', label: '全部' }, ...Object.entries(TYPE_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
           />

@@ -266,10 +266,12 @@ export default function ContentManagement() {
         <Space>
           <Input
             placeholder="搜索标题/标签/关键词"
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             allowClear
-            className={styles.searchInput ?? ''}
+            value={search}
             onChange={(e) => handleSearch(e.target.value)}
+            variant="filled"
+            className={styles.searchInput ?? ''}
           />
           <Button
             icon={<FileTextOutlined />}

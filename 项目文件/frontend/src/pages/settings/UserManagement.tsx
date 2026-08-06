@@ -214,10 +214,12 @@ export default function UserManagement() {
         <Space>
           <Input
             placeholder="搜索用户名/姓名"
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             allowClear
-            className={styles.searchInput ?? ''}
+            value={search}
             onChange={(e) => handleSearch(e.target.value)}
+            variant="filled"
+            className={styles.searchInput ?? ''}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建用户

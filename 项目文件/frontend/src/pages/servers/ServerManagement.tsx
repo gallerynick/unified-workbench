@@ -20,6 +20,7 @@ import {
   DeleteOutlined,
   EyeOutlined,
   QuestionCircleOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { listServers, deleteServer } from '../../api/servers';
@@ -154,11 +155,14 @@ export default function ServerManagement() {
               ...Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text })),
             ]}
           />
-          <Input.Search
+          <Input
             placeholder="搜索名称/用途/IP"
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             allowClear
-            style={{ width: 220 }}
-            onSearch={handleSearch}
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            variant="filled"
+            className={styles.searchInput ?? ''}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建服务器

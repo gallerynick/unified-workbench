@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, message, Avatar, Divider, Upload, Tag, Descriptions, Space, Modal } from 'antd';
+import { Card, Form, Input, Button, Typography, message, Avatar, Divider, Upload, Tag, Descriptions, Space, Modal, Select } from 'antd';
 import { UserOutlined, EditOutlined, LockOutlined, CameraOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import ImgCrop from 'antd-img-crop';
 import type { RcFile } from 'antd/es/upload/interface';
@@ -53,7 +53,13 @@ export default function Profile() {
       const res = await getMe();
       if (res.code === 0) {
         setUser(res.data);
-        profileForm.setFieldsValue({ nickname: res.data.nickname });
+        profileForm.setFieldsValue({
+          username: res.data.username,
+          nickname: res.data.nickname,
+          email: res.data.email,
+          phone: res.data.phone,
+          gender: res.data.gender,
+        });
       }
     } catch {
       message.error('获取用户信息失败');
@@ -66,7 +72,13 @@ export default function Profile() {
     try {
       const values = await profileForm.validateFields();
       setSaving(true);
-      const res = await updateMe({ nickname: values.nickname });
+      const res = await updateMe({
+        username: values.username || undefined,
+        nickname: values.nickname,
+        email: values.email || null,
+        phone: values.phone || null,
+        gender: values.gender || null,
+      });
       if (res.code === 0) {
         message.success('个人资料已更新');
         setUser(res.data);
@@ -113,7 +125,7 @@ export default function Profile() {
     setAvatarSaving(true);
     try {
       const dataUrl = await readFileAsDataURL(file);
-      const res = await updateMe({ avatar: dataUrl });
+      const res = await updateMe({ nickname: user?.nickname ?? '', avatar: dataUrl });
       if (res.code === 0) {
         message.success('头像已更新');
         setUser(res.data);
@@ -208,6 +220,15 @@ export default function Profile() {
           <Descriptions.Item label="昵称">
             <Text>{user?.nickname}</Text>
           </Descriptions.Item>
+          <Descriptions.Item label="邮箱">
+            <Text>{user?.email || '-'}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="手机号">
+            <Text>{user?.phone || '-'}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="性别">
+            <Text>{user?.gender === 'male' ? '男' : user?.gender === 'female' ? '女' : user?.gender === 'other' ? '其他' : '-'}</Text>
+          </Descriptions.Item>
           <Descriptions.Item label="标签">
             {user?.tags && user.tags.length > 0 ? (
               <Space wrap size={[4, 4]}>
@@ -244,9 +265,32 @@ export default function Profile() {
         destroyOnClose
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
-        <Form form={profileForm} layout="vertical" initialValues={{ nickname: user?.nickname }}>
+        <Form
+          form={profileForm}
+          layout="vertical"
+          initialValues={{ username: user?.username, nickname: user?.nickname, email: user?.email, phone: user?.phone, gender: user?.gender }}
+        >
+          <Form.Item label="用户名" name="username">
+            <Input placeholder="请输入用户名" />
+          </Form.Item>
           <Form.Item label="姓名" name="nickname" rules={[{ required: true, message: '请输入姓名' }]}>
             <Input placeholder="请输入姓名" />
+          </Form.Item>
+          <Form.Item label="邮箱" name="email">
+            <Input type="email" placeholder="请输入邮箱地址" />
+          </Form.Item>
+          <Form.Item label="手机号" name="phone">
+            <Input placeholder="请输入手机号" />
+          </Form.Item>
+          <Form.Item label="性别" name="gender">
+            <Select
+              placeholder="请选择性别"
+              options={[
+                { label: '男', value: 'male' },
+                { label: '女', value: 'female' },
+                { label: '其他', value: 'other' },
+              ]}
+            />
           </Form.Item>
           <div style={{ textAlign: 'right' }}>
             <Button onClick={() => setEditModalVisible(false)} style={{ marginRight: 'var(--spacing-xs)' }}>

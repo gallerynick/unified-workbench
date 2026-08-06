@@ -58,6 +58,9 @@ class ProfileUpdateRequest(BaseModel):
     AVATAR_MAX_BYTES: ClassVar[int] = 5 * 1024 * 1024
 
     nickname: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    gender: str | None = None
     avatar: str | None = None
 
     @field_validator("avatar")

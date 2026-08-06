@@ -152,7 +152,6 @@ export default function FormManagement() {
               onChange={setVisibility}
               onRestrictedUsersChange={setRestrictedUsers}
               onRestrictedTagsChange={setRestrictedTags}
-              showDescription
             />
           </div>
         </Form>

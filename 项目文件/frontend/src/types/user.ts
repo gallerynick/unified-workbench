@@ -2,12 +2,14 @@ export interface User {
   id: string;
   username: string;
   nickname: string;
+  email: string | null;
+  phone: string | null;
+  gender: string | null;
   avatar: string | null;
   role: 'admin' | 'member';
   status: 'active' | 'disabled';
   tags: Tag[];
   created_at: string;
-  email?: string | null;
   bio?: string | null;
 }
 

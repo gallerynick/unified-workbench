@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Input, Select, Typography, Modal, message, Space, Tooltip, InputNumber, Form } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listInventories, createInventory, updateInventory, deleteInventory } from '../../api/inventory';
 import type { Inventory, InventoryStatus } from '../../types/inventory';
@@ -170,8 +170,14 @@ export default function InventoryManagement() {
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>物品管理</Title>
         <Space>
-          <Input placeholder="搜索物品" allowClear style={{ width: 160 }}
+          <Input
+            placeholder="搜索物品"
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
+            allowClear
+            value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            variant="filled"
+            className={styles.searchInput ?? ''}
           />
           <Select value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} placeholder="状态筛选" allowClear style={{ width: 120 }}
             options={[{ value: '', label: '全部' }, ...Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}

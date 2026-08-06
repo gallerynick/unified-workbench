@@ -714,12 +714,13 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
       <div className={styles.listToolbar}
       >
         <Input
-          prefix={<SearchOutlined />}
+          prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
           placeholder="搜索文档..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           allowClear
-          style={{ maxWidth: 280 }}
+          variant="filled"
+          className={styles.searchInput ?? ''}
         />
 
         <Space>

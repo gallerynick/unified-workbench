@@ -42,6 +42,8 @@ const CHANNEL_TAG_MAP: Record<string, string> = {
   websocket: '站内通知',
   feishu: '飞书',
   dingtalk: '钉钉',
+  email: '邮件',
+  wecom: '企业微信',
 };
 
 export default function ReminderManagement() {
@@ -241,10 +243,12 @@ export default function ReminderManagement() {
         <Space>
           <Input
             placeholder="搜索标题"
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             allowClear
-            className={styles.searchInput ?? ''}
+            value={search}
             onChange={(e) => handleSearch(e.target.value)}
+            variant="filled"
+            className={styles.searchInput ?? ''}
           />
           <Select
             placeholder="状态筛选"

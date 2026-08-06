@@ -1,6 +1,6 @@
 export type ReminderStatus = 'pending' | 'sent' | 'failed' | 'cancelled';
 export type TriggerType = 'timed' | 'event';
-export type NotificationChannel = 'websocket' | 'feishu' | 'dingtalk';
+export type NotificationChannel = 'websocket' | 'feishu' | 'dingtalk' | 'email' | 'wecom';
 
 export interface Reminder {
   id: string;

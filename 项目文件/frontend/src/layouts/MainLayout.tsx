@@ -12,7 +12,6 @@ import {
   TeamOutlined,
   SkinOutlined,
   GlobalOutlined,
-  DesktopOutlined,
   FormOutlined,
   HomeOutlined,
   FileOutlined,
@@ -33,6 +32,7 @@ import {
   BgColorsOutlined,
   ApartmentOutlined,
   VideoCameraOutlined,
+  DesktopOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -118,6 +118,11 @@ function getMenuItems(): MenuProps['items'] {
       label: '个人资料',
     },
     {
+      key: '/devices',
+      icon: <DesktopOutlined />,
+      label: '设备终端',
+    },
+    {
       key: '/settings/personalization',
       icon: <BgColorsOutlined />,
       label: '用户个性化',
@@ -136,7 +141,6 @@ function getMenuItems(): MenuProps['items'] {
           { key: '/settings/tags', label: '标签分类', icon: <TagOutlined /> },
           { key: '/settings/templates', label: '模板库', icon: <FormOutlined /> },
           { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
-          { key: '/settings/devices', label: '设备终端', icon: <DesktopOutlined /> },
           { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
           { key: '/settings/backups', label: '数据备份', icon: <CloudServerOutlined /> },
           { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
@@ -393,17 +397,18 @@ export default function MainLayout() {
           </Space>
         </Header>
         <Content
+          className={styles.content}
           style={{
             margin: isMobile ? 8 : 24,
-            padding: isMobile ? 8 : 24,
+            padding: 24,
             background: 'var(--canvas)',
             borderRadius: 'var(--rounded-sm)',
-            minHeight: 280,
             display: 'flex',
             flexDirection: 'column',
+            overflow: 'auto',
           }}
         >
-          <div key={location.pathname} className={styles.transitionWrapper} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+           <div key={location.pathname} className={styles.transitionWrapper} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Outlet />
           </div>
         </Content>

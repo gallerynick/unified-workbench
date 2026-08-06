@@ -288,7 +288,7 @@ export default function NoteManagement() {
               { label: '图形视图', value: 'graph', icon: <ShareAltOutlined /> },
             ]}
           />
-          <Input placeholder="搜索笔记" prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 220 }} variant="filled" />
+          <Input placeholder="搜索笔记" prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />} allowClear value={search} onChange={(e) => setSearch(e.target.value)} variant="filled" className={styles.searchInput ?? ''} />
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>新建笔记</Button>
           <Tooltip title="权限说明">
             <Button

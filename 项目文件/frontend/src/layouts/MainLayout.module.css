@@ -118,6 +118,13 @@
   }
 }
 
+.content::after {
+  content: '';
+  display: block;
+  height: 24px;
+  flex-shrink: 0;
+}
+
 /* Hide scrollbar on sidebar menu */
 :global(.sider-menu-scroll::-webkit-scrollbar) {
   display: none;

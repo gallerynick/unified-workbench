@@ -1,12 +1,7 @@
 export interface StreamConfig {
-  server_url: string;
-  server_port: number;
   default_bitrate: number;
   default_resolution: string;
   default_fps: number;
-  max_bitrate: number;
-  min_bitrate: number;
-  enable_auth: boolean;
   audio_sample_rate: number;
   audio_channels: number;
   audio_processing_mode: 'standard' | 'voice' | 'direct';

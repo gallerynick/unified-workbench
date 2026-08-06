@@ -39,6 +39,9 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(128))
     nickname: Mapped[str] = mapped_column(String(50))
+    email: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
+    phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    gender: Mapped[str | None] = mapped_column(String(10), nullable=True)
     avatar: Mapped[str | None] = mapped_column(Text(), nullable=True)
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, create_type=False), default=UserRole.MEMBER

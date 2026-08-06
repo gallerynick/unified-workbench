@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Modal, Form, Input, Select, message } from 'antd';
+import { Modal, Form, Input, Select, message, Typography } from 'antd';
 import { createUser, updateUser } from '../../api/users';
 import { useTagContext } from '../../contexts/TagContext';
 import type { User, UserCreateRequest, UserUpdateRequest } from '../../types/user';
@@ -173,6 +173,14 @@ export default function UserFormModal({
               options={tags.map((t) => ({ value: t.id, label: t.name }))}
             />
           </Form.Item>
+        )}
+
+        {mode === 'create' && (
+          <div className={styles.warning}>
+            <Typography.Text style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--color-warning)' }}>
+              用户一旦创建将无法删除，仅可通过禁用状态限制登录
+            </Typography.Text>
+          </div>
         )}
       </Form>
     </Modal>

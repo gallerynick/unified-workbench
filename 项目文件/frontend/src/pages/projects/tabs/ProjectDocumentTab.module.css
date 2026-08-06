@@ -40,6 +40,11 @@
   flex-shrink: 0;
 }
 
+.searchInput {
+  max-width: 320px;
+  border-radius: var(--rounded-pill);
+}
+
 .categoryHeader {
   display: flex;
   align-items: center;

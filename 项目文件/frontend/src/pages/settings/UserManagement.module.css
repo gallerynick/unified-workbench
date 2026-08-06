@@ -20,6 +20,7 @@
 
 .searchInput {
   max-width: 320px;
+  border-radius: var(--rounded-pill);
 }
 
 .table {

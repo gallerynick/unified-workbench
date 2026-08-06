@@ -18,9 +18,11 @@ interface ReminderFormModalProps {
 }
 
 const CHANNEL_OPTIONS: { value: NotificationChannel; label: string }[] = [
-  { value: 'websocket', label: '站内通知' },
-  { value: 'feishu', label: '飞书' },
-  { value: 'dingtalk', label: '钉钉' },
+{ value: 'websocket', label: '站内通知' },
+{ value: 'feishu', label: '飞书' },
+{ value: 'dingtalk', label: '钉钉' },
+{ value: 'email', label: '邮件' },
+{ value: 'wecom', label: '企业微信' },
 ];
 
 export default function ReminderFormModal({

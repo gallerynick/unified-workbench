@@ -108,6 +108,12 @@ async def update_user(
 
     if request.nickname is not None:
         user.nickname = request.nickname
+    if request.email is not None:
+        user.email = request.email
+    if request.phone is not None:
+        user.phone = request.phone
+    if request.gender is not None:
+        user.gender = request.gender
     if request.avatar is not None:
         user.avatar = request.avatar
     if request.role is not None:

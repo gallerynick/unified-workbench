@@ -18,6 +18,11 @@
   white-space: nowrap;
 }
 
+.searchInput {
+  max-width: 320px;
+  border-radius: var(--rounded-pill);
+}
+
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

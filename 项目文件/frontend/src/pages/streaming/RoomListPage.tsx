@@ -22,6 +22,7 @@ import {
   SettingOutlined,
   PoweroffOutlined,
   QuestionCircleOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
@@ -281,14 +282,14 @@ export default function RoomListPage() {
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>直播工作室</Title>
         <Space wrap>
-          <Input.Search
+          <Input
             placeholder="搜索房间名"
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             allowClear
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            variant="filled"
             className={styles.searchInput ?? ''}
-            onSearch={handleSearchChange}
-            onChange={(e) => {
-              if (!e.target.value) handleSearchChange('');
-            }}
           />
           <Select
             placeholder="推流模式"

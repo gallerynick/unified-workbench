@@ -268,10 +268,12 @@ function ProjectDocsTab() {
         <Space wrap>
           <Input
             placeholder="搜索文档名称"
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             allowClear
-            className={styles.searchInput ?? ''}
+            value={search}
             onChange={(e) => handleSearch(e.target.value)}
+            variant="filled"
+            className={styles.searchInput ?? ''}
           />
           {/* @ts-expect-error Ant Design Select + exactOptionalPropertyTypes */}
           <Select

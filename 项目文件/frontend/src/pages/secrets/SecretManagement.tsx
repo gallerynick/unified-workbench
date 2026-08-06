@@ -122,10 +122,12 @@ export default function SecretManagement() {
         <Space>
           <Input
             placeholder="搜索分类"
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             allowClear
-            className={styles.searchInput ?? ''}
+            value={search}
             onChange={(e) => setSearch(e.target.value)}
+            variant="filled"
+            className={styles.searchInput ?? ''}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新增类
