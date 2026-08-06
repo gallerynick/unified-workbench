@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Typography, message, Avatar, Divider, Upload, Tag, Descriptions, Space, Modal } from 'antd';
-import { UserOutlined, SaveOutlined, LockOutlined, CameraOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UserOutlined, EditOutlined, LockOutlined, CameraOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import ImgCrop from 'antd-img-crop';
 import type { RcFile } from 'antd/es/upload/interface';
 import type { UploadProps } from 'antd';
-import { getMe, updateMe, changePassword, deleteMe } from '../../api/auth';
+import { getMe, updateMe, changePassword } from '../../api/auth';
 import type { User } from '../../types/user';
 import { useUser } from '../../contexts/UserContext';
 import styles from './Profile.module.css';
@@ -38,9 +38,8 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleting, setDeleting] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
 
@@ -71,6 +70,7 @@ export default function Profile() {
       if (res.code === 0) {
         message.success('个人资料已更新');
         setUser(res.data);
+        setEditModalVisible(false);
       } else {
         message.error(res.msg || '更新失败');
       }
@@ -92,6 +92,7 @@ export default function Profile() {
       if (res.code === 0) {
         message.success('密码已修改');
         passwordForm.resetFields();
+        setPasswordModalVisible(false);
       } else {
         message.error(res.msg || '修改失败');
       }
@@ -99,29 +100,6 @@ export default function Profile() {
       message.error('请检查输入');
     } finally {
       setChangingPassword(false);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!deletePassword) {
-      message.warning('请输入密码');
-      return;
-    }
-    setDeleting(true);
-    try {
-      const res = await deleteMe(deletePassword);
-      if (res.code === 0) {
-        message.success('账户已删除');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
-      } else {
-        message.error(res.msg || '删除失败');
-      }
-    } catch {
-      message.error('删除失败，请重试');
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -250,18 +228,61 @@ export default function Profile() {
 
         <Divider />
 
-        <Form form={profileForm} layout="vertical">
-          <Form.Item label="姓名" name="nickname" rules={[{ required: true, message: '请输入姓名' }]}>
-            <Input placeholder="请输入姓名" variant="filled" />
-          </Form.Item>
-          <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleUpdateProfile}>
-            保存资料
+        <Space>
+          <Button type="primary" icon={<EditOutlined />} onClick={() => setEditModalVisible(true)}>
+            编辑资料
           </Button>
-        </Form>
+        </Space>
       </Card>
 
-      {/* 修改密码卡片 */}
-      <Card title={<><LockOutlined /> 修改密码</>} className={styles.card ?? ''}>
+      <Modal
+        title="编辑个人资料"
+        open={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        footer={null}
+        width={560}
+        destroyOnClose
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
+      >
+        <Form form={profileForm} layout="vertical" initialValues={{ nickname: user?.nickname }}>
+          <Form.Item label="姓名" name="nickname" rules={[{ required: true, message: '请输入姓名' }]}>
+            <Input placeholder="请输入姓名" />
+          </Form.Item>
+          <div style={{ textAlign: 'right' }}>
+            <Button onClick={() => setEditModalVisible(false)} style={{ marginRight: 'var(--spacing-xs)' }}>
+              取消
+            </Button>
+            <Button type="primary" icon={<EditOutlined />} loading={saving} onClick={handleUpdateProfile}>
+              保存
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* 修改密码 */}
+      <Card className={styles.card ?? ''}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <Typography.Text strong><LockOutlined /> 修改密码</Typography.Text>
+            <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+              修改您的登录密码
+            </Typography.Paragraph>
+          </div>
+          <Button icon={<LockOutlined />} onClick={() => setPasswordModalVisible(true)}>
+            修改密码
+          </Button>
+        </div>
+      </Card>
+
+      <Modal
+        title="修改密码"
+        open={passwordModalVisible}
+        onCancel={() => { setPasswordModalVisible(false); passwordForm.resetFields(); }}
+        footer={null}
+        width={560}
+        destroyOnClose
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
+      >
         <Form form={passwordForm} layout="vertical">
           <Form.Item label="当前密码" name="oldPassword" rules={[{ required: true, message: '请输入当前密码' }]}>
             <Input.Password placeholder="请输入当前密码" variant="filled" />
@@ -295,57 +316,15 @@ export default function Profile() {
           >
             <Input.Password placeholder="请再次输入新密码" variant="filled" />
           </Form.Item>
-          <Button type="primary" icon={<LockOutlined />} loading={changingPassword} onClick={handleChangePassword}>
-            修改密码
-          </Button>
-        </Form>
-      </Card>
-
-      {/* 危险区域 */}
-      <Card
-        title={<><DeleteOutlined /> 危险操作</>}
-        className={styles.card ?? ''}
-        style={{ borderColor: 'var(--color-error)' }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Typography.Text strong>删除账户</Typography.Text>
-            <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-              此操作不可恢复，删除后所有数据将被永久移除
-            </Typography.Paragraph>
+          <div style={{ textAlign: 'right' }}>
+            <Button onClick={() => { setPasswordModalVisible(false); passwordForm.resetFields(); }} style={{ marginRight: 'var(--spacing-xs)' }}>
+              取消
+            </Button>
+            <Button type="primary" icon={<LockOutlined />} loading={changingPassword} onClick={handleChangePassword}>
+              确认修改
+            </Button>
           </div>
-          <Button danger icon={<DeleteOutlined />} onClick={() => setDeleteModalVisible(true)}>
-            删除我的账户
-          </Button>
-        </div>
-      </Card>
-
-      <Modal
-        title="确认删除账户"
-        open={deleteModalVisible}
-        onCancel={() => { setDeleteModalVisible(false); setDeletePassword(''); }}
-        footer={null}
-        width={560}
-        destroyOnClose
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Typography.Paragraph type="danger">
-          此操作不可逆！请输入您的登录密码以确认删除。
-        </Typography.Paragraph>
-        <Input.Password
-          placeholder="请输入登录密码"
-          value={deletePassword}
-          onChange={(e) => setDeletePassword(e.target.value)}
-          onPressEnter={handleDeleteAccount}
-        />
-        <div style={{ marginTop: "var(--spacing-card-gap)", textAlign: 'right' }}>
-          <Button onClick={() => { setDeleteModalVisible(false); setDeletePassword(''); }} style={{ marginRight: "var(--spacing-xs)" }}>
-            取消
-          </Button>
-          <Button type="primary" danger loading={deleting} onClick={handleDeleteAccount}>
-            确认删除
-          </Button>
-        </div>
+        </Form>
       </Modal>
     </div>
   );

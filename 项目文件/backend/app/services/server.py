@@ -84,8 +84,10 @@ async def create_server(
         ip=data.ip,
         os=data.os,
         cpu_cores=data.cpu_cores,
-        ram_gb=data.ram_gb,
-        disk_gb=data.disk_gb,
+        ram_capacity=data.ram_capacity,
+        ram_unit=data.ram_unit or "GB",
+        disk_capacity=data.disk_capacity,
+        disk_unit=data.disk_unit or "GB",
         model=data.model,
         serial_number=data.serial_number,
         tags=data.tags,
@@ -93,6 +95,7 @@ async def create_server(
         notes=data.notes,
         status=data.status,
         maintainer_ids=data.maintainer_ids,
+        hardware_specs=data.hardware_specs or [],
         owner_id=owner_id,
     )
     db.add(server)
@@ -124,10 +127,14 @@ async def update_server(
         server.os = data.os
     if data.cpu_cores is not None:
         server.cpu_cores = data.cpu_cores
-    if data.ram_gb is not None:
-        server.ram_gb = data.ram_gb
-    if data.disk_gb is not None:
-        server.disk_gb = data.disk_gb
+    if data.ram_capacity is not None:
+        server.ram_capacity = data.ram_capacity
+    if data.ram_unit is not None:
+        server.ram_unit = data.ram_unit
+    if data.disk_capacity is not None:
+        server.disk_capacity = data.disk_capacity
+    if data.disk_unit is not None:
+        server.disk_unit = data.disk_unit
     if data.model is not None:
         server.model = data.model
     if data.serial_number is not None:
@@ -142,6 +149,8 @@ async def update_server(
         server.status = data.status
     if data.maintainer_ids is not None:
         server.maintainer_ids = data.maintainer_ids
+    if data.hardware_specs is not None:
+        server.hardware_specs = data.hardware_specs
 
     await db.flush()
     await db.refresh(server)

@@ -163,17 +163,3 @@ async def initial_setup_endpoint(
     await db.commit()
 
     return UnifiedResponse(msg="初始化完成，请登录")
-
-
-@router.delete("/me", response_model=UnifiedResponse[None])
-async def delete_me_endpoint(
-    request: PasswordVerifyRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """删除当前用户账户（需验证密码）。"""
-    if not verify_password(request.password, current_user.password_hash):
-        raise HTTPException(status_code=400, detail="密码错误")
-    await db.execute(delete(User).where(User.id == current_user.id))
-    await db.flush()
-    return UnifiedResponse(msg="账户已删除")

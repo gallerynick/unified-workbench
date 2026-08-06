@@ -38,10 +38,3 @@ export async function changePassword(data: PasswordChangeRequest): Promise<Unifi
     body: data,
   });
 }
-
-export async function deleteMe(password: string): Promise<UnifiedResponse<null>> {
-  return request<null>('/auth/me', {
-    method: 'DELETE',
-    body: { password },
-  });
-}

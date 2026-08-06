@@ -5,10 +5,12 @@ from __future__ import annotations
 import ipaddress
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 VALID_STATUSES = {"active", "maintenance", "retired"}
+VALID_STORAGE_UNITS = {"KB", "MB", "GB", "TB"}
 
 
 class ServerCreate(BaseModel):
@@ -21,8 +23,10 @@ class ServerCreate(BaseModel):
     ip: str | None = None
     os: str | None = None
     cpu_cores: int | None = None
-    ram_gb: int | None = None
-    disk_gb: int | None = None
+    ram_capacity: int | None = None
+    ram_unit: Literal["KB", "MB", "GB", "TB"] | None = None
+    disk_capacity: int | None = None
+    disk_unit: Literal["KB", "MB", "GB", "TB"] | None = None
     model: str | None = None
     serial_number: str | None = None
     tags: list[str] = Field(default_factory=list)
@@ -30,6 +34,7 @@ class ServerCreate(BaseModel):
     notes: str | None = None
     status: str = "active"
     maintainer_ids: list[uuid.UUID] = Field(default_factory=list)
+    hardware_specs: list[dict[str, object]] | None = None
 
     @field_validator("ip")
     @classmethod
@@ -60,8 +65,10 @@ class ServerUpdate(BaseModel):
     ip: str | None = None
     os: str | None = None
     cpu_cores: int | None = None
-    ram_gb: int | None = None
-    disk_gb: int | None = None
+    ram_capacity: int | None = None
+    ram_unit: Literal["KB", "MB", "GB", "TB"] | None = None
+    disk_capacity: int | None = None
+    disk_unit: Literal["KB", "MB", "GB", "TB"] | None = None
     model: str | None = None
     serial_number: str | None = None
     tags: list[str] | None = None
@@ -69,6 +76,7 @@ class ServerUpdate(BaseModel):
     notes: str | None = None
     status: str | None = None
     maintainer_ids: list[uuid.UUID] | None = None
+    hardware_specs: list[dict[str, object]] | None = None
 
     @field_validator("ip")
     @classmethod
@@ -102,8 +110,10 @@ class ServerResponse(BaseModel):
     ip: str | None = None
     os: str | None = None
     cpu_cores: int | None = None
-    ram_gb: int | None = None
-    disk_gb: int | None = None
+    ram_capacity: int | None = None
+    ram_unit: str = "GB"
+    disk_capacity: int | None = None
+    disk_unit: str = "GB"
     model: str | None = None
     serial_number: str | None = None
     tags: list[str] = []
@@ -111,6 +121,7 @@ class ServerResponse(BaseModel):
     notes: str | None = None
     status: str
     maintainer_ids: list[str] = []
+    hardware_specs: list[dict[str, object]] = []
     created_at: datetime
     updated_at: datetime
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Steps, Input, Button, Typography, message, Space, Spin } from 'antd';
-import { RocketOutlined, UserOutlined, LockOutlined, SettingOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { RocketOutlined, UserOutlined, LockOutlined, IdcardOutlined, SettingOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useCustomization, saveAppSettings } from '../hooks/useCustomization';
 import styles from './Welcome.module.css';
 
@@ -14,6 +14,7 @@ export default function Welcome() {
   const [appName, setAppName] = useState(customization.app.name);
   const [adminUser, setAdminUser] = useState('');
   const [adminPass, setAdminPass] = useState('');
+  const [adminName, setAdminName] = useState('');
   const [creating, setCreating] = useState(false);
   const [checkingInit, setCheckingInit] = useState(true);
   const [isInit, setIsInit] = useState(false);
@@ -39,7 +40,7 @@ export default function Welcome() {
       const res = await fetch('/api/v1/auth/initial-setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: adminUser, password: adminPass }),
+        body: JSON.stringify({ username: adminUser, password: adminPass, nickname: adminName || undefined }),
       });
       const json = await res.json();
       if (json.code === 0) {
@@ -73,6 +74,10 @@ export default function Welcome() {
           <div className={styles.formItem}>
             <Text strong>用户名</Text>
             <Input prefix={<UserOutlined />} value={adminUser} onChange={(e) => setAdminUser(e.target.value)} placeholder="管理员用户名" maxLength={50} />
+          </div>
+          <div className={styles.formItem}>
+            <Text strong>姓名</Text>
+            <Input prefix={<IdcardOutlined />} value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="请输入您的姓名（可选）" maxLength={20} />
           </div>
           <div className={styles.formItem}>
             <Text strong>密码</Text>

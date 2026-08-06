@@ -177,8 +177,12 @@ export default function ServerSystemsPage() {
     const statusCfg = SERVER_STATUS_MAP[server.status] ?? { color: 'default', text: server.status };
     const hardwareText = [
       server.cpu_cores != null ? `CPU ${server.cpu_cores} 核` : null,
-      server.ram_gb != null ? `内存 ${server.ram_gb} GB` : null,
-      server.disk_gb != null ? `磁盘 ${server.disk_gb} GB` : null,
+      server.ram_capacity != null
+        ? `内存 ${server.ram_capacity} ${server.ram_unit ?? 'GB'}`
+        : null,
+      server.disk_capacity != null
+        ? `磁盘 ${server.disk_capacity} ${server.disk_unit ?? 'GB'}`
+        : null,
     ]
       .filter(Boolean)
       .join(' · ') || '-';

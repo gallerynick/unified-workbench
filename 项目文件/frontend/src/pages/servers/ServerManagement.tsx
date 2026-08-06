@@ -267,13 +267,17 @@ export default function ServerManagement() {
                     <div className={styles.infoRow}>
                       <span className={styles.label}>内存</span>
                       <span className={styles.value}>
-                        {record.ram_gb != null ? `${record.ram_gb} GB` : '-'}
+                        {record.ram_capacity != null
+                          ? `${record.ram_capacity} ${record.ram_unit ?? 'GB'}`
+                          : '-'}
                       </span>
                     </div>
                     <div className={styles.infoRow}>
                       <span className={styles.label}>磁盘</span>
                       <span className={styles.value}>
-                        {record.disk_gb != null ? `${record.disk_gb} GB` : '-'}
+                        {record.disk_capacity != null
+                          ? `${record.disk_capacity} ${record.disk_unit ?? 'GB'}`
+                          : '-'}
                       </span>
                     </div>
                     <div className={styles.infoRow}>
@@ -282,6 +286,18 @@ export default function ServerManagement() {
                         {record.model || '-'}
                       </span>
                     </div>
+                    {record.hardware_specs.length > 0 && (
+                      <div className={styles.tags}>
+                        {record.hardware_specs.slice(0, 3).map((spec) => (
+                          <Tag key={`${spec.type}-${spec.model}`} color="geekblue">
+                            {spec.model}
+                          </Tag>
+                        ))}
+                        {record.hardware_specs.length > 3 && (
+                          <Tag>+{record.hardware_specs.length - 3} more</Tag>
+                        )}
+                      </div>
+                    )}
                     {record.tags.length > 0 && (
                       <div className={styles.tags}>
                         {record.tags.map((tag) => (
