@@ -42,6 +42,19 @@ def _version_gt(a: str, b: str) -> bool:
     return parts_a > parts_b
 
 
+def _parse_datetimes(records: list[dict]) -> list[dict]:
+    """将记录中的 ISO 时间字符串还原为 datetime 对象。"""
+    for r in records:
+        for k, v in list(r.items()):
+            if isinstance(v, str) and len(v) >= 19 and v[4] == '-' and v[10] == 'T':
+                try:
+                    # fromisoformat handles timezone-aware (+00:00) and naive strings
+                    r[k] = datetime.fromisoformat(v)
+                except (ValueError, TypeError):
+                    pass
+    return records
+
+
 # ═══════════════════════ 1. 读取清单 ═══════════════════════════════════
 
 
@@ -336,6 +349,7 @@ async def import_all(
                     entry_name = f"tables/{table_name}.json"
                     raw = zf.read(entry_name)
                     records: list[dict] = json.loads(raw.decode("utf-8"))
+                    _parse_datetimes(records)
                 except KeyError:
                     errors.append(f"ZIP 中缺少表数据: {table_name}")
                     continue
