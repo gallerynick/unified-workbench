@@ -21,6 +21,8 @@ class CalendarEventCreate(BaseModel):
     location: str | None = None
     repeat: EventRepeat = EventRepeat.NONE
     color: str | None = None
+    reminder_enabled: bool = False
+    reminder_minutes: int = 15
 
     @field_validator("repeat")
     @classmethod
@@ -39,6 +41,8 @@ class CalendarEventUpdate(BaseModel):
     location: str | None = None
     repeat: EventRepeat | None = None
     color: str | None = None
+    reminder_enabled: bool | None = None
+    reminder_minutes: int | None = None
 
     @field_validator("repeat")
     @classmethod
@@ -61,6 +65,9 @@ class CalendarEventResponse(BaseModel):
     repeat: EventRepeat
     color: str | None
     owner_id: uuid.UUID
+    reminder_enabled: bool
+    reminder_minutes: int
+    reminded: bool
     created_at: datetime
     updated_at: datetime
 

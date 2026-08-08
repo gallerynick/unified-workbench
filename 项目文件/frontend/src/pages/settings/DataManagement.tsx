@@ -91,6 +91,19 @@ export default function DataManagement() {
   const [importProgress, setImportProgress] = useState({ imported: 0, total: 0 });
   const importTimerRef = useRef<number | null>(null);
 
+  // ── 导入预览 ──
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    zip_version: string;
+    current_version: string;
+    can_import: boolean;
+    version_note: string;
+    exported_at: string;
+    total_tables: number;
+    total_rows: number;
+    app_id: string;
+  } | null>(null);
+
   // ── 导入二次验证（管理员密码）与结果弹窗 ──
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [verifyPasswordValue, setVerifyPasswordValue] = useState('');
@@ -263,7 +276,7 @@ export default function DataManagement() {
       : [],
   };
 
-  const handleImportClick = () => {
+  const handleImportClick = async () => {
     if (!importFile) {
       message.warning('请先选择 ZIP 文件');
       return;
@@ -276,9 +289,73 @@ export default function DataManagement() {
       message.warning('请输入 Salt 密钥');
       return;
     }
+
+    setPreviewLoading(true);
+    const formData = new FormData();
+    formData.append('password', importPassword);
+    formData.append('salt', importSalt.trim());
+    formData.append('file', importFile);
+
+    let preview: typeof previewData = null;
+    try {
+      const token = getToken();
+      const resp = await fetch(`${BASE}/import/preview`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const json = await resp.json().catch(() => null);
+      if (!resp.ok || !json || json.code !== 0) {
+        throw new Error((json?.msg || json?.detail) ?? `HTTP ${resp.status}`);
+      }
+      preview = json.data ?? null;
+    } catch (err: unknown) {
+      setPreviewLoading(false);
+      const msg = err instanceof Error ? err.message : '预览失败';
+      message.error(msg);
+      return;
+    }
+    setPreviewLoading(false);
+    setPreviewData(preview);
+
+    if (!preview?.can_import) {
+      message.error(preview?.version_note ?? '该数据包无法导入');
+      return;
+    }
+
+    const dt = preview?.exported_at
+      ? new Date(preview.exported_at).toLocaleString('zh-CN')
+      : '未知';
+    const content = (
+      <div>
+        <p style={{ marginBottom: 8 }}>
+          <strong>数据版本：</strong>{preview?.zip_version ?? '未知'}
+          {preview?.zip_version !== preview?.current_version
+            ? <span style={{ color: '#1677ff' }}> → {preview?.current_version}（将自动迁移）</span>
+            : <span style={{ color: '#52c41a' }}>（与当前版本一致）</span>}
+        </p>
+        <p style={{ marginBottom: 8 }}>
+          <strong>导出版本：</strong>{preview?.zip_version ?? '未知'} ｜
+          <strong>当前版本：</strong>{preview?.current_version ?? '-'}
+        </p>
+        <p style={{ marginBottom: 8 }}>
+          <strong>导出时间：</strong>{dt}
+        </p>
+        <p style={{ marginBottom: 8 }}>
+          <strong>数据表：</strong>{preview?.total_tables ?? 0} 张 ｜
+          <strong>数据行：</strong>{preview?.total_rows ?? 0} 行
+        </p>
+        <p style={{ marginTop: 16, color: '#ff4d4f' }}>
+          ⚠ 导入将完全覆盖现有数据，且此操作不可撤销！请确认已备份当前数据。
+        </p>
+      </div>
+    );
+
     Modal.confirm({
       title: '确认导入',
-      content: '导入将完全覆盖现有数据，且此操作不可撤销！请确认已备份当前数据。',
+      icon: null,
+      width: 520,
+      content,
       okText: '确认导入',
       okType: 'danger',
       cancelText: '取消',
@@ -586,10 +663,10 @@ export default function DataManagement() {
               type="primary"
               icon={<UploadOutlined />}
               onClick={handleImportClick}
-              loading={importStatus === 'running'}
+              loading={importStatus === 'running' || previewLoading}
               disabled={importStatus === 'completed'}
             >
-              导入数据
+              {previewLoading ? '正在分析数据包...' : '导入数据'}
             </Button>
 
             {importStatus === 'running' && (

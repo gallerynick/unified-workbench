@@ -27,15 +27,14 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/settings/tags': '标签分类',
   '/settings/templates': '模板库',
   '/settings/site': '站点配置',
-  '/settings/notifications': '通知配置',
   '/settings/backups': '数据备份',
   '/settings/transfer': '数据迁转',
   '/settings/customization': '应用配置',
   '/settings/system': '系统更新',
   '/settings/storage': '存储设置',
   '/profile': '个人资料',
-  '/me/notifications': '通知配置',
-  '/devices': '设备终端',
+  '/settings/notifications': '通知配置',
+  '/settings/devices': '设备终端',
 };
 
 export function getRouteTitle(pathname: string): string {

@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react';
 import { Form, Input, Switch, Button, Typography, Card, message, Space, Result, Modal } from 'antd';
 import { SaveOutlined, LockOutlined, SendOutlined } from '@ant-design/icons';
 import { getConfig, updateConfig } from '../../api/system_config';
+import { DEFAULT_CHANNELS, NOTIFICATION_CHANNELS } from '../../constants/channels';
 import { isAdmin } from '../../utils/auth';
 import { request } from '../../utils/request';
 import type { NotificationConfig as NotificationConfigType } from '../../types/system_config';
 import styles from './NotificationConfig.module.css';
 
 const { Title, Text } = Typography;
+
+// 需要独立启用开关的推送渠道（站内通知 websocket 始终启用，无开关）
+const CHANNEL_ENABLED_FIELDS: string[] = NOTIFICATION_CHANNELS.filter(
+  (c) => c.id !== 'websocket'
+).map((c) => c.id);
 
 export default function NotificationConfig() {
   const [form] = Form.useForm();
@@ -29,18 +35,18 @@ export default function NotificationConfig() {
       const res = await getConfig('notification');
         if (res.code === 0) {
           const value = res.data.value as unknown as NotificationConfigType;
+          const enabledIds = value.enabled_channels ?? [];
+          const channelFlags: Record<string, boolean> = Object.fromEntries(
+            CHANNEL_ENABLED_FIELDS.map((id) => [`${id}_enabled`, enabledIds.includes(id)])
+          );
           form.setFieldsValue({
+            ...channelFlags,
             feishu_webhook_url: value.feishu_webhook_url ?? '',
-            dingtalk_webhook_url: value.dingtalk_webhook_url ?? '',
-            feishu_enabled: value.enabled_channels?.includes('feishu') ?? false,
-            dingtalk_enabled: value.enabled_channels?.includes('dingtalk') ?? false,
-            email_enabled: value.enabled_channels?.includes('email') ?? false,
             smtp_host: value.smtp_host ?? '',
             smtp_port: value.smtp_port ?? 587,
             smtp_user: value.smtp_user ?? '',
             smtp_password: value.smtp_password ?? '',
             smtp_use_tls: value.smtp_use_tls ?? true,
-            wecom_enabled: value.enabled_channels?.includes('wecom') ?? false,
             wecom_webhook_url: value.wecom_webhook_url ?? '',
           });
         }
@@ -72,15 +78,13 @@ export default function NotificationConfig() {
       const values = await form.validateFields();
       setSaving(true);
 
-      const enabledChannels: string[] = ['websocket'];
-      if (values.feishu_enabled) enabledChannels.push('feishu');
-      if (values.dingtalk_enabled) enabledChannels.push('dingtalk');
-      if (values.email_enabled) enabledChannels.push('email');
-      if (values.wecom_enabled) enabledChannels.push('wecom');
+      const enabledChannels: string[] = [...DEFAULT_CHANNELS];
+      for (const id of CHANNEL_ENABLED_FIELDS) {
+        if (values[`${id}_enabled`]) enabledChannels.push(id);
+      }
 
       const configValue: NotificationConfigType = {
         feishu_webhook_url: values.feishu_webhook_url as string,
-        dingtalk_webhook_url: values.dingtalk_webhook_url as string,
         enabled_channels: enabledChannels,
         smtp_host: values.smtp_host as string,
         smtp_port: values.smtp_port as number,
@@ -119,9 +123,7 @@ export default function NotificationConfig() {
         className={styles.form ?? ''}
         initialValues={{
           feishu_webhook_url: '',
-          dingtalk_webhook_url: '',
           feishu_enabled: false,
-          dingtalk_enabled: false,
           email_enabled: false,
           smtp_host: '',
           smtp_port: 587,
@@ -149,27 +151,6 @@ export default function NotificationConfig() {
               rules={[{ type: 'url', message: '请输入有效的 URL' }]}
             >
               <Input placeholder="请输入飞书 Webhook URL" />
-            </Form.Item>
-          </div>
-        </Card>
-
-        <Card loading={loading} className={styles.card ?? ''}>
-          <div className={styles.channelSection ?? ''}>
-            <div className={styles.channelHeader ?? ''}>
-              <Text strong>钉钉通知</Text>
-              <div className={styles.headerActions ?? ''}>
-                <Form.Item name="dingtalk_enabled" valuePropName="checked" noStyle>
-                  <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-                </Form.Item>
-                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel('dingtalk')}>测试</Button>
-              </div>
-            </div>
-            <Form.Item
-              name="dingtalk_webhook_url"
-              label="Webhook URL"
-              rules={[{ type: 'url', message: '请输入有效的 URL' }]}
-            >
-              <Input placeholder="请输入钉钉 Webhook URL" />
             </Form.Item>
           </div>
         </Card>
@@ -237,24 +218,23 @@ export default function NotificationConfig() {
              <Button onClick={() => {
                Modal.confirm({
                  title: '确认全部重置',
-                 content: '所有通知配置（飞书、钉钉、邮件、企微等）将被恢复为默认值。',
+                 content: '所有通知配置（飞书、邮件、企微等）将被恢复为默认值。',
                  okText: '确认重置',
                  okType: 'danger',
                  cancelText: '取消',
                  onOk: async () => {
                    form.resetFields();
                    try {
-                     const defaultConfig = {
-                       feishu_webhook_url: '',
-                       dingtalk_webhook_url: '',
-                       enabled_channels: ['websocket'],
-                       smtp_host: '',
-                       smtp_port: 587,
-                       smtp_user: '',
-                       smtp_password: '',
-                       smtp_use_tls: true,
-                       wecom_webhook_url: '',
-                     };
+                      const defaultConfig = {
+                        feishu_webhook_url: '',
+                        enabled_channels: [...DEFAULT_CHANNELS],
+                        smtp_host: '',
+                        smtp_port: 587,
+                        smtp_user: '',
+                        smtp_password: '',
+                        smtp_use_tls: true,
+                        wecom_webhook_url: '',
+                      };
                      await updateConfig('notification', defaultConfig as unknown as Record<string, unknown>);
                      message.success('已重置为默认配置');
                    } catch {

@@ -22,11 +22,8 @@ async def create_reminder(
     reminder = Reminder(
         title=data.title,
         content=data.content,
-        trigger_type=data.trigger_type,
-        event_type=data.event_type,
         trigger_time=data.trigger_time,
         target_users=data.target_users,
-        channels=data.channels,
         creator_id=creator_id,
     )
     db.add(reminder)

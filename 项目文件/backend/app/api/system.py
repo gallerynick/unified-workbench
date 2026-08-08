@@ -157,44 +157,47 @@ async def test_notification(
     admin=Depends(require_admin),
 ):
     """测试通知渠道"""
+    from app.core.channel_registry import get_channel
     from app.services.system_config import get_config
     from app.services.notification.feishu_channel import FeishuChannel
     from app.services.notification.dingtalk_channel import DingTalkChannel
     from app.services.notification.email_channel import EmailChannel
     from app.services.notification.wecom_channel import WeComChannel
 
+    ch = get_channel(request.channel)
+    if ch is None:
+        raise HTTPException(status_code=400, detail=f"未知通知渠道: {request.channel}")
+    if request.channel == "websocket":
+        raise HTTPException(status_code=400, detail="WebSocket 渠道无需配置测试，已默认启用")
+
     config = await get_config(db, "notification")
     if not config:
         raise HTTPException(status_code=400, detail="通知配置未找到")
 
-    channel_map = {
-        "feishu": (FeishuChannel, "feishu_webhook_url"),
-        "dingtalk": (DingTalkChannel, "dingtalk_webhook_url"),
-        "email": (EmailChannel, None),
-        "wecom": (WeComChannel, "wecom_webhook_url"),
-    }
-
-    if request.channel not in channel_map:
-        raise HTTPException(status_code=400, detail=f"未知通知渠道: {request.channel}")
-
-    channel_cls, url_key = channel_map[request.channel]
-
-    if url_key is not None:
-        webhook_url = config.get(url_key, "")
-        if not webhook_url:
-            raise HTTPException(status_code=400, detail=f"{request.channel} Webhook 地址未配置，请先保存配置")
-        channel = channel_cls(webhook_url=webhook_url)
-    else:
+    if request.channel == "email":
         smtp_host = config.get("smtp_host", "")
         if not smtp_host:
             raise HTTPException(status_code=400, detail="SMTP 服务器未配置，请先保存配置")
-        channel = channel_cls(
+        channel = EmailChannel(
             smtp_host=smtp_host,
             smtp_port=config.get("smtp_port", 587),
             smtp_user=config.get("smtp_user", ""),
             smtp_password=config.get("smtp_password", ""),
             use_tls=config.get("smtp_use_tls", True),
         )
+    else:
+        url_key = ch.config_keys[0]
+        webhook_url = config.get(url_key, "")
+        if not webhook_url:
+            raise HTTPException(status_code=400, detail=f"{request.channel} Webhook 地址未配置，请先保存配置")
+        if request.channel == "feishu":
+            channel = FeishuChannel(webhook_url)
+        elif request.channel == "dingtalk":
+            channel = DingTalkChannel(webhook_url)
+        elif request.channel == "wecom":
+            channel = WeComChannel(webhook_url)
+        else:
+            raise HTTPException(status_code=400, detail=f"未知通知渠道: {request.channel}")
 
     success = await channel.send(
         user_ids=["test"],

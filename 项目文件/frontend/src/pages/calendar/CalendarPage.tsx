@@ -27,6 +27,8 @@ const REPEAT_OPTIONS: { label: string; value: EventRepeat }[] = [
 
 const PRESET_COLORS = ['var(--color-info)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-error)', 'var(--color-purple)', 'var(--color-cyan)', 'var(--color-magenta)', 'var(--color-orange-bright)'];
 
+const REMINDER_OPTIONS = [5, 10, 15, 30, 60];
+
 function formatDateTimeLocal(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -45,6 +47,8 @@ export default function CalendarPage() {
   const [formLocation, setFormLocation] = useState('');
   const [formColor, setFormColor] = useState(PRESET_COLORS[0]);
   const [formRepeat, setFormRepeat] = useState<EventRepeat>('none');
+  const [formReminderEnabled, setFormReminderEnabled] = useState(false);
+  const [formReminderMinutes, setFormReminderMinutes] = useState(15);
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -59,6 +63,8 @@ export default function CalendarPage() {
     setFormLocation('');
     setFormColor(PRESET_COLORS[0]);
     setFormRepeat('none');
+    setFormReminderEnabled(false);
+    setFormReminderMinutes(15);
     setVisibility('private');
     setRestrictedUsers([]);
     setEditingEvent(null);
@@ -85,6 +91,8 @@ export default function CalendarPage() {
     setFormLocation(event.location || '');
     setFormColor(event.color || PRESET_COLORS[0]);
     setFormRepeat(event.repeat || 'none');
+    setFormReminderEnabled(event.reminder_enabled || false);
+    setFormReminderMinutes(event.reminder_minutes || 15);
     setVisibility((event.visibility as Visibility) || 'private');
     setRestrictedUsers(event.restricted_users || []);
     setModalVisible(true);
@@ -104,6 +112,8 @@ export default function CalendarPage() {
         location: formLocation || undefined,
         color: formColor,
         repeat: formRepeat,
+        reminder_enabled: formReminderEnabled,
+        reminder_minutes: formReminderMinutes,
         visibility,
         ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
       };
@@ -154,6 +164,8 @@ export default function CalendarPage() {
               description: e.description,
               location: e.location,
               repeat: e.repeat,
+              reminder_enabled: e.reminder_enabled,
+              reminder_minutes: e.reminder_minutes,
             },
           };
           if (e.end_time) event.end = e.end_time;
@@ -222,22 +234,25 @@ export default function CalendarPage() {
         select={(selectInfo: DateSelectArg) => {
           openCreateModal(selectInfo.startStr);
         }}
-        eventClick={(clickInfo: EventClickArg) => {
-          const ev = clickInfo.event;
-          const calEvent: CalendarEvent = {
-            id: ev.id,
-            title: ev.title,
-            description: ev.extendedProps?.description || null,
-            start_time: ev.start ? ev.start.toISOString() : '',
-            end_time: ev.end ? ev.end.toISOString() : null,
-            all_day: ev.allDay,
-            location: ev.extendedProps?.location || null,
-            repeat: ev.extendedProps?.repeat || 'none',
-            color: ev.backgroundColor || null,
-            owner_id: '',
-            created_at: '',
-            updated_at: '',
-          };
+          eventClick={(clickInfo: EventClickArg) => {
+            const ev = clickInfo.event;
+            const calEvent: CalendarEvent = {
+              id: ev.id,
+              title: ev.title,
+              description: ev.extendedProps?.description || null,
+              start_time: ev.start ? ev.start.toISOString() : '',
+              end_time: ev.end ? ev.end.toISOString() : null,
+              all_day: ev.allDay,
+              location: ev.extendedProps?.location || null,
+              repeat: ev.extendedProps?.repeat || 'none',
+              color: ev.backgroundColor || null,
+              reminder_enabled: ev.extendedProps?.reminder_enabled || false,
+              reminder_minutes: ev.extendedProps?.reminder_minutes || 15,
+              reminded: false,
+              owner_id: '',
+              created_at: '',
+              updated_at: '',
+            };
           openEditModal(calEvent);
         }}
         eventDrop={handleEventDrop}
@@ -289,6 +304,29 @@ export default function CalendarPage() {
             <Select value={formRepeat} onChange={(v) => setFormRepeat(v as EventRepeat)} style={{ width: 160 }}>
               {REPEAT_OPTIONS.map((o) => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
+          </Form.Item>
+          <Form.Item label="提醒">
+            <Space>
+              <Switch
+                checked={formReminderEnabled}
+                onChange={setFormReminderEnabled}
+                checkedChildren="开启提醒"
+                unCheckedChildren="关闭"
+              />
+              {formReminderEnabled && (
+                <Space>
+                  <span>提前</span>
+                  <Select
+                    value={formReminderMinutes}
+                    onChange={setFormReminderMinutes}
+                    style={{ width: 100 }}
+                    suffixIcon={<span>分钟</span>}
+                  >
+                    {REMINDER_OPTIONS.map((m) => <Option key={m} value={m}>{m}</Option>)}
+                  </Select>
+                </Space>
+              )}
+            </Space>
           </Form.Item>
           <Form.Item label="可见性">
             <VisibilitySetting

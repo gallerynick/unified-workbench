@@ -8,14 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.security import (
+    decode_token,
     create_access_token,
     create_refresh_token,
-    decode_token,
     hash_password,
     validate_password_strength,
     verify_password,
 )
 from app.models.user import User, UserStatus
+from app.models.user_session import UserSession
 from app.schemas.auth import LoginRequest, PasswordChangeRequest, RefreshRequest, TokenResponse
 
 # 登录失败限制配置
@@ -80,7 +81,9 @@ async def _clear_login_attempts(username: str) -> None:
         pass
 
 
-async def login(db: AsyncSession, request: LoginRequest, ip: str | None = None) -> TokenResponse:
+async def login(
+    db: AsyncSession, request: LoginRequest, ip: str | None = None, user_agent: str | None = None
+) -> TokenResponse:
     """用户登录，验证凭据并返回令牌。包含登录失败限制。"""
     await _check_login_rate_limit(request.username, ip)
 
@@ -99,7 +102,51 @@ async def login(db: AsyncSession, request: LoginRequest, ip: str | None = None) 
     access_token = create_access_token(str(user.id), user.role.value)
     refresh_token = create_refresh_token(str(user.id))
 
+    payload = decode_token(access_token)
+    jti = payload.get("jti", "")
+    device_name, device_type = _parse_user_agent(user_agent or "")
+    session = UserSession(
+        user_id=user.id,
+        jti=jti,
+        device_name=device_name,
+        device_type=device_type,
+        ip_address=ip,
+        user_agent=user_agent,
+    )
+    db.add(session)
+    await db.commit()
+
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+def _parse_user_agent(ua: str) -> tuple[str, str]:
+    """从 User-Agent 解析设备名称和类型。"""
+    ua_lower = ua.lower()
+    if "iphone" in ua_lower or "android" in ua_lower and "mobile" in ua_lower:
+        device_type = "mobile"
+    elif "ipad" in ua_lower or "tablet" in ua_lower:
+        device_type = "tablet"
+    else:
+        device_type = "desktop"
+
+    parts = []
+    if "mac os x" in ua_lower:
+        parts.append("macOS")
+    elif "windows nt" in ua_lower:
+        parts.append("Windows")
+    elif "linux" in ua_lower:
+        parts.append("Linux")
+    if "chrome" in ua_lower:
+        parts.append("Chrome")
+    elif "firefox" in ua_lower:
+        parts.append("Firefox")
+    elif "safari" in ua_lower and "chrome" not in ua_lower:
+        parts.append("Safari")
+    elif "edg" in ua_lower:
+        parts.append("Edge")
+
+    device_name = " ".join(parts) if parts else ua[:50]
+    return device_name, device_type
 
 
 async def refresh_access_token(db: AsyncSession, request: RefreshRequest) -> TokenResponse:

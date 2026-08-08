@@ -31,7 +31,8 @@ router = APIRouter()
 async def login_endpoint(request: LoginRequest, req: Request, db: AsyncSession = Depends(get_db)):
     """用户登录。"""
     ip = req.client.host if req.client else None
-    tokens = await login(db, request, ip)
+    user_agent = req.headers.get("User-Agent", "")
+    tokens = await login(db, request, ip, user_agent)
     return UnifiedResponse(data=tokens)
 
 

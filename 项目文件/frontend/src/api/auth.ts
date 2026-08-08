@@ -5,6 +5,7 @@ import type {
   User,
   PasswordChangeRequest,
   UnifiedResponse,
+  UserNotificationConfig,
 } from '../types/user';
 
 export async function login(data: LoginRequest): Promise<UnifiedResponse<TokenResponse>> {
@@ -46,4 +47,14 @@ export async function changePassword(data: PasswordChangeRequest): Promise<Unifi
     method: 'PUT',
     body: data,
   });
+}
+
+export async function getNotificationConfig(): Promise<UnifiedResponse<UserNotificationConfig>> {
+  return request<UserNotificationConfig>('/auth/me/notification-config');
+}
+
+export async function updateNotificationConfig(
+  data: Partial<UserNotificationConfig>
+): Promise<UnifiedResponse<void>> {
+  return request<void>('/auth/me/notification-config', { method: 'PUT', body: data });
 }

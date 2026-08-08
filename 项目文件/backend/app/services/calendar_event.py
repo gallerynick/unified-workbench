@@ -124,6 +124,8 @@ async def create_event(
         repeat=EventRepeat(request.repeat),
         color=request.color,
         owner_id=owner_id,
+        reminder_enabled=request.reminder_enabled,
+        reminder_minutes=request.reminder_minutes,
     )
     db.add(event)
     await db.flush()
@@ -179,6 +181,12 @@ async def update_event(
         event.repeat = EventRepeat(request.repeat)
     if request.color is not None:
         event.color = request.color
+    if request.reminder_enabled is not None:
+        event.reminder_enabled = request.reminder_enabled
+        if request.reminder_enabled:
+            event.reminded = False  # 重新开启提醒时重置已提醒状态
+    if request.reminder_minutes is not None:
+        event.reminder_minutes = request.reminder_minutes
     await db.flush()
     await db.refresh(event)
     return event

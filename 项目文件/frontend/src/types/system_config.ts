@@ -1,7 +1,6 @@
 export interface NotificationConfig {
-  feishu_webhook_url: string;
-  dingtalk_webhook_url: string;
   enabled_channels: string[];
+  feishu_webhook_url: string;
   smtp_host: string;
   smtp_port: number;
   smtp_user: string;

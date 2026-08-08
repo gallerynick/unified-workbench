@@ -1,150 +1,168 @@
-import { useState } from 'react';
-import { Card, Table, Typography, Tag, Space, Button, message, Alert } from 'antd';
-import { DesktopOutlined, MobileOutlined, TabletOutlined, LoginOutlined, LogoutOutlined } from '@ant-design/icons';
+import { useCallback, useEffect, useState } from 'react';
+import { Button, Card, Table, Typography, Space, message, Alert } from 'antd';
+import {
+  DesktopOutlined,
+  MobileOutlined,
+  TabletOutlined,
+  LogoutOutlined,
+} from '@ant-design/icons';
+import { request } from '../../utils/request';
 import styles from './DevicesPage.module.css';
 
 const { Title, Text } = Typography;
 
-interface Device {
+interface SessionRecord {
   id: string;
-  device_type: 'desktop' | 'mobile' | 'tablet';
-  browser: string;
-  os: string;
-  ip: string;
-  last_active: string;
-  is_current: boolean;
+  device_name: string | null;
+  device_type: string | null;
+  ip_address: string | null;
+  last_active_at: string;
+  created_at: string;
 }
 
-const DEVICE_ICONS = {
+const DEVICE_ICONS: Record<string, React.ReactNode> = {
   desktop: <DesktopOutlined />,
   mobile: <MobileOutlined />,
   tablet: <TabletOutlined />,
 };
 
-const MOCK_DEVICES: Device[] = [
-  {
-    id: '1',
-    device_type: 'desktop',
-    browser: 'Chrome 120',
-    os: 'macOS 14.2',
-    ip: '192.168.1.100',
-    last_active: new Date().toISOString(),
-    is_current: true,
-  },
-  {
-    id: '2',
-    device_type: 'mobile',
-    browser: 'Safari 17',
-    os: 'iOS 17.2',
-    ip: '192.168.1.101',
-    last_active: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    is_current: false,
-  },
-  {
-    id: '3',
-    device_type: 'tablet',
-    browser: 'Edge 120',
-    os: 'Windows 11',
-    ip: '10.0.0.5',
-    last_active: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    is_current: false,
-  },
-];
+const DEVICE_LABELS: Record<string, string> = {
+  desktop: '桌面端',
+  mobile: '手机端',
+  tablet: '平板',
+};
 
 export default function DevicesPage() {
-  const [devices, setDevices] = useState<Device[]>(MOCK_DEVICES);
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
-  const handleLogoutDevice = (device: Device) => {
-    if (device.is_current) {
-      message.warning('不能退出当前设备');
-      return;
+  const fetchSessions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await request<SessionRecord[]>('/me/sessions');
+      if (res.code === 0 && res.data) {
+        setSessions(res.data);
+      } else {
+        message.error(res.msg || '获取设备列表失败');
+      }
+    } catch {
+      message.error('获取设备列表失败');
+    } finally {
+      setLoading(false);
     }
-    setDevices((prev) => prev.filter((d) => d.id !== device.id));
-    message.success('设备已退出登录');
-  };
+  }, []);
 
-  const handleLogoutAll = () => {
-    setDevices((prev) => prev.filter((d) => d.is_current));
-    message.success('已注销其他设备');
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  const handleLogoutDevice = async (session: SessionRecord) => {
+    setRevokingId(session.id);
+    try {
+      const res = await request(`/me/sessions/${session.id}`, { method: 'DELETE' });
+      if (res.code === 0) {
+        setSessions((prev) => prev.filter((s) => s.id !== session.id));
+        message.success('设备已退出登录');
+      } else {
+        message.error(res.msg || '操作失败');
+      }
+    } catch {
+      message.error('操作失败');
+    } finally {
+      setRevokingId(null);
+    }
   };
 
   const columns = [
     {
       title: '设备',
       key: 'device',
-      render: (_: unknown, record: Device) => (
+      width: 220,
+      render: (_: unknown, record: SessionRecord) => (
         <Space>
-          {DEVICE_ICONS[record.device_type]}
+          {DEVICE_ICONS[record.device_type || 'desktop']}
           <div>
-            <div>{record.browser}</div>
-            <Text type="secondary">{record.os}</Text>
+            <div>
+              {record.device_name || '未知设备'}
+            </div>
+            <Text type="secondary">
+              {DEVICE_LABELS[record.device_type || 'desktop'] || record.device_type}
+              {record.ip_address ? ` · ${record.ip_address}` : ''}
+            </Text>
           </div>
         </Space>
       ),
     },
     {
-      title: '浏览器',
-      dataIndex: 'browser' as const,
-      key: 'browser',
-    },
-    {
-      title: '操作系统',
-      dataIndex: 'os' as const,
-      key: 'os',
-    },
-    {
-      title: 'IP地址',
-      dataIndex: 'ip' as const,
-      key: 'ip',
+      title: '登录时间',
+      dataIndex: 'created_at' as const,
+      key: 'created_at',
+      width: 170,
+      render: (date: string) => new Date(date).toLocaleString('zh-CN'),
     },
     {
       title: '最后活跃',
-      dataIndex: 'last_active' as const,
-      key: 'last_active',
+      dataIndex: 'last_active_at' as const,
+      key: 'last_active_at',
+      width: 170,
       render: (date: string) => new Date(date).toLocaleString('zh-CN'),
     },
     {
       title: '操作',
       key: 'action',
-      render: (_: unknown, record: Device) => (
-        <Space>
-          {record.is_current ? (
-            <Tag color="green">当前设备</Tag>
-          ) : (
-            <Button type="link" danger icon={<LoginOutlined />} onClick={() => handleLogoutDevice(record)}>
-              退出登录
-            </Button>
-          )}
-        </Space>
+      width: 140,
+      render: (_: unknown, record: SessionRecord) => (
+        <Button
+          type="link"
+          danger
+          icon={<LogoutOutlined />}
+          onClick={() => handleLogoutDevice(record)}
+          loading={revokingId === record.id}
+        >
+          退出登录
+        </Button>
       ),
     },
   ];
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>设备终端</Title>
-        <Space>
-          <Button type="primary" danger icon={<LogoutOutlined />} onClick={handleLogoutAll}>
-            注销所有设备
-          </Button>
-        </Space>
+        <Button
+          danger
+          icon={<LogoutOutlined />}
+          onClick={async () => {
+            for (const s of sessions) {
+              try {
+                await request(`/me/sessions/${s.id}`, { method: 'DELETE' });
+              } catch { /* continue */ }
+            }
+            setSessions([]);
+            message.success('已注销所有设备');
+          }}
+          disabled={sessions.length === 0}
+        >
+          注销所有设备
+        </Button>
       </div>
 
       <Alert
-        message="查看和管理已登录的设备，退出设备将强制该设备重新登录。"
+        message="查看和管理当前账号的登录设备。退出设备后该设备下次请求将被要求重新登录。"
         type="info"
         showIcon
+        style={{ marginBottom: 16 }}
       />
 
       <Card>
-        <Table<Device>
+        <Table<SessionRecord>
           className={styles.table ?? ''}
           columns={columns}
-          dataSource={devices}
+          dataSource={sessions}
           rowKey="id"
+          loading={loading}
           pagination={false}
-          size="small"
         />
       </Card>
     </div>

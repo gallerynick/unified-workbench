@@ -67,3 +67,15 @@ export interface ListParams {
   page_size?: number;
   search?: string;
 }
+
+export interface UserNotificationConfig {
+  enabled_channels: string[];
+  feishu_webhook_url: string | null;
+  wecom_webhook_url: string | null;
+  email_enabled: boolean;
+  smtp_host: string | null;
+  smtp_port: number | null;
+  smtp_user: string | null;
+  smtp_password: string | null;
+  smtp_use_tls: boolean;
+}

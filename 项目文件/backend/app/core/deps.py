@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import decode_token
 from app.models.user import User, UserRole
+from app.models.user_session import UserSession
 
 security = HTTPBearer()
 
@@ -22,10 +23,24 @@ async def get_current_user(
     try:
         payload = decode_token(credentials.credentials)
         user_id = payload.get("sub")
+        jti = payload.get("jti", "")
         if not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="无效的令牌"
             )
+
+        if jti:
+            session_result = await db.execute(
+                select(UserSession).where(
+                    UserSession.jti == jti,
+                    UserSession.is_revoked == True,
+                )
+            )
+            if session_result.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="会话已被撤销，请重新登录",
+                )
 
         result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
         user = result.scalar_one_or_none()

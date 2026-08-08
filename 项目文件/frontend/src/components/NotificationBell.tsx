@@ -8,7 +8,6 @@ interface NotificationBellProps {
   unreadCount: number;
   onMarkAsRead: (id: string) => void;
   onMarkAllAsRead: () => void;
-  onOpenDrawer: () => void;
 }
 
 export default function NotificationBell({
@@ -16,7 +15,6 @@ export default function NotificationBell({
   unreadCount,
   onMarkAsRead,
   onMarkAllAsRead,
-  onOpenDrawer,
 }: NotificationBellProps) {
   const navigate = useNavigate();
   const recentNotifications = notifications.slice(0, 10);
@@ -100,13 +98,11 @@ export default function NotificationBell({
               </List.Item>
             )}
           />
-          {notifications.length > 10 && (
-            <div style={{ padding: 'var(--spacing-xs) var(--spacing-card-gap)', borderTop: '1px solid var(--border-secondary)', textAlign: 'center' }}>
-              <Button type="link" size="small" icon={<ExpandOutlined />} onClick={onOpenDrawer}>
-                查看全部通知
-              </Button>
-            </div>
-          )}
+          <div style={{ padding: 'var(--spacing-xs) var(--spacing-card-gap)', borderTop: '1px solid var(--border-secondary)', textAlign: 'center' }}>
+            <Button type="link" size="small" icon={<ExpandOutlined />} onClick={() => navigate('/notifications')}>
+              查看全部
+            </Button>
+          </div>
         </>
       )}
     </div>

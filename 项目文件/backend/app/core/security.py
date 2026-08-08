@@ -1,5 +1,6 @@
 """Security utilities for JWT tokens and password hashing."""
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
@@ -20,13 +21,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(user_id: str, role: str) -> str:
-    """Create a JWT access token."""
+    """Create a JWT access token with unique jti for session tracking."""
     settings = get_settings()
     expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": user_id,
         "role": role,
         "type": "access",
+        "jti": str(uuid.uuid4()),
         "exp": expire,
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")

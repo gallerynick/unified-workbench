@@ -7,7 +7,6 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MenuOutlined,
-  NotificationOutlined,
   CloudServerOutlined,
   TeamOutlined,
   SkinOutlined,
@@ -33,6 +32,7 @@ import {
   ApartmentOutlined,
   VideoCameraOutlined,
   DesktopOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -121,19 +121,19 @@ function getMenuItems(): MenuProps['items'] {
       label: '个人资料',
     },
     {
-      key: '/me/notifications',
+      key: '/settings/personalization',
+      icon: <BgColorsOutlined />,
+      label: '用户个性化',
+    },
+    {
+      key: '/settings/notifications',
       icon: <BellOutlined />,
       label: '通知配置',
     },
     {
-      key: '/devices',
+      key: '/settings/devices',
       icon: <DesktopOutlined />,
       label: '设备终端',
-    },
-    {
-      key: '/settings/personalization',
-      icon: <BgColorsOutlined />,
-      label: '用户个性化',
     },
   );
 
@@ -149,9 +149,8 @@ function getMenuItems(): MenuProps['items'] {
           { key: '/settings/tags', label: '标签分类', icon: <TagOutlined /> },
           { key: '/settings/templates', label: '模板库', icon: <FormOutlined /> },
           { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
-          { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
           { key: '/settings/backups', label: '数据备份', icon: <CloudServerOutlined /> },
-          { key: '/settings/transfer', icon: <DatabaseOutlined />, label: '数据迁转' },
+          { key: '/settings/transfer', icon: <SwapOutlined />, label: '数据迁转' },
           { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
           { key: '/settings/system', label: '系统更新', icon: <CloudServerOutlined /> },
           { key: '/settings/storage', label: '存储设置', icon: <DatabaseOutlined /> },

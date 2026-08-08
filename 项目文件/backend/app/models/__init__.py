@@ -12,7 +12,7 @@ from app.models.note import Note
 from app.models.notification import Notification
 from app.models.project import Project
 
-from app.models.reminder import Reminder, ReminderStatus, TriggerType
+from app.models.reminder import Reminder, ReminderStatus
 from app.models.secret import Secret
 from app.models.secret_category import SecretCategory
 from app.models.server import Server
@@ -26,6 +26,8 @@ from app.models.task import Task, TaskPriority, TaskStatus
 from app.models.template import Template
 from app.models.topology import Topology
 from app.models.user import User, UserRole, UserStatus
+from app.models.user_notification_config import UserNotificationConfig
+from app.models.user_session import UserSession
 from app.models.user_tag import UserTag
 from app.models.vote import Vote, VoteRecord, VoteStatus
 
@@ -48,7 +50,6 @@ __all__ = [
 
     "Reminder",
     "ReminderStatus",
-    "TriggerType",
     "Secret",
     "SecretCategory",
     "Server",
@@ -68,7 +69,9 @@ __all__ = [
     "Template",
     "Topology",
     "User",
+    "UserNotificationConfig",
     "UserRole",
+    "UserSession",
     "UserStatus",
     "UserTag",
     "Vote",

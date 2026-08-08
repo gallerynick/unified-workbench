@@ -13,11 +13,8 @@ class ReminderCreate(BaseModel):
 
     title: str
     content: str | None = None
-    trigger_type: str  # "timed" or "event"
-    event_type: str | None = None  # 事件类型（仅 event 触发类型使用）
     trigger_time: datetime | None = None
     target_users: list[str] | None = None  # user IDs
-    channels: list[str] | None = None  # ["websocket", "feishu", "dingtalk"]
 
 
 class ReminderUpdate(BaseModel):
@@ -25,10 +22,8 @@ class ReminderUpdate(BaseModel):
 
     title: str | None = None
     content: str | None = None
-    event_type: str | None = None
     trigger_time: datetime | None = None
     target_users: list[str] | None = None
-    channels: list[str] | None = None
     status: str | None = None
 
 
@@ -40,11 +35,8 @@ class ReminderResponse(BaseModel):
     id: uuid.UUID
     title: str
     content: str | None
-    trigger_type: str
-    event_type: str | None
     trigger_time: datetime | None
     target_users: list | None
-    channels: list | None
     status: str
     creator_id: uuid.UUID
     created_at: datetime

@@ -7,7 +7,7 @@ from celery import shared_task
 from sqlalchemy import select
 
 from app.core.database import get_session_factory
-from app.models.reminder import Reminder, ReminderStatus, TriggerType
+from app.models.reminder import Reminder, ReminderStatus
 from app.services.notification.dispatcher import dispatch_reminder
 
 
@@ -22,7 +22,6 @@ async def _check_due_reminders_async():
     async with session_factory() as db:
         now = datetime.now(UTC)
         query = select(Reminder).where(
-            Reminder.trigger_type == TriggerType.TIMED,
             Reminder.status == ReminderStatus.PENDING,
             Reminder.trigger_time <= now,
         )
@@ -39,3 +38,4 @@ async def _check_due_reminders_async():
                 reminder.status = ReminderStatus.FAILED
 
         await db.flush()
+        await db.commit()

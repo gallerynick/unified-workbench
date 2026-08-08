@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getToken } from '../utils/auth';
+import { request } from '../utils/request';
 
 export interface Notification {
   id: string;
@@ -9,9 +10,31 @@ export interface Notification {
   read: boolean;
 }
 
+interface NotificationListResponse {
+  items: Array<{
+    id: string;
+    message: string;
+    type: string;
+    read: boolean;
+    created_at: string;
+  }>;
+  total: number;
+}
+
 export interface KickedInfo {
   roomId: string;
   nickname: string;
+}
+
+function mapNotification(db: NotificationListResponse['items'][0]): Notification {
+  const lines = db.message.split('\n', 2);
+  return {
+    id: db.id,
+    title: lines[0]?.replace('提醒：', '') ?? db.message,
+    content: lines[1] ?? '',
+    timestamp: new Date(db.created_at).getTime(),
+    read: db.read,
+  };
 }
 
 export function useWebSocket() {
@@ -33,7 +56,6 @@ export function useWebSocket() {
 
     ws.onopen = () => {
       setConnected(true);
-      // 心跳
       const heartbeat = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send('ping');
@@ -56,14 +78,22 @@ export function useWebSocket() {
           nickname?: string;
         };
         if (data.type === 'notification') {
+          const msg = data.message ?? data.content ?? '';
+          const lines = msg.split('\n', 2);
           const notification: Notification = {
             id: Date.now().toString(),
-            title: data.title ?? '',
-            content: data.message ?? data.content ?? '',
+            title: lines[0] ?? '',
+            content: lines[1] ?? '',
             timestamp: Date.now(),
             read: false,
           };
-          setNotifications((prev) => [notification, ...prev]);
+          setNotifications((prev) => {
+            // 避免 WebSocket 推送与 API 轮询重复
+            if (prev.some((n) => n.title === notification.title && n.timestamp > Date.now() - 60000)) {
+              return prev;
+            }
+            return [notification, ...prev];
+          });
         } else if (data.type === 'room_kicked') {
           setKickedInfo({
             roomId: data.room_id || '',
@@ -77,7 +107,6 @@ export function useWebSocket() {
 
     ws.onclose = () => {
       setConnected(false);
-      // 自动重连
       reconnectTimer.current = setTimeout(() => {
         connect();
       }, 3000);
@@ -88,22 +117,51 @@ export function useWebSocket() {
     };
   }, []);
 
+  // ── API 轮询历史通知 ──────────────────────────────────
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await request<NotificationListResponse>('/notifications/?page=1&page_size=50');
+      if (res.code === 0 && res.data) {
+        const apiNotes = res.data.items.map(mapNotification);
+        setNotifications((prev) => {
+          const wsNotes = prev.filter((n) => !apiNotes.some((a) => a.id === n.id));
+          return [...apiNotes, ...wsNotes];
+        });
+      }
+    } catch {
+      // 静默失败
+    }
+  }, []);
+
   useEffect(() => {
     connect();
+    fetchNotifications();
+    const poll = setInterval(fetchNotifications, 15000);
     return () => {
+      clearInterval(poll);
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       wsRef.current?.close();
     };
-  }, [connect]);
+  }, [connect, fetchNotifications]);
 
-  const markAsRead = useCallback((id: string) => {
+  const markAsRead = useCallback(async (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
+    try {
+      await request(`/notifications/${id}/read`, { method: 'PUT' });
+    } catch {
+      // 静默失败
+    }
   }, []);
 
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    try {
+      await request('/notifications/read-all', { method: 'PUT' });
+    } catch {
+      // 静默失败
+    }
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;

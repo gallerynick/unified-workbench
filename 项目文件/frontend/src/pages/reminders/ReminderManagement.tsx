@@ -33,19 +33,6 @@ const STATUS_TAG_MAP: Record<ReminderStatus, { color: string; text: string }> = 
   cancelled: { color: 'default', text: '已取消' },
 };
 
-const TRIGGER_TYPE_MAP: Record<string, string> = {
-  timed: '定时触发',
-  event: '事件触发',
-};
-
-const CHANNEL_TAG_MAP: Record<string, string> = {
-  websocket: '站内通知',
-  feishu: '飞书',
-  dingtalk: '钉钉',
-  email: '邮件',
-  wecom: '企业微信',
-};
-
 export default function ReminderManagement() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [total, setTotal] = useState(0);
@@ -163,31 +150,11 @@ export default function ReminderManagement() {
       ellipsis: true,
     },
     {
-      title: '触发类型',
-      dataIndex: 'trigger_type',
-      key: 'trigger_type',
-      width: 100,
-      render: (type: string) => TRIGGER_TYPE_MAP[type] ?? type,
-    },
-    {
       title: '触发时间',
       dataIndex: 'trigger_time',
       key: 'trigger_time',
       width: 180,
       render: (time: string | null) => (time ? new Date(time).toLocaleString('zh-CN') : '-'),
-    },
-    {
-      title: '通知渠道',
-      dataIndex: 'channels',
-      key: 'channels',
-      width: 180,
-      render: (channels: Reminder['channels']) => (
-        <Space size={[0, 4]} wrap>
-          {channels?.map((ch) => (
-            <Tag key={ch}>{CHANNEL_TAG_MAP[ch] ?? ch}</Tag>
-          )) ?? '-'}
-        </Space>
-      ),
     },
     {
       title: '状态',
@@ -317,7 +284,7 @@ export default function ReminderManagement() {
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>提醒为纯私有，仅创建者本人可以查看、编辑和删除提醒。</Paragraph>
 
           <Title level={5}>提醒方式</Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>支持定时触发和站内弹窗提醒。</Paragraph>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>支持定时触发提醒。</Paragraph>
 
           <Title level={5}>管理员</Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员无权管理他人的提醒（提醒为纯私有）。</Paragraph>

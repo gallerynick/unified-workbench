@@ -12,6 +12,9 @@ export interface CalendarEvent {
   location: string | null;
   repeat: EventRepeat;
   color: string | null;
+  reminder_enabled: boolean;
+  reminder_minutes: number;
+  reminded: boolean;
   owner_id?: string;
   visibility?: Visibility;
   restricted_users?: string[] | null;
@@ -28,6 +31,8 @@ export interface CalendarEventCreate {
   location?: string | undefined;
   repeat?: EventRepeat | undefined;
   color?: string | undefined;
+  reminder_enabled?: boolean | undefined;
+  reminder_minutes?: number | undefined;
   visibility?: Visibility | undefined;
   restricted_users?: string[] | undefined;
 }
@@ -41,6 +46,8 @@ export interface CalendarEventUpdate {
   location?: string | undefined;
   repeat?: EventRepeat | undefined;
   color?: string | undefined;
+  reminder_enabled?: boolean | undefined;
+  reminder_minutes?: number | undefined;
   visibility?: Visibility | undefined;
   restricted_users?: string[] | undefined;
 }

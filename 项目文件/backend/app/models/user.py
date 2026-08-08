@@ -14,6 +14,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.tag import Tag
+    from app.models.user_notification_config import UserNotificationConfig
 
 
 class UserRole(enum.StrEnum):
@@ -59,4 +60,9 @@ class User(Base):
     # 多对多关系：用户 <-> 标签
     tags: Mapped[list[Tag]] = relationship(
         secondary="user_tag", back_populates="users"
+    )
+
+    # 一对一关系：用户 <-> 通知配置
+    notification_config: Mapped[UserNotificationConfig | None] = relationship(
+        "UserNotificationConfig", back_populates="user", uselist=False
     )

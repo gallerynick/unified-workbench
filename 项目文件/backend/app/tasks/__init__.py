@@ -4,6 +4,7 @@ from celery import Celery
 
 from app.core.config import get_settings
 from app.tasks.backup import scheduled_backup  # noqa: F401
+from app.tasks.calendar_reminder import check_calendar_reminders  # noqa: F401
 from app.tasks.file_share_cleanup import cleanup_expired_shares  # noqa: F401
 from app.tasks.reminder import check_due_reminders  # noqa: F401
 from app.tasks.stream_room import (
@@ -20,6 +21,7 @@ celery_app = Celery(
     include=[
         "app.tasks.reminder",
         "app.tasks.backup",
+        "app.tasks.calendar_reminder",
         "app.tasks.stream_room",
         "app.tasks.file_share_cleanup",
     ],
@@ -43,7 +45,11 @@ celery_app.autodiscover_tasks()
 celery_app.conf.beat_schedule = {
     'check-due-reminders': {
         'task': 'app.tasks.reminder.check_due_reminders',
-        'schedule': 60.0,
+        'schedule': 10.0,
+    },
+    'check-calendar-reminders': {
+        'task': 'app.tasks.calendar_reminder.check_calendar_reminders',
+        'schedule': 10.0,
     },
     'scheduled-backup': {
         'task': 'app.tasks.backup.scheduled_backup',

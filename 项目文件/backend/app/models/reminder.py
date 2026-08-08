@@ -27,13 +27,6 @@ class ReminderStatus(enum.StrEnum):
     CANCELLED = "cancelled"
 
 
-class TriggerType(enum.StrEnum):
-    """触发类型枚举"""
-
-    TIMED = "timed"
-    EVENT = "event"
-
-
 class Reminder(Base):
     """提醒表"""
 
@@ -42,20 +35,11 @@ class Reminder(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(200), nullable=False, comment="提醒标题")
     content: Mapped[str | None] = mapped_column(Text, nullable=True, comment="提醒内容")
-    trigger_type: Mapped[TriggerType] = mapped_column(
-        String(20), nullable=False, comment="触发类型"
-    )
-    event_type: Mapped[str | None] = mapped_column(
-        String(50), nullable=True, comment="事件类型（仅 event 触发类型使用）"
-    )
     trigger_time: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="触发时间"
     )
     target_users: Mapped[list | None] = mapped_column(
         JSONB, nullable=True, comment="目标用户列表"
-    )
-    channels: Mapped[list | None] = mapped_column(
-        JSONB, nullable=True, comment="通知渠道"
     )
     status: Mapped[ReminderStatus] = mapped_column(
         String(20), nullable=False, server_default="pending", comment="提醒状态"

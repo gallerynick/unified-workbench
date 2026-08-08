@@ -18,7 +18,6 @@ const ProjectManagement = lazy(() => import('@/pages/projects/ProjectManagement'
 const SecretManagement = lazy(() => import('@/pages/secrets/SecretManagement'));
 const SecretCategoryPage = lazy(() => import('@/pages/secrets/SecretCategoryPage'));
 const ReminderManagement = lazy(() => import('@/pages/reminders/ReminderManagement'));
-const NotificationConfig = lazy(() => import('@/pages/settings/NotificationConfig'));
 const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'));
 const DataManagement = lazy(() => import('@/pages/settings/DataManagement'));
 const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationSettings'));
@@ -186,12 +185,16 @@ element: <LazyPage><MemberDetail /></LazyPage>,
             element: <LazyPage><UserPersonalization /></LazyPage>,
           },
           {
-            path: 'settings/users',
-            element: <LazyPage><UserManagement /></LazyPage>,
+            path: 'settings/notifications',
+            element: <LazyPage><UserNotificationConfig /></LazyPage>,
           },
           {
-            path: 'settings/notifications',
-            element: <LazyPage><NotificationConfig /></LazyPage>,
+            path: 'settings/devices',
+            element: <LazyPage><DevicesPage /></LazyPage>,
+          },
+          {
+            path: 'settings/users',
+            element: <LazyPage><UserManagement /></LazyPage>,
           },
           {
             path: 'settings/backups',
@@ -224,14 +227,6 @@ element: <LazyPage><MemberDetail /></LazyPage>,
           {
             path: 'profile',
             element: <LazyPage><Profile /></LazyPage>,
-          },
-          {
-            path: 'me/notifications',
-            element: <LazyPage><UserNotificationConfig /></LazyPage>,
-          },
-          {
-            path: 'devices',
-            element: <LazyPage><DevicesPage /></LazyPage>,
           },
           {
             path: 'topology',
