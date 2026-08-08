@@ -29,7 +29,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/settings/site': '站点配置',
   '/settings/notifications': '通知配置',
   '/settings/backups': '数据备份',
-  '/data': '数据导入导出',
+  '/settings/transfer': '数据迁转',
   '/settings/customization': '应用配置',
   '/settings/system': '系统更新',
   '/settings/storage': '存储设置',
@@ -57,8 +57,8 @@ export function getRouteTitle(pathname: string): string {
   if (pathname.startsWith('/share/')) {
     return '文件下载';
   }
-  if (pathname.startsWith('/data')) {
-    return '数据导入导出';
+  if (pathname.startsWith('/settings/transfer')) {
+    return '数据迁转';
   }
   return '';
 }

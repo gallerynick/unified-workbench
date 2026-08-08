@@ -198,7 +198,7 @@ element: <LazyPage><MemberDetail /></LazyPage>,
             element: <LazyPage><BackupManagement /></LazyPage>,
           },
           {
-            path: 'data',
+            path: 'settings/transfer',
             element: <LazyPage><DataManagement /></LazyPage>,
           },
           {

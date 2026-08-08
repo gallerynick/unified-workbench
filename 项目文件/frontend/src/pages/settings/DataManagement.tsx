@@ -26,7 +26,7 @@ import styles from './DataManagement.module.css';
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
 
-const BASE = '/api/v1/data';
+const BASE = '/api/v1/transfer';
 
 type TaskStatus = 'idle' | 'running' | 'completed' | 'failed';
 
@@ -128,7 +128,7 @@ export default function DataManagement() {
     if (exportTimerRef.current !== null) window.clearInterval(exportTimerRef.current);
     exportTimerRef.current = window.setInterval(async () => {
       try {
-        const res = await request<ExportStatus>(`/data/export/${exportId}/status`);
+        const res = await request<ExportStatus>(`/transfer/export/${exportId}/status`);
         if (res.code === 0 && res.data) {
           const st = res.data;
           setExportProgress({
@@ -306,7 +306,7 @@ export default function DataManagement() {
     if (importTimerRef.current !== null) window.clearInterval(importTimerRef.current);
     importTimerRef.current = window.setInterval(async () => {
       try {
-        const res = await request<ImportStatusData>(`/data/import/${taskId}/status`);
+        const res = await request<ImportStatusData>(`/transfer/import/${taskId}/status`);
         if (res.code === 0 && res.data) {
           const st = res.data;
           if (st.status === 'completed') {
@@ -347,7 +347,7 @@ export default function DataManagement() {
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>
-          数据导入导出
+          数据迁转
         </Title>
       </div>
 

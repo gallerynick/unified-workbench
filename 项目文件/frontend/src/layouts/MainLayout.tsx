@@ -151,7 +151,7 @@ function getMenuItems(): MenuProps['items'] {
           { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
           { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
           { key: '/settings/backups', label: '数据备份', icon: <CloudServerOutlined /> },
-          { key: '/data', icon: <DatabaseOutlined />, label: '数据导入导出' },
+          { key: '/settings/transfer', icon: <DatabaseOutlined />, label: '数据迁转' },
           { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
           { key: '/settings/system', label: '系统更新', icon: <CloudServerOutlined /> },
           { key: '/settings/storage', label: '存储设置', icon: <DatabaseOutlined /> },
