@@ -20,6 +20,7 @@ const SecretCategoryPage = lazy(() => import('@/pages/secrets/SecretCategoryPage
 const ReminderManagement = lazy(() => import('@/pages/reminders/ReminderManagement'));
 const NotificationConfig = lazy(() => import('@/pages/settings/NotificationConfig'));
 const BackupManagement = lazy(() => import('@/pages/settings/BackupManagement'));
+const DataManagement = lazy(() => import('@/pages/settings/DataManagement'));
 const CustomizationSettings = lazy(() => import('@/pages/settings/CustomizationSettings'));
 const SiteSettings = lazy(() => import('@/pages/settings/SiteSettings'));
 const UserPersonalization = lazy(() => import('@/pages/settings/UserPersonalization'));
@@ -39,6 +40,8 @@ const NoteManagement = lazy(() => import('@/pages/notes/NoteManagement'));
 const TagManagement = lazy(() => import('@/pages/settings/TagManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const DevicesPage = lazy(() => import('@/pages/settings/DevicesPage'));
+const NotificationsCenter = lazy(() => import('@/pages/notifications/NotificationsCenter'));
+const UserNotificationConfig = lazy(() => import('@/pages/settings/UserNotificationConfig'));
 const TestModePage = lazy(() => import('@/pages/TestModePage'));
 const ProjectDetailPage = lazy(() => import('@/pages/projects/ProjectDetailPage'));
 const SystemSettings = lazy(() => import('@/pages/settings/SystemSettings'));
@@ -93,6 +96,10 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: <Home />,
+          },
+          {
+            path: 'notifications',
+            element: <LazyPage><NotificationsCenter /></LazyPage>,
           },
           {
             path: 'shares',
@@ -191,6 +198,10 @@ element: <LazyPage><MemberDetail /></LazyPage>,
             element: <LazyPage><BackupManagement /></LazyPage>,
           },
           {
+            path: 'data',
+            element: <LazyPage><DataManagement /></LazyPage>,
+          },
+          {
             path: 'settings/customization',
             element: <LazyPage><CustomizationSettings /></LazyPage>,
           },
@@ -213,6 +224,10 @@ element: <LazyPage><MemberDetail /></LazyPage>,
           {
             path: 'profile',
             element: <LazyPage><Profile /></LazyPage>,
+          },
+          {
+            path: 'me/notifications',
+            element: <LazyPage><UserNotificationConfig /></LazyPage>,
           },
           {
             path: 'devices',

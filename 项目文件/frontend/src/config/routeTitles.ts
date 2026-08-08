@@ -1,5 +1,6 @@
 export const ROUTE_TITLES: Record<string, string> = {
   '/': '首页',
+  '/notifications': '通知中心',
   '/tasks': '任务中心',
   '/contacts': '联系人管理',
   '/calendar': '日程日历',
@@ -28,10 +29,12 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/settings/site': '站点配置',
   '/settings/notifications': '通知配置',
   '/settings/backups': '数据备份',
+  '/data': '数据导入导出',
   '/settings/customization': '应用配置',
   '/settings/system': '系统更新',
   '/settings/storage': '存储设置',
   '/profile': '个人资料',
+  '/me/notifications': '通知配置',
   '/devices': '设备终端',
 };
 
@@ -53,6 +56,9 @@ export function getRouteTitle(pathname: string): string {
   }
   if (pathname.startsWith('/share/')) {
     return '文件下载';
+  }
+  if (pathname.startsWith('/data')) {
+    return '数据导入导出';
   }
   return '';
 }

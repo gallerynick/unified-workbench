@@ -8,6 +8,8 @@ from app.api.backups import router as backups_router
 from app.api.calendar_events import router as calendar_events_router
 from app.api.contacts import router as contacts_router
 from app.api.content import router as content_router
+from app.api.data_export import router as data_export_router
+from app.api.data_import import router as data_import_router
 from app.api.file_shares import public_router as file_shares_public_router
 from app.api.file_shares import router as file_shares_router
 from app.api.finance import router as finance_router
@@ -32,6 +34,7 @@ from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
 from app.api.templates import router as templates_router
 from app.api.topology import router as topology_router
+from app.api.user_notification_config import router as notification_config_router
 from app.api.users import router as users_router
 from app.api.votes import router as votes_router
 
@@ -49,6 +52,8 @@ api_router.include_router(secrets_router, prefix="/secrets", tags=["密钥管理
 api_router.include_router(secret_categories_router, prefix="/secret-categories", tags=["密钥分类"])
 api_router.include_router(system_config_router, prefix="/system-config", tags=["系统配置"])
 api_router.include_router(backups_router, prefix="/backups", tags=["备份管理"])
+api_router.include_router(data_export_router, prefix="/data", tags=["数据管理"])
+api_router.include_router(data_import_router, prefix="/data", tags=["数据管理"])
 api_router.include_router(finance_router, prefix="/finance", tags=["财务管理"])
 api_router.include_router(tasks_router, prefix="/tasks", tags=["任务管理"])
 api_router.include_router(contacts_router, prefix="/contacts", tags=["客户管理"])
@@ -68,3 +73,4 @@ api_router.include_router(system_router)
 api_router.include_router(servers_router, prefix="/servers", tags=["服务器管理"])
 api_router.include_router(systems_router, prefix="/systems", tags=["系统管理"])
 api_router.include_router(services_router, prefix="/services", tags=["服务管理"])
+api_router.include_router(notification_config_router, prefix="/auth", tags=["个人通知配置"])

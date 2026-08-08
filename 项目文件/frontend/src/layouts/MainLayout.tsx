@@ -36,6 +36,7 @@ import {
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useIdleTimer } from '../hooks/useIdleTimer';
 import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
 import { useTheme } from '../contexts/ThemeContext';
@@ -72,6 +73,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   ApartmentOutlined: <ApartmentOutlined />,
   VideoCameraOutlined: <VideoCameraOutlined />,
   CloudServerOutlined: <CloudServerOutlined />,
+  DatabaseOutlined: <DatabaseOutlined />,
 };
 
 interface SidebarItem {
@@ -82,12 +84,13 @@ interface SidebarItem {
 
 const SIDEBAR_ITEMS: SidebarItem[] = [
   { key: '/', label: '首页', icon: 'HomeOutlined' },
+  { key: '/notifications', label: '通知中心', icon: 'BellOutlined' },
+  { key: '/announcements', label: '公告通知', icon: 'SoundOutlined' },
   { key: '/tasks', label: '任务中心', icon: 'CheckSquareOutlined' },
   { key: '/contacts', label: '联系人管理', icon: 'ContactsOutlined' },
   { key: '/calendar', label: '日程日历', icon: 'CalendarOutlined' },
   { key: '/votes', label: '投票决策', icon: 'LikeOutlined' },
   { key: '/forms', label: '表单收集', icon: 'FormOutlined' },
-  { key: '/announcements', label: '公告通知', icon: 'SoundOutlined' },
   { key: '/notes', label: '笔记知识库', icon: 'BookOutlined' },
   { key: '/shares', label: '文件共享', icon: 'FileOutlined' },
   { key: '/content', label: '内容编辑', icon: 'FileTextOutlined' },
@@ -118,6 +121,11 @@ function getMenuItems(): MenuProps['items'] {
       label: '个人资料',
     },
     {
+      key: '/me/notifications',
+      icon: <BellOutlined />,
+      label: '通知配置',
+    },
+    {
       key: '/devices',
       icon: <DesktopOutlined />,
       label: '设备终端',
@@ -143,6 +151,7 @@ function getMenuItems(): MenuProps['items'] {
           { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
           { key: '/settings/notifications', label: '通知配置', icon: <NotificationOutlined /> },
           { key: '/settings/backups', label: '数据备份', icon: <CloudServerOutlined /> },
+          { key: '/data', icon: <DatabaseOutlined />, label: '数据导入导出' },
           { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
           { key: '/settings/system', label: '系统更新', icon: <CloudServerOutlined /> },
           { key: '/settings/storage', label: '存储设置', icon: <DatabaseOutlined /> },
@@ -193,6 +202,7 @@ export default function MainLayout() {
   const customization = useCustomization();
   const { isDark } = useTheme();
   const { user } = useUser();
+  useIdleTimer();
 
   const handleMenuOpenChange = useCallback((openKeys: string[]) => {
     if (openKeys.includes('/settings')) {
@@ -383,7 +393,6 @@ export default function MainLayout() {
               unreadCount={unreadCount}
               onMarkAsRead={markAsRead}
               onMarkAllAsRead={markAllAsRead}
-              onOpenDrawer={() => setDrawerOpen(true)}
             />
             <Dropdown menu={{ items: userMenuItems ?? [], onClick: ({ key }) => {
               if (key === 'profile') navigate('/profile');
