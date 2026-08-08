@@ -29,7 +29,6 @@ from app.models import (
     CalendarEvent,
     Contact,
     Content,
-    FileShare,
     Form,
     FormResponse,
     Inventory,
@@ -70,7 +69,6 @@ EXPORT_TABLE_ORDER = [
     "calendar_event",
     "contact",
     "content",
-    "file_share",
     "form",
     "form_response",
     "inventory",
@@ -80,9 +78,9 @@ EXPORT_TABLE_ORDER = [
     "reminder",
     "secret_category",
     "secret",
-    "server",
-    "system",
-    "service",
+    "servers",
+    "systems",
+    "services",
     "stream_room",
     "task",
     "template",
@@ -103,7 +101,6 @@ TABLE_MODEL_MAP: dict[str, type] = {
     "calendar_event": CalendarEvent,
     "contact": Contact,
     "content": Content,
-    "file_share": FileShare,
     "form": Form,
     "form_response": FormResponse,
     "inventory": Inventory,
@@ -113,9 +110,9 @@ TABLE_MODEL_MAP: dict[str, type] = {
     "reminder": Reminder,
     "secret_category": SecretCategory,
     "secret": Secret,
-    "server": Server,
-    "system": System,
-    "service": Service,
+    "servers": Server,
+    "systems": System,
+    "services": Service,
     "stream_room": StreamRoom,
     "task": Task,
     "template": Template,
@@ -125,7 +122,7 @@ TABLE_MODEL_MAP: dict[str, type] = {
 }
 
 # 跳过表：无需导出的表（file_share 为临时共享记录，不在导出范围内）
-SKIP_TABLES: set[str] = {"user_notification_config", "file_share"}
+SKIP_TABLES: set[str] = {"user_notification_config"}
 
 
 # ═══════════════════════ Pepper 管理 ══════════════════════════════════
