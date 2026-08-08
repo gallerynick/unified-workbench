@@ -15,7 +15,7 @@ import shutil
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert as pg_insert  # noqa: F401
 
@@ -128,6 +128,64 @@ async def truncate_all_tables(db: AsyncSession) -> None:
     await db.commit()
 
 
+# ═══════════════════════ 3.5. 紧急备份与回退 ══════════════════════════════
+
+
+async def _backup_tables(db: AsyncSession, backup_dir: str) -> None:
+    """导出所有表到 backup_dir 作为紧急回退点。"""
+    os.makedirs(backup_dir, exist_ok=True)
+    for table_name in EXPORT_TABLE_ORDER:
+        model = TABLE_MODEL_MAP.get(table_name)
+        if not model:
+            continue
+        result = await db.execute(select(model))
+        rows = []
+        for row in result.scalars().all():
+            row_dict = {}
+            for col in model.__table__.columns:
+                val = getattr(row, col.name)
+                if isinstance(val, datetime):
+                    row_dict[col.name] = val.isoformat()
+                elif isinstance(val, uuid.UUID):
+                    row_dict[col.name] = str(val)
+                elif isinstance(val, bytes):
+                    row_dict[col.name] = val.hex()
+                else:
+                    row_dict[col.name] = val
+            rows.append(row_dict)
+        with open(os.path.join(backup_dir, f"{table_name}.json"), "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, default=str)
+
+
+async def _restore_from_backup(db: AsyncSession, backup_dir: str) -> bool:
+    """从备份恢复所有表。成功返回 True。"""
+    try:
+        # TRUNCATE all (reverse order)
+        for table_name in reversed(EXPORT_TABLE_ORDER):
+            model = TABLE_MODEL_MAP.get(table_name)
+            if not model:
+                continue
+            await db.execute(text(f'TRUNCATE TABLE "{table_name}" CASCADE'))
+        await db.commit()
+        # Import from backup
+        for table_name in EXPORT_TABLE_ORDER:
+            model = TABLE_MODEL_MAP.get(table_name)
+            if not model:
+                continue
+            path = os.path.join(backup_dir, f"{table_name}.json")
+            if not os.path.exists(path):
+                continue
+            with open(path, "r", encoding="utf-8") as f:
+                records = json.load(f)
+            _parse_datetimes(records)
+            for i in range(0, len(records), 500):
+                await db.execute(model.__table__.insert(), records[i:i+500])
+            await db.commit()
+        return True
+    except Exception:
+        return False
+
+
 # ═══════════════════════ 4. 导入单表数据 ════════════════════════════════
 
 
@@ -236,15 +294,18 @@ async def import_all(
     passphrase: str,
     salt_hex: str,
 ) -> dict:
-    """导入全量数据的完整编排流程。
+    """导入全量数据的完整编排流程（含紧急备份与回退）。
 
-    1. 获取服务端 pepper
-    2. 解码 salt（十六进制 → 字节）
-    3. 读取并校验 manifest
-    4. 清空数据库（子表优先）
-    5. 逐表读取 JSON + 迁移 + 批量写入
-    6. 提取文件到存储目录
-    7. 删除加密 ZIP
+    流程：
+      1. 获取服务端 pepper
+      2. 解码 salt（十六进制 → 字节）
+      3. 读取并校验 manifest
+      4. 紧急备份现有数据
+      5. 清空数据库（子表优先）
+      6. 逐表读取 JSON + 迁移 + 批量写入
+      7. 提取文件到存储目录
+      8. 删除加密 ZIP
+      导入失败时自动从备份回退。
 
     Args:
         db:         数据库会话。
@@ -253,94 +314,83 @@ async def import_all(
         salt_hex:   十六进制编码的 salt 字符串。
 
     Returns:
-        stats 字典：``{imported_tables, imported_rows, total_tables, file_count, errors}``。
-        失败时 errors 非空。
+        stats 字典：
+        ``{imported_tables, imported_rows, total_tables, file_count, errors, backup_size, rollback}``。
+        失败时 errors 非空，rollback 指示是否已执行回退。
     """
+    import tempfile
+
     errors: list[str] = []
     imported_tables = 0
     imported_rows = 0
     file_count = 0
+    backup_size = 0
+    rollback = False
+    backup_dir = None
+
+    def _early_return(**overrides):
+        return {
+            "imported_tables": 0,
+            "imported_rows": 0,
+            "total_tables": 0,
+            "file_count": 0,
+            "errors": [],
+            "backup_size": 0,
+            "rollback": False,
+        } | overrides
 
     # ── 1. 获取 pepper ──────────────────────────────────────────────
     try:
         pepper = await get_or_create_pepper(db)
     except Exception as e:
-        return {
-            "imported_tables": 0,
-            "imported_rows": 0,
-            "total_tables": 0,
-            "file_count": 0,
-            "errors": [f"获取服务端 pepper 失败: {e}"],
-        }
+        return _early_return(errors=[f"获取服务端 pepper 失败: {e}"])
 
+    # ── 2. 解码 salt ─────────────────────────────────────────────────
     try:
         salt = bytes.fromhex(salt_hex)
     except (ValueError, TypeError) as e:
-        return {
-            "imported_tables": 0,
-            "imported_rows": 0,
-            "total_tables": 0,
-            "file_count": 0,
-            "errors": [f"salt 格式无效（需为十六进制字符串）: {e}"],
-        }
+        return _early_return(errors=[f"salt 格式无效（需为十六进制字符串）: {e}"])
 
-    # ── 2. 读取 manifest ────────────────────────────────────────────
+    # ── 3. 读取 manifest ────────────────────────────────────────────
     try:
         manifest = read_manifest(zip_path, passphrase, pepper, salt)
     except Exception as e:
-        return {
-            "imported_tables": 0,
-            "imported_rows": 0,
-            "total_tables": 0,
-            "file_count": 0,
-            "errors": [f"读取清单文件失败: {e}"],
-        }
+        return _early_return(errors=[f"读取清单文件失败: {e}"])
 
-    # ── 3. 版本校验 ─────────────────────────────────────────────────
+    # ── 4. 版本校验 ─────────────────────────────────────────────────
     try:
         validate_version(manifest["version"])
     except Exception as e:
-        return {
-            "imported_tables": 0,
-            "imported_rows": 0,
-            "total_tables": 0,
-            "file_count": 0,
-            "errors": [f"版本校验失败: {e}"],
-        }
+        return _early_return(errors=[f"版本校验失败: {e}"])
 
     manifest_version: str = manifest["version"]
     table_list: list[str] = manifest.get("tables", [])
     total_tables = len(table_list)
 
-    # ── 4. 清空数据库 ───────────────────────────────────────────────
+    # ── 5. 紧急备份现有数据 ─────────────────────────────────────────
+    backup_dir = tempfile.mkdtemp(prefix="import_backup_")
     try:
-        await truncate_all_tables(db)
+        await _backup_tables(db, backup_dir)
+        backup_size = sum(1 for f in os.listdir(backup_dir) if f.endswith(".json"))
     except Exception as e:
-        errors.append(f"清空数据库失败: {e}")
-        return {
-            "imported_tables": 0,
-            "imported_rows": 0,
-            "total_tables": total_tables,
-            "file_count": 0,
-            "errors": errors,
-        }
+        errors.append(f"备份现有数据失败: {e}")
+        if backup_dir and os.path.isdir(backup_dir):
+            shutil.rmtree(backup_dir, ignore_errors=True)
+        return _early_return(total_tables=total_tables, errors=errors, backup_size=backup_size)
 
-    # ── 5. 导入表数据 ───────────────────────────────────────────────
+    # ── 6-8. 清空 → 导入 → 文件 → 清理（含自动回退）────────────────
     try:
-        import pyzipper
-    except ImportError:
-        errors.append("pyzipper 未安装，请运行 pip install pyzipper")
-        return {
-            "imported_tables": 0,
-            "imported_rows": 0,
-            "total_tables": total_tables,
-            "file_count": 0,
-            "errors": errors,
-        }
+        # ── 6. 清空数据库 ───────────────────────────────────────────
+        await truncate_all_tables(db)
 
-    key = derive_key(passphrase, pepper, salt)
+        # ── 7. 导入表数据 ───────────────────────────────────────────
+        try:
+            import pyzipper
+        except ImportError:
+            raise RuntimeError("pyzipper 未安装，请运行 pip install pyzipper")
 
-    try:
+        key = derive_key(passphrase, pepper, salt)
+
         with pyzipper.AESZipFile(zip_path, "r", encryption=pyzipper.WZ_AES) as zf:
             zf.setpassword(key)
 
@@ -366,27 +416,38 @@ async def import_all(
                 except Exception as e:
                     errors.append(f"导入表 {table_name} 失败: {e}")
 
+        # ── 8. 导入文件 ─────────────────────────────────────────────
+        try:
+            file_count = copy_imported_files(zip_path, passphrase, pepper, salt)
+        except Exception as e:
+            errors.append(f"导入文件失败: {e}")
+
+        # ── 9. 清理加密 ZIP ─────────────────────────────────────────
+        try:
+            os.remove(zip_path)
+        except OSError:
+            pass
+
     except Exception as e:
-        errors.append(f"读取加密 ZIP 失败: {e}")
+        errors.append(f"导入过程失败: {e}")
+        # 执行紧急回退
+        restore_ok = await _restore_from_backup(db, backup_dir)
+        rollback = True
+        if not restore_ok:
+            errors.append("紧急回退失败，数据可能丢失！")
         return {
             "imported_tables": imported_tables,
             "imported_rows": imported_rows,
             "total_tables": total_tables,
             "file_count": file_count,
             "errors": errors,
+            "backup_size": backup_size,
+            "rollback": rollback,
         }
-
-    # ── 6. 导入文件 ─────────────────────────────────────────────────
-    try:
-        file_count = copy_imported_files(zip_path, passphrase, pepper, salt)
-    except Exception as e:
-        errors.append(f"导入文件失败: {e}")
-
-    # ── 7. 清理加密 ZIP ─────────────────────────────────────────────
-    try:
-        os.remove(zip_path)
-    except OSError:
-        pass  # 非关键错误，静默忽略
+    finally:
+        # 无论成功失败，清理临时备份目录
+        if backup_dir and os.path.isdir(backup_dir):
+            shutil.rmtree(backup_dir, ignore_errors=True)
 
     return {
         "imported_tables": imported_tables,
@@ -394,6 +455,8 @@ async def import_all(
         "total_tables": total_tables,
         "file_count": file_count,
         "errors": errors,
+        "backup_size": backup_size,
+        "rollback": rollback,
     }
 
 

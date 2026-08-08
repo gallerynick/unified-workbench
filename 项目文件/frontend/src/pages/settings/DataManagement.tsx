@@ -11,16 +11,21 @@ import {
   message,
 } from 'antd';
 import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
   CopyOutlined,
   DownloadOutlined,
   ExportOutlined,
   ImportOutlined,
   InboxOutlined,
+  LockOutlined,
+  ReloadOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import type { RcFile, UploadProps } from 'antd/es/upload';
 import { request } from '../../utils/request';
 import { getToken } from '../../utils/auth';
+import { verifyPassword } from '../../api/secrets';
 import styles from './DataManagement.module.css';
 
 const { Title, Text } = Typography;
@@ -52,6 +57,16 @@ interface ImportStatusData {
   error: string | null;
 }
 
+type RollbackStatus = 'none' | 'ok' | 'failed';
+
+interface ImportResultModal {
+  type: 'success' | 'error';
+  tables: number;
+  rows: number;
+  message: string;
+  rollback: RollbackStatus;
+}
+
 export default function DataManagement() {
   // ── 导出状态 ──
   const [exportPassword, setExportPassword] = useState('');
@@ -73,7 +88,14 @@ export default function DataManagement() {
   const [importStatus, setImportStatus] = useState<TaskStatus>('idle');
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
   const [importError, setImportError] = useState('');
+  const [importProgress, setImportProgress] = useState({ imported: 0, total: 0 });
   const importTimerRef = useRef<number | null>(null);
+
+  // ── 导入二次验证（管理员密码）与结果弹窗 ──
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [verifyPasswordValue, setVerifyPasswordValue] = useState('');
+  const [verifySubmitting, setVerifySubmitting] = useState(false);
+  const [resultModal, setResultModal] = useState<ImportResultModal | null>(null);
 
   // 卸载时清理定时器与对象 URL
   useEffect(() => {
@@ -260,8 +282,58 @@ export default function DataManagement() {
       okText: '确认导入',
       okType: 'danger',
       cancelText: '取消',
-      onOk: () => doImport(),
+      onOk: () => {
+        setVerifyPasswordValue('');
+        setVerifyModalOpen(true);
+      },
     });
+  };
+
+  const handleVerifyPassword = async () => {
+    if (!verifyPasswordValue) {
+      message.warning('请输入管理员密码');
+      return;
+    }
+    setVerifySubmitting(true);
+    try {
+      const res = await verifyPassword(verifyPasswordValue);
+      const valid = res.code === 0 && res.data?.valid === true;
+      if (!valid) {
+        setVerifySubmitting(false);
+        message.error(res.msg || '管理员密码验证失败');
+        return;
+      }
+      setVerifyModalOpen(false);
+      setVerifyPasswordValue('');
+      setVerifySubmitting(false);
+      await doImport();
+    } catch (err: unknown) {
+      setVerifySubmitting(false);
+      const msg = err instanceof Error ? err.message : '管理员密码验证失败';
+      message.error(msg);
+    }
+  };
+
+  const detectRollback = (statusData: ImportStatusData | null): RollbackStatus => {
+    if (!statusData) return 'none';
+    const data = statusData as ImportStatusData & Record<string, unknown>;
+    const rollbackField = data.rollback ?? data.rollback_status ?? data.rolled_back;
+    if (typeof rollbackField === 'string') {
+      const v = rollbackField.toLowerCase();
+      if (v === 'failed' || v === 'error') return 'failed';
+      if (v === 'ok' || v === 'success' || v === 'true') return 'ok';
+    }
+    if (typeof rollbackField === 'boolean') return rollbackField ? 'ok' : 'none';
+    const errorText = `${statusData.error ?? ''} ${(statusData.stats?.errors ?? []).join(' ')}`;
+    if (/回退失败|回滚失败|rollback\s*failed/i.test(errorText)) return 'failed';
+    if (/已回退|回退成功|回滚成功|rollback\s*(ok|success)/i.test(errorText)) return 'ok';
+    return 'none';
+  };
+
+  const handleRefreshWorkbench = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/login';
   };
 
   const doImport = async () => {
@@ -269,6 +341,8 @@ export default function DataManagement() {
     setImportStatus('running');
     setImportStats(null);
     setImportError('');
+    setImportProgress({ imported: 0, total: 0 });
+    setResultModal(null);
 
     const formData = new FormData();
     formData.append('password', importPassword);
@@ -298,7 +372,8 @@ export default function DataManagement() {
     } catch (err: unknown) {
       setImportStatus('failed');
       const msg = err instanceof Error ? err.message : '启动导入失败';
-      message.error(msg);
+      setImportError(msg);
+      setResultModal({ type: 'error', tables: 0, rows: 0, message: msg, rollback: 'none' });
     }
   };
 
@@ -309,6 +384,12 @@ export default function DataManagement() {
         const res = await request<ImportStatusData>(`/transfer/import/${taskId}/status`);
         if (res.code === 0 && res.data) {
           const st = res.data;
+          if (st.stats) {
+            setImportProgress({
+              imported: st.stats.imported_tables,
+              total: st.stats.total_tables,
+            });
+          }
           if (st.status === 'completed') {
             if (importTimerRef.current !== null) window.clearInterval(importTimerRef.current);
             importTimerRef.current = null;
@@ -319,18 +400,36 @@ export default function DataManagement() {
             } else {
               message.success('数据导入完成');
             }
+            setResultModal({
+              type: 'success',
+              tables: st.stats?.imported_tables ?? 0,
+              rows: st.stats?.imported_rows ?? 0,
+              message: '',
+              rollback: 'none',
+            });
           } else if (st.status === 'failed') {
             if (importTimerRef.current !== null) window.clearInterval(importTimerRef.current);
             importTimerRef.current = null;
             setImportStatus('failed');
-            setImportError(st.error || '导入失败');
-            message.error(st.error || '导入失败');
+            const msg = st.error || '导入失败';
+            setImportError(msg);
+            message.error(msg);
+            setResultModal({
+              type: 'error',
+              tables: 0,
+              rows: 0,
+              message: msg,
+              rollback: detectRollback(st),
+            });
           }
         } else {
           if (importTimerRef.current !== null) window.clearInterval(importTimerRef.current);
           importTimerRef.current = null;
           setImportStatus('failed');
-          message.error(res.msg || '导入状态查询失败');
+          const msg = res.msg || '导入状态查询失败';
+          setImportError(msg);
+          message.error(msg);
+          setResultModal({ type: 'error', tables: 0, rows: 0, message: msg, rollback: 'none' });
         }
       } catch {
         // 网络瞬时错误，保持轮询等待恢复
@@ -339,8 +438,8 @@ export default function DataManagement() {
   };
 
   const importPercent =
-    importStats && importStats.total_tables > 0
-      ? Math.round((importStats.imported_tables / importStats.total_tables) * 100)
+    importProgress.total > 0
+      ? Math.round((importProgress.imported / importProgress.total) * 100)
       : 0;
 
   return (
@@ -497,6 +596,11 @@ export default function DataManagement() {
               <div className={styles.progressBlock ?? ''}>
                 <Progress percent={importPercent} status="active" />
                 <Text type="secondary" className={styles.progressHint ?? ''}>
+                  {importProgress.total > 0
+                    ? `${importProgress.imported}/${importProgress.total} 张表`
+                    : '正在准备导入...'}
+                </Text>
+                <Text type="secondary" className={styles.progressHint ?? ''}>
                   正在导入数据，请勿关闭页面...
                 </Text>
               </div>
@@ -540,6 +644,97 @@ export default function DataManagement() {
           </div>
         </Card>
       </div>
+
+      {/* ── 管理员密码验证弹窗 ── */}
+      <Modal
+        title={
+          <Space>
+            <LockOutlined />
+            管理员密码验证
+          </Space>
+        }
+        open={verifyModalOpen}
+        onOk={handleVerifyPassword}
+        onCancel={() => {
+          setVerifyModalOpen(false);
+          setVerifyPasswordValue('');
+        }}
+        okText="确认"
+        cancelText="取消"
+        confirmLoading={verifySubmitting}
+        maskClosable={false}
+      >
+        <div className={styles.formBlock ?? ''}>
+          <Text type="secondary" className={styles.progressHint ?? ''}>
+            此操作将完全覆盖现有数据，请输入管理员密码以确认操作
+          </Text>
+          <Input.Password
+            className={styles.passwordInput ?? ''}
+            placeholder="请输入管理员密码"
+            value={verifyPasswordValue}
+            onChange={(e) => setVerifyPasswordValue(e.target.value)}
+            onPressEnter={handleVerifyPassword}
+            autoComplete="current-password"
+          />
+        </div>
+      </Modal>
+
+      {/* ── 导入成功弹窗 ── */}
+      <Modal
+        title={
+          <Space>
+            <CheckCircleOutlined />
+            导入完成
+          </Space>
+        }
+        open={resultModal?.type === 'success'}
+        closable={false}
+        maskClosable={false}
+        footer={[
+          <Button key="refresh" type="primary" icon={<ReloadOutlined />} onClick={handleRefreshWorkbench}>
+            刷新工作台
+          </Button>,
+        ]}
+      >
+        <div className={styles.formBlock ?? ''}>
+          <Text>
+            数据导入完成！{resultModal?.type === 'success' ? resultModal.tables : 0} 张表导入成功，
+            {resultModal?.type === 'success' ? resultModal.rows : 0} 行数据
+          </Text>
+        </div>
+      </Modal>
+
+      {/* ── 导入失败弹窗 ── */}
+      <Modal
+        title={
+          <Space>
+            <CloseCircleOutlined />
+            导入失败
+          </Space>
+        }
+        open={resultModal?.type === 'error'}
+        onCancel={() => setResultModal(null)}
+        footer={[
+          <Button key="close" onClick={() => setResultModal(null)}>
+            关闭
+          </Button>,
+        ]}
+      >
+        <div className={styles.formBlock ?? ''}>
+          {resultModal?.type === 'error' && resultModal.rollback === 'failed' ? (
+            <Text type="danger">导入失败，且数据回退失败！请手动恢复数据</Text>
+          ) : (
+            <>
+              <Text type="danger">
+                导入失败：{resultModal?.type === 'error' ? resultModal.message : ''}
+              </Text>
+              {resultModal?.type === 'error' && resultModal.rollback === 'ok' && (
+                <Text type="secondary">已自动回退到导入前的数据</Text>
+              )}
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
