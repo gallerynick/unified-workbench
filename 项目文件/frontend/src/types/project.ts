@@ -14,6 +14,7 @@ export interface Project {
   visibility: Visibility;
   restricted_users: string[] | null;
   restricted_tags: string[] | null;
+  member_ids: string[] | null;
   created_at: string;
   updated_at: string;
   status_log: StatusLogEntry[] | null;
@@ -33,6 +34,7 @@ export interface ProjectCreate {
   visibility?: Visibility;
   restricted_users?: string[];
   restricted_tags?: string[];
+  member_ids?: string[];
 }
 
 export interface ProjectUpdate {
@@ -44,6 +46,7 @@ export interface ProjectUpdate {
   visibility?: Visibility;
   restricted_users?: string[];
   restricted_tags?: string[];
+  member_ids?: string[];
 }
 
 export interface ProjectListResponse {

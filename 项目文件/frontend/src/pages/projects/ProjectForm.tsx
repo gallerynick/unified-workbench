@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { Modal, Form, Input, Select, message } from 'antd';
 import { createProject, updateProject } from '../../api/projects';
+import { listUsers } from '../../api/users';
 import type { Project, ProjectCreate, ProjectUpdate } from '../../types/project';
 import type { Visibility } from '../../utils/visibility';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
@@ -14,6 +15,11 @@ const STATUS_OPTIONS = [
   { value: 'archived', label: '已归档' },
 ];
 
+interface UserOption {
+  value: string;
+  label: string;
+}
+
 interface ProjectFormProps {
   visible: boolean;
   mode: 'create' | 'edit';
@@ -22,13 +28,36 @@ interface ProjectFormProps {
   onSuccess: () => void;
 }
 
+interface UserItem {
+  id: string;
+  nickname?: string;
+  username?: string;
+}
+
 export default function ProjectForm({ visible, mode, project, onClose, onSuccess }: ProjectFormProps) {
   const [form] = Form.useForm();
   const isEdit = mode === 'edit';
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [userOptions, setUserOptions] = useState<UserOption[]>([]);
 
-  // 初始化表单
+  useEffect(() => {
+    if (visible) {
+      listUsers({ page: 1, page_size: 200 }).then((res) => {
+        if (res.code === 0 && res.data) {
+          const users = ((res.data as { items?: UserItem[] }).items || res.data) as UserItem[];
+          setUserOptions(
+            (Array.isArray(users) ? users : []).map((u) => ({
+              value: u.id,
+              label: (u.nickname) || (u.username) || u.id,
+            }))
+          );
+        }
+      }).catch(() => {});
+    }
+  }, [visible]);
+
   useEffect(() => {
     if (visible) {
       if (isEdit && project) {
@@ -40,13 +69,12 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
         });
         setVisibility((project.visibility as Visibility) || 'private');
         setRestrictedUsers(project.restricted_users || []);
+        setMemberIds(project.member_ids || []);
       } else {
         form.resetFields();
-        form.setFieldsValue({
-          status: 'draft',
-        });
         setVisibility('private');
         setRestrictedUsers([]);
+        setMemberIds([]);
       }
     }
   }, [visible, isEdit, project, form]);
@@ -62,6 +90,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           status: values.status,
           visibility,
           ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
+          ...(memberIds.length > 0 ? { member_ids: memberIds } : {}),
         };
         const res = await updateProject(project.id, data);
         if (res.code === 0) {
@@ -75,9 +104,10 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           title: values.title,
           project_id: values.project_id || undefined,
           description: values.description || undefined,
-          status: values.status,
+          status: 'draft',
           visibility,
           ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
+          ...(memberIds.length > 0 ? { member_ids: memberIds } : {}),
         };
         const res = await createProject(data);
         if (res.code === 0) {
@@ -92,7 +122,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
         message.error(err.message);
       }
     }
-  }, [form, isEdit, project, onSuccess, visibility, restrictedUsers]);
+  }, [form, isEdit, project, onSuccess, visibility, restrictedUsers, memberIds]);
 
   return (
     <Modal
@@ -125,13 +155,26 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
         >
           <TextArea placeholder="请输入项目描述（可选）" rows={3} maxLength={500} showCount />
         </Form.Item>
-        <Form.Item
-          name="status"
-          label="项目状态"
-          rules={[{ required: true, message: '请选择项目状态' }]}
-        >
-          <Select options={STATUS_OPTIONS} />
+        <Form.Item label="项目成员">
+          <Select
+            mode="multiple"
+            placeholder="选择项目成员（可选）"
+            options={userOptions}
+            value={memberIds}
+            onChange={setMemberIds}
+            optionFilterProp="label"
+            allowClear
+          />
         </Form.Item>
+        {isEdit && (
+          <Form.Item
+            name="status"
+            label="项目状态"
+            rules={[{ required: true, message: '请选择项目状态' }]}
+          >
+            <Select options={STATUS_OPTIONS} />
+          </Form.Item>
+        )}
         <Form.Item label="可见性">
           <VisibilitySetting
             value={visibility}

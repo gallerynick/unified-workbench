@@ -22,6 +22,7 @@ class ProjectCreate(BaseModel):
     visibility: Visibility = Visibility.PRIVATE
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
+    member_ids: list[str] | None = None
 
 
 class ProjectUpdate(BaseModel):
@@ -35,6 +36,7 @@ class ProjectUpdate(BaseModel):
     visibility: Visibility | None = None
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
+    member_ids: list[str] | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -53,6 +55,7 @@ class ProjectResponse(BaseModel):
     visibility: Visibility
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
+    member_ids: list[str] | None = None
     created_at: datetime
     updated_at: datetime
     status_log: list[dict] | None = None

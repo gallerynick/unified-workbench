@@ -31,6 +31,7 @@ async def create_project(
         visibility=data.get("visibility", Visibility.PRIVATE),
         restricted_users=data.get("restricted_users"),
         restricted_tags=data.get("restricted_tags"),
+        member_ids=data.get("member_ids"),
     )
     db.add(project)
     await db.flush()
@@ -125,6 +126,8 @@ async def update_project(
         proj.restricted_users = data["restricted_users"]
     if "restricted_tags" in data:
         proj.restricted_tags = data["restricted_tags"]
+    if "member_ids" in data:
+        proj.member_ids = data["member_ids"]
     await db.flush()
     await db.refresh(proj)
     return proj
