@@ -15,6 +15,7 @@ class ProjectCreate(BaseModel):
     """创建项目请求"""
 
     number: str | None = None
+    owner_id: uuid.UUID | None = None
     title: str
     description: str | None = None
     content: dict[str, Any] = {}

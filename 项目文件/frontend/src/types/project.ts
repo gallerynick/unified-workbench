@@ -32,6 +32,7 @@ export interface StatusLogEntry {
 export interface ProjectCreate {
   project_id?: string;
   number?: string;
+  owner_id?: string;
   title: string;
   description?: string;
   content?: Record<string, unknown>;

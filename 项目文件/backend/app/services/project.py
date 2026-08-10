@@ -25,6 +25,16 @@ async def create_project(
     owner_id: uuid.UUID,
 ) -> Project:
     """创建项目"""
+    owner_user: User | None = None
+    if data.get("owner_id") is not None:
+        result = await db.execute(select(User).where(User.id == data["owner_id"]))
+        owner_user = result.scalar_one_or_none()
+        if owner_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="指定的项目负责人不存在",
+            )
+        owner_id = data["owner_id"]
     project = Project(
         number=data.get("number"),
         title=data["title"],
@@ -40,6 +50,9 @@ async def create_project(
     )
     db.add(project)
     await db.flush()
+    if owner_user is not None:
+        # 预加载 owner 关系，避免 async 下序列化 owner_name 时触发懒加载
+        project.owner = owner_user
     return project
 
 

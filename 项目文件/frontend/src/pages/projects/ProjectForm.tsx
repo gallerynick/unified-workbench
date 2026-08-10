@@ -106,6 +106,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           description: values.description || undefined,
           status: 'draft',
           visibility,
+          ...(values.owner_id ? { owner_id: values.owner_id } : {}),
           ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
           ...(memberIds.length > 0 ? { member_ids: memberIds } : {}),
         };
@@ -155,6 +156,20 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
         >
           <TextArea placeholder="请输入项目描述（可选）" rows={3} maxLength={500} showCount />
         </Form.Item>
+        {!isEdit && (
+          <Form.Item
+            name="owner_id"
+            label="项目负责人"
+            tooltip="不选择时默认由创建者本人担任项目负责人"
+          >
+            <Select
+              placeholder="选择项目负责人（不选默认创建者本人）"
+              options={userOptions}
+              optionFilterProp="label"
+              allowClear
+            />
+          </Form.Item>
+        )}
         <Form.Item label="项目成员">
           <Select
             mode="multiple"
