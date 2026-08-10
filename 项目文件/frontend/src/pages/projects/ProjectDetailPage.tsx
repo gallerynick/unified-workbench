@@ -9,17 +9,36 @@ import {
   Button,
   Space,
   Tag,
+  Tooltip,
 } from 'antd';
 import {
   ArrowLeftOutlined,
   ExportOutlined,
+  InfoCircleOutlined,
+  TeamOutlined,
+  LineChartOutlined,
+  BulbOutlined,
+  CheckSquareOutlined,
+  MessageOutlined,
+  HistoryOutlined,
+  FileTextOutlined,
+  CalendarOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { getProject, updateProject } from '../../api/projects';
 import type { Project } from '../../types/project';
 import { getVisibilityConfig } from '../../utils/visibility';
+import { useUser } from '../../contexts/UserContext';
 import ProjectInfoTab from './tabs/ProjectInfoTab';
+import ProjectMemberTab from './tabs/ProjectMemberTab';
 import ProjectProgressTab from './tabs/ProjectProgressTab';
+import ProposalTab from './tabs/ProposalTab';
+import TodoTaskTab from './tabs/TodoTaskTab';
+import MeetingRecordTab from './tabs/MeetingRecordTab';
+import ChangeRecordTab from './tabs/ChangeRecordTab';
 import ProjectDocumentTab from './tabs/ProjectDocumentTab';
+import ProjectEventTab from './tabs/ProjectEventTab';
+import ProjectPermissionsModal from './ProjectPermissionsModal';
 import styles from './ProjectDetailPage.module.css';
 
 const { Title } = Typography;
@@ -27,9 +46,11 @@ const { Title } = Typography;
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useUser();
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [permissionModalVisible, setPermissionModalVisible] = useState(false);
 
   const fetchProject = useCallback(async () => {
     if (!id) return;
@@ -90,11 +111,13 @@ export default function ProjectDetailPage() {
     return null;
   }
 
+  const canManagePermissions = !!user && (user.role === 'admin' || user.id === project.owner_id);
   const visibilityCfg = getVisibilityConfig(project.visibility);
   const tabItems = [
     {
       key: 'info',
       label: '项目信息',
+      icon: <InfoCircleOutlined />,
       children: (
         <ProjectInfoTab
           project={project}
@@ -103,8 +126,17 @@ export default function ProjectDetailPage() {
       ),
     },
     {
+      key: 'member',
+      label: '项目人员',
+      icon: <TeamOutlined />,
+      children: (
+        <ProjectMemberTab project={project} />
+      ),
+    },
+    {
       key: 'progress',
       label: '项目进度',
+      icon: <LineChartOutlined />,
       children: (
         <ProjectProgressTab
           project={project}
@@ -113,13 +145,54 @@ export default function ProjectDetailPage() {
       ),
     },
     {
+      key: 'proposal',
+      label: '项目提案',
+      icon: <BulbOutlined />,
+      children: (
+        <ProposalTab project={project} />
+      ),
+    },
+    {
+      key: 'todo',
+      label: '待办任务',
+      icon: <CheckSquareOutlined />,
+      children: (
+        <TodoTaskTab project={project} />
+      ),
+    },
+    {
+      key: 'meeting',
+      label: '交流记录',
+      icon: <MessageOutlined />,
+      children: (
+        <MeetingRecordTab project={project} />
+      ),
+    },
+    {
+      key: 'change',
+      label: '修改记录',
+      icon: <HistoryOutlined />,
+      children: (
+        <ChangeRecordTab project={project} />
+      ),
+    },
+    {
       key: 'document',
       label: '项目文档',
+      icon: <FileTextOutlined />,
       children: (
         <ProjectDocumentTab
           project={project}
           onUpdate={handleUpdate}
         />
+      ),
+    },
+    {
+      key: 'event',
+      label: '项目事件',
+      icon: <CalendarOutlined />,
+      children: (
+        <ProjectEventTab project={project} />
       ),
     },
   ];
@@ -138,6 +211,17 @@ export default function ProjectDetailPage() {
             {project.title}
           </Title>
           <Tag color={visibilityCfg.color}>{visibilityCfg.text}</Tag>
+          {canManagePermissions && (
+            <Tooltip title="分区权限设置">
+              <Button
+                type="text"
+                size="small"
+                icon={<SettingOutlined />}
+                aria-label="分区权限设置"
+                onClick={() => setPermissionModalVisible(true)}
+              />
+            </Tooltip>
+          )}
         </Space>
         <Button
           icon={<ExportOutlined />}
@@ -155,6 +239,15 @@ export default function ProjectDetailPage() {
           items={tabItems}
         />
       </Card>
+
+      {canManagePermissions && (
+        <ProjectPermissionsModal
+          project={project}
+          open={permissionModalVisible}
+          onClose={() => setPermissionModalVisible(false)}
+          onSuccess={fetchProject}
+        />
+      )}
     </div>
   );
 }

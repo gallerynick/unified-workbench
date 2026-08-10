@@ -63,7 +63,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
       if (isEdit && project) {
         form.setFieldsValue({
           title: project.title,
-          project_id: project.project_id,
+          number: project.number,
           description: project.description,
           status: project.status,
         });
@@ -85,7 +85,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
       if (isEdit && project) {
         const data: ProjectUpdate = {
           title: values.title,
-          project_id: values.project_id || null,
+          number: values.number || null,
           description: values.description || null,
           status: values.status,
           visibility,
@@ -102,7 +102,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
       } else {
         const data: ProjectCreate = {
           title: values.title,
-          project_id: values.project_id || undefined,
+          number: values.number || undefined,
           description: values.description || undefined,
           status: 'draft',
           visibility,
@@ -143,7 +143,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           <Input placeholder="请输入项目名称" maxLength={200} showCount />
         </Form.Item>
         <Form.Item
-          name="project_id"
+          name="number"
           label="项目编号"
           tooltip="可选的项目标识编号"
         >

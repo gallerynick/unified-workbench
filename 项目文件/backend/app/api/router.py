@@ -16,8 +16,15 @@ from app.api.finance import router as finance_router
 from app.api.forms import router as forms_router
 from app.api.health import router as health_router
 from app.api.inventory import router as inventory_router
+from app.api.link_relations import router as link_relations_router
 from app.api.notes import router as notes_router
 from app.api.notifications import router as notifications_router
+from app.api.project_changes import router as project_changes_router
+from app.api.project_events import router as project_events_router
+from app.api.project_members import router as project_members_router
+from app.api.project_meetings import router as project_meetings_router
+from app.api.project_proposals import router as project_proposals_router
+from app.api.project_todos import router as project_todos_router
 from app.api.projects import router as projects_router
 
 from app.api.reminders import router as reminders_router
@@ -66,6 +73,13 @@ api_router.include_router(stream_room_router, prefix="/stream/rooms", tags=["直
 api_router.include_router(forms_router, prefix="/forms", tags=["表单"])
 api_router.include_router(announcements_router, prefix="/announcements", tags=["公告"])
 api_router.include_router(notes_router, prefix="/notes", tags=["笔记"])
+api_router.include_router(project_members_router, prefix="/project-members", tags=["项目成员"])
+api_router.include_router(project_proposals_router, prefix="/project-proposals", tags=["项目提案"])
+api_router.include_router(project_meetings_router, prefix="/project-meetings", tags=["项目会议"])
+api_router.include_router(project_changes_router, prefix="/project-changes", tags=["项目变更"])
+api_router.include_router(project_todos_router, prefix="/project-todos", tags=["项目待办"])
+api_router.include_router(project_events_router, prefix="/project-events", tags=["项目事件"])
+api_router.include_router(link_relations_router, prefix="/link-relations", tags=["关联关系"])
 api_router.include_router(projects_router, prefix="/projects", tags=["项目文档"])
 api_router.include_router(tags_router, prefix="/tags", tags=["标签管理"])
 api_router.include_router(topology_router, prefix="/topologies", tags=["拓扑管理"])

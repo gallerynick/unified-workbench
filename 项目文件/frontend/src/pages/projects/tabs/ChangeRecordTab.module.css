@@ -1,0 +1,47 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-card-gap);
+}
+
+.filterSelect {
+  min-width: 180px;
+}
+
+.table {
+  flex: 1;
+}
+
+.detailText {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 767px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-xs);
+  }
+
+  .filterSelect {
+    width: 100%;
+  }
+
+  .table {
+    overflow-x: auto;
+  }
+}

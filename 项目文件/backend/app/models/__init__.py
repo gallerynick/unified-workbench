@@ -8,9 +8,16 @@ from app.models.content import Content
 from app.models.file_share import FileShare
 from app.models.form import Form, FormResponse
 from app.models.inventory import Inventory
+from app.models.link_relation import LinkRelation
 from app.models.note import Note
 from app.models.notification import Notification
 from app.models.project import Project
+from app.models.project_change import ProjectChange
+from app.models.project_event import ProjectEvent
+from app.models.project_meeting import ProjectMeeting
+from app.models.project_member import ProjectMember
+from app.models.project_proposal import ProjectProposal
+from app.models.project_todo import ProjectTodo
 
 from app.models.reminder import Reminder, ReminderStatus
 from app.models.secret import Secret
@@ -44,9 +51,16 @@ __all__ = [
     "Form",
     "FormResponse",
     "Inventory",
+    "LinkRelation",
     "Note",
     "Notification",
     "Project",
+    "ProjectChange",
+    "ProjectEvent",
+    "ProjectMeeting",
+    "ProjectMember",
+    "ProjectProposal",
+    "ProjectTodo",
 
     "Reminder",
     "ReminderStatus",

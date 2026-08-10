@@ -147,8 +147,8 @@ export default function ProjectManagement() {
     },
     {
       title: '项目编号',
-      dataIndex: 'project_id',
-      key: 'project_id',
+      dataIndex: 'number',
+      key: 'number',
       ellipsis: true,
       render: (text: string | null) => text || '-',
     },
@@ -281,15 +281,24 @@ export default function ProjectManagement() {
         destroyOnClose
       >
         <div className={styles.permissionContent ?? ''}>
-          <Title level={5}>
-            项目负责人
+          <Title
+            level={5}
+            style={{ fontSize: 'var(--text-caption-strong-size)', fontWeight: 'bold' }}
+          >
+            项目负责人（owner）
           </Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>拥有项目的最高管理权限，可以删除项目、修改项目基本信息、管理项目成员。</Paragraph>
-          <Title level={5}>
-            项目成员
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>最高权限——可管理项目信息、人员、进度、提案、待办、交流、修改、文档、事件全部分区，并可移交负责人。</Paragraph>
+          <Title
+            level={5}
+            style={{ fontSize: 'var(--text-caption-strong-size)', fontWeight: 'bold' }}
+          >
+            项目成员（member_ids 中的人）
           </Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可以编辑项目文档、创建新文档，但不能修改项目的基本信息。</Paragraph>
-          <Title level={5}>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>按成员权限配置（member_permissions）对每个分区获得查看或管理权限。默认可管理提案、待办、交流、修改、文档；信息、进度、人员、事件仅可查看。</Paragraph>
+          <Title
+            level={5}
+            style={{ fontSize: 'var(--text-caption-strong-size)', fontWeight: 'bold' }}
+          >
             可见范围
           </Title>
           <ul className={styles.permissionList ?? ''}>
@@ -309,14 +318,20 @@ export default function ProjectManagement() {
               </Text>
             </li>
           </ul>
-          <Title level={5}>
-            管理员
+          <Title
+            level={5}
+            style={{ fontSize: 'var(--text-caption-strong-size)', fontWeight: 'bold' }}
+          >
+            管理员（admin）
           </Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以查看和管理所有项目。</Paragraph>
-          <Title level={5}>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以全权管理所有项目。</Paragraph>
+          <Title
+            level={5}
+            style={{ fontSize: 'var(--text-caption-strong-size)', fontWeight: 'bold' }}
+          >
             创建权限
           </Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建项目，创建时需设定可见范围。</Paragraph>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>任何成员都可以创建项目，创建者自动成为项目负责人。</Paragraph>
         </div>
       </Modal>
 

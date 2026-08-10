@@ -23,8 +23,8 @@ class Project(Base):
     __tablename__ = "project"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    project_id: Mapped[str] = mapped_column(
-        String(50), nullable=True, default=None, comment="项目编号/标识"
+    number: Mapped[str] = mapped_column(
+        String(50), nullable=True, default=None, comment="项目编号"
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False, comment="项目名称")
     description: Mapped[str | None] = mapped_column(
@@ -45,6 +45,7 @@ class Project(Base):
     restricted_users: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     restricted_tags: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     member_ids: Mapped[list | None] = mapped_column(JSONB, default=list)
+    member_permissions: Mapped[dict | None] = mapped_column(JSONB, default=dict, comment="成员权限配置")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

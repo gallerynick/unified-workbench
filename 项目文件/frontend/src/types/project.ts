@@ -5,6 +5,8 @@ export type ProjectStatus = 'draft' | 'ongoing' | 'done' | 'archived';
 export interface Project {
   id: string;
   project_id: string | null;
+  /** 项目编号（PRJ- 前缀，后端生成或手动指定） */
+  number: string | null;
   title: string;
   description: string | null;
   content: Record<string, unknown>;
@@ -15,6 +17,8 @@ export interface Project {
   restricted_users: string[] | null;
   restricted_tags: string[] | null;
   member_ids: string[] | null;
+  /** 成员权限配置：分区键 → 权限级别（如 owner/admin/member/viewer） */
+  member_permissions: Record<string, string> | null;
   created_at: string;
   updated_at: string;
   status_log: StatusLogEntry[] | null;
@@ -27,6 +31,7 @@ export interface StatusLogEntry {
 
 export interface ProjectCreate {
   project_id?: string;
+  number?: string;
   title: string;
   description?: string;
   content?: Record<string, unknown>;
@@ -35,10 +40,12 @@ export interface ProjectCreate {
   restricted_users?: string[];
   restricted_tags?: string[];
   member_ids?: string[];
+  member_permissions?: Record<string, string>;
 }
 
 export interface ProjectUpdate {
   project_id?: string;
+  number?: string;
   title?: string;
   description?: string;
   content?: Record<string, unknown>;
@@ -47,6 +54,7 @@ export interface ProjectUpdate {
   restricted_users?: string[];
   restricted_tags?: string[];
   member_ids?: string[];
+  member_permissions?: Record<string, string>;
 }
 
 export interface ProjectListResponse {

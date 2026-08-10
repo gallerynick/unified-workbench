@@ -14,7 +14,7 @@ from app.core.visibility import Visibility
 class ProjectCreate(BaseModel):
     """创建项目请求"""
 
-    project_id: str | None = None
+    number: str | None = None
     title: str
     description: str | None = None
     content: dict[str, Any] = {}
@@ -23,12 +23,13 @@ class ProjectCreate(BaseModel):
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     member_ids: list[str] | None = None
+    member_permissions: dict | None = None
 
 
 class ProjectUpdate(BaseModel):
     """更新项目请求"""
 
-    project_id: str | None = None
+    number: str | None = None
     title: str | None = None
     description: str | None = None
     content: dict[str, Any] | None = None
@@ -37,6 +38,7 @@ class ProjectUpdate(BaseModel):
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     member_ids: list[str] | None = None
+    member_permissions: dict | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -45,7 +47,7 @@ class ProjectResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    project_id: str | None = None
+    number: str | None = None
     title: str
     description: str | None = None
     content: dict[str, Any]
@@ -56,6 +58,7 @@ class ProjectResponse(BaseModel):
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     member_ids: list[str] | None = None
+    member_permissions: dict | None = None
     created_at: datetime
     updated_at: datetime
     status_log: list[dict] | None = None

@@ -1,0 +1,22 @@
+.formItem {
+  margin-bottom: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: var(--text-body-sm-size);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
