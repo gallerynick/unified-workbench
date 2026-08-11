@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Avatar, Button, Form, Input, Typography, message } from 'antd';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useUser } from '../contexts/UserContext';
@@ -14,7 +13,6 @@ interface LockFormValues {
 }
 
 export default function LockPage() {
-  const navigate = useNavigate();
   const { user, refreshUser } = useUser();
   const { unlock } = useLockContext();
   const [loading, setLoading] = useState(false);
@@ -41,7 +39,7 @@ export default function LockPage() {
           sessionStorage.setItem('workbench_just_unlocked', '1');
           unlock();
           const returnPath = sessionStorage.getItem('workbench_lock_return') || '/';
-          navigate(returnPath, { replace: true });
+          window.location.href = returnPath;
         }, 250);
       } else {
         message.error('密码错误');

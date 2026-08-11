@@ -235,7 +235,6 @@ export default function MainLayout() {
   // 工作台被锁定时跳转到锁屏页
   useEffect(() => {
     if (isLocked) {
-      sessionStorage.setItem('workbench_lock_return', window.location.pathname);
       navigate('/lock');
     }
   }, [isLocked, navigate]);
