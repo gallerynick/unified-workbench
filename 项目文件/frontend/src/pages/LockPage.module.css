@@ -6,6 +6,7 @@
   min-height: 100vh;
   background: var(--canvas-parchment);
   padding: var(--spacing-lg);
+  animation: lockPageFadeIn 200ms ease-out forwards;
 }
 
 .avatar {
@@ -57,4 +58,9 @@
     opacity: 1;
     filter: blur(0);
   }
+}
+
+@keyframes lockPageFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
