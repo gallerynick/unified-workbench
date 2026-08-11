@@ -18,6 +18,7 @@ export default function LockPage() {
   const { user, refreshUser } = useUser();
   const { unlock } = useLockContext();
   const [loading, setLoading] = useState(false);
+  const [dissolving, setDissolving] = useState(false);
 
   useEffect(() => {
     // 直接刷新到 /lock 时 user 可能尚未加载，主动拉取一次
@@ -34,14 +35,18 @@ export default function LockPage() {
         body: { password: values.password },
       });
       if (res.code === 0 && res.data?.valid === true) {
-        unlock();
-        message.success('解锁成功');
-        const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-        if (idx > 0) {
-          navigate(-1);
-        } else {
-          navigate('/', { replace: true });
-        }
+        // 溶解动画 400ms 后解锁，同时传信号给 MainLayout 播放反向模糊进场
+        setDissolving(true);
+        setTimeout(() => {
+          sessionStorage.setItem('workbench_just_unlocked', '1');
+          unlock();
+          const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+          if (idx > 0) {
+            navigate(-1);
+          } else {
+            navigate('/', { replace: true });
+          }
+        }, 400);
       } else {
         message.error('密码错误');
       }
@@ -52,14 +57,14 @@ export default function LockPage() {
         message.error('解锁失败，请重试');
       }
     } finally {
-      setLoading(false);
+      if (!dissolving) setLoading(false);
     }
   };
 
   const displayName = user?.nickname || user?.username || '未知用户';
 
   return (
-    <div className={`${styles.container ?? ''}`}>
+    <div className={`${styles.container ?? ''} ${dissolving ? (styles.dissolving ?? '') : ''}`}>
       <Avatar
         size={80}
         src={user?.avatar || undefined}

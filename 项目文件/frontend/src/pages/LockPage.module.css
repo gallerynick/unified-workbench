@@ -64,3 +64,11 @@
   0% { opacity: 0; }
   100% { opacity: 1; }
 }
+
+/* ====== Unlock dissolve ====== */
+.dissolving {
+  opacity: 0;
+  filter: blur(4px);
+  transform: scale(0.98);
+  transition: opacity 400ms ease-in, filter 400ms ease-in, transform 400ms ease-in;
+}

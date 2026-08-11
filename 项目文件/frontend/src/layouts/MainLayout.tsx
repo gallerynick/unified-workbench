@@ -221,6 +221,17 @@ export default function MainLayout() {
   const { isLocked, locking, lock } = useLockContext();
   useIdleTimer();
 
+  // 解锁溶回：LockPage 通过 sessionStorage 传信号，MainLayout 播放反向模糊进场
+  const [welcoming, setWelcoming] = useState(false);
+  useEffect(() => {
+    if (sessionStorage.getItem('workbench_just_unlocked') === '1') {
+      sessionStorage.removeItem('workbench_just_unlocked');
+      setWelcoming(true);
+      const timer = setTimeout(() => setWelcoming(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // 工作台被锁定时跳转到锁屏页
   useEffect(() => {
     if (isLocked) {
@@ -241,7 +252,7 @@ export default function MainLayout() {
 
   return (
     <TagProvider>
-      <Layout className={locking ? styles.locking ?? '' : ''} style={{ minHeight: '100vh', background: 'var(--canvas-parchment)', transition: 'filter 0.5s ease' }}>
+      <Layout className={`${locking ? (styles.locking ?? '') : ''}${welcoming ? ' ' + (styles.welcoming ?? '') : ''}`} style={{ minHeight: '100vh', background: 'var(--canvas-parchment)', transition: 'filter 0.5s ease' }}>
         {!isMobile && (
         <div className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`} style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)', display: 'flex', flexDirection: 'column' }}>
           <div
