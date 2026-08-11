@@ -46,7 +46,7 @@ export default function LockPage() {
           } else {
             navigate('/', { replace: true });
           }
-        }, 400);
+        }, 350);
       } else {
         message.error('密码错误');
       }

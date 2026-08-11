@@ -162,11 +162,12 @@
 /* ====== Unlock welcome-back (reverse blur) ====== */
 .welcoming {
   filter: blur(14px);
-  opacity: 0.7;
-  animation: workbenchBlurIn 500ms ease-out forwards;
+  opacity: 0.5;
+  transform: scale(0.97);
+  animation: workbenchBlurIn 450ms ease-out forwards;
 }
 
 @keyframes workbenchBlurIn {
-  0% { filter: blur(14px); opacity: 0.7; }
-  100% { filter: blur(0); opacity: 1; }
+  0% { filter: blur(14px); opacity: 0.5; transform: scale(0.97); }
+  100% { filter: blur(0); opacity: 1; transform: scale(1); }
 }
