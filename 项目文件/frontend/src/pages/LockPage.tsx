@@ -60,43 +60,41 @@ export default function LockPage() {
 
   return (
     <div className={`${styles.container ?? ''}`}>
-      <div className={`${styles.card ?? ''}`}>
-        <Avatar
-          size={80}
-          src={user?.avatar || undefined}
-          icon={!user?.avatar ? <UserOutlined /> : undefined}
-          className={styles.avatar ?? ''}
-        />
-        <Title level={4} className={styles.title ?? ''}>
-          {displayName}
-        </Title>
-        <Text type="secondary" className={styles.subtitle ?? ''}>
-          工作台已锁定，请输入密码解锁
-        </Text>
-        <Form<LockFormValues>
-          name="lock"
-          size="large"
-          onFinish={handleUnlock}
-          className={styles.form ?? ''}
+      <Avatar
+        size={80}
+        src={user?.avatar || undefined}
+        icon={!user?.avatar ? <UserOutlined /> : undefined}
+        className={styles.avatar ?? ''}
+      />
+      <Title level={4} className={styles.title ?? ''}>
+        {displayName}
+      </Title>
+      <Text type="secondary" className={styles.subtitle ?? ''}>
+        工作台已锁定，请输入密码解锁
+      </Text>
+      <Form<LockFormValues>
+        name="lock"
+        size="large"
+        onFinish={handleUnlock}
+        className={styles.form ?? ''}
+      >
+        <Form.Item
+          name="password"
+          rules={[{ required: true, message: '请输入密码' }]}
         >
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="请输入密码"
-              aria-label="解锁密码"
-              autoFocus
-            />
-          </Form.Item>
-          <Form.Item className={styles.submitItem ?? ''}>
-            <Button type="primary" htmlType="submit" loading={loading} block>
-              解锁
-            </Button>
-          </Form.Item>
-        </Form>
-      </div>
+          <Input.Password
+            prefix={<LockOutlined />}
+            placeholder="请输入密码"
+            aria-label="解锁密码"
+            autoFocus
+          />
+        </Form.Item>
+        <Form.Item className={styles.submitItem ?? ''}>
+          <Button type="primary" htmlType="submit" loading={loading} block>
+            解锁
+          </Button>
+        </Form.Item>
+      </Form>
     </div>
   );
 }

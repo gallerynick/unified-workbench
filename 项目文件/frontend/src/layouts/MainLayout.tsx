@@ -34,7 +34,8 @@ import {
   DesktopOutlined,
   SwapOutlined,
   LockOutlined,
-  UnlockOutlined,
+  ClockCircleOutlined,
+  PauseCircleOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -406,25 +407,6 @@ export default function MainLayout() {
                 {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               </button>
             )}
-            <Tooltip title="手动锁定工作台">
-              <Button
-                type="text"
-                size="small"
-                icon={<LockOutlined />}
-                aria-label="手动锁定工作台"
-                onClick={lock}
-              />
-            </Tooltip>
-            <Tooltip title={idlePaused ? '已暂停自动锁定' : '空闲 5 分钟自动锁定'}>
-              <Button
-                type="text"
-                size="small"
-                icon={idlePaused ? <LockOutlined /> : <UnlockOutlined />}
-                aria-label={idlePaused ? '恢复自动锁定' : '暂停自动锁定'}
-                onClick={toggleIdlePause}
-                style={{ color: idlePaused ? 'var(--color-warning)' : undefined }}
-              />
-            </Tooltip>
           </Space>
           <Text strong style={{ fontSize: 'var(--text-heading-4-size)', marginLeft: 8, flex: 1, textAlign: 'center' }}>
             {getRouteTitle(location.pathname)}
@@ -436,6 +418,25 @@ export default function MainLayout() {
               onMarkAsRead={markAsRead}
               onMarkAllAsRead={markAllAsRead}
             />
+            <Tooltip title="手动锁定工作台">
+              <Button
+                type="text"
+                size="small"
+                icon={<LockOutlined />}
+                aria-label="手动锁定工作台"
+                onClick={lock}
+              />
+            </Tooltip>
+            <Tooltip title={idlePaused ? '自动锁定已暂停' : '空闲 5 分钟自动锁定'}>
+              <Button
+                type="text"
+                size="small"
+                icon={idlePaused ? <PauseCircleOutlined /> : <ClockCircleOutlined />}
+                aria-label={idlePaused ? '恢复自动锁定' : '暂停自动锁定'}
+                onClick={toggleIdlePause}
+                style={{ color: idlePaused ? 'var(--color-warning)' : undefined }}
+              />
+            </Tooltip>
             <Dropdown menu={{ items: userMenuItems ?? [], onClick: ({ key }) => {
               if (key === 'profile') navigate('/profile');
               if (key === 'logout') { clearTokens(); navigate('/login'); }

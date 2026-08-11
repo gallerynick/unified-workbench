@@ -1,23 +1,11 @@
 .container {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   background: var(--canvas-parchment);
   padding: var(--spacing-lg);
-}
-
-.card {
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--spacing-xl);
-  background: var(--card-bg);
-  border: var(--card-border);
-  border-radius: var(--rounded-sm);
-  box-shadow: var(--shadow-md);
 }
 
 .avatar {
@@ -39,6 +27,7 @@
 
 .form {
   width: 100%;
+  max-width: 360px;
   margin-top: var(--spacing-md);
 }
 
