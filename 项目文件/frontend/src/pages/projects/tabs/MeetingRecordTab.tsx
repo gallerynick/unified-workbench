@@ -40,6 +40,7 @@ import type { ProjectMeetingListParams } from '../../../api/project-meetings';
 import { listUsers } from '../../../api/users';
 import { MEETING_TYPE_OPTIONS, PROJECT_NUMBER_PREFIX } from '../../../constants/project';
 import { getUserId, isAdmin } from '../../../utils/auth';
+import { useUser } from '../../../contexts/UserContext';
 import type { User } from '../../../types/user';
 import styles from './MeetingRecordTab.module.css';
 
@@ -122,6 +123,7 @@ interface UserOption {
 }
 
 export default function MeetingRecordTab({ project }: { project: Project }) {
+  const { user } = useUser();
   // ── 数据状态 ──
   const [meetings, setMeetings] = useState<ProjectMeeting[]>([]);
   const [total, setTotal] = useState(0);
@@ -146,7 +148,7 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
   const currentUserId = getUserId();
   const isOwner = !!currentUserId && project.owner_id === currentUserId;
   const isAdminUser = isAdmin();
-  const meetingPermission = project.member_permissions?.['meetings'];
+  const meetingPermission = project.member_permissions?.[user?.id ?? '']?.['meetings'];
   const canManage = isAdminUser || isOwner || meetingPermission !== 'readonly';
 
   // ── 加载用户列表（静默失败） ──

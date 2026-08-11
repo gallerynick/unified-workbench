@@ -40,6 +40,7 @@ import { listProjectProposals } from '../../../api/project-proposals';
 import { listUsers } from '../../../api/users';
 import { TODO_PRIORITY_OPTIONS, TODO_STATUS_OPTIONS, PROJECT_NUMBER_PREFIX } from '../../../constants/project';
 import { getUserId, isAdmin } from '../../../utils/auth';
+import { useUser } from '../../../contexts/UserContext';
 import styles from './TodoTaskTab.module.css';
 
 const { Text } = Typography;
@@ -87,6 +88,7 @@ function buildTodoNumber(project: Project, existing: ProjectTodo[]): string {
 }
 
 export default function TodoTaskTab({ project }: { project: Project }) {
+  const { user } = useUser();
   // ── 数据状态 ──
   const [todos, setTodos] = useState<ProjectTodo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ export default function TodoTaskTab({ project }: { project: Project }) {
   const currentUserId = getUserId();
   const isOwner = project.owner_id === currentUserId;
   const isAdminUser = isAdmin();
-  const todosPermission = project.member_permissions?.todos;
+  const todosPermission = project.member_permissions?.[user?.id ?? '']?.todos;
   /** 负责人/管理员全权限；成员按 todos 分区（readonly 禁用操作）；未配置默认允许 */
   const canOperate = isAdminUser || isOwner || todosPermission !== 'readonly';
 

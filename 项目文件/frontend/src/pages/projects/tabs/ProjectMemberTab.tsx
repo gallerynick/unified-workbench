@@ -6,6 +6,7 @@ import {
   Form,
   Input,
   Modal,
+  Radio,
   Segmented,
   Select,
   Space,
@@ -20,6 +21,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
+  SettingOutlined,
   UserAddOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -31,6 +33,7 @@ import {
 } from '../../../api/project-members';
 import { listUsers } from '../../../api/users';
 import { updateProject } from '../../../api/projects';
+import { PERMISSION_SECTIONS } from '../../../constants/project';
 import type { Project } from '../../../types/project';
 import type { ProjectMember } from '../../../types/project-member';
 import type { User } from '../../../types/user';
@@ -44,6 +47,8 @@ const ROLE_PRESETS = ['项目负责人', '开发', '设计', '测试', '运维',
 
 interface ProjectMemberTabProps {
   project: Project;
+  /** 项目数据更新回调（成员权限保存后刷新 project 数据） */
+  onUpdate?: (data: Record<string, unknown>) => Promise<void>;
 }
 
 /** 格式化日期，null / 非法值显示为 - */
@@ -60,7 +65,7 @@ function formatDate(iso: string | null): string {
   });
 }
 
-export default function ProjectMemberTab({ project }: ProjectMemberTabProps) {
+export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTabProps) {
   const { user } = useUser();
 
   // ── 数据状态 ──
@@ -74,6 +79,9 @@ export default function ProjectMemberTab({ project }: ProjectMemberTabProps) {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingMember, setEditingMember] = useState<ProjectMember | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [permissionModalVisible, setPermissionModalVisible] = useState(false);
+  const [permissionMember, setPermissionMember] = useState<ProjectMember | null>(null);
+  const [permissionValues, setPermissionValues] = useState<Record<string, string>>({});
 
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -85,7 +93,7 @@ export default function ProjectMemberTab({ project }: ProjectMemberTabProps) {
   const canManage = useMemo(() => {
     if (!user) return false;
     if (user.id === project.owner_id || user.role === 'admin') return true;
-    return project.member_permissions?.['members'] !== 'readonly';
+    return project.member_permissions?.[user.id]?.['members'] !== 'readonly';
   }, [user, project]);
 
   // 私有项目不允许添加项目成员
@@ -305,6 +313,43 @@ export default function ProjectMemberTab({ project }: ProjectMemberTabProps) {
     [getDisplayName, isOwner, project.id, project.member_ids, fetchMembers],
   );
 
+  // ── 成员权限设置 ──
+  const openPermissionModal = useCallback(
+    (member: ProjectMember) => {
+      const current = project.member_permissions?.[member.user_id] ?? {};
+      const initial: Record<string, string> = {};
+      for (const key of Object.keys(PERMISSION_SECTIONS)) {
+        initial[key] = current[key] ?? 'manage';
+      }
+      setPermissionValues(initial);
+      setPermissionMember(member);
+      setPermissionModalVisible(true);
+    },
+    [project.member_permissions],
+  );
+
+  const handleSavePermission = useCallback(async () => {
+    if (!permissionMember) return;
+    const newPerms = {
+      ...(project.member_permissions ?? {}),
+      [permissionMember.user_id]: { ...permissionValues },
+    };
+    try {
+      const res = await updateProject(project.id, { member_permissions: newPerms });
+      if (res.code === 0) {
+        message.success('权限已更新');
+        setPermissionModalVisible(false);
+        if (onUpdate) {
+          await onUpdate({ member_permissions: newPerms });
+        }
+      } else {
+        message.error(res.msg || '权限更新失败');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) message.error(err.message);
+    }
+  }, [permissionMember, permissionValues, project.id, project.member_permissions, onUpdate]);
+
   // ── 表格列 ──
   const columns = useMemo<ColumnsType<ProjectMember>>(() => {
     const baseColumns: ColumnsType<ProjectMember> = [
@@ -372,13 +417,24 @@ export default function ProjectMemberTab({ project }: ProjectMemberTabProps) {
       const actionColumn: ColumnsType<ProjectMember>[number] = {
         title: '操作',
         key: 'action',
-        width: 110,
+        width: 150,
         align: 'right',
         render: (_, member) => {
           if (!canManage) return null;
           const isOwnerMember = member.is_owner || member.user_id === project.owner_id;
           return (
             <Space size={4} className={styles.actionCell ?? ''}>
+              {isOwner && (
+                <Tooltip title="权限设置">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<SettingOutlined />}
+                    aria-label="权限设置"
+                    onClick={() => openPermissionModal(member)}
+                  />
+                </Tooltip>
+              )}
               <Tooltip title="编辑职务/备注">
                 <Button
                   type="text"
@@ -431,12 +487,14 @@ export default function ProjectMemberTab({ project }: ProjectMemberTabProps) {
     ];
   }, [
     canManage,
+    isOwner,
     project.owner_id,
     viewMode,
     getAvatar,
     getDisplayName,
     getUsername,
     openEditModal,
+    openPermissionModal,
     handleRemoveMember,
   ]);
 
@@ -542,6 +600,34 @@ export default function ProjectMemberTab({ project }: ProjectMemberTabProps) {
           <Form.Item name="notes" label="备注">
             <Input.TextArea placeholder="选填，成员备注说明" rows={3} maxLength={500} showCount />
           </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 权限设置弹窗 */}
+      <Modal
+        title={permissionMember ? `权限设置 - ${getDisplayName(permissionMember)}` : '权限设置'}
+        open={permissionModalVisible}
+        onOk={handleSavePermission}
+        onCancel={() => setPermissionModalVisible(false)}
+        destroyOnClose
+        width={560}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
+      >
+        <Form layout="vertical">
+          {Object.entries(PERMISSION_SECTIONS).map(([key, label]) => (
+            <Form.Item key={key} label={label}>
+              <Radio.Group
+                value={permissionValues[key] ?? 'manage'}
+                onChange={(e) =>
+                  setPermissionValues((prev) => ({ ...prev, [key]: e.target.value }))
+                }
+                options={[
+                  { value: 'readonly', label: '只读' },
+                  { value: 'manage', label: '可管理' },
+                ]}
+              />
+            </Form.Item>
+          ))}
         </Form>
       </Modal>
     </div>

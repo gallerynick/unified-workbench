@@ -66,8 +66,9 @@ def require_project_section_permission(
     """校验用户对项目某分区的写权限。
 
     - 所有者：始终放行
-    - 其他成员：分区值 == 'readonly' 时拒绝（403「该分区为只读，无权操作」）
-    - 分区值非 readonly 或未配置：放行（manage 默认）
+    - 其他成员：按嵌套结构 `member_permissions[member_id][section]` 查找，
+      值为 'readonly' 时拒绝（403「该分区为只读，无权操作」）
+    - 未配置或非 dict 结构：放行（manage 默认）
     """
     if project.owner_id == user.id:
         return
@@ -76,7 +77,8 @@ def require_project_section_permission(
         if member_permissions is not None
         else (project.member_permissions or {})
     )
-    if perms.get(section) == "readonly":
+    user_perms = (perms or {}).get(str(user.id))
+    if isinstance(user_perms, dict) and user_perms.get(section) == "readonly":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="该分区为只读，无权操作"
         )

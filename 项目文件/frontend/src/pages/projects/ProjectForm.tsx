@@ -1,7 +1,8 @@
 import { useEffect, useCallback, useState } from 'react';
-import { Modal, Form, Input, Select, message } from 'antd';
+import { Modal, Form, Input, Select, Row, Col, message } from 'antd';
 import { createProject, updateProject } from '../../api/projects';
 import { listUsers } from '../../api/users';
+import { PROJECT_PRIORITY, PROJECT_TYPE, IS_OPEN_SOURCE } from '../../constants/project';
 import type { Project, ProjectCreate, ProjectUpdate } from '../../types/project';
 import type { Visibility } from '../../utils/visibility';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
@@ -66,6 +67,17 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           number: project.number,
           description: project.description,
           status: project.status,
+          department: project.department ?? undefined,
+          language: project.language ?? undefined,
+          is_open_source: project.is_open_source,
+          priority: project.priority,
+          project_type: project.project_type ?? undefined,
+          goals: project.goals ?? undefined,
+          requirements: project.requirements ?? undefined,
+          additional_req: project.additional_req ?? undefined,
+          modules: project.modules ?? undefined,
+          related_projects: project.related_projects ?? undefined,
+          dev_process: project.dev_process ?? undefined,
         });
         setVisibility((project.visibility as Visibility) || 'private');
         setRestrictedUsers(project.restricted_users || []);
@@ -91,6 +103,17 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           visibility,
           ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
           ...(memberIds.length > 0 ? { member_ids: memberIds } : {}),
+          ...(values.department ? { department: values.department } : {}),
+          ...(values.language ? { language: values.language } : {}),
+          is_open_source: values.is_open_source ?? false,
+          priority: values.priority || '待定',
+          ...(values.project_type ? { project_type: values.project_type } : {}),
+          ...(values.goals ? { goals: values.goals } : {}),
+          ...(values.requirements ? { requirements: values.requirements } : {}),
+          ...(values.additional_req ? { additional_req: values.additional_req } : {}),
+          ...(values.modules ? { modules: values.modules } : {}),
+          ...(values.related_projects ? { related_projects: values.related_projects } : {}),
+          ...(values.dev_process ? { dev_process: values.dev_process } : {}),
         };
         const res = await updateProject(project.id, data);
         if (res.code === 0) {
@@ -109,6 +132,17 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           ...(values.owner_id ? { owner_id: values.owner_id } : {}),
           ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
           ...(memberIds.length > 0 ? { member_ids: memberIds } : {}),
+          ...(values.department ? { department: values.department } : {}),
+          ...(values.language ? { language: values.language } : {}),
+          is_open_source: values.is_open_source ?? false,
+          priority: values.priority || '待定',
+          ...(values.project_type ? { project_type: values.project_type } : {}),
+          ...(values.goals ? { goals: values.goals } : {}),
+          ...(values.requirements ? { requirements: values.requirements } : {}),
+          ...(values.additional_req ? { additional_req: values.additional_req } : {}),
+          ...(values.modules ? { modules: values.modules } : {}),
+          ...(values.related_projects ? { related_projects: values.related_projects } : {}),
+          ...(values.dev_process ? { dev_process: values.dev_process } : {}),
         };
         const res = await createProject(data);
         if (res.code === 0) {
@@ -180,6 +214,84 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
             optionFilterProp="label"
             allowClear
           />
+        </Form.Item>
+        <Form.Item
+          name="department"
+          label="所属团队/部门"
+        >
+          <Input placeholder="所属团队或部门（可选）" maxLength={50} />
+        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="language"
+              label="项目语言"
+            >
+              <Input placeholder="项目语言（可选）" maxLength={30} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="is_open_source"
+              label="是否开源"
+            >
+              <Select options={[...IS_OPEN_SOURCE]} placeholder="是否开源" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="priority"
+              label="项目优先级"
+            >
+              <Select options={[...PROJECT_PRIORITY]} placeholder="项目优先级" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="project_type"
+              label="项目类型"
+            >
+              <Select options={[...PROJECT_TYPE]} placeholder="项目类型（可选）" allowClear />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item
+          name="goals"
+          label="项目目标"
+        >
+          <TextArea placeholder="项目目标（可选）" rows={3} />
+        </Form.Item>
+        <Form.Item
+          name="requirements"
+          label="项目需求"
+        >
+          <TextArea placeholder="项目需求（可选）" rows={3} />
+        </Form.Item>
+        <Form.Item
+          name="additional_req"
+          label="附加需求"
+        >
+          <TextArea placeholder="附加需求（可选）" rows={2} />
+        </Form.Item>
+        <Form.Item
+          name="modules"
+          label="模块划分"
+        >
+          <TextArea placeholder="模块划分（可选）" rows={2} />
+        </Form.Item>
+        <Form.Item
+          name="related_projects"
+          label="关联项目"
+        >
+          <Input placeholder="关联项目，逗号分隔（可选）" maxLength={200} />
+        </Form.Item>
+        <Form.Item
+          name="dev_process"
+          label="开发流程"
+        >
+          <TextArea placeholder="开发流程说明（可选）" rows={2} />
         </Form.Item>
         {isEdit && (
           <Form.Item

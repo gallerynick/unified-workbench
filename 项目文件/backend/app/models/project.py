@@ -46,6 +46,39 @@ class Project(Base):
     restricted_tags: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     member_ids: Mapped[list | None] = mapped_column(JSONB, default=list)
     member_permissions: Mapped[dict | None] = mapped_column(JSONB, default=dict, comment="成员权限配置")
+    department: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, default=None, comment="所属团队/部门"
+    )
+    language: Mapped[str | None] = mapped_column(
+        String(30), nullable=True, default=None, comment="项目语言"
+    )
+    is_open_source: Mapped[bool] = mapped_column(
+        nullable=False, server_default="false", comment="是否开源"
+    )
+    priority: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="待定", comment="项目优先级: 立即/重要/一般/最后/待定"
+    )
+    project_type: Mapped[str | None] = mapped_column(
+        String(30), nullable=True, default=None, comment="项目类型: 六类+其他"
+    )
+    goals: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None, comment="项目目标"
+    )
+    requirements: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None, comment="项目需求"
+    )
+    additional_req: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None, comment="附加需求"
+    )
+    modules: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None, comment="模块划分"
+    )
+    related_projects: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None, comment="关联项目"
+    )
+    dev_process: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None, comment="开发流程"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

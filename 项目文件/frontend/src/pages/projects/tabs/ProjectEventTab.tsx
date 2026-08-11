@@ -190,7 +190,7 @@ export default function ProjectEventTab({ project }: { project: Project }) {
   // 权限：负责人 + 管理员全权限；普通成员按 member_permissions.events 分区，readonly 时只读
   const isOwner = !!user && user.id === project.owner_id;
   const isAdmin = user?.role === 'admin';
-  const eventsPerm = project.member_permissions?.events;
+  const eventsPerm = project.member_permissions?.[user?.id ?? '']?.events;
   const canOperate = isOwner || isAdmin || eventsPerm !== 'readonly';
 
   // 当前选中类型（用于动态渲染移交表单）

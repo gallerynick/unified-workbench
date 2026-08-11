@@ -47,6 +47,18 @@ async def create_project(
         restricted_tags=data.get("restricted_tags"),
         member_ids=data.get("member_ids"),
         member_permissions=data.get("member_permissions"),
+        department=data.get("department"),
+        language=data.get("language"),
+        # 非 nullable 列：create 请求未显式传值时回退到数据库默认值
+        is_open_source=data.get("is_open_source") or False,
+        priority=data.get("priority") or "待定",
+        project_type=data.get("project_type"),
+        goals=data.get("goals"),
+        requirements=data.get("requirements"),
+        additional_req=data.get("additional_req"),
+        modules=data.get("modules"),
+        related_projects=data.get("related_projects"),
+        dev_process=data.get("dev_process"),
     )
     db.add(project)
     await db.flush()
@@ -131,7 +143,24 @@ async def update_project(
                 status_code=status.HTTP_403_FORBIDDEN, detail="无权访问该项目"
             )
         require_project_section_permission(proj, current_user, "info")
-    for field in ("number", "title", "description", "content", "status", "visibility"):
+    for field in (
+        "number",
+        "title",
+        "description",
+        "content",
+        "status",
+        "visibility",
+        "department",
+        "language",
+        "priority",
+        "project_type",
+        "goals",
+        "requirements",
+        "additional_req",
+        "modules",
+        "related_projects",
+        "dev_process",
+    ):
         if field in data and data[field] is not None:
             if field == "status" and data[field] != proj.status:
                 log = list(proj.status_log) if proj.status_log else []
@@ -142,6 +171,9 @@ async def update_project(
                 })
                 proj.status_log = log
             setattr(proj, field, data[field])
+    # bool 字段：update 用 exclude_unset=True，False 也需生效，不能用 `data[field] is not None` 判断
+    if "is_open_source" in data:
+        proj.is_open_source = data["is_open_source"]
     if "restricted_users" in data:
         proj.restricted_users = data["restricted_users"]
     if "restricted_tags" in data:

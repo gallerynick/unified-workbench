@@ -101,3 +101,29 @@ export const PERMISSION_SECTIONS = {
   documents: '文档',
   events: '事件',
 } as const;
+
+/** 项目优先级选项 */
+export const PROJECT_PRIORITY = [
+  { value: '立即', label: '立即' },
+  { value: '重要', label: '重要' },
+  { value: '一般', label: '一般' },
+  { value: '最后', label: '最后' },
+  { value: '待定', label: '待定' },
+] as const;
+
+/** 项目类型选项（六类+其他） */
+export const PROJECT_TYPE = [
+  { value: 'entertainment', label: '娱乐与媒体类' },
+  { value: 'productivity', label: '生产力与工具类' },
+  { value: 'commerce', label: '商业与电商类' },
+  { value: 'education', label: '教育与社会服务类' },
+  { value: 'utility', label: '实用工具与系统类' },
+  { value: 'frontier', label: '前沿技术与垂直领域类' },
+  { value: 'other', label: '其他' },
+] as const;
+
+/** 是否开源选项 */
+export const IS_OPEN_SOURCE = [
+  { value: true, label: '是' },
+  { value: false, label: '否' },
+] as const;

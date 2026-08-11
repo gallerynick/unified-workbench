@@ -34,6 +34,7 @@ import {
   PROJECT_NUMBER_PREFIX,
 } from '../../../constants/project';
 import { getUserId, isAdmin } from '../../../utils/auth';
+import { useUser } from '../../../contexts/UserContext';
 import styles from './ChangeRecordTab.module.css';
 
 const { TextArea } = Input;
@@ -104,6 +105,7 @@ function formatDateOnly(dateStr: string): string {
 }
 
 export default function ChangeRecordTab({ project }: { project: Project }) {
+  const { user } = useUser();
   const [items, setItems] = useState<ProjectChange[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -122,7 +124,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
   const currentUserId = getUserId();
   const isAdminUser = isAdmin();
   const isOwner = !!currentUserId && currentUserId === project.owner_id;
-  const changesPermission = project.member_permissions?.changes ?? '';
+  const changesPermission = project.member_permissions?.[user?.id ?? '']?.['changes'] ?? '';
   const canEdit = isAdminUser || isOwner || changesPermission !== 'readonly';
 
   const fetchList = useCallback(async () => {

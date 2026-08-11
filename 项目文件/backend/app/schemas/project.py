@@ -25,6 +25,17 @@ class ProjectCreate(BaseModel):
     restricted_tags: list[str] | None = None
     member_ids: list[str] | None = None
     member_permissions: dict | None = None
+    department: str | None = None
+    language: str | None = None
+    is_open_source: bool | None = None
+    priority: str | None = None
+    project_type: str | None = None
+    goals: str | None = None
+    requirements: str | None = None
+    additional_req: str | None = None
+    modules: str | None = None
+    related_projects: str | None = None
+    dev_process: str | None = None
 
 
 class ProjectUpdate(BaseModel):
@@ -40,6 +51,17 @@ class ProjectUpdate(BaseModel):
     restricted_tags: list[str] | None = None
     member_ids: list[str] | None = None
     member_permissions: dict | None = None
+    department: str | None = None
+    language: str | None = None
+    is_open_source: bool | None = None
+    priority: str | None = None
+    project_type: str | None = None
+    goals: str | None = None
+    requirements: str | None = None
+    additional_req: str | None = None
+    modules: str | None = None
+    related_projects: str | None = None
+    dev_process: str | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -60,6 +82,17 @@ class ProjectResponse(BaseModel):
     restricted_tags: list[str] | None = None
     member_ids: list[str] | None = None
     member_permissions: dict | None = None
+    department: str | None = None
+    language: str | None = None
+    is_open_source: bool = False
+    priority: str = "待定"
+    project_type: str | None = None
+    goals: str | None = None
+    requirements: str | None = None
+    additional_req: str | None = None
+    modules: str | None = None
+    related_projects: str | None = None
+    dev_process: str | None = None
     created_at: datetime
     updated_at: datetime
     status_log: list[dict] | None = None

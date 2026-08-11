@@ -9,17 +9,14 @@ import {
   Button,
   Space,
   Tag,
-  Tooltip,
 } from 'antd';
 import {
   ArrowLeftOutlined,
   ExportOutlined,
-  SettingOutlined,
 } from '@ant-design/icons';
 import { getProject, updateProject } from '../../api/projects';
 import type { Project } from '../../types/project';
 import { getVisibilityConfig } from '../../utils/visibility';
-import { useUser } from '../../contexts/UserContext';
 import ProjectInfoTab from './tabs/ProjectInfoTab';
 import ProjectMemberTab from './tabs/ProjectMemberTab';
 import ProjectProgressTab from './tabs/ProjectProgressTab';
@@ -29,7 +26,6 @@ import MeetingRecordTab from './tabs/MeetingRecordTab';
 import ChangeRecordTab from './tabs/ChangeRecordTab';
 import ProjectDocumentTab from './tabs/ProjectDocumentTab';
 import ProjectEventTab from './tabs/ProjectEventTab';
-import ProjectPermissionsModal from './ProjectPermissionsModal';
 import styles from './ProjectDetailPage.module.css';
 
 const { Title } = Typography;
@@ -37,11 +33,9 @@ const { Title } = Typography;
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useUser();
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [permissionModalVisible, setPermissionModalVisible] = useState(false);
 
   const fetchProject = useCallback(async () => {
     if (!id) return;
@@ -102,7 +96,6 @@ export default function ProjectDetailPage() {
     return null;
   }
 
-  const canManagePermissions = !!user && (user.role === 'admin' || user.id === project.owner_id);
   const visibilityCfg = getVisibilityConfig(project.visibility);
   const tabItems = [
     {
@@ -119,7 +112,10 @@ export default function ProjectDetailPage() {
       key: 'member',
       label: '项目人员',
       children: (
-        <ProjectMemberTab project={project} />
+        <ProjectMemberTab
+          project={project}
+          onUpdate={handleUpdate}
+        />
       ),
     },
     {
@@ -193,17 +189,6 @@ export default function ProjectDetailPage() {
             {project.title}
           </Title>
           <Tag color={visibilityCfg.color}>{visibilityCfg.text}</Tag>
-          {canManagePermissions && (
-            <Tooltip title="分区权限设置">
-              <Button
-                type="text"
-                size="small"
-                icon={<SettingOutlined />}
-                aria-label="分区权限设置"
-                onClick={() => setPermissionModalVisible(true)}
-              />
-            </Tooltip>
-          )}
         </Space>
         <Button
           icon={<ExportOutlined />}
@@ -221,15 +206,6 @@ export default function ProjectDetailPage() {
           items={tabItems}
         />
       </Card>
-
-      {canManagePermissions && (
-        <ProjectPermissionsModal
-          project={project}
-          open={permissionModalVisible}
-          onClose={() => setPermissionModalVisible(false)}
-          onSuccess={fetchProject}
-        />
-      )}
     </div>
   );
 }

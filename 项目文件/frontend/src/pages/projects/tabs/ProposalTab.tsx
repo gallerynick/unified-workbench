@@ -173,7 +173,7 @@ export default function ProposalTab({ project }: { project: Project }) {
   // ── 权限：负责人+管理员始终可操作；普通成员按 member_permissions.proposals 分区 ──
   const isOwner = !!user && project.owner_id === user.id;
   const isAdmin = user?.role === 'admin';
-  const proposalsPerm = project.member_permissions?.proposals;
+  const proposalsPerm = project.member_permissions?.[user?.id ?? '']?.proposals;
   const canOperate = isOwner || isAdmin || proposalsPerm !== 'readonly';
 
   // ── 数据拉取 ──

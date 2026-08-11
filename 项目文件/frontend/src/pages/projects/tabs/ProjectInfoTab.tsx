@@ -7,13 +7,18 @@ import {
   Form,
   Input,
   Select,
+  Row,
+  Col,
   message,
   Divider,
 } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
+import { PROJECT_PRIORITY, PROJECT_TYPE, IS_OPEN_SOURCE } from '../../../constants/project';
 import type { Project, ProjectStatus } from '../../../types/project';
 import type { Template } from '../../../types/template';
 import { getVisibilityConfig, getVisibilityOptions } from '../../../utils/visibility';
+
+const { TextArea } = Input;
 
 // 状态标签配置
 const STATUS_MAP: Record<ProjectStatus, { color: string; text: string }> = {
@@ -22,6 +27,19 @@ const STATUS_MAP: Record<ProjectStatus, { color: string; text: string }> = {
   done: { color: 'success', text: '已完成' },
   archived: { color: 'warning', text: '已归档' },
 };
+
+const PRIORITY_MAP: Record<string, string> = {
+  '立即': 'red',
+  '重要': 'orange',
+  '一般': 'blue',
+  '最后': 'default',
+  '待定': 'default',
+};
+
+const PROJECT_TYPE_MAP: Record<string, string> = PROJECT_TYPE.reduce<Record<string, string>>((acc, item) => {
+  acc[item.value] = item.label;
+  return acc;
+}, {});
 
 interface ProjectInfoTabProps {
   project: Project;
@@ -42,6 +60,17 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
       title: project.title,
       visibility: project.visibility,
       restricted_users: project.restricted_users || [],
+      department: project.department ?? undefined,
+      language: project.language ?? undefined,
+      is_open_source: project.is_open_source,
+      priority: project.priority,
+      project_type: project.project_type ?? undefined,
+      goals: project.goals ?? undefined,
+      requirements: project.requirements ?? undefined,
+      additional_req: project.additional_req ?? undefined,
+      modules: project.modules ?? undefined,
+      related_projects: project.related_projects ?? undefined,
+      dev_process: project.dev_process ?? undefined,
     });
     setEditModalVisible(true);
   }, [form, project]);
@@ -54,6 +83,17 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
         title: values.title,
         visibility: values.visibility,
         restricted_users: values.visibility === 'restricted' ? values.restricted_users : undefined,
+        ...(values.department ? { department: values.department } : {}),
+        ...(values.language ? { language: values.language } : {}),
+        is_open_source: values.is_open_source ?? false,
+        priority: values.priority || '待定',
+        ...(values.project_type ? { project_type: values.project_type } : {}),
+        ...(values.goals ? { goals: values.goals } : {}),
+        ...(values.requirements ? { requirements: values.requirements } : {}),
+        ...(values.additional_req ? { additional_req: values.additional_req } : {}),
+        ...(values.modules ? { modules: values.modules } : {}),
+        ...(values.related_projects ? { related_projects: values.related_projects } : {}),
+        ...(values.dev_process ? { dev_process: values.dev_process } : {}),
       });
       setEditModalVisible(false);
     } catch (err: unknown) {
@@ -86,7 +126,7 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
         <Descriptions.Item label="项目状态">
           <Tag color={statusCfg.color}>{statusCfg.text}</Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="项目类型">
+        <Descriptions.Item label="内容模块">
           <Tag color="blue">项目</Tag>
         </Descriptions.Item>
         <Descriptions.Item label="可见性">
@@ -97,6 +137,26 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
             </span>
           )}
         </Descriptions.Item>
+        <Descriptions.Item label="项目编号">{project.number || '-'}</Descriptions.Item>
+        <Descriptions.Item label="所属团队">{project.department || '-'}</Descriptions.Item>
+        <Descriptions.Item label="项目语言">{project.language || '-'}</Descriptions.Item>
+        <Descriptions.Item label="是否开源">
+          {project.is_open_source ? <Tag color="success">开源</Tag> : <Tag>闭源</Tag>}
+        </Descriptions.Item>
+        <Descriptions.Item label="项目优先级">
+          {project.priority ? <Tag color={PRIORITY_MAP[project.priority] || 'default'}>{project.priority}</Tag> : '-'}
+        </Descriptions.Item>
+        <Descriptions.Item label="项目类型">
+          {project.project_type ? PROJECT_TYPE_MAP[project.project_type] || project.project_type : '-'}
+        </Descriptions.Item>
+        <Descriptions.Item label="项目目标">{project.goals || '-'}</Descriptions.Item>
+        <Descriptions.Item label="项目需求">{project.requirements || '-'}</Descriptions.Item>
+        {project.additional_req && (
+          <Descriptions.Item label="附加需求">{project.additional_req}</Descriptions.Item>
+        )}
+        <Descriptions.Item label="模块划分">{project.modules || '-'}</Descriptions.Item>
+        <Descriptions.Item label="关联项目">{project.related_projects || '-'}</Descriptions.Item>
+        <Descriptions.Item label="开发流程">{project.dev_process || '-'}</Descriptions.Item>
         <Descriptions.Item label="创建时间">
           {new Date(project.created_at).toLocaleString('zh-CN')}
         </Descriptions.Item>
@@ -162,6 +222,84 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
                 </Form.Item>
               )
             }
+          </Form.Item>
+          <Form.Item
+            name="department"
+            label="所属团队/部门"
+          >
+            <Input placeholder="所属团队或部门（可选）" maxLength={50} />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="language"
+                label="项目语言"
+              >
+                <Input placeholder="项目语言（可选）" maxLength={30} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="is_open_source"
+                label="是否开源"
+              >
+                <Select options={[...IS_OPEN_SOURCE]} placeholder="是否开源" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="priority"
+                label="项目优先级"
+              >
+                <Select options={[...PROJECT_PRIORITY]} placeholder="项目优先级" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="project_type"
+                label="项目类型"
+              >
+                <Select options={[...PROJECT_TYPE]} placeholder="项目类型（可选）" allowClear />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item
+            name="goals"
+            label="项目目标"
+          >
+            <TextArea placeholder="项目目标（可选）" rows={3} />
+          </Form.Item>
+          <Form.Item
+            name="requirements"
+            label="项目需求"
+          >
+            <TextArea placeholder="项目需求（可选）" rows={3} />
+          </Form.Item>
+          <Form.Item
+            name="additional_req"
+            label="附加需求"
+          >
+            <TextArea placeholder="附加需求（可选）" rows={2} />
+          </Form.Item>
+          <Form.Item
+            name="modules"
+            label="模块划分"
+          >
+            <TextArea placeholder="模块划分（可选）" rows={2} />
+          </Form.Item>
+          <Form.Item
+            name="related_projects"
+            label="关联项目"
+          >
+            <Input placeholder="关联项目，逗号分隔（可选）" maxLength={200} />
+          </Form.Item>
+          <Form.Item
+            name="dev_process"
+            label="开发流程"
+          >
+            <TextArea placeholder="开发流程说明（可选）" rows={2} />
           </Form.Item>
         </Form>
       </Modal>
