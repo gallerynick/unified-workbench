@@ -42,6 +42,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
+  const [isOpenSource, setIsOpenSource] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -70,6 +71,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           department: project.department ?? undefined,
           language: project.language ?? undefined,
           is_open_source: project.is_open_source,
+          repo_url: project.repo_url ?? undefined,
           priority: project.priority,
           project_type: project.project_type ?? undefined,
           goals: project.goals ?? undefined,
@@ -82,11 +84,13 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
         setVisibility((project.visibility as Visibility) || 'private');
         setRestrictedUsers(project.restricted_users || []);
         setMemberIds(project.member_ids || []);
+        setIsOpenSource(!!project.is_open_source);
       } else {
         form.resetFields();
         setVisibility('private');
         setRestrictedUsers([]);
         setMemberIds([]);
+        setIsOpenSource(false);
       }
     }
   }, [visible, isEdit, project, form]);
@@ -106,6 +110,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           ...(values.department ? { department: values.department } : {}),
           ...(values.language ? { language: values.language } : {}),
           is_open_source: values.is_open_source ?? false,
+          repo_url: isOpenSource ? (values.repo_url ?? null) : null,
           priority: values.priority || '待定',
           ...(values.project_type ? { project_type: values.project_type } : {}),
           ...(values.goals ? { goals: values.goals } : {}),
@@ -135,6 +140,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           ...(values.department ? { department: values.department } : {}),
           ...(values.language ? { language: values.language } : {}),
           is_open_source: values.is_open_source ?? false,
+          repo_url: isOpenSource ? (values.repo_url ?? null) : null,
           priority: values.priority || '待定',
           ...(values.project_type ? { project_type: values.project_type } : {}),
           ...(values.goals ? { goals: values.goals } : {}),
@@ -157,7 +163,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
         message.error(err.message);
       }
     }
-  }, [form, isEdit, project, onSuccess, visibility, restrictedUsers, memberIds]);
+  }, [form, isEdit, project, onSuccess, visibility, restrictedUsers, memberIds, isOpenSource]);
 
   return (
     <Modal
@@ -235,10 +241,19 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
               name="is_open_source"
               label="是否开源"
             >
-              <Select options={[...IS_OPEN_SOURCE]} placeholder="是否开源" />
+              <Select
+                options={[...IS_OPEN_SOURCE]}
+                placeholder="是否开源"
+                onChange={(val) => setIsOpenSource(val === true)}
+              />
             </Form.Item>
           </Col>
         </Row>
+        {isOpenSource && (
+          <Form.Item name="repo_url" label="仓库地址">
+            <Input placeholder="请输入 Git 仓库地址" />
+          </Form.Item>
+        )}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item

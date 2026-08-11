@@ -36,6 +36,7 @@ class ProjectCreate(BaseModel):
     modules: str | None = None
     related_projects: str | None = None
     dev_process: str | None = None
+    repo_url: str | None = None
 
 
 class ProjectUpdate(BaseModel):
@@ -62,6 +63,7 @@ class ProjectUpdate(BaseModel):
     modules: str | None = None
     related_projects: str | None = None
     dev_process: str | None = None
+    repo_url: str | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -93,6 +95,7 @@ class ProjectResponse(BaseModel):
     modules: str | None = None
     related_projects: str | None = None
     dev_process: str | None = None
+    repo_url: str | None = None
     created_at: datetime
     updated_at: datetime
     status_log: list[dict] | None = None

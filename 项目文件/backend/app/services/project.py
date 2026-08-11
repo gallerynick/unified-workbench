@@ -59,6 +59,7 @@ async def create_project(
         modules=data.get("modules"),
         related_projects=data.get("related_projects"),
         dev_process=data.get("dev_process"),
+        repo_url=data.get("repo_url"),
     )
     db.add(project)
     await db.flush()
@@ -160,6 +161,7 @@ async def update_project(
         "modules",
         "related_projects",
         "dev_process",
+        "repo_url",
     ):
         if field in data and data[field] is not None:
             if field == "status" and data[field] != proj.status:

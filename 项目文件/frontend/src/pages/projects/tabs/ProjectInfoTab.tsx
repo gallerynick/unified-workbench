@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Descriptions,
   Tag,
@@ -16,7 +16,8 @@ import { EditOutlined } from '@ant-design/icons';
 import { PROJECT_PRIORITY, PROJECT_TYPE, IS_OPEN_SOURCE } from '../../../constants/project';
 import type { Project, ProjectStatus } from '../../../types/project';
 import type { Template } from '../../../types/template';
-import { getVisibilityConfig, getVisibilityOptions } from '../../../utils/visibility';
+import { getVisibilityConfig, type Visibility } from '../../../utils/visibility';
+import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 
 const { TextArea } = Input;
 
@@ -51,6 +52,9 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [editVisibility, setEditVisibility] = useState<Visibility>('private');
+  const [editRestrictedUsers, setEditRestrictedUsers] = useState<string[]>([]);
+  const [editSourceOpen, setEditSourceOpen] = useState(false);
 
   const visibilityCfg = getVisibilityConfig(project.visibility);
   const statusCfg = STATUS_MAP[project.status] || { color: 'default', text: project.status };
@@ -58,11 +62,10 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
   const handleEdit = useCallback(() => {
     form.setFieldsValue({
       title: project.title,
-      visibility: project.visibility,
-      restricted_users: project.restricted_users || [],
       department: project.department ?? undefined,
       language: project.language ?? undefined,
       is_open_source: project.is_open_source,
+      repo_url: project.repo_url ?? undefined,
       priority: project.priority,
       project_type: project.project_type ?? undefined,
       goals: project.goals ?? undefined,
@@ -72,8 +75,17 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
       related_projects: project.related_projects ?? undefined,
       dev_process: project.dev_process ?? undefined,
     });
+    setEditVisibility(project.visibility);
+    setEditRestrictedUsers(project.restricted_users || []);
+    setEditSourceOpen(!!project.is_open_source);
     setEditModalVisible(true);
   }, [form, project]);
+
+  useEffect(() => {
+    if (editModalVisible) {
+      setEditSourceOpen(!!project.is_open_source);
+    }
+  }, [editModalVisible, project.is_open_source]);
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -81,11 +93,12 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
       setSubmitting(true);
       await onUpdate({
         title: values.title,
-        visibility: values.visibility,
-        restricted_users: values.visibility === 'restricted' ? values.restricted_users : undefined,
+        visibility: editVisibility,
+        restricted_users: editVisibility === 'restricted' ? editRestrictedUsers : undefined,
         ...(values.department ? { department: values.department } : {}),
         ...(values.language ? { language: values.language } : {}),
         is_open_source: values.is_open_source ?? false,
+        repo_url: editSourceOpen ? (values.repo_url ?? null) : null,
         priority: values.priority || '待定',
         ...(values.project_type ? { project_type: values.project_type } : {}),
         ...(values.goals ? { goals: values.goals } : {}),
@@ -103,9 +116,7 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
     } finally {
       setSubmitting(false);
     }
-  }, [form, onUpdate]);
-
-  const visibilityOptions = getVisibilityOptions();
+  }, [form, onUpdate, editVisibility, editRestrictedUsers, editSourceOpen]);
 
   return (
     <>
@@ -143,6 +154,11 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
         <Descriptions.Item label="是否开源">
           {project.is_open_source ? <Tag color="success">开源</Tag> : <Tag>闭源</Tag>}
         </Descriptions.Item>
+        {project.is_open_source && project.repo_url && (
+          <Descriptions.Item label="仓库地址">
+            <a href={project.repo_url} target="_blank" rel="noopener noreferrer">{project.repo_url}</a>
+          </Descriptions.Item>
+        )}
         <Descriptions.Item label="项目优先级">
           {project.priority ? <Tag color={PRIORITY_MAP[project.priority] || 'default'}>{project.priority}</Tag> : '-'}
         </Descriptions.Item>
@@ -196,32 +212,14 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
           >
             <Input placeholder="请输入项目名称" maxLength={200} showCount />
           </Form.Item>
-          <Form.Item
-            name="visibility"
-            label="可见性"
-            rules={[{ required: true, message: '请选择可见性' }]}
-          >
-            <Select options={visibilityOptions} />
-          </Form.Item>
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, cur) => prev.visibility !== cur.visibility}
-          >
-            {({ getFieldValue }) =>
-              getFieldValue('visibility') === 'restricted' && (
-                <Form.Item
-                  name="restricted_users"
-                  label="指定用户"
-                  tooltip="输入用户ID，按回车添加"
-                >
-                  <Select
-                    mode="tags"
-                    placeholder="输入用户ID"
-                    tokenSeparators={[',']}
-                  />
-                </Form.Item>
-              )
-            }
+          <Form.Item label="可见性">
+            <VisibilitySetting
+              value={editVisibility}
+              restrictedUsers={editRestrictedUsers}
+              onChange={setEditVisibility}
+              onRestrictedUsersChange={setEditRestrictedUsers}
+              showRestrictedTags={false}
+            />
           </Form.Item>
           <Form.Item
             name="department"
@@ -243,10 +241,19 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
                 name="is_open_source"
                 label="是否开源"
               >
-                <Select options={[...IS_OPEN_SOURCE]} placeholder="是否开源" />
+                <Select
+                  options={[...IS_OPEN_SOURCE]}
+                  placeholder="是否开源"
+                  onChange={(val) => setEditSourceOpen(val === true)}
+                />
               </Form.Item>
             </Col>
           </Row>
+          {editSourceOpen && (
+            <Form.Item name="repo_url" label="仓库地址">
+              <Input placeholder="请输入 Git 仓库地址" />
+            </Form.Item>
+          )}
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item

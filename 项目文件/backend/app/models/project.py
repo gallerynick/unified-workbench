@@ -79,6 +79,7 @@ class Project(Base):
     dev_process: Mapped[str | None] = mapped_column(
         Text, nullable=True, default=None, comment="开发流程"
     )
+    repo_url: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="开源仓库地址")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

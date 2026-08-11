@@ -120,6 +120,9 @@ async def update_project_member(
     for field in ("role_title", "notes", "is_owner", "is_active", "joined_at", "left_at"):
         if field in data and data[field] is not None:
             setattr(item, field, data[field])
+    # 恢复成员时清空离开时间
+    if data.get("is_active") is True and "left_at" in data:
+        item.left_at = data["left_at"]
     await db.flush()
     await db.refresh(item)
     return item

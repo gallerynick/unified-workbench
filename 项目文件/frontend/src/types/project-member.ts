@@ -30,7 +30,7 @@ export interface ProjectMemberUpdate {
   is_owner?: boolean;
   is_active?: boolean;
   joined_at?: string;
-  left_at?: string;
+  left_at?: string | null;
 }
 
 export interface ProjectMemberListResponse {

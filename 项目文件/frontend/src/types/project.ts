@@ -23,6 +23,8 @@ export interface Project {
   language?: string | null;
   /** 是否开源 */
   is_open_source?: boolean;
+  /** 仓库地址（开源时） */
+  repo_url?: string | null;
   /** 项目优先级（立即/重要/一般/最后/待定） */
   priority?: string;
   /** 项目类型（六类+其他） */
@@ -66,6 +68,7 @@ export interface ProjectCreate {
   department?: string | null;
   language?: string | null;
   is_open_source?: boolean;
+  repo_url?: string | null;
   priority?: string;
   project_type?: string | null;
   goals?: string | null;
@@ -91,6 +94,7 @@ export interface ProjectUpdate {
   department?: string | null;
   language?: string | null;
   is_open_source?: boolean;
+  repo_url?: string | null;
   priority?: string;
   project_type?: string | null;
   goals?: string | null;

@@ -22,6 +22,7 @@ import {
   EditOutlined,
   ExclamationCircleOutlined,
   SettingOutlined,
+  UndoOutlined,
   UserAddOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -170,17 +171,22 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
     [activeMembers],
   );
 
-  // 可选用户：排除已是当前成员的用户与项目负责人
+  const historyMemberIds = useMemo(
+    () => new Set(historyMembers.map((m) => m.user_id)),
+    [historyMembers],
+  );
+
+  // 可选用户：排除已是当前成员/历史成员的用户与项目负责人
   const userOptions = useMemo(
     () =>
       users
-        .filter((u) => u.id !== project.owner_id && !existingMemberIds.has(u.id))
+        .filter((u) => u.id !== project.owner_id && !existingMemberIds.has(u.id) && !historyMemberIds.has(u.id))
         .map((u) => ({
           value: u.id,
           label:
             u.username && u.username !== u.nickname ? `${u.nickname}（${u.username}）` : u.nickname,
         })),
-    [users, project.owner_id, existingMemberIds],
+    [users, project.owner_id, existingMemberIds, historyMemberIds],
   );
 
   // ── 添加成员 ──
@@ -309,6 +315,35 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
           }
         },
       });
+    },
+    [getDisplayName, isOwner, project.id, project.member_ids, fetchMembers],
+  );
+
+  // ── 拉回历史成员（is_active=true + left_at=null） ──
+  const handleRecoverMember = useCallback(
+    async (member: ProjectMember) => {
+      try {
+        const res = await updateProjectMember(member.id, {
+          is_active: true,
+          left_at: null,
+        });
+        if (res.code !== 0) {
+          message.error(res.msg || '拉回失败');
+          return;
+        }
+        if (isOwner) {
+          const syncRes = await updateProject(project.id, {
+            member_ids: [...(project.member_ids ?? []), member.user_id],
+          });
+          if (syncRes.code !== 0) {
+            message.warning(syncRes.msg || '成员已拉回，但同步项目访问权限失败');
+          }
+        }
+        message.success(`已拉回「${getDisplayName(member)}」`);
+        await fetchMembers();
+      } catch (err: unknown) {
+        if (err instanceof Error) message.error(err.message);
+      }
     },
     [getDisplayName, isOwner, project.id, project.member_ids, fetchMembers],
   );
@@ -474,9 +509,31 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
       return [...baseColumns, actionColumn];
     }
 
-    // 历史成员视图：附加离开时间列
+    // 历史成员视图：操作列 + 离开时间列
+    const historyActionColumn: ColumnsType<ProjectMember>[number] = {
+      title: '操作',
+      key: 'action',
+      width: 100,
+      align: 'right',
+      render: (_, member) => {
+        if (!canManage) return null;
+        return (
+          <Tooltip title="拉回成员">
+            <Button
+              type="link"
+              size="small"
+              icon={<UndoOutlined />}
+              onClick={() => handleRecoverMember(member)}
+            >
+              拉回
+            </Button>
+          </Tooltip>
+        );
+      },
+    };
     return [
       ...baseColumns,
+      historyActionColumn,
       {
         title: '离开时间',
         dataIndex: 'left_at',
@@ -496,6 +553,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
     openEditModal,
     openPermissionModal,
     handleRemoveMember,
+    handleRecoverMember,
   ]);
 
   const dataSource = viewMode === 'active' ? activeMembers : historyMembers;
