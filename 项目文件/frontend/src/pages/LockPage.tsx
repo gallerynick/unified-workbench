@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Avatar, Button, Form, Input, Typography, message } from 'antd';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useUser } from '../contexts/UserContext';
@@ -13,15 +12,18 @@ interface LockFormValues {
   password: string;
 }
 
-export default function LockPage() {
-  const navigate = useNavigate();
+interface LockPageProps {
+  onUnlock: () => void;
+}
+
+export default function LockPage({ onUnlock }: LockPageProps) {
   const { user, refreshUser } = useUser();
   const { unlock } = useLockContext();
   const [loading, setLoading] = useState(false);
   const [dissolving, setDissolving] = useState(false);
 
   useEffect(() => {
-    // 直接刷新到 /lock 时 user 可能尚未加载，主动拉取一次
+    // 直接刷新到锁定遮罩时 user 可能尚未加载，主动拉取一次
     if (!user) {
       void refreshUser();
     }
@@ -35,17 +37,11 @@ export default function LockPage() {
         body: { password: values.password },
       });
       if (res.code === 0 && res.data?.valid === true) {
-        // 溶解动画 400ms 后解锁，同时传信号给 MainLayout 播放反向模糊进场
+        // 溶解动画 250ms 后解锁，同时通知 MainLayout 播放欢迎动画
         setDissolving(true);
         setTimeout(() => {
-          sessionStorage.setItem('workbench_just_unlocked', '1');
+          onUnlock();
           unlock();
-          const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-          if (idx > 0) {
-            navigate(-1);
-          } else {
-            navigate('/', { replace: true });
-          }
         }, 250);
       } else {
         message.error('密码错误');
