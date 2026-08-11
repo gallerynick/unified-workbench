@@ -50,7 +50,6 @@ import { TagProvider } from '../contexts/TagContext';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
 import VotePopup from '../components/VotePopup';
-import LockPage from '../pages/LockPage';
 import { getRouteTitle } from '../config/routeTitles';
 import styles from './MainLayout.module.css';
 
@@ -222,12 +221,23 @@ export default function MainLayout() {
   const { isLocked, locking, lock } = useLockContext();
   useIdleTimer();
 
-  // 解锁溶回：LockPage 遮罩调用 onUnlock，MainLayout 播放反向模糊进场
+  // 解锁溶回：LockPage 通过 sessionStorage 传信号，MainLayout 播放反向模糊进场
   const [welcoming, setWelcoming] = useState(false);
-  const handleWorkbenchUnlock = useCallback(() => {
-    setWelcoming(true);
-    setTimeout(() => setWelcoming(false), 500);
+  useEffect(() => {
+    if (sessionStorage.getItem('workbench_just_unlocked') === '1') {
+      sessionStorage.removeItem('workbench_just_unlocked');
+      setWelcoming(true);
+      const timer = setTimeout(() => setWelcoming(false), 500);
+      return () => clearTimeout(timer);
+    }
   }, []);
+
+  // 工作台被锁定时跳转到锁屏页
+  useEffect(() => {
+    if (isLocked) {
+      navigate('/lock');
+    }
+  }, [isLocked, navigate]);
 
   const handleMenuOpenChange = useCallback((openKeys: string[]) => {
     if (openKeys.includes('/settings')) {
@@ -475,9 +485,6 @@ export default function MainLayout() {
         <VotePopup />
         {locking && <div className={styles.lockOverlay ?? ''} />}
       </Layout>
-        {(isLocked || locking) && (
-          <LockPage onUnlock={handleWorkbenchUnlock} />
-        )}
       </Layout>
     </TagProvider>
   );
