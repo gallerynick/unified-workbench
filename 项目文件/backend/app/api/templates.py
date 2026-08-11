@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_admin
 from app.models.user import User
 from app.schemas.common import UnifiedResponse
 from app.schemas.template import (
@@ -33,7 +33,7 @@ router = APIRouter()
 @router.post("/", response_model=UnifiedResponse[TemplateResponse])
 async def create_template_endpoint(
     request: TemplateCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     template = await create_template(
@@ -71,7 +71,7 @@ async def get_template_endpoint(
 async def update_template_endpoint(
     template_id: uuid.UUID,
     request: TemplateUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     template = await update_template(
@@ -83,7 +83,7 @@ async def update_template_endpoint(
 @router.delete("/{template_id}", response_model=UnifiedResponse[None])
 async def delete_template_endpoint(
     template_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     await delete_template(db, template_id, current_user)
@@ -103,7 +103,7 @@ async def export_template_endpoint(
 @router.post("/import", response_model=UnifiedResponse[TemplateResponse])
 async def import_template_endpoint(
     request: dict,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     template = await import_template_json(db, request, current_user.id)

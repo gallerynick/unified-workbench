@@ -1,5 +1,3 @@
-import type { Visibility } from '../utils/visibility';
-
 export interface TemplateField {
   key: string;
   type: 'text' | 'textarea' | 'richtext' | 'number' | 'datetime' | 'select' | 'multiselect' | 'boolean' | 'file' | 'image' | 'divider';
@@ -20,8 +18,6 @@ export interface Template {
   schema: TemplateField[];
   version: number;
   owner_id: string;
-  visibility?: Visibility;
-  restricted_users?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,8 +27,6 @@ export interface TemplateCreate {
   category: string;
   location: 'project' | 'record' | 'global';
   schema: TemplateField[];
-  visibility?: Visibility;
-  restricted_users?: string[];
 }
 
 export interface TemplateUpdate {
@@ -40,8 +34,6 @@ export interface TemplateUpdate {
   category?: string;
   location?: 'project' | 'record' | 'global';
   schema?: TemplateField[];
-  visibility?: Visibility;
-  restricted_users?: string[];
 }
 
 export interface TemplateListResponse {

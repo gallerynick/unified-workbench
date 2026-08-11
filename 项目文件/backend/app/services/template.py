@@ -8,36 +8,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.visibility import Visibility
 from app.models.template import Template
 from app.models.user import User, UserRole
-from app.services.visibility import check_visibility as build_visibility_filter
-
-
-# ── 辅助函数 ──────────────────────────────────────────────────────────
-
-
-def _visibility_get_check(item: Template, user_id: uuid.UUID) -> bool:
-    if item.owner_id == user_id:
-        return True
-    if item.visibility == Visibility.PUBLIC:
-        return True
-    if item.visibility == Visibility.RESTRICTED and item.restricted_users:
-        if str(user_id) in item.restricted_users:
-            return True
-    return False
-
-
-def _admin_can_manage_own_designated(
-    item: Template, user_id: uuid.UUID
-) -> bool:
-    if item.owner_id == user_id:
-        return True
-    if item.visibility == Visibility.PUBLIC:
-        return True
-    if item.restricted_users and str(user_id) in item.restricted_users:
-        return True
-    return False
 
 
 # ── 创建（不变）─────────────────────────────────────────────────────
@@ -75,47 +47,20 @@ async def list_templates(
     category: str | None = None,
     search: str | None = None,
     location: str | None = None,
-    user_id: uuid.UUID | None = None,
 ) -> tuple[list[Template], int]:
-    """列出模板，支持分类/位置过滤、搜索和可见性过滤。
-    
-    当 user_id 为 None 时，列出所有模板（旧行为兼容）。
-    当 user_id 提供时，应用可见性过滤。
-    """
-    if user_id is not None:
-        visibility_cond = build_visibility_filter(Template, user_id)
-        query = select(Template).where(visibility_cond)
-        count_query = select(func.count()).select_from(
-            select(Template).where(visibility_cond).subquery()
-        )
-    else:
-        query = select(Template)
-        count_query = select(func.count()).select_from(Template)
+    """列出模板，支持分类/位置过滤和搜索（全员可见）。"""
+    query = select(Template)
+    count_query = select(func.count()).select_from(Template)
 
     if category:
         query = query.where(Template.category == category)
-        if user_id is None:
-            count_query = count_query.where(Template.category == category)
-        else:
-            count_query = select(func.count()).select_from(
-                query.subquery()
-            )
+        count_query = count_query.where(Template.category == category)
     if location:
         query = query.where(Template.location == location)
-        if user_id is None:
-            count_query = count_query.where(Template.location == location)
-        else:
-            count_query = select(func.count()).select_from(
-                query.subquery()
-            )
+        count_query = count_query.where(Template.location == location)
     if search:
         query = query.where(Template.name.ilike(f"%{search}%"))
-        if user_id is None:
-            count_query = count_query.where(Template.name.ilike(f"%{search}%"))
-        else:
-            count_query = select(func.count()).select_from(
-                query.subquery()
-            )
+        count_query = count_query.where(Template.name.ilike(f"%{search}%"))
 
     total_result = await db.execute(count_query)
     total = total_result.scalar_one()
@@ -134,13 +79,8 @@ async def list_templates(
 async def get_template(
     db: AsyncSession,
     template_id: uuid.UUID,
-    user_id: uuid.UUID | None = None,
 ) -> Template:
-    """获取单个模板。
-    
-    当 user_id 为 None 时不检查可见性（旧行为兼容）。
-    当 user_id 提供时检查可见性。
-    """
+    """获取单个模板。"""
     result = await db.execute(
         select(Template).where(Template.id == template_id)
     )
@@ -148,10 +88,6 @@ async def get_template(
     if not template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在"
-        )
-    if user_id is not None and not _visibility_get_check(template, user_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="无权访问"
         )
     return template
 
@@ -162,23 +98,15 @@ async def get_template(
 async def update_template(
     db: AsyncSession, template_id: uuid.UUID, data: dict, current_user: User
 ) -> Template:
-    """更新模板，自动递增版本号。owner 或 admin（own+designated）。"""
+    """更新模板，自动递增版本号。仅管理员可操作。"""
     template = await get_template(db, template_id)
 
-    # 权限检查：owner 或 admin（own+designated）
-    if template.owner_id != current_user.id:
-        if current_user.role != UserRole.ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="仅所有者或管理员可修改",
-            )
-        if not _admin_can_manage_own_designated(
-            template, current_user.id
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="仅所有者或管理员可修改",
-            )
+    # 权限检查：仅管理员
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="仅管理员可修改",
+        )
 
     if "name" in data and data["name"] is not None:
         template.name = data["name"]
@@ -204,23 +132,15 @@ async def update_template(
 async def delete_template(
     db: AsyncSession, template_id: uuid.UUID, current_user: User
 ) -> None:
-    """删除模板。owner 或 admin（own+designated）。"""
+    """删除模板。仅管理员可操作。"""
     template = await get_template(db, template_id)
 
-    # 权限检查：owner 或 admin（own+designated）
-    if template.owner_id != current_user.id:
-        if current_user.role != UserRole.ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="仅所有者或管理员可删除",
-            )
-        if not _admin_can_manage_own_designated(
-            template, current_user.id
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="仅所有者或管理员可删除",
-            )
+    # 权限检查：仅管理员
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="仅管理员可删除",
+        )
 
     await db.delete(template)
     await db.flush()

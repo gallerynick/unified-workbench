@@ -82,11 +82,19 @@ async def update_content(
             status_code=status.HTTP_404_NOT_FOUND, detail="内容不存在"
         )
 
-    # 权限检查：owner 或 admin
-    if content.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="无权修改此内容"
-        )
+    # 权限检查：owner 直接可改；admin 仅可修改 own+designated（PUBLIC 或 restricted_users 中）
+    if content.owner_id != current_user.id:
+        if current_user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权修改此内容"
+            )
+        if content.visibility != Visibility.PUBLIC and (
+            not content.restricted_users
+            or str(current_user.id) not in content.restricted_users
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权修改此内容"
+            )
 
     # 更新字段
     if request.title is not None:

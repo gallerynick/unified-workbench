@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.permissions import check_visibility
 from app.core.visibility import Visibility
 from app.models.project import Project
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.services.project_common import (
     is_project_member,
     require_project_section_permission,
@@ -123,9 +123,9 @@ async def update_project(
     data: dict,
     current_user: User,
 ) -> Project:
-    """更新项目字段：所有者/管理员放行；其他成员需为项目成员且 info 分区非只读。"""
+    """更新项目字段：所有者放行；其他成员需为项目成员且 info 分区非只读。"""
     proj = await get_project(db, project_id, current_user)
-    if proj.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
+    if proj.owner_id != current_user.id:
         if not is_project_member(proj, current_user):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="无权访问该项目"
@@ -156,9 +156,9 @@ async def update_project(
 
 
 async def delete_project(db: AsyncSession, project_id: uuid.UUID, current_user: User) -> None:
-    """删除项目：所有者/管理员放行；其他成员需为项目成员且 info 分区非只读。"""
+    """删除项目：所有者放行；其他成员需为项目成员且 info 分区非只读。"""
     proj = await get_project(db, project_id, current_user)
-    if proj.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
+    if proj.owner_id != current_user.id:
         if not is_project_member(proj, current_user):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="无权访问该项目"

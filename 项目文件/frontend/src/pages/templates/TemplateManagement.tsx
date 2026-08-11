@@ -31,11 +31,9 @@ import {
 import { isAdmin } from '../../utils/auth';
 import type { Template, TemplateField } from '../../types/template';
 import ContentEditor from '../content/ContentEditor';
-import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
-import type { Visibility } from '../../utils/visibility';
 import styles from './TemplateManagement.module.css';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 
 const CATEGORY_FILTER_OPTIONS = [
   { value: '', label: '全部分类' },
@@ -75,8 +73,6 @@ function ProjectDocsTab() {
   const [docName, setDocName] = useState('');
   const [docCategory, setDocCategory] = useState('');
   const [docContent, setDocContent] = useState<Record<string, unknown> | null>(null);
-  const [visibility, setVisibility] = useState<Visibility>('private');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -125,8 +121,6 @@ function ProjectDocsTab() {
     setDocName('');
     setDocCategory('');
     setDocContent(null);
-    setVisibility('private');
-    setRestrictedUsers([]);
     setModalVisible(true);
   };
 
@@ -135,8 +129,6 @@ function ProjectDocsTab() {
     setEditingId(tpl.id);
     setDocName(tpl.name);
     setDocCategory(tpl.category);
-    setVisibility((tpl.visibility as Visibility) || 'private');
-    setRestrictedUsers(tpl.restricted_users || []);
     const richtextField = tpl.schema.find((f) => f.type === 'richtext');
     setDocContent(richtextField?.config ?? null);
     setModalVisible(true);
@@ -181,8 +173,6 @@ function ProjectDocsTab() {
           category: docCategory.trim() || '未分类',
           location: 'global',
           schema,
-          visibility,
-          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
         });
         if (res.code === 0) {
           message.success('文档创建成功');
@@ -197,8 +187,6 @@ function ProjectDocsTab() {
           category: docCategory.trim() || '未分类',
           location: 'global',
           schema,
-          visibility,
-          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
         });
         if (res.code === 0) {
           message.success('文档更新成功');
@@ -359,17 +347,6 @@ function ProjectDocsTab() {
               minHeight={300}
             />
           </div>
-
-          <Form.Item label="可见性" style={{ marginBottom: 0 }}>
-            <VisibilitySetting
-              value={visibility}
-              restrictedUsers={restrictedUsers}
-              onChange={setVisibility}
-              onRestrictedUsersChange={setRestrictedUsers}
-              showRestrictedTags={false}
-              label=""
-            />
-          </Form.Item>
         </div>
         </Form>
       </Modal>
@@ -435,27 +412,7 @@ export default function TemplateManagement() {
           <Title level={5}>
             使用权限
           </Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以浏览和使用模板，具体可访问范围取决于模板设置的可见性。</Paragraph>
-          <Title level={5}>
-            可见范围
-          </Title>
-          <ul className={styles.permissionList ?? ''}>
-            <li>
-              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                公开：所有成员都可以使用该模板
-              </Text>
-            </li>
-            <li>
-              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                私有：仅创建者和管理员可以使用
-              </Text>
-            </li>
-            <li>
-              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                指定用户：仅被指定的用户可以使用
-              </Text>
-            </li>
-          </ul>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>模板由管理员统一维护，工作台全员可见可用。</Paragraph>
           <Title level={5}>
             管理员
           </Title>
