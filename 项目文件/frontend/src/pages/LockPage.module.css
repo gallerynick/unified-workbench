@@ -43,10 +43,10 @@
   animation: lockPageEnter 600ms ease-out forwards;
 }
 
-.enterElement:nth-child(1) { animation-delay: 500ms; }
-.enterElement:nth-child(2) { animation-delay: 580ms; }
-.enterElement:nth-child(3) { animation-delay: 660ms; }
-.enterElement:nth-child(4) { animation-delay: 740ms; }
+.enterElement:nth-child(1) { animation-delay: 0ms; }
+.enterElement:nth-child(2) { animation-delay: 60ms; }
+.enterElement:nth-child(3) { animation-delay: 120ms; }
+.enterElement:nth-child(4) { animation-delay: 180ms; }
 
 @keyframes lockPageEnter {
   0% {
