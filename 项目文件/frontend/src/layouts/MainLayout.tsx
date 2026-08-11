@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, ConfigProvider, Avatar, Dropdown, Space, Drawer, Button, Typography } from 'antd';
+import { Layout, Menu, ConfigProvider, Avatar, Dropdown, Space, Drawer, Button, Typography, Tooltip } from 'antd';
 import {
   SettingOutlined,
   UserOutlined,
@@ -33,10 +33,12 @@ import {
   VideoCameraOutlined,
   DesktopOutlined,
   SwapOutlined,
+  LockOutlined,
+  UnlockOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { useIdleTimer } from '../hooks/useIdleTimer';
+import { useIdleTimer, pauseIdleTimer, resumeIdleTimer } from '../hooks/useIdleTimer';
 import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
 import { useTheme } from '../contexts/ThemeContext';
@@ -177,6 +179,11 @@ export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
+  const [idlePaused, setIdlePaused] = useState(() => {
+    const stored = sessionStorage.getItem('workbench_idle_paused');
+    if (stored === 'true') { pauseIdleTimer(); return true; }
+    return false;
+  });
   const [sidebarEntered, setSidebarEntered] = useState(false);
   const siderRef = useRef<HTMLDivElement>(null);
 
@@ -197,6 +204,14 @@ export default function MainLayout() {
     return location.pathname;
   }, [location.pathname]);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useWebSocket();
+  const toggleIdlePause = useCallback(() => {
+    setIdlePaused((prev) => {
+      const next = !prev;
+      if (next) { pauseIdleTimer(); } else { resumeIdleTimer(); }
+      sessionStorage.setItem('workbench_idle_paused', String(next));
+      return next;
+    });
+  }, []);
   const { isMobile } = useResponsive();
   const customization = useCustomization();
   const { isDark } = useTheme();
@@ -393,6 +408,16 @@ export default function MainLayout() {
               onMarkAsRead={markAsRead}
               onMarkAllAsRead={markAllAsRead}
             />
+            <Tooltip title={idlePaused ? '已锁定：不会自动退出' : '空闲 5 分钟自动退出'}>
+              <Button
+                type="text"
+                size="small"
+                icon={idlePaused ? <LockOutlined /> : <UnlockOutlined />}
+                aria-label={idlePaused ? '解除空闲锁定' : '锁定工作台防止自动退出'}
+                onClick={toggleIdlePause}
+                style={{ color: idlePaused ? 'var(--color-warning)' : undefined }}
+              />
+            </Tooltip>
             <Dropdown menu={{ items: userMenuItems ?? [], onClick: ({ key }) => {
               if (key === 'profile') navigate('/profile');
               if (key === 'logout') { clearTokens(); navigate('/login'); }

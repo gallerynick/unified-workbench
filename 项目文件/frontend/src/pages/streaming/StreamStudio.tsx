@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import { getRoom, updateRoom, getRoomStatus, takeoverRoom, runSpeedTest, runDownloadTest } from '../../api/stream';
 import type { StreamRoom } from '../../types/stream';
+import { pauseIdleTimer, resumeIdleTimer } from '../../hooks/useIdleTimer';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { WhipClient } from '../../utils/WhipClient';
 import styles from './StreamStudio.module.css';
@@ -202,6 +203,11 @@ export default function StreamStudio() {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    pauseIdleTimer();
+    return () => { resumeIdleTimer(); };
+  }, []);
 
   const handleSaveSettings = async () => {
     if (!roomId) return;

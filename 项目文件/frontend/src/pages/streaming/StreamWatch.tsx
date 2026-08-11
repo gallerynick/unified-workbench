@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Typography, Tag, Space, Button, Spin, message } from 'antd';
 import { VideoCameraOutlined, ArrowLeftOutlined, CopyOutlined } from '@ant-design/icons';
 import { WhepClient } from '../../utils/WhepClient';
+import { pauseIdleTimer, resumeIdleTimer } from '../../hooks/useIdleTimer';
 
 const { Title, Text } = Typography;
 const MEDIAMTX_PORT = 8889;
@@ -51,6 +52,11 @@ export default function StreamWatch() {
       clientRef.current?.stop();
     };
   }, [roomId, startConnection]);
+
+  useEffect(() => {
+    pauseIdleTimer();
+    return () => { resumeIdleTimer(); };
+  }, []);
 
   const handleRetry = () => {
     if (!roomId) return;
