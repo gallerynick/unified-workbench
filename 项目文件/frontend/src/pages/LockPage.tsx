@@ -40,12 +40,8 @@ export default function LockPage() {
         setTimeout(() => {
           sessionStorage.setItem('workbench_just_unlocked', '1');
           unlock();
-          const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-          if (idx > 0) {
-            navigate(-1);
-          } else {
-            navigate('/', { replace: true });
-          }
+          const returnPath = sessionStorage.getItem('workbench_lock_return') || '/';
+          navigate(returnPath, { replace: true });
         }, 250);
       } else {
         message.error('密码错误');
