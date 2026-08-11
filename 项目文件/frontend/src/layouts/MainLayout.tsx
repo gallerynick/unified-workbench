@@ -218,7 +218,7 @@ export default function MainLayout() {
   const customization = useCustomization();
   const { isDark } = useTheme();
   const { user } = useUser();
-  const { isLocked, lock } = useLockContext();
+  const { isLocked, locking, lock } = useLockContext();
   useIdleTimer();
 
   // 工作台被锁定时跳转到锁屏页
@@ -241,7 +241,7 @@ export default function MainLayout() {
 
   return (
     <TagProvider>
-      <Layout style={{ minHeight: '100vh', background: 'var(--canvas-parchment)' }}>
+      <Layout className={locking ? styles.locking ?? '' : ''} style={{ minHeight: '100vh', background: 'var(--canvas-parchment)', transition: 'filter 0.5s ease' }}>
         {!isMobile && (
         <div className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`} style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)', display: 'flex', flexDirection: 'column' }}>
           <div

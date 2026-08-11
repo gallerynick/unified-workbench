@@ -64,19 +64,19 @@ export default function LockPage() {
         size={80}
         src={user?.avatar || undefined}
         icon={!user?.avatar ? <UserOutlined /> : undefined}
-        className={styles.avatar ?? ''}
+        className={`${styles.avatar ?? ''} ${styles.enterElement ?? ''}`}
       />
-      <Title level={4} className={styles.title ?? ''}>
+      <Title level={4} className={`${styles.title ?? ''} ${styles.enterElement ?? ''}`}>
         {displayName}
       </Title>
-      <Text type="secondary" className={styles.subtitle ?? ''}>
+      <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
         工作台已锁定，请输入密码解锁
       </Text>
       <Form<LockFormValues>
         name="lock"
         size="large"
         onFinish={handleUnlock}
-        className={styles.form ?? ''}
+        className={`${styles.form ?? ''} ${styles.enterElement ?? ''}`}
       >
         <Form.Item
           name="password"

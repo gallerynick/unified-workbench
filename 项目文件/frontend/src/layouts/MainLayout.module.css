@@ -132,3 +132,14 @@
 :global(.sider-menu-scroll) {
   scrollbar-width: none;
 }
+
+/* ====== Lock blur-out animation ====== */
+.locking {
+  filter: blur(0);
+  animation: workbenchBlurOut 550ms ease forwards;
+}
+
+@keyframes workbenchBlurOut {
+  0% { filter: blur(0); }
+  100% { filter: blur(14px); }
+}
