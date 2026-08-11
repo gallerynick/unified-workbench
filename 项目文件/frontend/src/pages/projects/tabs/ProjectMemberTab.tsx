@@ -43,7 +43,7 @@ import styles from './ProjectMemberTab.module.css';
 const { Text } = Typography;
 
 /** 职务预设（下拉可选 + 自由填写） */
-const ROLE_PRESETS = ['项目负责人', '开发', '设计', '测试', '运维', '文档', '顾问', '其他'];
+const ROLE_PRESETS = ['开发', '设计', '测试', '运维', '文档', '顾问', '其他'];
 
 interface ProjectMemberTabProps {
   project: Project;
@@ -502,6 +502,24 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
 
   return (
     <div className={styles.container ?? ''}>
+      {/* 项目负责人 */}
+      {userMap.get(project.owner_id) && (
+        <div className={styles.ownerCard ?? ''}>
+          <Avatar size={40} src={userMap.get(project.owner_id)?.avatar || undefined} icon={<UserOutlined />}>
+            {userMap.get(project.owner_id)?.avatar ? null : (userMap.get(project.owner_id)?.nickname || userMap.get(project.owner_id)?.username || '?').slice(0, 1)}
+          </Avatar>
+          <div className={styles.ownerInfo ?? ''}>
+            <Text className={styles.memberName ?? ''}>
+              {userMap.get(project.owner_id)?.nickname || userMap.get(project.owner_id)?.username || project.owner_id}
+            </Text>
+            {userMap.get(project.owner_id)?.username && userMap.get(project.owner_id)?.username !== userMap.get(project.owner_id)?.nickname && (
+              <Text className={styles.memberUsername ?? ''}>@{userMap.get(project.owner_id)?.username}</Text>
+            )}
+          </div>
+          <Tag color="gold" icon={<CrownOutlined />} style={{ marginLeft: 'auto' }}>项目负责人</Tag>
+        </div>
+      )}
+
       <div className={styles.toolbar ?? ''}>
         <Segmented
           options={[

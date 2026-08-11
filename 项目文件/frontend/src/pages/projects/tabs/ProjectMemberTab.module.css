@@ -60,3 +60,19 @@
   color: var(--text-tertiary);
   font-size: var(--text-body-xs-size);
 }
+
+.ownerCard {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-card-gap);
+  background: var(--bg-component);
+  border-radius: var(--rounded-sm);
+  border: 1px solid var(--border-secondary);
+}
+
+.ownerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

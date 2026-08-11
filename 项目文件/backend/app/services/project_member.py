@@ -63,16 +63,32 @@ async def create_project_member(
     """添加项目成员，仅项目成员可添加，members 分区只读时禁止。"""
     project = await require_project_member(db, project_id, current_user)
     require_project_section_permission(project, current_user, "members")
-    existing = await db.execute(
-        select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == data["user_id"],
+    existing = (
+        await db.execute(
+            select(ProjectMember).where(
+                ProjectMember.project_id == project_id,
+                ProjectMember.user_id == data["user_id"],
+            )
         )
-    )
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="该用户已是项目成员"
-        )
+    ).scalar_one_or_none()
+
+    if existing is not None:
+        if existing.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="该用户已是项目成员"
+            )
+        # 历史成员 → 重新激活
+        existing.is_active = True
+        existing.left_at = None
+        if data.get("role_title") is not None:
+            existing.role_title = data["role_title"]
+        if data.get("notes") is not None:
+            existing.notes = data["notes"]
+        existing.joined_at = data.get("joined_at", existing.joined_at)  # 保留原加入时间
+        await db.flush()
+        await db.refresh(existing)
+        return existing
+
     item = ProjectMember(
         project_id=project_id,
         user_id=data["user_id"],
