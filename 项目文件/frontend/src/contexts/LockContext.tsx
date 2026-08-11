@@ -46,7 +46,7 @@ export function LockProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => {
       setLocking(false);
       setIsLocked(true);
-    }, 600);
+    }, 500);
     return () => clearTimeout(timer);
   }, [locking]);
 

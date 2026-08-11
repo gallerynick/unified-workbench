@@ -136,7 +136,7 @@
 /* ====== Lock blur-out animation ====== */
 .locking {
   filter: blur(0);
-  animation: workbenchBlurOut 550ms ease forwards;
+  animation: workbenchBlurOut 480ms ease forwards;
 }
 
 @keyframes workbenchBlurOut {
@@ -150,7 +150,7 @@
   z-index: var(--z-modal);
   background: var(--canvas-parchment);
   opacity: 0;
-  animation: lockOverlayFadeIn 350ms ease 250ms forwards;
+  animation: lockOverlayFadeIn 300ms ease 200ms forwards;
   pointer-events: none;
 }
 
@@ -164,7 +164,7 @@
   filter: blur(14px);
   opacity: 0.4;
   transform: scale(0.95);
-  animation: workbenchBlurIn 350ms ease-out forwards;
+  animation: workbenchBlurIn 480ms ease-out forwards;
 }
 
 @keyframes workbenchBlurIn {
