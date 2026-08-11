@@ -472,6 +472,7 @@ export default function MainLayout() {
           onMarkAllAsRead={markAllAsRead}
         />
         <VotePopup />
+        {locking && <div className={styles.lockOverlay ?? ''} />}
       </Layout>
       </Layout>
     </TagProvider>

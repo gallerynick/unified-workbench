@@ -143,3 +143,18 @@
   0% { filter: blur(0); }
   100% { filter: blur(14px); }
 }
+
+.lockOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: var(--canvas-parchment);
+  opacity: 0;
+  animation: lockOverlayFadeIn 350ms ease 250ms forwards;
+  pointer-events: none;
+}
+
+@keyframes lockOverlayFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
