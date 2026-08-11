@@ -295,7 +295,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
       title: '编号',
       dataIndex: 'number',
       key: 'number',
-      width: 160,
+      width: 140,
       render: (text: string) => (
         <span style={{ fontFamily: 'var(--font-mono)' }}>{text}</span>
       ),
@@ -310,7 +310,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
       title: '日期',
       dataIndex: 'date',
       key: 'date',
-      width: 110,
+      width: 100,
       render: (text: string) => formatDateOnly(text),
     },
     {
@@ -359,7 +359,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 70,
       render: (_: unknown, record: ProjectChange) =>
         canEdit ? (
           <Space size="small">
@@ -367,19 +367,17 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
               type="link"
               size="small"
               icon={<EditOutlined />}
+              aria-label="编辑修改记录"
               onClick={() => openEdit(record)}
-            >
-              编辑
-            </Button>
+            />
             <Button
               type="link"
               size="small"
               danger
               icon={<DeleteOutlined />}
+              aria-label="删除修改记录"
               onClick={() => handleDelete(record)}
-            >
-              删除
-            </Button>
+            />
           </Space>
         ) : null,
     },

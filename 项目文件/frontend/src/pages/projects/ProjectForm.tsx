@@ -221,6 +221,16 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
             allowClear
           />
         </Form.Item>
+        <Form.Item label="可见性">
+          <VisibilitySetting
+            value={visibility}
+            restrictedUsers={restrictedUsers}
+            onChange={setVisibility}
+            onRestrictedUsersChange={setRestrictedUsers}
+            showRestrictedTags={false}
+            label=""
+          />
+        </Form.Item>
         <Form.Item
           name="department"
           label="所属团队/部门"
@@ -317,16 +327,6 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
             <Select options={STATUS_OPTIONS} />
           </Form.Item>
         )}
-        <Form.Item label="可见性">
-          <VisibilitySetting
-            value={visibility}
-            restrictedUsers={restrictedUsers}
-            onChange={setVisibility}
-            onRestrictedUsersChange={setRestrictedUsers}
-            showRestrictedTags={false}
-            label=""
-          />
-        </Form.Item>
       </Form>
     </Modal>
   );
