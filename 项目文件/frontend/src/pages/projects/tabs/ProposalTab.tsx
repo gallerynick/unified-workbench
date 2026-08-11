@@ -37,6 +37,7 @@ import {
 import { listProjectTodos } from '../../../api/project-todos';
 import { listUsers } from '../../../api/users';
 import { useUser } from '../../../contexts/UserContext';
+import styles from './ProposalTab.module.css';
 import {
   PROPOSAL_TYPE_OPTIONS,
   PROPOSAL_PRIORITY_OPTIONS,
@@ -598,15 +599,7 @@ export default function ProposalTab({ project }: { project: Project }) {
   return (
     <>
       {/* 工具栏：搜索 + 筛选 + 新建 */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 'var(--spacing-sm)',
-          marginBottom: 'var(--spacing-md)',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-        }}
-      >
+      <div className={styles.header ?? ''}>
         <Input
           prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
           placeholder="搜索提案标题/编号..."
@@ -614,6 +607,7 @@ export default function ProposalTab({ project }: { project: Project }) {
           onChange={(e) => setSearch(e.target.value)}
           allowClear
           variant="filled"
+          className={styles.searchInput ?? ''}
           style={{ width: 240 }}
         />
         <Select
