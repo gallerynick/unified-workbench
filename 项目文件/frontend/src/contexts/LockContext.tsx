@@ -34,7 +34,6 @@ export function LockProvider({ children }: { children: ReactNode }) {
   const lock = useCallback(() => {
     try {
       sessionStorage.setItem(LOCK_KEY, '1');
-      sessionStorage.setItem('workbench_lock_return', window.location.pathname);
     } catch {
       // sessionStorage 不可用时仅内存态生效
     }
