@@ -122,15 +122,21 @@ const handoverTypeOptions: { value: string; label: string }[] = HANDOVER_TYPE_OP
 
 // ─── 工具函数 ─────────────────────────────────────────────────────
 
-/** 生成事件编号：EVT-YYYYMMDDHHmmss-XXX */
-function generateEventNumber(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(
-    d.getHours(),
-  )}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  const rand = Math.floor(Math.random() * 900 + 100);
-  return `${PROJECT_NUMBER_PREFIX.event}${stamp}-${rand}`;
+/**
+ * 生成事件编号：EVT-{项目编号}-{项目内序号}
+ * 序号 = 当前列表中该前缀下最大序号 + 1
+ */
+function buildEventNumber(project: Project, events: ProjectEvent[]): string {
+  const projTag = project.number ?? project.id.slice(0, 8).toUpperCase();
+  const prefix = `${PROJECT_NUMBER_PREFIX.event}${projTag}-`;
+  let maxSeq = 0;
+  for (const ev of events) {
+    if (ev.number?.startsWith(prefix)) {
+      const seq = parseInt(ev.number.slice(prefix.length), 10);
+      if (!Number.isNaN(seq) && seq > maxSeq) maxSeq = seq;
+    }
+  }
+  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
 }
 
 /** 根据选项数组反查中文标签，查不到则原样返回 */
@@ -359,7 +365,7 @@ export default function ProjectEventTab({ project }: { project: Project }) {
       } else {
         const res = await createProjectEvent({
           project_id: project.id,
-          number: generateEventNumber(),
+          number: buildEventNumber(project, events),
           ...base,
         });
         if (res.code === 0) {
@@ -375,7 +381,7 @@ export default function ProjectEventTab({ project }: { project: Project }) {
     } finally {
       setSubmitting(false);
     }
-  }, [form, editing, project.id, project.owner_id, fetchData]);
+  }, [form, editing, project, events, fetchData]);
 
   // ── 删除 ──
   const handleDelete = useCallback(

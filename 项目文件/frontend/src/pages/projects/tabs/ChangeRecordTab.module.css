@@ -18,6 +18,7 @@
 
 .table {
   flex: 1;
+  overflow-x: auto;
 }
 
 .detailText {

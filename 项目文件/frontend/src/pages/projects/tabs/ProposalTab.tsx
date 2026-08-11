@@ -118,15 +118,21 @@ function formatDate(iso: string): string {
   });
 }
 
-/** 生成提案编号：PRP-YYYYMMDDHHmmss-XXX */
-function generateProposalNumber(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(
-    d.getHours(),
-  )}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  const rand = Math.floor(Math.random() * 900 + 100);
-  return `${PROJECT_NUMBER_PREFIX.proposal}${stamp}-${rand}`;
+/**
+ * 生成提案编号：PRP-{项目编号}-{项目内序号}
+ * 序号 = 当前列表中该前缀下最大序号 + 1
+ */
+function buildProposalNumber(project: Project, proposals: ProjectProposal[]): string {
+  const projTag = project.number ?? project.id.slice(0, 8).toUpperCase();
+  const prefix = `${PROJECT_NUMBER_PREFIX.proposal}${projTag}-`;
+  let maxSeq = 0;
+  for (const p of proposals) {
+    if (p.number?.startsWith(prefix)) {
+      const seq = parseInt(p.number.slice(prefix.length), 10);
+      if (!Number.isNaN(seq) && seq > maxSeq) maxSeq = seq;
+    }
+  }
+  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
 }
 
 interface ProposalFormValues {
@@ -309,7 +315,7 @@ export default function ProposalTab({ project }: { project: Project }) {
       } else {
         const res = await createProjectProposal({
           project_id: project.id,
-          number: generateProposalNumber(),
+          number: buildProposalNumber(project, proposals),
           ...payload,
         });
         if (res.code === 0) {
@@ -327,7 +333,7 @@ export default function ProposalTab({ project }: { project: Project }) {
     } finally {
       setSubmitting(false);
     }
-  }, [form, editing, project.id, fetchData]);
+  }, [form, editing, project, proposals, fetchData]);
 
   // ── 审批流转 ──
   const handleChangeStatus = useCallback(

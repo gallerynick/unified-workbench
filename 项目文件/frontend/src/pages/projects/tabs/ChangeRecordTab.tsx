@@ -3,6 +3,7 @@ import {
   Table,
   Button,
   Select,
+  AutoComplete,
   Tag,
   Space,
   Modal,
@@ -77,13 +78,21 @@ const MINOR_TAG_COLOR: Record<string, string> = {
   dependency: 'purple',
 };
 
-/** 生成变更编号（后端无编号端点，由前端按前缀+日期+随机数生成） */
-function generateChangeNumber(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const ymd = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  return `${PROJECT_NUMBER_PREFIX.change}${ymd}-${rand}`;
+/**
+ * 生成变更编号：CHG-{项目编号}-{项目内序号}
+ * 序号 = 当前列表中该前缀下最大序号 + 1
+ */
+function buildChangeNumber(project: Project, todos: ProjectChange[]): string {
+  const projTag = project.number ?? project.id.slice(0, 8).toUpperCase();
+  const prefix = `${PROJECT_NUMBER_PREFIX.change}${projTag}-`;
+  let maxSeq = 0;
+  for (const t of todos) {
+    if (t.number.startsWith(prefix)) {
+      const seq = parseInt(t.number.slice(prefix.length), 10);
+      if (!Number.isNaN(seq) && seq > maxSeq) maxSeq = seq;
+    }
+  }
+  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
 }
 
 function getMajorLabel(value: string): string {
@@ -231,7 +240,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
       } else {
         const payload: ProjectChangeCreate = {
           project_id: project.id,
-          number: generateChangeNumber(),
+          number: buildChangeNumber(project, items),
           title,
           date,
           category_major,
@@ -308,7 +317,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
       title: '大类',
       dataIndex: 'category_major',
       key: 'category_major',
-      width: 80,
+      width: 70,
       render: (value: string) => (
         <Tag color={MAJOR_TAG_COLOR[value] ?? 'default'}>{getMajorLabel(value)}</Tag>
       ),
@@ -316,7 +325,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
     {
       title: '小类',
       key: 'category_minor',
-      width: 160,
+      width: 130,
       render: (_: unknown, record: ProjectChange) => {
         const minorLabel = getMinorLabel(record.category_major, record.category_minor);
         return (
@@ -348,22 +357,9 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
       },
     },
     {
-      title: '创建时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 160,
-      render: (text: string) => {
-        try {
-          return new Date(text).toLocaleString('zh-CN');
-        } catch {
-          return text;
-        }
-      },
-    },
-    {
       title: '操作',
       key: 'action',
-      width: 130,
+      width: 100,
       render: (_: unknown, record: ProjectChange) =>
         canEdit ? (
           <Space size="small">
@@ -420,7 +416,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
         dataSource={items}
         rowKey="id"
         loading={loading}
-        scroll={{ x: 1000 }}
+        scroll={{ x: 800 }}
         pagination={{
           current: page,
           pageSize,
@@ -465,8 +461,8 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
             label="大类"
             rules={[{ required: true, message: '请选择大类' }]}
           >
-            <Select
-              placeholder="请选择大类"
+            <AutoComplete
+              placeholder="请选择或输入大类"
               options={CHANGE_CATEGORY_MAJOR.map((c) => ({ value: c.value, label: c.label }))}
               onChange={handleMajorChange}
             />
@@ -484,7 +480,11 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
             {majorValue === 'other' ? (
               <Input placeholder="请输入小类（自由填写）" maxLength={50} showCount />
             ) : (
-              <Select placeholder="请选择小类" options={minorOptions} allowClear />
+              <AutoComplete
+                placeholder="请选择或输入小类"
+                options={minorOptions}
+                allowClear
+              />
             )}
           </Form.Item>
           <Form.Item
