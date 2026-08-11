@@ -43,6 +43,7 @@ import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
+import { useLockContext } from '../contexts/LockContext';
 import { clearTokens, isAdmin } from '../utils/auth';
 import { TagProvider } from '../contexts/TagContext';
 import NotificationBell from '../components/NotificationBell';
@@ -216,7 +217,15 @@ export default function MainLayout() {
   const customization = useCustomization();
   const { isDark } = useTheme();
   const { user } = useUser();
+  const { isLocked, lock } = useLockContext();
   useIdleTimer();
+
+  // 工作台被锁定时跳转到锁屏页
+  useEffect(() => {
+    if (isLocked) {
+      navigate('/lock');
+    }
+  }, [isLocked, navigate]);
 
   const handleMenuOpenChange = useCallback((openKeys: string[]) => {
     if (openKeys.includes('/settings')) {
@@ -408,12 +417,21 @@ export default function MainLayout() {
               onMarkAsRead={markAsRead}
               onMarkAllAsRead={markAllAsRead}
             />
-            <Tooltip title={idlePaused ? '已锁定：不会自动退出' : '空闲 5 分钟自动退出'}>
+            <Tooltip title="手动锁定工作台">
+              <Button
+                type="text"
+                size="small"
+                icon={<LockOutlined />}
+                aria-label="手动锁定工作台"
+                onClick={lock}
+              />
+            </Tooltip>
+            <Tooltip title={idlePaused ? '已暂停自动锁定' : '空闲 5 分钟自动锁定'}>
               <Button
                 type="text"
                 size="small"
                 icon={idlePaused ? <LockOutlined /> : <UnlockOutlined />}
-                aria-label={idlePaused ? '解除空闲锁定' : '锁定工作台防止自动退出'}
+                aria-label={idlePaused ? '恢复自动锁定' : '暂停自动锁定'}
                 onClick={toggleIdlePause}
                 style={{ color: idlePaused ? 'var(--color-warning)' : undefined }}
               />

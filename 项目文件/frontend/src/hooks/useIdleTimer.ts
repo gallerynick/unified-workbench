@@ -1,10 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { clearTokens } from '../utils/auth';
-import { request } from '../utils/request';
+import { useLockContext } from '../contexts/LockContext';
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟
 
-/** 模块级暂停标志：直播推流或手动锁定时可暂停空闲计时 */
+/** 模块级暂停标志：直播推流或手动暂停时可暂停空闲计时 */
 let idlePaused = false;
 
 export function pauseIdleTimer() { idlePaused = true; }
@@ -14,17 +13,13 @@ export function isIdlePaused() { return idlePaused; }
 export function useIdleTimer() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActivityRef = useRef(Date.now());
+  const { lock } = useLockContext();
 
-  const handleLogout = useCallback(async () => {
+  const handleLock = useCallback(() => {
     if (idlePaused) return;
-    clearTokens();
-    sessionStorage.clear();
-    try {
-      await request('/auth/logout', { method: 'POST' }).catch(() => {});
-    } finally {
-      window.location.replace('/login');
-    }
-  }, []);
+    // 不再清除 token / 退出登录，改为锁定工作台（token 保留供解锁验证）
+    lock();
+  }, [lock]);
 
   const resetTimer = useCallback(() => {
     lastActivityRef.current = Date.now();
@@ -36,10 +31,10 @@ export function useIdleTimer() {
       }
       const idle = Date.now() - lastActivityRef.current;
       if (idle >= IDLE_TIMEOUT_MS) {
-        handleLogout();
+        handleLock();
       }
     }, IDLE_TIMEOUT_MS);
-  }, [handleLogout]);
+  }, [handleLock]);
 
   useEffect(() => {
     const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];

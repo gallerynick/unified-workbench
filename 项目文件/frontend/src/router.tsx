@@ -7,6 +7,8 @@ import NotFound from './pages/NotFound';
 import Login from '@/pages/Login';
 import Welcome from '@/pages/Welcome';
 import AuthGuard from '@/components/AuthGuard';
+import LockGuard from '@/components/LockGuard';
+import LockPage from '@/pages/LockPage';
 import ShareDownloadPage from '@/pages/public/ShareDownloadPage';
 
 const UserManagement = lazy(() => import('@/pages/settings/UserManagement'));
@@ -70,6 +72,10 @@ export const router = createBrowserRouter([
     element: <Welcome />,
   },
   {
+    path: '/lock',
+    element: <LockPage />,
+  },
+  {
     path: '/test-mode',
     element: <TestModePage />,
   },
@@ -89,8 +95,11 @@ export const router = createBrowserRouter([
     element: <AuthGuard />,
     children: [
       {
-        path: '/',
-        element: <MainLayout />,
+        element: <LockGuard />,
+        children: [
+          {
+            path: '/',
+            element: <MainLayout />,
         children: [
           {
             index: true,
@@ -267,6 +276,8 @@ element: <LazyPage><MemberDetail /></LazyPage>,
           },
         ],
       },
+      ],
+    },
     ],
   },
 ]);

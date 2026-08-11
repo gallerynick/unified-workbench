@@ -6,6 +6,7 @@ import zhCN from 'antd/locale/zh_CN';
 import { router } from './router';
 import { ThemeProvider, useTheme, getAntdThemeConfig } from './contexts/ThemeContext';
 import { UserProvider } from './contexts/UserContext';
+import { LockProvider } from './contexts/LockContext';
 import './styles/token.css';
 import './styles/typography.css';
 import './global.css';
@@ -15,7 +16,9 @@ function AppWithTheme() {
   return (
     <ConfigProvider locale={zhCN} theme={getAntdThemeConfig(isDark)}>
       <UserProvider>
-        <RouterProvider router={router} />
+        <LockProvider>
+          <RouterProvider router={router} />
+        </LockProvider>
       </UserProvider>
     </ConfigProvider>
   );
