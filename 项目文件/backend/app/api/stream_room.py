@@ -38,7 +38,7 @@ async def create_room_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """创建直播间。"""
-    host = req.headers.get("x-forwarded-host") or req.base_url.hostname or "localhost"
+    host = req.headers.get("x-forwarded-host") or req.headers.get("host") or req.base_url.hostname or "localhost"
     room = await create_room(db, current_user.id, data, host)
     return UnifiedResponse(data=room)
 
@@ -64,7 +64,7 @@ async def list_rooms_endpoint(
         }.items()
         if v is not None
     }
-    host = req.headers.get("x-forwarded-host") or req.base_url.hostname or "localhost"
+    host = req.headers.get("x-forwarded-host") or req.headers.get("host") or req.base_url.hostname or "localhost"
     rooms = await list_rooms(db, current_user.id, filters, host)
     return UnifiedResponse(data=rooms)
 
@@ -77,7 +77,7 @@ async def get_room_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """根据 ID 获取直播间。"""
-    host = req.headers.get("x-forwarded-host") or req.base_url.hostname or "localhost"
+    host = req.headers.get("x-forwarded-host") or req.headers.get("host") or req.base_url.hostname or "localhost"
     room = await get_room(db, room_id, host)
     return UnifiedResponse(data=room)
 
@@ -91,7 +91,7 @@ async def update_room_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """更新直播间（仅创建者可更新）。"""
-    host = req.headers.get("x-forwarded-host") or req.base_url.hostname or "localhost"
+    host = req.headers.get("x-forwarded-host") or req.headers.get("host") or req.base_url.hostname or "localhost"
     room = await update_room(db, room_id, current_user.id, data, host)
     return UnifiedResponse(data=room)
 
@@ -115,7 +115,7 @@ async def takeover_room_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """接管直播间（接管后自动开始推流）。"""
-    host = req.headers.get("x-forwarded-host") or req.base_url.hostname or "localhost"
+    host = req.headers.get("x-forwarded-host") or req.headers.get("host") or req.base_url.hostname or "localhost"
     room = await takeover_room(db, room_id, current_user.id, host)
     return UnifiedResponse(data=room, msg="已接管推流")
 
