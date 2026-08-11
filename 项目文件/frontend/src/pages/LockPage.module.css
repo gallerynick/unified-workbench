@@ -9,13 +9,13 @@
 }
 
 .avatar {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xxs);
   background: var(--color-info-bg);
   color: var(--color-info);
 }
 
 .title {
-  margin-bottom: var(--spacing-xxs) !important;
+  margin-bottom: var(--spacing-sm) !important;
   text-align: center;
   color: var(--ink);
 }
