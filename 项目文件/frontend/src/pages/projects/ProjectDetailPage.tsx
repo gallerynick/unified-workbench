@@ -8,7 +8,7 @@ import {
   message,
   Button,
   Space,
-  Tag,
+  Segmented,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -16,7 +16,6 @@ import {
 } from '@ant-design/icons';
 import { getProject, updateProject } from '../../api/projects';
 import type { Project } from '../../types/project';
-import { getVisibilityConfig } from '../../utils/visibility';
 import ProjectInfoTab from './tabs/ProjectInfoTab';
 import ProjectMemberTab from './tabs/ProjectMemberTab';
 import ProjectProgressTab from './tabs/ProjectProgressTab';
@@ -96,7 +95,6 @@ export default function ProjectDetailPage() {
     return null;
   }
 
-  const visibilityCfg = getVisibilityConfig(project.visibility);
   const tabItems = [
     {
       key: 'info',
@@ -188,7 +186,15 @@ export default function ProjectDetailPage() {
           <Title level={4} className={styles.title ?? ''}>
             {project.title}
           </Title>
-          <Tag color={visibilityCfg.color}>{visibilityCfg.text}</Tag>
+          <Segmented
+            options={[
+              { label: '公开', value: 'public' },
+              { label: '私有', value: 'private' },
+              { label: '受限', value: 'restricted' },
+            ]}
+            value={project.visibility}
+            disabled
+          />
         </Space>
         <Button
           icon={<ExportOutlined />}
