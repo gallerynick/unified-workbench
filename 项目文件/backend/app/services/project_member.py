@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import uuid
 
+from datetime import datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -96,7 +98,7 @@ async def create_project_member(
         notes=data.get("notes"),
         is_owner=data.get("is_owner", False),
         is_active=data.get("is_active", True),
-        joined_at=data.get("joined_at"),
+        joined_at=data.get("joined_at") or datetime.now(),
         left_at=data.get("left_at"),
     )
     db.add(item)
