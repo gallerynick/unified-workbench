@@ -18,6 +18,18 @@
   flex-shrink: 0;
 }
 
+.listToolbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  max-width: 320px;
+  border-radius: var(--rounded-pill);
+}
+
 .meetingList {
   flex: 1;
   min-height: 0;
@@ -138,4 +150,15 @@
   justify-content: flex-end;
   padding-top: var(--spacing-sm);
   flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .listToolbarActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .listToolbarActions .searchInput {
+    max-width: 100%;
+  }
 }

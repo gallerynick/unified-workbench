@@ -24,6 +24,7 @@ import {
   LinkOutlined,
   CheckSquareOutlined,
   ExclamationCircleOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Project } from '../../../types/project';
@@ -96,6 +97,7 @@ export default function TodoTaskTab({ project }: { project: Project }) {
   const [proposals, setProposals] = useState<ProjectProposal[]>([]);
 
   // ── UI 状态 ──
+  const [searchText, setSearchText] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTodo, setEditingTodo] = useState<ProjectTodo | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -124,13 +126,17 @@ export default function TodoTaskTab({ project }: { project: Project }) {
 
   const byStatus = useMemo(() => {
     const groups: Record<string, ProjectTodo[]> = { pending: [], in_progress: [], completed: [] };
+    const kw = searchText.trim().toLowerCase();
     for (const t of todos) {
+      if (kw && !t.title.toLowerCase().includes(kw) && !t.number.toLowerCase().includes(kw)) {
+        continue;
+      }
       const key = BOARD_COLUMNS.includes(t.status as TodoStatus) ? t.status : 'pending';
       if (!groups[key]) groups[key] = [];
       groups[key].push(t);
     }
     return groups;
-  }, [todos]);
+  }, [todos, searchText]);
 
   // ── 数据加载 ──
   const fetchTodos = useCallback(async () => {
@@ -449,11 +455,24 @@ export default function TodoTaskTab({ project }: { project: Project }) {
             </Text>
           )}
         </div>
-        {canOperate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
-            新建待办
-          </Button>
-        )}
+        <div className={styles.toolbarActions ?? ''}>
+          <Input.Search
+            className={styles.searchInput ?? ''}
+            variant="filled"
+            placeholder="搜索待办..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+            }}
+            allowClear
+          />
+          {canOperate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
+              新建待办
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* 看板 */}

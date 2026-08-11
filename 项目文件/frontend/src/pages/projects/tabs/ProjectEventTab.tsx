@@ -23,6 +23,7 @@ import {
   EditOutlined,
   ExclamationCircleOutlined,
   PlusOutlined,
+  SearchOutlined,
   SwapOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -187,6 +188,7 @@ export default function ProjectEventTab({ project }: { project: Project }) {
   const [events, setEvents] = useState<ProjectEvent[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   // ── Modal 状态 ──
   const [modalVisible, setModalVisible] = useState(false);
@@ -257,6 +259,21 @@ export default function ProjectEventTab({ project }: { project: Project }) {
       })),
     [users],
   );
+
+  const filteredEvents = useMemo(() => {
+    const kw = searchText.trim().toLowerCase();
+    if (!kw) return events;
+    return events.filter((ev) => {
+      const detailsText = Object.values(ev.details ?? {})
+        .map((v) => (typeof v === 'string' ? v : JSON.stringify(v ?? '')))
+        .join(' ');
+      return (
+        ev.title.toLowerCase().includes(kw) ||
+        (ev.number ?? '').toLowerCase().includes(kw) ||
+        detailsText.toLowerCase().includes(kw)
+      );
+    });
+  }, [events, searchText]);
 
   // ── 打开新建 ──
   const handleCreate = useCallback(() => {
@@ -497,18 +514,31 @@ export default function ProjectEventTab({ project }: { project: Project }) {
           <SwapOutlined style={{ color: 'var(--text-secondary)' }} />
           <Text type="secondary">共 {events.length} 条事件记录</Text>
         </span>
-        {canOperate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            新增事件
-          </Button>
-        )}
+        <div className={styles.toolbarActions ?? ''}>
+          <Input.Search
+            className={styles.searchInput ?? ''}
+            variant="filled"
+            placeholder="搜索事件..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+            }}
+            allowClear
+          />
+          {canOperate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              新增事件
+            </Button>
+          )}
+        </div>
       </div>
 
       <Table<ProjectEvent>
         rowKey="id"
         loading={loading}
         columns={columns}
-        dataSource={events}
+        dataSource={filteredEvents}
         pagination={{
           pageSize: 8,
           showSizeChanger: false,

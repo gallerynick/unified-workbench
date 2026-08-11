@@ -22,6 +22,29 @@
   color: var(--text-secondary);
 }
 
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  max-width: 320px;
+  border-radius: var(--rounded-pill);
+}
+
+@media (max-width: 767px) {
+  .toolbarActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .toolbarActions .searchInput {
+    max-width: 100%;
+  }
+}
+
 /* 移交表单面板（event_type = handover 时展示） */
 .handoverPanel {
   display: flex;

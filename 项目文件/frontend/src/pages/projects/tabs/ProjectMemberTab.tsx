@@ -21,6 +21,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
+  SearchOutlined,
   SettingOutlined,
   UndoOutlined,
   UserAddOutlined,
@@ -76,6 +77,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
 
   // ── UI 状态 ──
   const [viewMode, setViewMode] = useState<'active' | 'history'>('active');
+  const [searchText, setSearchText] = useState('');
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingMember, setEditingMember] = useState<ProjectMember | null>(null);
@@ -558,6 +560,14 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
 
   const dataSource = viewMode === 'active' ? activeMembers : historyMembers;
 
+  const filteredMembers = useMemo(() => {
+    const kw = searchText.trim().toLowerCase();
+    if (!kw) return dataSource;
+    return dataSource.filter(
+      (m) => getDisplayName(m).toLowerCase().includes(kw) || getUsername(m).toLowerCase().includes(kw),
+    );
+  }, [dataSource, searchText, getDisplayName, getUsername]);
+
   return (
     <div className={styles.container ?? ''}>
       {/* 项目负责人 */}
@@ -587,24 +597,37 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
           value={viewMode}
           onChange={(value) => setViewMode(value as 'active' | 'history')}
         />
-        {viewMode === 'active' && canManage && (
-          <Tooltip title={isPrivate ? '私有项目不允许添加项目成员' : undefined}>
-            <Button
-              type="primary"
-              icon={<UserAddOutlined />}
-              onClick={openAddModal}
-              disabled={isPrivate}
-            >
-              添加成员
-            </Button>
-          </Tooltip>
-        )}
+        <div className={styles.toolbarActions ?? ''}>
+          <Input.Search
+            className={styles.searchInput ?? ''}
+            variant="filled"
+            placeholder="搜索成员..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+            }}
+            allowClear
+          />
+          {viewMode === 'active' && canManage && (
+            <Tooltip title={isPrivate ? '私有项目不允许添加项目成员' : undefined}>
+              <Button
+                type="primary"
+                icon={<UserAddOutlined />}
+                onClick={openAddModal}
+                disabled={isPrivate}
+              >
+                添加成员
+              </Button>
+            </Tooltip>
+          )}
+        </div>
       </div>
 
       <Table<ProjectMember>
         rowKey="id"
         columns={columns}
-        dataSource={dataSource}
+        dataSource={filteredMembers}
         loading={loading}
         pagination={false}
         locale={{

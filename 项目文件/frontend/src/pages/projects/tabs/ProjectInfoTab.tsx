@@ -209,7 +209,7 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
         onCancel={() => setEditModalVisible(false)}
         confirmLoading={submitting}
         destroyOnClose
-        width={560}
+        width={800}
         styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
       >
         <Form form={form} layout="vertical">
@@ -259,7 +259,7 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
           </Row>
           {editSourceOpen && (
             <Form.Item name="repo_url" label="仓库地址">
-              <Input placeholder="请输入 Git 仓库地址" />
+              <Input placeholder="请输入仓库地址" />
             </Form.Item>
           )}
           <Row gutter={16}>

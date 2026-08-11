@@ -16,6 +16,18 @@
   gap: var(--spacing-xs);
 }
 
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  max-width: 320px;
+  border-radius: var(--rounded-pill);
+}
+
 /* 看板三列 Grid */
 .board {
   display: grid;
@@ -28,6 +40,15 @@
 @media (max-width: 767px) {
   .board {
     grid-template-columns: 1fr;
+  }
+
+  .toolbarActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .toolbarActions .searchInput {
+    max-width: 100%;
   }
 }
 

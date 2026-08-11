@@ -17,6 +17,7 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -121,6 +122,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
   const [majorFilter, setMajorFilter] = useState<string | undefined>(undefined);
+  const [searchText, setSearchText] = useState('');
 
   // 弹窗状态
   const [modalVisible, setModalVisible] = useState(false);
@@ -164,6 +166,17 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
   useEffect(() => {
     fetchList();
   }, [fetchList]);
+
+  const filteredItems = useMemo(() => {
+    const kw = searchText.trim().toLowerCase();
+    if (!kw) return items;
+    return items.filter(
+      (it) =>
+        it.title.toLowerCase().includes(kw) ||
+        (it.category_detail ?? '').toLowerCase().includes(kw) ||
+        it.number.toLowerCase().includes(kw),
+    );
+  }, [items, searchText]);
 
   const minorOptions = useMemo(
     () => CHANGE_CATEGORY_MINOR_MAP[majorValue ?? ''] ?? [],
@@ -398,20 +411,33 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
           style={{ minWidth: 180 }}
           className={styles.filterSelect ?? ''}
         />
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={openCreate}
-          disabled={!canEdit}
-        >
-          新建记录
-        </Button>
+        <div className={styles.headerActions ?? ''}>
+          <Input.Search
+            className={styles.searchInput ?? ''}
+            variant="filled"
+            placeholder="搜索修改记录..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+            }}
+            allowClear
+          />
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={openCreate}
+            disabled={!canEdit}
+          >
+            新建记录
+          </Button>
+        </div>
       </div>
 
       <Table<ProjectChange>
         className={styles.table ?? ''}
         columns={columns}
-        dataSource={items}
+        dataSource={filteredItems}
         rowKey="id"
         loading={loading}
         scroll={{ x: 800 }}

@@ -261,7 +261,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
         </Row>
         {isOpenSource && (
           <Form.Item name="repo_url" label="仓库地址">
-            <Input placeholder="请输入 Git 仓库地址" />
+            <Input placeholder="请输入仓库地址" />
           </Form.Item>
         )}
         <Row gutter={16}>

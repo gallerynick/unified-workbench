@@ -24,6 +24,7 @@ import {
   ExclamationCircleOutlined,
   FileTextOutlined,
   PlusOutlined,
+  SearchOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -130,6 +131,7 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
+  const [searchText, setSearchText] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // ── 表单状态 ──
@@ -213,6 +215,19 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
     setPage(1);
     setExpandedId(null);
   }, []);
+
+  const filteredMeetings = useMemo(() => {
+    const kw = searchText.trim().toLowerCase();
+    if (!kw) return meetings;
+    return meetings.filter((m) => {
+      const { title, body } = splitTitleContent(m.content);
+      return (
+        title.toLowerCase().includes(kw) ||
+        body.toLowerCase().includes(kw) ||
+        m.number.toLowerCase().includes(kw)
+      );
+    });
+  }, [meetings, searchText]);
 
   // ── 展开/收起详情 ──
   const toggleExpand = useCallback((id: string) => {
@@ -374,34 +389,53 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
           onChange={handleFilterChange}
           className={styles.filterSegmented ?? ''}
         />
-        <Tooltip title={canManage ? undefined : '只读权限，无法新建记录'}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={openCreate}
-            disabled={!canManage}
-          >
-            新建记录
-          </Button>
-        </Tooltip>
+        <div className={styles.listToolbarActions ?? ''}>
+          <Input.Search
+            className={styles.searchInput ?? ''}
+            variant="filled"
+            placeholder="搜索交流记录..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+            }}
+            allowClear
+          />
+          <Tooltip title={canManage ? undefined : '只读权限，无法新建记录'}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreate}
+              disabled={!canManage}
+            >
+              新建记录
+            </Button>
+          </Tooltip>
+        </div>
       </div>
 
       {/* 记录列表 */}
       <div className={styles.meetingList ?? ''}>
         <Spin spinning={loading}>
-          {meetings.length === 0 ? (
+          {filteredMeetings.length === 0 ? (
             <Empty
-              description={loading ? '加载中...' : '暂无交流记录'}
+              description={
+                meetings.length === 0
+                  ? loading
+                    ? '加载中...'
+                    : '暂无交流记录'
+                  : '无匹配的交流记录'
+              }
               className={styles.emptyState ?? ''}
             >
-              {!loading && canManage && (
+              {meetings.length === 0 && !loading && canManage && (
                 <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                   创建第一条记录
                 </Button>
               )}
             </Empty>
           ) : (
-            meetings.map((m) => {
+            filteredMeetings.map((m) => {
               const { title, body } = splitTitleContent(m.content);
               const summary = title || body || '无内容';
               const isExpanded = expandedId === m.id;
