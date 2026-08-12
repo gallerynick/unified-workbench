@@ -192,6 +192,11 @@ export default function DebugModeOverlay() {
     setPicking(true);
   };
 
+  const clearPicked = () => {
+    setPicked(null);
+    setHoverRect(null);
+  };
+
   const highlightRect = hoverRect ?? picked?.rect ?? null;
 
   return createPortal(
@@ -251,6 +256,13 @@ export default function DebugModeOverlay() {
                   onClick={startPicking}
                 >
                   重新选择
+                </button>
+                <button
+                  type="button"
+                  className={styles.copyBtn ?? ''}
+                  onClick={clearPicked}
+                >
+                  清除
                 </button>
               </div>
             </>
