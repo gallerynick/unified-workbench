@@ -370,6 +370,11 @@
 :root[data-theme="dark"] .ant-modal-confirm .ant-modal-body {
   background: transparent;
 }
+:root[data-theme="dark"] .ant-modal-footer,
+:root[data-theme="dark"] .ant-modal-confirm .ant-modal-footer,
+:root[data-theme="dark"] .ant-drawer-footer {
+  background: transparent;
+}
 :root[data-theme="dark"] .ant-message-notice-content,
 :root[data-theme="dark"] .ant-notification-notice {
   background: var(--bg-primary);
