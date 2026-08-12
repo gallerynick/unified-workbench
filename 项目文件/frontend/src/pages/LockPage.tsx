@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, Button, Input, Typography, message } from 'antd';
 import type { InputRef } from 'antd';
-import { LockOutlined, UserOutlined } from '@ant-design/icons';
+import { LockOutlined, UserOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useUser } from '../contexts/UserContext';
 import { useLockContext } from '../contexts/LockContext';
 import { request, HttpError } from '../utils/request';
@@ -122,31 +122,33 @@ export default function LockPage() {
       >
         <LockOutlined />
       </button>
-      <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
-        已锁定
-      </Text>
-      <div className={`${styles.inputArea ?? ''} ${showInput ? (styles.expanded ?? '') : ''}`}>
-        <Input.Password
-          ref={passwordInputRef}
-          size="large"
-          prefix={<LockOutlined />}
-          placeholder="请输入密码"
-          aria-label="解锁密码"
-          value={password}
-          onChange={(e) => { setPassword(e.target.value); startIdleTimer(); }}
-          onPressEnter={() => void handleUnlock()}
-        />
-        <Button
-          type="primary"
-          size="large"
-          loading={loading}
-          block
-          className={styles.unlockBtn ?? ''}
-          onClick={() => void handleUnlock()}
-        >
-          解锁
-        </Button>
-      </div>
+      {showInput ? (
+        <div className={`${styles.inputRow ?? ''} ${styles.enterElement ?? ''}`}>
+          <Input.Password
+            ref={passwordInputRef}
+            size="large"
+            prefix={<LockOutlined />}
+            placeholder="请输入密码"
+            aria-label="解锁密码"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); startIdleTimer(); }}
+            onPressEnter={() => void handleUnlock()}
+            className={styles.passwordInput ?? ''}
+          />
+          <Button
+            type="primary"
+            loading={loading}
+            className={styles.unlockCircle ?? ''}
+            aria-label="解锁"
+            onClick={() => void handleUnlock()}
+            icon={<ArrowRightOutlined />}
+          />
+        </div>
+      ) : (
+        <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
+          已锁定
+        </Text>
+      )}
     </div>
   );
 }

@@ -47,26 +47,40 @@
   text-align: center;
 }
 
-/* ====== Password input expand ====== */
-.inputArea {
+/* ====== Password input + circular unlock ====== */
+.inputRow {
   width: 100%;
   max-width: 360px;
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 300ms ease, opacity 200ms ease;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
-.inputArea.expanded {
-  max-height: 200px;
-  opacity: 1;
+.passwordInput {
+  flex: 1;
+  border-radius: var(--rounded-pill) !important;
 }
 
-.unlockBtn {
-  width: 100%;
+.unlockCircle {
+  flex-shrink: 0;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unlockCircle::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  pointer-events: none;
 }
 
 /* ====== Lock page entrance ====== */
