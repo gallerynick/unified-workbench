@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar, Button, Input, Typography, message } from 'antd';
 import type { InputRef } from 'antd';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
@@ -17,6 +18,7 @@ export default function LockPage() {
   const [showInput, setShowInput] = useState(false);
   const [password, setPassword] = useState('');
   const passwordInputRef = useRef<InputRef>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // 直接刷新到 /lock 时 user 可能尚未加载，主动拉取一次
@@ -47,10 +49,10 @@ export default function LockPage() {
         // 溶解动画 250ms 后解锁，同时传信号给 MainLayout 播放反向模糊进场
         setDissolving(true);
         setTimeout(() => {
-          sessionStorage.setItem('workbench_just_unlocked', '1');
           unlock();
           const returnPath = sessionStorage.getItem('workbench_lock_return') || '/';
-          window.location.href = returnPath;
+          sessionStorage.setItem('workbench_just_unlocked', '1');
+          navigate(returnPath, { replace: true });
         }, 250);
       } else {
         message.error('密码错误');
