@@ -22,7 +22,15 @@ function getSelectedMenuKey(): string {
 function getUniqueSelector(el: Element): string {
   if (el === document.documentElement) return 'html';
   if (el === document.body) return 'body';
-  if (el.id) return `#${escapeCss(el.id)}`;
+
+  if (el.id) {
+    const idSelector = `#${escapeCss(el.id)}`;
+    try {
+      if (document.querySelectorAll(idSelector).length === 1) return idSelector;
+    } catch {
+      /* id 选择器无效，落入 path 逻辑 */
+    }
+  }
 
   const path: string[] = [];
   let node: Element | null = el;
@@ -31,11 +39,8 @@ function getUniqueSelector(el: Element): string {
     let segment = node.tagName.toLowerCase();
 
     const menuId = node.getAttribute('data-menu-id');
-    const tabKey = node.getAttribute('data-tab-key');
     if (menuId) {
       segment += `[data-menu-id="${escapeCss(menuId)}"]`;
-    } else if (tabKey) {
-      segment += `[data-tab-key="${escapeCss(tabKey)}"]`;
     } else if (typeof node.className === 'string' && node.className.trim()) {
       const classes = node.className.trim().split(/\s+/).slice(0, 2);
       if (classes.length && classes[0]) {
@@ -68,7 +73,21 @@ function getUniqueSelector(el: Element): string {
     node = node.parentElement;
   }
 
-  return path.length ? path.join(' > ') : 'body';
+  const fallback = path.length ? path.join(' > ') : 'body';
+  try {
+    if (document.querySelectorAll(fallback).length === 1) return fallback;
+  } catch {
+    /* fallback 不唯一或无效，继续兜底 */
+  }
+  const fullPath: string[] = [];
+  let n: Element | null = el;
+  while (n && n !== document.body && n !== document.documentElement) {
+    const p: Element | null = n.parentElement;
+    const idx = p ? Array.from(p.children).indexOf(n) + 1 : 1;
+    fullPath.unshift(`${n.tagName.toLowerCase()}:nth-child(${idx})`);
+    n = p;
+  }
+  return fullPath.join(' > ');
 }
 
 interface RectState {
@@ -81,6 +100,8 @@ interface RectState {
 export default function DebugModeOverlay() {
   const location = useLocation();
   const rafRef = useRef<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [enabled, setEnabled] = useState<boolean>(() => isDebugModeEnabled());
   const [menuKey, setMenuKey] = useState<string>('-');
   const [selector, setSelector] = useState<string>('-');
   const [tagName, setTagName] = useState<string>('-');
@@ -89,8 +110,18 @@ export default function DebugModeOverlay() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    const sync = () => setEnabled(isDebugModeEnabled());
+    window.addEventListener('site-config-changed', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('site-config-changed', sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDebugModeEnabled()) return;
+      if (!enabled) return;
       if (rafRef.current) return;
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = 0;
@@ -98,6 +129,10 @@ export default function DebugModeOverlay() {
         setMenuKey(getSelectedMenuKey());
         const el = document.elementFromPoint(e.clientX, e.clientY);
         if (el && el !== document.documentElement && el !== document.body) {
+          if (containerRef.current && containerRef.current.contains(el)) {
+            setRect(null);
+            return;
+          }
           setSelector(getUniqueSelector(el));
           setTagName(el.tagName.toLowerCase());
           const r = el.getBoundingClientRect();
@@ -112,6 +147,8 @@ export default function DebugModeOverlay() {
 
     const handleScroll = () => {
       setRect(null);
+      setSelector('-');
+      setTagName('-');
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -121,9 +158,9 @@ export default function DebugModeOverlay() {
       document.removeEventListener('scroll', handleScroll, true);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [enabled]);
 
-  if (!isDebugModeEnabled()) return null;
+  if (!enabled) return null;
 
   const copySelector = async () => {
     try {
@@ -148,7 +185,7 @@ export default function DebugModeOverlay() {
           }}
         />
       )}
-      <div className={styles.container ?? ''}>
+      <div className={styles.container ?? ''} ref={containerRef}>
         <div className={styles.header ?? ''}>调试面板</div>
         <div className={styles.section ?? ''}>
           <div className={styles.row ?? ''}>

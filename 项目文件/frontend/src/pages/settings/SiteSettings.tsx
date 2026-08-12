@@ -31,6 +31,7 @@ function getSiteConfig(): SiteConfig {
 
 function saveSiteConfig(config: SiteConfig): void {
   localStorage.setItem(SITE_CONFIG_KEY, JSON.stringify(config));
+  window.dispatchEvent(new Event('site-config-changed'));
 }
 
 export function isDebugModeEnabled(): boolean {
