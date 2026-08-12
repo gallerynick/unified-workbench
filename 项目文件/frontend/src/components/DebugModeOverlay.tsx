@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { getRouteTitle } from '@/config/routeTitles';
 import { isDebugModeEnabled } from '@/pages/settings/SiteSettings';
@@ -173,7 +174,7 @@ export default function DebugModeOverlay() {
     }
   };
 
-  return (
+  return createPortal(
     <>
       {rect && (
         <div
@@ -226,6 +227,7 @@ export default function DebugModeOverlay() {
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
