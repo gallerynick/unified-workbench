@@ -11,13 +11,13 @@ const SITE_CONFIG_KEY = 'site_config';
 interface SiteConfig {
   site_port: string;
   site_ip: string;
-  test_mode: boolean;
+  debug_mode: boolean;
 }
 
 const DEFAULT_CONFIG: SiteConfig = {
   site_port: '80',
   site_ip: 'localhost',
-  test_mode: false,
+  debug_mode: false,
 };
 
 function getSiteConfig(): SiteConfig {
@@ -33,8 +33,8 @@ function saveSiteConfig(config: SiteConfig): void {
   localStorage.setItem(SITE_CONFIG_KEY, JSON.stringify(config));
 }
 
-export function isTestModeEnabled(): boolean {
-  return getSiteConfig().test_mode;
+export function isDebugModeEnabled(): boolean {
+  return getSiteConfig().debug_mode;
 }
 
 export default function SiteSettings() {
@@ -64,7 +64,7 @@ export default function SiteSettings() {
       saveSiteConfig({
         site_port: values.site_port,
         site_ip: values.site_ip,
-        test_mode: values.test_mode,
+        debug_mode: values.debug_mode,
       });
       message.success('站点配置已保存');
     } catch {
@@ -100,10 +100,10 @@ export default function SiteSettings() {
           </Form.Item>
         </Card>
 
-        <Card title={<><SafetyOutlined /> 测试模式</>} style={{ marginBottom: "var(--spacing-lg)" }}>
+        <Card title={<><SafetyOutlined /> 调试模式</>} style={{ marginBottom: "var(--spacing-lg)" }}>
           <Form.Item
-            label="开启测试模式"
-            name="test_mode"
+            label="开启调试模式"
+            name="debug_mode"
             valuePropName="checked"
             extra="开启后，普通成员访问系统将显示测试提示页，无法进入系统。只有管理员可以正常访问。"
           >

@@ -1,56 +1,68 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, ConfigProvider, Avatar, Dropdown, Space, Drawer, Button, Typography, Tooltip } from 'antd';
 import {
-  SettingOutlined,
-  UserOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  MenuOutlined,
+  ApartmentOutlined,
+  AppstoreOutlined,
+  BellOutlined,
+  BgColorsOutlined,
+  BookOutlined,
+  CalendarOutlined,
+  CheckSquareOutlined,
+  ClockCircleOutlined,
   CloudServerOutlined,
-  TeamOutlined,
-  SkinOutlined,
-  GlobalOutlined,
-  FormOutlined,
-  HomeOutlined,
+  ContactsOutlined,
+  DatabaseOutlined,
+  DesktopOutlined,
   FileOutlined,
   FileTextOutlined,
-  ProjectOutlined,
-  AppstoreOutlined,
-  MoneyCollectOutlined,
+  FormOutlined,
+  GlobalOutlined,
+  HomeOutlined,
   KeyOutlined,
-  BellOutlined,
-  CheckSquareOutlined,
-  ContactsOutlined,
-  CalendarOutlined,
-  DatabaseOutlined,
   LikeOutlined,
-  SoundOutlined,
-  BookOutlined,
-  TagOutlined,
-  BgColorsOutlined,
-  ApartmentOutlined,
-  VideoCameraOutlined,
-  DesktopOutlined,
-  SwapOutlined,
   LockOutlined,
-  ClockCircleOutlined,
+  MenuFoldOutlined,
+  MenuOutlined,
+  MenuUnfoldOutlined,
+  MoneyCollectOutlined,
   PauseCircleOutlined,
+  ProjectOutlined,
+  SettingOutlined,
+  SkinOutlined,
+  SoundOutlined,
+  SwapOutlined,
+  TagOutlined,
+  TeamOutlined,
+  UserOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { useWebSocket } from '../hooks/useWebSocket';
-import { useIdleTimer, pauseIdleTimer, resumeIdleTimer } from '../hooks/useIdleTimer';
-import { useResponsive } from '../hooks/useBreakpoint';
-import { useCustomization } from '../hooks/useCustomization';
-import { useTheme } from '../contexts/ThemeContext';
-import { useUser } from '../contexts/UserContext';
-import { useLockContext } from '../contexts/LockContext';
-import { clearTokens, isAdmin } from '../utils/auth';
-import { TagProvider } from '../contexts/TagContext';
+import {
+  Avatar,
+  Button,
+  ConfigProvider,
+  Drawer,
+  Dropdown,
+  Layout,
+  Menu,
+  Space,
+  Tooltip,
+  Typography,
+} from 'antd';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import DebugModeOverlay from '../components/DebugModeOverlay';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
 import VotePopup from '../components/VotePopup';
 import { getRouteTitle } from '../config/routeTitles';
+import { useLockContext } from '../contexts/LockContext';
+import { TagProvider } from '../contexts/TagContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useUser } from '../contexts/UserContext';
+import { useResponsive } from '../hooks/useBreakpoint';
+import { useCustomization } from '../hooks/useCustomization';
+import { pauseIdleTimer, resumeIdleTimer, useIdleTimer } from '../hooks/useIdleTimer';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { clearTokens, isAdmin } from '../utils/auth';
 import styles from './MainLayout.module.css';
 
 const { Header, Sider, Content } = Layout;
@@ -142,25 +154,43 @@ function getMenuItems(): MenuProps['items'] {
   );
 
   if (isAdmin()) {
-    items.push(
-      {
-        key: '/settings',
-        icon: <SettingOutlined />,
-        label: '系统设置',
-        'data-menu-id': '/settings',
-        children: [
-          { key: '/settings/users', label: '用户账号', icon: <TeamOutlined /> },
-          { key: '/settings/tags', label: '标签分类', icon: <TagOutlined /> },
-          { key: '/settings/templates', label: '模板库', icon: <FormOutlined /> },
-          { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
-          { key: '/settings/backups', label: '数据备份', icon: <CloudServerOutlined /> },
-          { key: '/settings/transfer', icon: <SwapOutlined />, label: '数据迁转' },
-          { key: '/settings/customization', label: '应用配置', icon: <SkinOutlined /> },
-          { key: '/settings/system', label: '系统更新', icon: <CloudServerOutlined /> },
-          { key: '/settings/storage', label: '存储设置', icon: <DatabaseOutlined /> },
-        ],
-      },
-    );
+    items.push({
+      key: '/settings',
+      icon: <SettingOutlined />,
+      label: '系统设置',
+      'data-menu-id': '/settings',
+      children: [
+        { key: '/settings/users', label: '用户账号', icon: <TeamOutlined /> },
+        { key: '/settings/tags', label: '标签分类', icon: <TagOutlined /> },
+        { key: '/settings/templates', label: '模板库', icon: <FormOutlined /> },
+        { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
+        {
+          key: '/settings/backups',
+          label: '数据备份',
+          icon: <CloudServerOutlined />,
+        },
+        {
+          key: '/settings/transfer',
+          icon: <SwapOutlined />,
+          label: '数据迁转',
+        },
+        {
+          key: '/settings/customization',
+          label: '应用配置',
+          icon: <SkinOutlined />,
+        },
+        {
+          key: '/settings/system',
+          label: '系统更新',
+          icon: <CloudServerOutlined />,
+        },
+        {
+          key: '/settings/storage',
+          label: '存储设置',
+          icon: <DatabaseOutlined />,
+        },
+      ],
+    });
   }
 
   return items;
@@ -183,7 +213,10 @@ export default function MainLayout() {
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const [idlePaused, setIdlePaused] = useState(() => {
     const stored = sessionStorage.getItem('workbench_idle_paused');
-    if (stored === 'true') { pauseIdleTimer(); return true; }
+    if (stored === 'true') {
+      pauseIdleTimer();
+      return true;
+    }
     return false;
   });
   const [sidebarEntered, setSidebarEntered] = useState(false);
@@ -209,7 +242,11 @@ export default function MainLayout() {
   const toggleIdlePause = useCallback(() => {
     setIdlePaused((prev) => {
       const next = !prev;
-      if (next) { pauseIdleTimer(); } else { resumeIdleTimer(); }
+      if (next) {
+        pauseIdleTimer();
+      } else {
+        resumeIdleTimer();
+      }
       sessionStorage.setItem('workbench_idle_paused', String(next));
       return next;
     });
@@ -254,239 +291,345 @@ export default function MainLayout() {
 
   return (
     <TagProvider>
-      <Layout className={`${(locking || loggingOut) ? (styles.locking ?? '') : ''}${welcoming ? ' ' + (styles.welcoming ?? '') : ''}`} style={{ minHeight: '100vh', background: 'var(--canvas-parchment)', transition: 'filter 0.5s ease' }}>
+      <Layout
+        className={`${locking || loggingOut ? (styles.locking ?? '') : ''}${welcoming ? ' ' + (styles.welcoming ?? '') : ''}`}
+        style={{
+          minHeight: '100vh',
+          background: 'var(--canvas-parchment)',
+          transition: 'filter 0.5s ease',
+        }}
+      >
         {!isMobile && (
-        <div className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`} style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)', display: 'flex', flexDirection: 'column' }}>
           <div
+            className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`}
             style={{
-              height: 64,
+              height: '100vh',
+              position: 'fixed',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderBottom: 'var(--sider-border)',
-              gap: 2,
-              flexShrink: 0,
             }}
           >
-            {collapsed ? (
-              customization.branding.displayMode !== 'text' && customization.branding.logoCollapsed ? (
-                <img src={customization.branding.logoCollapsed} alt="Logo" style={{ height: 28 }} />
-              ) : (
-                <span style={{ fontSize: 'var(--text-heading-3-size)', fontWeight: 'bold', color: 'var(--ink)' }}>{customization.app.shortName}</span>
-              )
-            ) : (
-              <>
-                {customization.branding.displayMode !== 'text' && customization.branding.logoExpanded && (
-                  <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 28 }} />
-                )}
-                {customization.branding.displayMode !== 'icon' && (
-                  <span style={{ fontSize: customization.branding.displayMode === 'both' ? 'var(--text-body-xs-size)' : 'var(--text-heading-4-size)', fontWeight: 'bold', color: 'var(--ink)' }}>
-                    {customization.app.name}
+            <div
+              style={{
+                height: 64,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderBottom: 'var(--sider-border)',
+                gap: 2,
+                flexShrink: 0,
+              }}
+            >
+              {collapsed ? (
+                customization.branding.displayMode !== 'text' &&
+                customization.branding.logoCollapsed ? (
+                  <img
+                    src={customization.branding.logoCollapsed}
+                    alt="Logo"
+                    style={{ height: 28 }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      fontSize: 'var(--text-heading-3-size)',
+                      fontWeight: 'bold',
+                      color: 'var(--ink)',
+                    }}
+                  >
+                    {customization.app.shortName}
                   </span>
-                )}
-              </>
-            )}
+                )
+              ) : (
+                <>
+                  {customization.branding.displayMode !== 'text' &&
+                    customization.branding.logoExpanded && (
+                      <img
+                        src={customization.branding.logoExpanded}
+                        alt="Logo"
+                        style={{ height: 28 }}
+                      />
+                    )}
+                  {customization.branding.displayMode !== 'icon' && (
+                    <span
+                      style={{
+                        fontSize:
+                          customization.branding.displayMode === 'both'
+                            ? 'var(--text-body-xs-size)'
+                            : 'var(--text-heading-4-size)',
+                        fontWeight: 'bold',
+                        color: 'var(--ink)',
+                      }}
+                    >
+                      {customization.app.name}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+            <div
+              ref={siderRef}
+              className="sider-menu-scroll"
+              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
+            >
+              <ConfigProvider
+                theme={{
+                  components: {
+                    Menu: {
+                      itemHeight: 40,
+                      itemPaddingInline: 16,
+                      itemBorderRadius: 8,
+                      fontSize: 14,
+                      activeBarBorderWidth: collapsed ? 3 : 0,
+                      itemActiveBg: 'var(--sider-menu-item-active-bg)',
+                      itemSelectedBg: 'var(--sider-menu-item-active-bg)',
+                      itemSelectedColor: 'var(--sider-menu-item-active-text)',
+                      itemHoverBg: 'var(--sider-menu-item-hover-bg)',
+                      subMenuItemBg: 'transparent',
+                    },
+                  },
+                }}
+              >
+                <Sider
+                  width="var(--sider-width)"
+                  collapsedWidth="var(--sider-collapsed-width)"
+                  collapsible
+                  collapsed={collapsed}
+                  onCollapse={setCollapsed}
+                  trigger={null}
+                  theme={isDark ? 'dark' : 'light'}
+                  style={{
+                    height: 'auto',
+                    borderRight: 'var(--sider-border)',
+                    background: 'var(--sider-bg)',
+                  }}
+                >
+                  <Menu
+                    mode="inline"
+                    selectedKeys={[selectedKey]}
+                    items={getMenuItems() ?? []}
+                    onClick={({ key }) => navigate(key)}
+                    onOpenChange={handleMenuOpenChange}
+                    style={{ borderRight: 0 }}
+                  />
+                </Sider>
+              </ConfigProvider>
+            </div>
           </div>
-          <div ref={siderRef} className="sider-menu-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-          <ConfigProvider
-            theme={{
-              components: {
-                Menu: {
-                  itemHeight: 40,
-                  itemPaddingInline: 16,
-                  itemBorderRadius: 8,
-                  fontSize: 14,
-                  activeBarBorderWidth: collapsed ? 3 : 0,
-                  itemActiveBg: 'var(--sider-menu-item-active-bg)',
-                  itemSelectedBg: 'var(--sider-menu-item-active-bg)',
-                  itemSelectedColor: 'var(--sider-menu-item-active-text)',
-                  itemHoverBg: 'var(--sider-menu-item-hover-bg)',
-                  subMenuItemBg: 'transparent',
-                },
-              },
-            }}
+        )}
+
+        {isMobile && (
+          <Drawer
+            open={menuDrawerOpen}
+            onClose={() => setMenuDrawerOpen(false)}
+            placement="left"
+            width={250}
+            styles={{ body: { padding: 0 } }}
           >
-          <Sider
-            width="var(--sider-width)"
-            collapsedWidth="var(--sider-collapsed-width)"
-            collapsible
-            collapsed={collapsed}
-            onCollapse={setCollapsed}
-            trigger={null}
-            theme={isDark ? 'dark' : 'light'}
-            style={{
-              height: 'auto',
-              borderRight: 'var(--sider-border)',
-              background: 'var(--sider-bg)',
-            }}
-          >
+            <div
+              style={{
+                height: 64,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderBottom: 'var(--sider-border)',
+                gap: 2,
+              }}
+            >
+              {customization.branding.displayMode !== 'text' &&
+                customization.branding.logoExpanded && (
+                  <img
+                    src={customization.branding.logoExpanded}
+                    alt="Logo"
+                    style={{ height: 28 }}
+                  />
+                )}
+              {customization.branding.displayMode !== 'icon' && (
+                <span
+                  style={{
+                    fontSize:
+                      customization.branding.displayMode === 'both'
+                        ? 'var(--text-body-xs-size)'
+                        : 'var(--text-heading-4-size)',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {customization.app.name}
+                </span>
+              )}
+            </div>
             <Menu
               mode="inline"
               selectedKeys={[selectedKey]}
               items={getMenuItems() ?? []}
-              onClick={({ key }) => navigate(key)}
+              onClick={({ key }) => {
+                navigate(key);
+                setMenuDrawerOpen(false);
+              }}
               onOpenChange={handleMenuOpenChange}
               style={{ borderRight: 0 }}
             />
-          </Sider>
-          </ConfigProvider>
-          </div>
-        </div>
-      )}
+          </Drawer>
+        )}
 
-      {isMobile && (
-        <Drawer
-          open={menuDrawerOpen}
-          onClose={() => setMenuDrawerOpen(false)}
-          placement="left"
-          width={250}
-          styles={{ body: { padding: 0 } }}
+        <Layout
+          className={`${styles.appLayout}${sidebarEntered ? ` ${styles.appEntered}` : ''}`}
+          style={{
+            marginLeft: isMobile
+              ? 0
+              : collapsed
+                ? 'var(--sider-collapsed-width)'
+                : 'var(--sider-width)',
+            transition: 'margin-left 0.2s',
+            background: 'var(--canvas-parchment)',
+            height: '100vh',
+            overflowY: 'auto',
+          }}
         >
-          <div
+          <Header
             style={{
-              height: 64,
+              padding: isMobile ? '0 16px' : '0 24px',
+              background: 'var(--header-bg)',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              borderBottom: 'var(--sider-border)',
-              gap: 2,
+              justifyContent: 'space-between',
+              borderBottom: 'var(--header-border)',
+              position: 'sticky',
+              top: 0,
+              zIndex: 'var(--z-sticky)',
+              height: 64,
             }}
           >
-            {customization.branding.displayMode !== 'text' && customization.branding.logoExpanded && (
-              <img src={customization.branding.logoExpanded} alt="Logo" style={{ height: 28 }} />
-            )}
-            {customization.branding.displayMode !== 'icon' && (
-              <span style={{ fontSize: customization.branding.displayMode === 'both' ? 'var(--text-body-xs-size)' : 'var(--text-heading-4-size)', fontWeight: 'bold' }}>
-                {customization.app.name}
-              </span>
-            )}
-          </div>
-          <Menu
-            mode="inline"
-            selectedKeys={[selectedKey]}
-            items={getMenuItems() ?? []}
-            onClick={({ key }) => {
-              navigate(key);
-              setMenuDrawerOpen(false);
-            }}
-            onOpenChange={handleMenuOpenChange}
-            style={{ borderRight: 0 }}
-          />
-        </Drawer>
-      )}
-
-      <Layout className={`${styles.appLayout}${sidebarEntered ? ` ${styles.appEntered}` : ''}`} style={{ marginLeft: isMobile ? 0 : (collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)'), transition: 'margin-left 0.2s', background: 'var(--canvas-parchment)', height: '100vh', overflowY: 'auto' }}>
-        <Header
-          style={{
-            padding: isMobile ? '0 16px' : '0 24px',
-            background: 'var(--header-bg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: 'var(--header-border)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 'var(--z-sticky)',
-            height: 64,
-          }}
-        >
-          <Space>
-            {isMobile && (
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                aria-label="打开导航菜单"
-                onClick={() => setMenuDrawerOpen(true)}
-                style={{ fontSize: 'var(--text-button-large-size)' }}
+            <Space>
+              {isMobile && (
+                <Button
+                  type="text"
+                  icon={<MenuOutlined />}
+                  aria-label="打开导航菜单"
+                  onClick={() => setMenuDrawerOpen(true)}
+                  style={{ fontSize: 'var(--text-button-large-size)' }}
+                />
+              )}
+              {!isMobile && (
+                <button
+                  type="button"
+                  aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+                  onClick={() => setCollapsed(!collapsed)}
+                  style={{
+                    fontSize: 'var(--text-button-large-size)',
+                    cursor: 'pointer',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    lineHeight: 1,
+                    color: 'var(--ink)',
+                  }}
+                >
+                  {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                </button>
+              )}
+            </Space>
+            <Text
+              strong
+              style={{
+                fontSize: 'var(--text-heading-4-size)',
+                marginLeft: 8,
+                flex: 1,
+                textAlign: 'center',
+              }}
+            >
+              {getRouteTitle(location.pathname)}
+            </Text>
+            <Space size="middle">
+              <Tooltip title="手动锁定工作台">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<LockOutlined />}
+                  aria-label="手动锁定工作台"
+                  onClick={lock}
+                />
+              </Tooltip>
+              <Tooltip title={idlePaused ? '自动锁定已暂停' : '空闲 5 分钟自动锁定'}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={idlePaused ? <PauseCircleOutlined /> : <ClockCircleOutlined />}
+                  aria-label={idlePaused ? '恢复自动锁定' : '暂停自动锁定'}
+                  onClick={toggleIdlePause}
+                  style={{
+                    color: idlePaused ? 'var(--color-warning)' : undefined,
+                  }}
+                />
+              </Tooltip>
+              <NotificationBell
+                notifications={notifications}
+                unreadCount={unreadCount}
+                onMarkAsRead={markAsRead}
+                onMarkAllAsRead={markAllAsRead}
               />
-            )}
-            {!isMobile && (
-              <button
-                type="button"
-                aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
-                onClick={() => setCollapsed(!collapsed)}
-                style={{
-                  fontSize: 'var(--text-button-large-size)',
-                  cursor: 'pointer',
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  lineHeight: 1,
-                  color: 'var(--ink)',
+              <Dropdown
+                menu={{
+                  items: userMenuItems ?? [],
+                  onClick: ({ key }) => {
+                    if (key === 'profile') navigate('/profile');
+                    if (key === 'logout') {
+                      setLoggingOut(true);
+                      setTimeout(() => {
+                        clearTokens();
+                        navigate('/login');
+                      }, 500);
+                    }
+                  },
                 }}
+                placement="bottomRight"
               >
-                {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              </button>
-            )}
-          </Space>
-          <Text strong style={{ fontSize: 'var(--text-heading-4-size)', marginLeft: 8, flex: 1, textAlign: 'center' }}>
-            {getRouteTitle(location.pathname)}
-          </Text>
-          <Space size="middle">
-            <Tooltip title="手动锁定工作台">
-              <Button
-                type="text"
-                size="small"
-                icon={<LockOutlined />}
-                aria-label="手动锁定工作台"
-                onClick={lock}
-              />
-            </Tooltip>
-            <Tooltip title={idlePaused ? '自动锁定已暂停' : '空闲 5 分钟自动锁定'}>
-              <Button
-                type="text"
-                size="small"
-                icon={idlePaused ? <PauseCircleOutlined /> : <ClockCircleOutlined />}
-                aria-label={idlePaused ? '恢复自动锁定' : '暂停自动锁定'}
-                onClick={toggleIdlePause}
-                style={{ color: idlePaused ? 'var(--color-warning)' : undefined }}
-              />
-            </Tooltip>
-            <NotificationBell
-              notifications={notifications}
-              unreadCount={unreadCount}
-              onMarkAsRead={markAsRead}
-              onMarkAllAsRead={markAllAsRead}
-            />
-            <Dropdown menu={{ items: userMenuItems ?? [], onClick: ({ key }) => {
-              if (key === 'profile') navigate('/profile');
-              if (key === 'logout') { setLoggingOut(true); setTimeout(() => { clearTokens(); navigate('/login'); }, 500); }
-            } }} placement="bottomRight">
-              <Space style={{ cursor: 'pointer' }}>
-                <Avatar src={user?.avatar || undefined} icon={!user?.avatar ? <UserOutlined /> : undefined} />
-                {!isMobile && <span>{user?.nickname || '管理员'}</span>}
-              </Space>
-            </Dropdown>
-          </Space>
-        </Header>
-        <Content
-          className={styles.content}
-          style={{
-            margin: isMobile ? 8 : 24,
-            padding: 24,
-            background: 'var(--canvas)',
-            borderRadius: 'var(--rounded-sm)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'auto',
-          }}
-        >
-           <div key={location.pathname} className={styles.transitionWrapper} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <Outlet />
-          </div>
-        </Content>
-        <NotificationDrawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          notifications={notifications}
-          onMarkAsRead={markAsRead}
-          onMarkAllAsRead={markAllAsRead}
-        />
-        <VotePopup />
-        {(locking || loggingOut) && <div className={styles.lockOverlay ?? ''} />}
-      </Layout>
+                <Space style={{ cursor: 'pointer' }}>
+                  <Avatar
+                    src={user?.avatar || undefined}
+                    icon={!user?.avatar ? <UserOutlined /> : undefined}
+                  />
+                  {!isMobile && <span>{user?.nickname || '管理员'}</span>}
+                </Space>
+              </Dropdown>
+            </Space>
+          </Header>
+          <Content
+            className={styles.content}
+            style={{
+              margin: isMobile ? 8 : 24,
+              padding: 24,
+              background: 'var(--canvas)',
+              borderRadius: 'var(--rounded-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'auto',
+            }}
+          >
+            <div
+              key={location.pathname}
+              className={styles.transitionWrapper}
+              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
+              <Outlet />
+            </div>
+          </Content>
+          <NotificationDrawer
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            notifications={notifications}
+            onMarkAsRead={markAsRead}
+            onMarkAllAsRead={markAllAsRead}
+          />
+          <VotePopup />
+          {(locking || loggingOut) && <div className={styles.lockOverlay ?? ''} />}
+          <DebugModeOverlay />
+        </Layout>
       </Layout>
     </TagProvider>
   );

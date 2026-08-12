@@ -1,15 +1,15 @@
+import { Spin } from 'antd';
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { Spin } from 'antd';
-import MainLayout from './layouts/MainLayout';
-import Home from './pages/Home';
-import NotFound from './pages/NotFound';
-import Login from '@/pages/Login';
-import Welcome from '@/pages/Welcome';
 import AuthGuard from '@/components/AuthGuard';
 import LockGuard from '@/components/LockGuard';
 import LockPage from '@/pages/LockPage';
+import Login from '@/pages/Login';
 import ShareDownloadPage from '@/pages/public/ShareDownloadPage';
+import Welcome from '@/pages/Welcome';
+import MainLayout from './layouts/MainLayout';
+import Home from './pages/Home';
+import NotFound from './pages/NotFound';
 
 const UserManagement = lazy(() => import('@/pages/settings/UserManagement'));
 const ContentManagement = lazy(() => import('@/pages/content/ContentManagement'));
@@ -43,7 +43,7 @@ const Profile = lazy(() => import('@/pages/settings/Profile'));
 const DevicesPage = lazy(() => import('@/pages/settings/DevicesPage'));
 const NotificationsCenter = lazy(() => import('@/pages/notifications/NotificationsCenter'));
 const UserNotificationConfig = lazy(() => import('@/pages/settings/UserNotificationConfig'));
-const TestModePage = lazy(() => import('@/pages/TestModePage'));
+const DebugModePage = lazy(() => import('@/pages/DebugModePage'));
 const ProjectDetailPage = lazy(() => import('@/pages/projects/ProjectDetailPage'));
 const SystemSettings = lazy(() => import('@/pages/settings/SystemSettings'));
 const TopologyManagement = lazy(() => import('@/pages/topology/TopologyManagement'));
@@ -53,6 +53,7 @@ const RoomListPage = lazy(() => import('@/pages/streaming/RoomListPage'));
 const ServerManagement = lazy(() => import('@/pages/servers/ServerManagement'));
 const ServerSystemsPage = lazy(() => import('@/pages/servers/ServerSystemsPage'));
 const SystemDetail = lazy(() => import('@/pages/servers/SystemDetail'));
+const TestPage = lazy(() => import('@/pages/dev/TestPage'));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -76,12 +77,16 @@ export const router = createBrowserRouter([
     element: <LockPage />,
   },
   {
-    path: '/test-mode',
-    element: <TestModePage />,
+    path: '/debug-mode',
+    element: <DebugModePage />,
   },
   {
     path: '/stream/watch/:roomId',
-    element: <LazyPage><StreamWatch /></LazyPage>,
+    element: (
+      <LazyPage>
+        <StreamWatch />
+      </LazyPage>
+    ),
   },
   {
     path: 'share/:code',
@@ -100,184 +105,344 @@ export const router = createBrowserRouter([
           {
             path: '/',
             element: <MainLayout />,
-        children: [
-          {
-            index: true,
-            element: <Home />,
-          },
-          {
-            path: 'notifications',
-            element: <LazyPage><NotificationsCenter /></LazyPage>,
-          },
-          {
-            path: 'shares',
-            element: <LazyPage><FileSharePage /></LazyPage>,
-          },
-          {
-            path: 'content',
-            element: <LazyPage><ContentManagement /></LazyPage>,
-          },
-          {
-            path: 'projects',
-            element: <LazyPage><ProjectManagement /></LazyPage>,
-          },
-          {
-            path: 'projects/:id',
-            element: <LazyPage><ProjectDetailPage /></LazyPage>,
-          },
-          {
-            path: 'inventory',
-            element: <LazyPage><InventoryManagement /></LazyPage>,
-          },
-          {
-            path: 'finance',
-            element: <LazyPage><FinanceManagement /></LazyPage>,
-          },
-          {
-            path: 'tasks',
-            element: <LazyPage><TaskManagement /></LazyPage>,
-          },
-          {
-            path: 'contacts',
-            element: <LazyPage><ContactManagement /></LazyPage>,
-          },
-          {
-            path: 'calendar',
-            element: <LazyPage><CalendarPage /></LazyPage>,
-          },
-          {
-            path: 'votes',
-            element: <LazyPage><VoteManagement /></LazyPage>,
-          },
-          {
-            path: 'forms',
-            element: <LazyPage><FormManagement /></LazyPage>,
-          },
-          {
-    path: 'forms/:id/responses',
-    element: <FormResponses />,
-          },
-          {
-path: 'members',
-element: <LazyPage><MemberDirectory /></LazyPage>,
-},
-{
-path: 'members/:userId',
-element: <LazyPage><MemberDetail /></LazyPage>,
-},
-          {
-            path: 'announcements',
-            element: <LazyPage><AnnouncementManagement /></LazyPage>,
-          },
-          {
-            path: 'notes',
-            element: <LazyPage><NoteManagement /></LazyPage>,
-          },
-          {
-            path: 'settings/templates',
-            element: <LazyPage><TemplateManagement /></LazyPage>,
-          },
-          {
-            path: 'secrets',
-            element: <LazyPage><SecretManagement /></LazyPage>,
-          },
-          {
-            path: 'secrets/category/:categoryId',
-            element: <LazyPage><SecretCategoryPage /></LazyPage>,
-          },
-          {
-            path: 'reminders',
-            element: <LazyPage><ReminderManagement /></LazyPage>,
-          },
-          {
-            path: 'settings/personalization',
-            element: <LazyPage><UserPersonalization /></LazyPage>,
-          },
-          {
-            path: 'settings/notifications',
-            element: <LazyPage><UserNotificationConfig /></LazyPage>,
-          },
-          {
-            path: 'settings/devices',
-            element: <LazyPage><DevicesPage /></LazyPage>,
-          },
-          {
-            path: 'settings/users',
-            element: <LazyPage><UserManagement /></LazyPage>,
-          },
-          {
-            path: 'settings/backups',
-            element: <LazyPage><BackupManagement /></LazyPage>,
-          },
-          {
-            path: 'settings/transfer',
-            element: <LazyPage><DataManagement /></LazyPage>,
-          },
-          {
-            path: 'settings/customization',
-            element: <LazyPage><CustomizationSettings /></LazyPage>,
-          },
-          {
-            path: 'settings/site',
-            element: <LazyPage><SiteSettings /></LazyPage>,
-          },
-          {
-            path: 'settings/tags',
-            element: <LazyPage><TagManagement /></LazyPage>,
-          },
-          {
-            path: 'settings/system',
-            element: <LazyPage><SystemSettings /></LazyPage>,
-          },
-          {
-            path: 'settings/storage',
-            element: <LazyPage><StorageSettings /></LazyPage>,
-          },
-          {
-            path: 'profile',
-            element: <LazyPage><Profile /></LazyPage>,
-          },
-          {
-            path: 'topology',
-            element: <LazyPage><TopologyManagement /></LazyPage>,
-          },
-          {
-            path: 'servers',
-            element: <LazyPage><ServerManagement /></LazyPage>,
-          },
-          {
-            path: 'servers/:serverId',
-            element: <LazyPage><ServerSystemsPage /></LazyPage>,
-          },
-          {
-            path: 'servers/:serverId/systems/:systemId',
-            element: <LazyPage><SystemDetail /></LazyPage>,
-          },
-          {
-            path: 'streaming',
             children: [
               {
                 index: true,
-                element: <LazyPage><RoomListPage /></LazyPage>,
+                element: <Home />,
               },
               {
-                path: 'studio/:roomId',
-                element: <LazyPage><StreamStudio /></LazyPage>,
+                path: 'notifications',
+                element: (
+                  <LazyPage>
+                    <NotificationsCenter />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'shares',
+                element: (
+                  <LazyPage>
+                    <FileSharePage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'content',
+                element: (
+                  <LazyPage>
+                    <ContentManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'projects',
+                element: (
+                  <LazyPage>
+                    <ProjectManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'projects/:id',
+                element: (
+                  <LazyPage>
+                    <ProjectDetailPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'inventory',
+                element: (
+                  <LazyPage>
+                    <InventoryManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'finance',
+                element: (
+                  <LazyPage>
+                    <FinanceManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'tasks',
+                element: (
+                  <LazyPage>
+                    <TaskManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'contacts',
+                element: (
+                  <LazyPage>
+                    <ContactManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'calendar',
+                element: (
+                  <LazyPage>
+                    <CalendarPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'votes',
+                element: (
+                  <LazyPage>
+                    <VoteManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'forms',
+                element: (
+                  <LazyPage>
+                    <FormManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'forms/:id/responses',
+                element: <FormResponses />,
+              },
+              {
+                path: 'members',
+                element: (
+                  <LazyPage>
+                    <MemberDirectory />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'members/:userId',
+                element: (
+                  <LazyPage>
+                    <MemberDetail />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'announcements',
+                element: (
+                  <LazyPage>
+                    <AnnouncementManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'notes',
+                element: (
+                  <LazyPage>
+                    <NoteManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/templates',
+                element: (
+                  <LazyPage>
+                    <TemplateManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'secrets',
+                element: (
+                  <LazyPage>
+                    <SecretManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'secrets/category/:categoryId',
+                element: (
+                  <LazyPage>
+                    <SecretCategoryPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'reminders',
+                element: (
+                  <LazyPage>
+                    <ReminderManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/personalization',
+                element: (
+                  <LazyPage>
+                    <UserPersonalization />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/notifications',
+                element: (
+                  <LazyPage>
+                    <UserNotificationConfig />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/devices',
+                element: (
+                  <LazyPage>
+                    <DevicesPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/users',
+                element: (
+                  <LazyPage>
+                    <UserManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/backups',
+                element: (
+                  <LazyPage>
+                    <BackupManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/transfer',
+                element: (
+                  <LazyPage>
+                    <DataManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/customization',
+                element: (
+                  <LazyPage>
+                    <CustomizationSettings />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/site',
+                element: (
+                  <LazyPage>
+                    <SiteSettings />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/tags',
+                element: (
+                  <LazyPage>
+                    <TagManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/system',
+                element: (
+                  <LazyPage>
+                    <SystemSettings />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/storage',
+                element: (
+                  <LazyPage>
+                    <StorageSettings />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'profile',
+                element: (
+                  <LazyPage>
+                    <Profile />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'topology',
+                element: (
+                  <LazyPage>
+                    <TopologyManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'servers',
+                element: (
+                  <LazyPage>
+                    <ServerManagement />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'servers/:serverId',
+                element: (
+                  <LazyPage>
+                    <ServerSystemsPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'servers/:serverId/systems/:systemId',
+                element: (
+                  <LazyPage>
+                    <SystemDetail />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'streaming',
+                children: [
+                  {
+                    index: true,
+                    element: (
+                      <LazyPage>
+                        <RoomListPage />
+                      </LazyPage>
+                    ),
+                  },
+                  {
+                    path: 'studio/:roomId',
+                    element: (
+                      <LazyPage>
+                        <StreamStudio />
+                      </LazyPage>
+                    ),
+                  },
+                ],
+              },
+              {
+                path: 'dev/testpage',
+                element: (
+                  <LazyPage>
+                    <TestPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: '404',
+                element: <NotFound />,
+              },
+              {
+                path: '*',
+                element: <Navigate to="/404" replace />,
               },
             ],
           },
-          {
-            path: '404',
-            element: <NotFound />,
-          },
-          {
-            path: '*',
-            element: <Navigate to="/404" replace />,
-          },
         ],
       },
-      ],
-    },
     ],
   },
 ]);

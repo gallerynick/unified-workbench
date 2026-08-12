@@ -1,0 +1,149 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+  height: 100%;
+  min-height: 480px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.layout {
+  display: flex;
+  gap: var(--spacing-card-gap);
+  flex: 1;
+  min-height: 0;
+}
+
+.sider {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--rounded-sm);
+  overflow-y: auto;
+  height: 100%;
+}
+
+.listItem {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.listItemActive {
+  cursor: pointer;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-card-gap);
+  height: 100%;
+  overflow-y: auto;
+}
+
+.preview {
+  flex: 1;
+}
+
+.codeBlock {
+  margin: 0;
+  padding: var(--spacing-md);
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: var(--rounded-sm);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.demoBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--rounded-sm);
+  background: var(--bg-secondary);
+}
+
+/* ====== 现有 CSS 动画枚举（与 MainLayout / Home / LockPage 一致） ====== */
+
+@keyframes routeFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes menuItemFlyIn {
+  0% {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateX(-16px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0);
+  }
+}
+
+@keyframes appFloatIn {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes widgetFadeUp {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes lockPageFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes workbenchBlurIn {
+  0% {
+    filter: blur(14px);
+    opacity: 0.4;
+    transform: scale(0.95);
+  }
+  100% {
+    filter: blur(0);
+    opacity: 1;
+    transform: scale(1);
+  }
+}
