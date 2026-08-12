@@ -65,7 +65,7 @@
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   border: 1.5px solid var(--text-secondary);
   background: none;
   color: var(--text-secondary);
@@ -73,6 +73,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 输入行出现更快：覆盖 enterElement 的 600ms+120ms 延迟 */
+.inputRow.enterElement {
+  animation-duration: 250ms;
+  animation-delay: 0ms;
 }
 
 /* ====== Lock page entrance ====== */
