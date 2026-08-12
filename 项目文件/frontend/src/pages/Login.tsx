@@ -42,7 +42,6 @@ export default function Login() {
         setTokens(response.data);
         await refreshUser();
         message.success('登录成功');
-        sessionStorage.setItem('workbench_just_unlocked', '1');
         setTransitioning(true);
         setTimeout(() => navigate('/', { replace: true }), 500);
       } else {
