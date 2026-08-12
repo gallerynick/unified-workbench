@@ -381,26 +381,28 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
   // ── 渲染 ──
   return (
     <div className={styles.flexColumnFill ?? ''}>
-      {/* 顶栏：类型筛选 + 新建 */}
+      {/* 顶栏：类型筛选 + 搜索 + 新建 */}
       <div className={styles.listToolbar ?? ''}>
-        <Segmented
-          options={FILTER_OPTIONS}
-          value={filterType}
-          onChange={handleFilterChange}
-          className={styles.filterSegmented ?? ''}
-        />
-        <div className={styles.listToolbarActions ?? ''}>
-          <Input.Search
+        <Space>
+          <Segmented
+            options={FILTER_OPTIONS}
+            value={filterType}
+            onChange={handleFilterChange}
+            className={styles.filterSegmented ?? ''}
+          />
+          <Input
             className={styles.searchInput ?? ''}
             variant="filled"
             placeholder="搜索交流记录..."
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             value={searchText}
             onChange={(e) => {
               setSearchText(e.target.value);
             }}
             allowClear
           />
+        </Space>
+        <Space>
           <Tooltip title={canManage ? undefined : '只读权限，无法新建记录'}>
             <Button
               type="primary"
@@ -411,7 +413,7 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
               新建记录
             </Button>
           </Tooltip>
-        </div>
+        </Space>
       </div>
 
       {/* 记录列表 */}

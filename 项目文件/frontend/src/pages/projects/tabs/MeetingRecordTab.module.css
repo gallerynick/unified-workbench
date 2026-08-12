@@ -18,13 +18,6 @@
   flex-shrink: 0;
 }
 
-.listToolbarActions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-}
-
 .searchInput {
   max-width: 320px;
   border-radius: var(--rounded-pill);
@@ -153,12 +146,7 @@
 }
 
 @media (max-width: 767px) {
-  .listToolbarActions {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .listToolbarActions .searchInput {
+  .searchInput {
     max-width: 100%;
   }
 }

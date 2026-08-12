@@ -600,49 +600,52 @@ export default function ProposalTab({ project }: { project: Project }) {
     <>
       {/* 工具栏：搜索 + 筛选 + 新建 */}
       <div className={styles.header ?? ''}>
-        <Input
-          prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
-          placeholder="搜索提案标题/编号..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          allowClear
-          variant="filled"
-          className={styles.searchInput ?? ''}
-          style={{ width: 240 }}
-        />
-        <Select
-          placeholder="类型"
-          allowClear
-          style={{ width: 130 }}
-          value={filters.type || undefined}
-          onChange={(value) => setFilters((prev) => ({ ...prev, type: value || '' }))}
-          options={typeOptions}
-        />
-        <Select
-          placeholder="优先级"
-          allowClear
-          style={{ width: 130 }}
-          value={filters.priority || undefined}
-          onChange={(value) => setFilters((prev) => ({ ...prev, priority: value || '' }))}
-          options={priorityOptions}
-        />
-        <Select
-          placeholder="状态"
-          allowClear
-          style={{ width: 130 }}
-          value={filters.status || undefined}
-          onChange={(value) => setFilters((prev) => ({ ...prev, status: value || '' }))}
-          options={statusOptions}
-        />
-        <div style={{ flex: 1 }} />
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          disabled={!canOperate}
-          onClick={handleCreate}
-        >
-          新建提案
-        </Button>
+        <Space>
+          <Input
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
+            placeholder="搜索提案标题/编号..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            allowClear
+            variant="filled"
+            className={styles.searchInput ?? ''}
+            style={{ width: 240 }}
+          />
+          <Select
+            placeholder="类型"
+            allowClear
+            style={{ width: 130 }}
+            value={filters.type || undefined}
+            onChange={(value) => setFilters((prev) => ({ ...prev, type: value || '' }))}
+            options={typeOptions}
+          />
+          <Select
+            placeholder="优先级"
+            allowClear
+            style={{ width: 130 }}
+            value={filters.priority || undefined}
+            onChange={(value) => setFilters((prev) => ({ ...prev, priority: value || '' }))}
+            options={priorityOptions}
+          />
+          <Select
+            placeholder="状态"
+            allowClear
+            style={{ width: 130 }}
+            value={filters.status || undefined}
+            onChange={(value) => setFilters((prev) => ({ ...prev, status: value || '' }))}
+            options={statusOptions}
+          />
+        </Space>
+        <Space>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            disabled={!canOperate}
+            onClick={handleCreate}
+          >
+            新建提案
+          </Button>
+        </Space>
       </div>
 
       {/* 提案列表 */}

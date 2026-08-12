@@ -7,6 +7,7 @@ import {
   Input,
   Modal,
   Select,
+  Space,
   Spin,
   Tag,
   Tooltip,
@@ -455,12 +456,12 @@ export default function TodoTaskTab({ project }: { project: Project }) {
             </Text>
           )}
         </div>
-        <div className={styles.toolbarActions ?? ''}>
-          <Input.Search
+        <Space>
+          <Input
             className={styles.searchInput ?? ''}
             variant="filled"
             placeholder="搜索待办..."
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             value={searchText}
             onChange={(e) => {
               setSearchText(e.target.value);
@@ -472,7 +473,7 @@ export default function TodoTaskTab({ project }: { project: Project }) {
               新建待办
             </Button>
           )}
-        </div>
+        </Space>
       </div>
 
       {/* 看板 */}

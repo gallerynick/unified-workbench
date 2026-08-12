@@ -399,30 +399,32 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Select
-          allowClear
-          placeholder="按大类筛选"
-          value={majorFilter ?? null}
-          onChange={(value: string) => {
-            setMajorFilter(value);
-            setPage(1);
-          }}
-          options={CHANGE_CATEGORY_MAJOR.map((c) => ({ value: c.value, label: c.label }))}
-          style={{ minWidth: 180 }}
-          className={styles.filterSelect ?? ''}
-        />
-        <div className={styles.headerActions ?? ''}>
-          <Input.Search
+        <Space>
+          <Select
+            allowClear
+            placeholder="按大类筛选"
+            value={majorFilter ?? null}
+            onChange={(value: string) => {
+              setMajorFilter(value);
+              setPage(1);
+            }}
+            options={CHANGE_CATEGORY_MAJOR.map((c) => ({ value: c.value, label: c.label }))}
+            style={{ minWidth: 180 }}
+            className={styles.filterSelect ?? ''}
+          />
+          <Input
             className={styles.searchInput ?? ''}
             variant="filled"
             placeholder="搜索修改记录..."
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             value={searchText}
             onChange={(e) => {
               setSearchText(e.target.value);
             }}
             allowClear
           />
+        </Space>
+        <Space>
           <Button
             type="primary"
             icon={<PlusOutlined />}
@@ -431,7 +433,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
           >
             新建记录
           </Button>
-        </div>
+        </Space>
       </div>
 
       <Table<ProjectChange>

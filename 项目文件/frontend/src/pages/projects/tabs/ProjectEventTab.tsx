@@ -510,28 +510,30 @@ export default function ProjectEventTab({ project }: { project: Project }) {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.toolbar ?? ''}>
-        <span className={styles.toolbarLeft ?? ''}>
-          <SwapOutlined style={{ color: 'var(--text-secondary)' }} />
-          <Text type="secondary">共 {events.length} 条事件记录</Text>
-        </span>
-        <div className={styles.toolbarActions ?? ''}>
-          <Input.Search
+        <Space>
+          <span className={styles.toolbarLeft ?? ''}>
+            <SwapOutlined style={{ color: 'var(--text-secondary)' }} />
+            <Text type="secondary">共 {events.length} 条事件记录</Text>
+          </span>
+          <Input
             className={styles.searchInput ?? ''}
             variant="filled"
             placeholder="搜索事件..."
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             value={searchText}
             onChange={(e) => {
               setSearchText(e.target.value);
             }}
             allowClear
           />
+        </Space>
+        <Space>
           {canOperate && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
               新增事件
             </Button>
           )}
-        </div>
+        </Space>
       </div>
 
       <Table<ProjectEvent>

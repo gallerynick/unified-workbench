@@ -4,10 +4,13 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--spacing-card-gap);
+  margin-bottom: var(--spacing-card-gap);
+  flex-shrink: 0;
 }
 
 .searchInput {
   max-width: 320px;
+  border-radius: var(--rounded-pill);
 }
 
 @media (max-width: 767px) {

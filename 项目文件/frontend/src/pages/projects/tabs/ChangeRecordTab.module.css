@@ -11,17 +11,11 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--spacing-card-gap);
+  flex-shrink: 0;
 }
 
 .filterSelect {
   min-width: 180px;
-}
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
 }
 
 .searchInput {
@@ -55,12 +49,7 @@
     width: 100%;
   }
 
-  .headerActions {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .headerActions .searchInput {
+  .searchInput {
     max-width: 100%;
   }
 

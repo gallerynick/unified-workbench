@@ -16,13 +16,6 @@
   gap: var(--spacing-xs);
 }
 
-.toolbarActions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-}
-
 .searchInput {
   max-width: 320px;
   border-radius: var(--rounded-pill);
@@ -42,12 +35,7 @@
     grid-template-columns: 1fr;
   }
 
-  .toolbarActions {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .toolbarActions .searchInput {
+  .searchInput {
     max-width: 100%;
   }
 }

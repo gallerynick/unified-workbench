@@ -12,13 +12,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
-}
-
-.toolbarActions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .searchInput {
@@ -27,12 +21,7 @@
 }
 
 @media (max-width: 767px) {
-  .toolbarActions {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .toolbarActions .searchInput {
+  .searchInput {
     max-width: 100%;
   }
 }

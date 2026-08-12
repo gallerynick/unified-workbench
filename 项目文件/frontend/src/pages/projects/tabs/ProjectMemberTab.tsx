@@ -589,26 +589,28 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
       )}
 
       <div className={styles.toolbar ?? ''}>
-        <Segmented
-          options={[
-            { label: `当前成员（${activeMembers.length}）`, value: 'active' },
-            { label: `历史成员（${historyMembers.length}）`, value: 'history' },
-          ]}
-          value={viewMode}
-          onChange={(value) => setViewMode(value as 'active' | 'history')}
-        />
-        <div className={styles.toolbarActions ?? ''}>
-          <Input.Search
+        <Space>
+          <Segmented
+            options={[
+              { label: `当前成员（${activeMembers.length}）`, value: 'active' },
+              { label: `历史成员（${historyMembers.length}）`, value: 'history' },
+            ]}
+            value={viewMode}
+            onChange={(value) => setViewMode(value as 'active' | 'history')}
+          />
+          <Input
             className={styles.searchInput ?? ''}
             variant="filled"
             placeholder="搜索成员..."
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             value={searchText}
             onChange={(e) => {
               setSearchText(e.target.value);
             }}
             allowClear
           />
+        </Space>
+        <Space>
           {viewMode === 'active' && canManage && (
             <Tooltip title={isPrivate ? '私有项目不允许添加项目成员' : undefined}>
               <Button
@@ -621,7 +623,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
               </Button>
             </Tooltip>
           )}
-        </div>
+        </Space>
       </div>
 
       <Table<ProjectMember>
