@@ -117,7 +117,6 @@ export default function LockPage() {
       <button
         type="button"
         aria-label="解锁"
-        title="点击解锁或按任意键"
         onClick={() => { setShowInput(true); startIdleTimer(); }}
         className={`${styles.lockIcon ?? ''} ${styles.enterElement ?? ''}`}
       >

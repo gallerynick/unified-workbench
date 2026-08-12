@@ -423,12 +423,6 @@ export default function MainLayout() {
             {getRouteTitle(location.pathname)}
           </Text>
           <Space size="middle">
-            <NotificationBell
-              notifications={notifications}
-              unreadCount={unreadCount}
-              onMarkAsRead={markAsRead}
-              onMarkAllAsRead={markAllAsRead}
-            />
             <Tooltip title="手动锁定工作台">
               <Button
                 type="text"
@@ -448,6 +442,12 @@ export default function MainLayout() {
                 style={{ color: idlePaused ? 'var(--color-warning)' : undefined }}
               />
             </Tooltip>
+            <NotificationBell
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+            />
             <Dropdown menu={{ items: userMenuItems ?? [], onClick: ({ key }) => {
               if (key === 'profile') navigate('/profile');
               if (key === 'logout') { clearTokens(); navigate('/login'); }
