@@ -99,6 +99,8 @@
 
 /* ====== Unlock — reverse stagger exit ====== */
 .container.exiting .enterElement {
+  opacity: 1;
+  filter: blur(0);
   animation: lockPageExit 500ms ease-out forwards;
 }
 
