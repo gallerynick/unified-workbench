@@ -424,14 +424,6 @@ export const router = createBrowserRouter([
                 ],
               },
               {
-                path: 'dev/testpage',
-                element: (
-                  <LazyPage>
-                    <TestPage />
-                  </LazyPage>
-                ),
-              },
-              {
                 path: '404',
                 element: <NotFound />,
               },
@@ -440,6 +432,14 @@ export const router = createBrowserRouter([
                 element: <Navigate to="/404" replace />,
               },
             ],
+          },
+          {
+            path: '/dev/testpage',
+            element: (
+              <LazyPage>
+                <TestPage />
+              </LazyPage>
+            ),
           },
         ],
       },

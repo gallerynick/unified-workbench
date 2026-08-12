@@ -1,114 +1,61 @@
-.container {
+.page {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-card-gap);
-  height: 100%;
-  min-height: 480px;
-}
-
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-card-gap);
-  min-height: 320px;
-}
-
-.preview {
-  flex: 1;
-}
-
-.codeBlock {
-  margin: 0;
-  padding: var(--spacing-md);
-  background: #1e1e1e;
-  color: #d4d4d4;
-  border-radius: var(--rounded-sm);
-  font-size: 12px;
-  line-height: 1.6;
-  overflow-x: auto;
-  white-space: pre;
-}
-
-.demoBox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 120px;
-  border: 1px dashed var(--border-primary);
-  border-radius: var(--rounded-sm);
+  height: 100vh;
   background: var(--bg-secondary);
 }
 
-/* ====== 现有 CSS 动画枚举（与 MainLayout / Home / LockPage 一致） ====== */
-
-@keyframes routeFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-card-gap);
+  padding: var(--spacing-card-gap) var(--spacing-lg);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-secondary);
 }
 
-@keyframes menuItemFlyIn {
-  0% {
-    opacity: 0;
-    filter: blur(6px);
-    transform: translateX(-16px);
-  }
-  100% {
-    opacity: 1;
-    filter: blur(0);
-    transform: translateX(0);
-  }
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--spacing-card-gap);
+  padding: var(--spacing-card-gap);
 }
 
-@keyframes appFloatIn {
-  0% {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.sider {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  overflow-y: auto;
+  padding: var(--spacing-xs) 0;
 }
 
-@keyframes widgetFadeUp {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+.item {
+  cursor: pointer;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  transition: background 0.15s;
 }
 
-@keyframes lockPageFadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+.item:hover {
+  background: var(--bg-tertiary);
 }
 
-@keyframes workbenchBlurIn {
-  0% {
-    filter: blur(14px);
-    opacity: 0.4;
-    transform: scale(0.95);
-  }
-  100% {
-    filter: blur(0);
-    opacity: 1;
-    transform: scale(1);
-  }
+.itemActive {
+  cursor: pointer;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-card-gap);
+  overflow-y: auto;
 }
