@@ -343,3 +343,20 @@
 .ant-timeline-item-head-green { background-color: var(--color-success) !important; border-color: var(--color-success) !important; }
 .ant-timeline-item-head-red { background-color: var(--color-error) !important; border-color: var(--color-error) !important; }
 .ant-timeline-item-head-gray { background-color: var(--text-tertiary) !important; border-color: var(--text-tertiary) !important; }
+
+/* ====== Modal.confirm 深色模式适配 ====== */
+:root[data-theme="dark"] .ant-modal-confirm-body .ant-modal-confirm-title {
+  color: var(--ink) !important;
+}
+:root[data-theme="dark"] .ant-modal-confirm-body .ant-modal-confirm-content {
+  color: var(--text-secondary) !important;
+}
+:root[data-theme="dark"] .ant-modal-confirm-btns .ant-btn-default {
+  background: var(--bg-component);
+  border-color: var(--border-secondary);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .ant-modal-confirm-btns .ant-btn-default:hover {
+  color: var(--color-info);
+  border-color: var(--color-info);
+}

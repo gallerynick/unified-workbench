@@ -217,7 +217,7 @@ export default function Profile() {
           <Descriptions.Item label="用户名">
             <Text>{user?.username}</Text>
           </Descriptions.Item>
-          <Descriptions.Item label="昵称">
+          <Descriptions.Item label="姓名">
             <Text>{user?.nickname}</Text>
           </Descriptions.Item>
           <Descriptions.Item label="邮箱">

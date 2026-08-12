@@ -416,3 +416,10 @@ a:hover {
 #root .ant-btn {
   border-radius: var(--rounded-sm) !important;
 }
+
+/* Modal/Drawer 遮罩毛玻璃效果（Portal 到 body，天然全局） */
+.ant-modal-mask,
+.ant-drawer-mask {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
