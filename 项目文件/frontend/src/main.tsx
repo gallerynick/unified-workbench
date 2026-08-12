@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import { App, ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { router } from './router';
 import { ThemeProvider, useTheme, getAntdThemeConfig } from './contexts/ThemeContext';
@@ -15,11 +15,13 @@ function AppWithTheme() {
   const { isDark } = useTheme();
   return (
     <ConfigProvider locale={zhCN} theme={getAntdThemeConfig(isDark)}>
-      <UserProvider>
-        <LockProvider>
-          <RouterProvider router={router} />
-        </LockProvider>
-      </UserProvider>
+      <App>
+        <UserProvider>
+          <LockProvider>
+            <RouterProvider router={router} />
+          </LockProvider>
+        </UserProvider>
+      </App>
     </ConfigProvider>
   );
 }

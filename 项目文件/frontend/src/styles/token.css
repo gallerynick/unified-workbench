@@ -360,3 +360,21 @@
   color: var(--color-info);
   border-color: var(--color-info);
 }
+
+/* ====== 静态方法（Modal/message/notification）深色适配 ====== */
+:root[data-theme="dark"] .ant-modal-content,
+:root[data-theme="dark"] .ant-modal-confirm .ant-modal-content {
+  background: var(--bg-component);
+}
+:root[data-theme="dark"] .ant-modal .ant-modal-header,
+:root[data-theme="dark"] .ant-modal-confirm .ant-modal-body {
+  background: transparent;
+}
+:root[data-theme="dark"] .ant-message-notice-content,
+:root[data-theme="dark"] .ant-notification-notice {
+  background: var(--bg-component);
+}
+:root[data-theme="dark"] .ant-message .anticon,
+:root[data-theme="dark"] .ant-message-notice-content {
+  color: var(--ink);
+}
