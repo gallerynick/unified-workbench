@@ -9,10 +9,10 @@ import {
   message,
   Space,
   Tooltip,
+  Segmented,
 } from 'antd';
 import {
   PlusOutlined,
-  SearchOutlined,
   EyeOutlined,
   DeleteOutlined,
   QuestionCircleOutlined,
@@ -21,7 +21,6 @@ import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { listProjects, deleteProject } from '../../api/projects';
 import type { Project } from '../../types/project';
-import { getVisibilityConfig } from '../../utils/visibility';
 import ProjectForm from './ProjectForm';
 import styles from './ProjectManagement.module.css';
 
@@ -165,19 +164,19 @@ export default function ProjectManagement() {
       title: '可见性',
       dataIndex: 'visibility',
       key: 'visibility',
-      render: (_: unknown, record: Project) => {
-        const cfg = getVisibilityConfig(record.visibility);
-        return (
-          <Space direction="vertical" size={2}>
-            <Tag color={cfg.color}>{cfg.text}</Tag>
-            {record.visibility === 'restricted' && record.restricted_users && record.restricted_users.length > 0 && (
-              <span style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--text-secondary)' }}>
-                {record.restricted_users.length} 个用户
-              </span>
-            )}
-          </Space>
-        );
-      },
+      render: (_: unknown, record: Project) => (
+        <Segmented
+          disabled
+          block
+          size="small"
+          options={[
+            { value: 'public', label: '公开' },
+            { value: 'private', label: '私有' },
+            { value: 'restricted', label: '受限' },
+          ]}
+          value={record.visibility}
+        />
+      ),
     },
     {
       title: '创建时间',
@@ -229,12 +228,10 @@ export default function ProjectManagement() {
           项目管理
         </Title>
         <Space>
-          <Input
+          <Input.Search
             placeholder="搜索项目名称"
-            prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
             allowClear
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
+            onSearch={handleSearch}
             variant="filled"
             className={styles.searchInput ?? ''}
           />
