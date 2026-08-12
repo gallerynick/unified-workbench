@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   Descriptions,
   Tag,
-  Segmented,
   Button,
   Modal,
   Form,
@@ -17,7 +16,7 @@ import { EditOutlined } from '@ant-design/icons';
 import { PROJECT_PRIORITY, PROJECT_TYPE, IS_OPEN_SOURCE } from '../../../constants/project';
 import type { Project, ProjectStatus } from '../../../types/project';
 import type { Template } from '../../../types/template';
-import { Visibility } from '../../../utils/visibility';
+import { getVisibilityConfig, Visibility } from '../../../utils/visibility';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 
 const { TextArea } = Input;
@@ -141,15 +140,9 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
           <Tag color="blue">项目</Tag>
         </Descriptions.Item>
         <Descriptions.Item label="可见性">
-          <Segmented
-            options={[
-              { label: '公开', value: 'public' },
-              { label: '私有', value: 'private' },
-              { label: '受限', value: 'restricted' },
-            ]}
-            value={project.visibility}
-            disabled
-          />
+          <Tag color={getVisibilityConfig(project.visibility).color}>
+            {getVisibilityConfig(project.visibility).text}
+          </Tag>
           {project.visibility === 'restricted' && project.restricted_users && project.restricted_users.length > 0 && (
             <span style={{ marginLeft: "var(--spacing-xs)", color: 'var(--text-secondary)', fontSize: 'var(--text-body-xs-size)' }}>
               {project.restricted_users.length} 个用户
