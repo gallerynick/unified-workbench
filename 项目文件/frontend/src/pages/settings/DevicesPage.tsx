@@ -103,14 +103,27 @@ export default function DevicesPage() {
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>设备终端</Title>
         <Button danger icon={<LogoutOutlined />} disabled={devices.length === 0}
-          onClick={async () => {
-            for (const d of devices) {
-              if (!d.device_token) continue;
-              try { await request(`/me/devices/${encodeURIComponent(d.device_token)}`, { method: 'DELETE' }); } catch { /* ignore */ }
-            }
-            setSessions({});
-            await fetchDevices();
-            message.success('已注销所有设备');
+          onClick={() => {
+            Modal.confirm({
+              title: '注销所有设备',
+              content: '所有设备上的全部登录会话将下线，包括当前设备。',
+              okText: '注销',
+              cancelText: '取消',
+              okButtonProps: { danger: true },
+              onOk: async () => {
+                setRevoking('__all__');
+                try {
+                  for (const d of devices) {
+                    if (!d.device_token) continue;
+                    try { await request(`/me/devices/${encodeURIComponent(d.device_token)}`, { method: 'DELETE' }); } catch { /* ignore */ }
+                  }
+                  setSessions({});
+                  clearTokens();
+                  navigate('/login', { replace: true });
+                } catch { message.error('操作失败'); }
+                finally { setRevoking(null); }
+              },
+            });
           }}
         >注销所有设备</Button>
       </div>
