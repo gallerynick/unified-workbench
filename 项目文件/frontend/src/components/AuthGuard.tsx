@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { Result, Button } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
-import { isAuthenticated, isAdmin, clearTokens } from '@/utils/auth';
+import { isAuthenticated, isAdmin, clearTokens, tryRefreshAuth } from '@/utils/auth';
 import { isMaintenanceModeEnabled } from '@/pages/settings/SiteSettings';
 
 export default function AuthGuard() {
@@ -11,6 +11,7 @@ export default function AuthGuard() {
     loading: true,
     complete: null,
   });
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
 
   useEffect(() => {
     fetch('/api/v1/auth/setup-status')
@@ -22,8 +23,24 @@ export default function AuthGuard() {
       .catch(() => setSetupStatus({ loading: false, complete: null }));
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const checkAuth = async () => {
+      if (isAuthenticated()) {
+        if (!cancelled) setAuthChecked(true);
+        return;
+      }
+      await tryRefreshAuth();
+      if (!cancelled) setAuthChecked(true);
+    };
+    checkAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // 加载中
-  if (setupStatus.loading) return null;
+  if (setupStatus.loading || !authChecked) return null;
 
   // 系统未初始化 → 欢迎页（不需要登录）
   if (setupStatus.complete === false) {

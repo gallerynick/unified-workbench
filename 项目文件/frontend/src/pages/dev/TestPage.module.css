@@ -12,46 +12,11 @@
   gap: var(--spacing-xs);
 }
 
-.layout {
-  display: flex;
-  gap: var(--spacing-card-gap);
-  flex: 1;
-  min-height: 0;
-}
-
-.sider {
-  width: 220px;
-  flex-shrink: 0;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--rounded-sm);
-  overflow-y: auto;
-  height: 100%;
-}
-
-.listItem {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.listItemActive {
-  cursor: pointer;
-  background: var(--color-info-bg);
-  color: var(--color-info);
-}
-
 .content {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-card-gap);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--rounded-sm);
-  padding: var(--spacing-card-gap);
-  height: 100%;
-  overflow-y: auto;
+  min-height: 320px;
 }
 
 .preview {

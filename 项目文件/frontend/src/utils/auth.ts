@@ -34,6 +34,33 @@ export function isAuthenticated(): boolean {
   }
 }
 
+export async function tryRefreshAuth(): Promise<boolean> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
+
+  try {
+    const response = await fetch('/api/v1/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!response.ok) {
+      clearTokens();
+      return false;
+    }
+    const result = await response.json();
+    if (result.code === 0 && result.data) {
+      setTokens(result.data);
+      return true;
+    }
+    clearTokens();
+    return false;
+  } catch {
+    clearTokens();
+    return false;
+  }
+}
+
 export function getUserRole(): string | null {
   const token = getToken();
   if (!token) return null;

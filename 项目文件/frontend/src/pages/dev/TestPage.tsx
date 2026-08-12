@@ -14,6 +14,7 @@ import {
   Result,
   Select,
   Space,
+  Tabs,
   Typography,
 } from 'antd';
 import type { ReactNode } from 'react';
@@ -182,7 +183,6 @@ const DEMOS: DemoItem[] = [
 
 export default function TestPage() {
   const [activeKey, setActiveKey] = useState<string>(() => DEMOS[0]?.key ?? 'button');
-  const active = DEMOS.find((d) => d.key === activeKey) ?? DEMOS[0];
 
   if (!isDebugModeEnabled()) {
     return (
@@ -204,32 +204,27 @@ export default function TestPage() {
           用于在进入工作台前验证组件的正确性
         </Paragraph>
       </div>
-      <div className={styles.layout ?? ''}>
-        <div className={styles.sider ?? ''}>
-          <List
-            dataSource={DEMOS}
-            renderItem={(d) => (
-              <List.Item
-                className={
-                  d.key === activeKey ? (styles.listItemActive ?? '') : (styles.listItem ?? '')
-                }
-                onClick={() => setActiveKey(d.key)}
-              >
-                <Space>
-                  {d.icon}
-                  {d.label}
-                </Space>
-              </List.Item>
-            )}
-          />
-        </div>
-        <div className={styles.content ?? ''}>
-          <div className={styles.preview ?? ''}>{active?.render()}</div>
-          <pre className={styles.codeBlock ?? ''}>
-            <code>{active?.code}</code>
-          </pre>
-        </div>
-      </div>
+      <Tabs
+        activeKey={activeKey}
+        onChange={setActiveKey}
+        items={DEMOS.map((d) => ({
+          key: d.key,
+          label: (
+            <Space size={4}>
+              {d.icon}
+              {d.label}
+            </Space>
+          ),
+          children: (
+            <div className={styles.content ?? ''}>
+              <div className={styles.preview ?? ''}>{d.render()}</div>
+              <pre className={styles.codeBlock ?? ''}>
+                <code>{d.code}</code>
+              </pre>
+            </div>
+          ),
+        }))}
+      />
     </div>
   );
 }
