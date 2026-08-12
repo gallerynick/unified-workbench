@@ -1,78 +1,193 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getRouteTitle } from '@/config/routeTitles';
 import { isDebugModeEnabled } from '@/pages/settings/SiteSettings';
 import styles from './DebugModeOverlay.module.css';
 
-/** 读取元素的"模块代号"：优先 data-menu-id，其次 data-tab-key，再次已有 title，最后取文本 */
-function resolveModuleCode(el: HTMLElement): string {
-  return (
-    el.getAttribute('data-menu-id') ??
-    el.getAttribute('data-tab-key') ??
-    el.getAttribute('title') ??
-    el.textContent ??
-    ''
-  ).trim();
+function escapeCss(ident: string): string {
+  if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(ident);
+  return ident.replace(/[^a-zA-Z0-9_-]/g, '\\$&');
 }
 
-/** 为所有菜单项与 Tab 注入 title 属性，帮助识别模块代号 */
-function annotateDom(): void {
-  document.querySelectorAll<HTMLElement>('.ant-menu-item').forEach((el) => {
-    const code = resolveModuleCode(el);
-    if (code && el.getAttribute('title') !== code) {
-      el.setAttribute('title', code);
-    }
-  });
-  document.querySelectorAll<HTMLElement>('.ant-tabs-tab').forEach((el) => {
-    const code = resolveModuleCode(el);
-    if (code && el.getAttribute('title') !== code) {
-      el.setAttribute('title', code);
-    }
-  });
-}
-
-/** 获取当前侧边栏选中的菜单项 key */
 function getSelectedMenuKey(): string {
   const selected = document.querySelector<HTMLElement>('.ant-menu-item-selected');
   if (!selected) return '-';
-  return resolveModuleCode(selected) || '-';
+  return (
+    selected.getAttribute('data-menu-id') ??
+    selected.textContent ??
+    '-'
+  ).trim();
+}
+
+function getUniqueSelector(el: Element): string {
+  if (el === document.documentElement) return 'html';
+  if (el === document.body) return 'body';
+  if (el.id) return `#${escapeCss(el.id)}`;
+
+  const path: string[] = [];
+  let node: Element | null = el;
+
+  while (node && node.nodeType === 1 && node !== document.body) {
+    let segment = node.tagName.toLowerCase();
+
+    const menuId = node.getAttribute('data-menu-id');
+    const tabKey = node.getAttribute('data-tab-key');
+    if (menuId) {
+      segment += `[data-menu-id="${escapeCss(menuId)}"]`;
+    } else if (tabKey) {
+      segment += `[data-tab-key="${escapeCss(tabKey)}"]`;
+    } else if (typeof node.className === 'string' && node.className.trim()) {
+      const classes = node.className.trim().split(/\s+/).slice(0, 2);
+      if (classes.length && classes[0]) {
+        segment += '.' + classes.map((c) => escapeCss(c)).join('.');
+      }
+    }
+
+    path.unshift(segment);
+    const candidate = path.join(' > ');
+    try {
+      if (document.querySelectorAll(candidate).length === 1) return candidate;
+    } catch {
+      /* 选择器无效，继续向上构建 */
+    }
+
+    const parent = node.parentElement;
+    if (parent) {
+      const idx = Array.from(parent.children).indexOf(node) + 1;
+      path[0] = segment + `:nth-child(${idx})`;
+      const candidateWithIndex = path.join(' > ');
+      try {
+        if (document.querySelectorAll(candidateWithIndex).length === 1) {
+          return candidateWithIndex;
+        }
+      } catch {
+        /* 继续 */
+      }
+    }
+
+    node = node.parentElement;
+  }
+
+  return path.length ? path.join(' > ') : 'body';
+}
+
+interface RectState {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
 export default function DebugModeOverlay() {
   const location = useLocation();
-  const [menuKey, setMenuKey] = useState<string>(getSelectedMenuKey);
+  const rafRef = useRef<number>(0);
+  const [menuKey, setMenuKey] = useState<string>('-');
+  const [selector, setSelector] = useState<string>('-');
+  const [tagName, setTagName] = useState<string>('-');
+  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [rect, setRect] = useState<RectState | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!isDebugModeEnabled()) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDebugModeEnabled()) return;
+      if (rafRef.current) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = 0;
+        setMousePos({ x: e.clientX, y: e.clientY });
+        setMenuKey(getSelectedMenuKey());
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        if (el && el !== document.documentElement && el !== document.body) {
+          setSelector(getUniqueSelector(el));
+          setTagName(el.tagName.toLowerCase());
+          const r = el.getBoundingClientRect();
+          setRect({ left: r.left, top: r.top, width: r.width, height: r.height });
+        } else {
+          setSelector(el?.tagName?.toLowerCase() ?? '-');
+          setTagName(el?.tagName?.toLowerCase() ?? '-');
+          setRect(null);
+        }
+      });
+    };
 
-    annotateDom();
-    setMenuKey(getSelectedMenuKey());
+    const handleScroll = () => {
+      setRect(null);
+    };
 
-    // 持续追踪 DOM 变化：菜单切换 / Tab 切换时更新 title 与选中项
-    const observer = new MutationObserver(() => {
-      annotateDom();
-      setMenuKey(getSelectedMenuKey());
-    });
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class', 'title', 'data-menu-id'],
-    });
-    return () => observer.disconnect();
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('scroll', handleScroll, true);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, []);
 
   if (!isDebugModeEnabled()) return null;
 
-  const debugInfo = {
-    pathname: location.pathname,
-    routeTitle: getRouteTitle(location.pathname),
-    menuKey,
+  const copySelector = async () => {
+    try {
+      await navigator.clipboard.writeText(selector);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* 剪贴板不可用时忽略 */
+    }
   };
 
   return (
-    <div className={styles.container ?? ''} title="调试信息面板">
-      <pre className={styles.pre ?? ''}>{JSON.stringify(debugInfo, null, 2)}</pre>
-    </div>
+    <>
+      {rect && (
+        <div
+          className={styles.highlight ?? ''}
+          style={{
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+          }}
+        />
+      )}
+      <div className={styles.container ?? ''}>
+        <div className={styles.header ?? ''}>调试面板</div>
+        <div className={styles.section ?? ''}>
+          <div className={styles.row ?? ''}>
+            <span className={styles.label ?? ''}>路径</span>
+            <span className={styles.value ?? ''}>{location.pathname}</span>
+          </div>
+          <div className={styles.row ?? ''}>
+            <span className={styles.label ?? ''}>标题</span>
+            <span className={styles.value ?? ''}>{getRouteTitle(location.pathname) || '-'}</span>
+          </div>
+          <div className={styles.row ?? ''}>
+            <span className={styles.label ?? ''}>菜单</span>
+            <span className={styles.value ?? ''}>{menuKey}</span>
+          </div>
+        </div>
+        <div className={styles.divider ?? ''} />
+        <div className={styles.section ?? ''}>
+          <div className={styles.sectionTitle ?? ''}>悬停元素</div>
+          <div className={styles.row ?? ''}>
+            <span className={styles.label ?? ''}>标签</span>
+            <span className={styles.value ?? ''}>{tagName}</span>
+          </div>
+          <div className={styles.row ?? ''}>
+            <span className={styles.label ?? ''}>鼠标</span>
+            <span className={styles.value ?? ''}>
+              ({mousePos.x}, {mousePos.y})
+            </span>
+          </div>
+          <div className={styles.selectorBox ?? ''}>{selector}</div>
+          <button
+            type="button"
+            className={styles.copyBtn ?? ''}
+            onClick={copySelector}
+            disabled={selector === '-'}
+          >
+            {copied ? '已复制' : '复制选择器'}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
