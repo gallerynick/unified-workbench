@@ -87,7 +87,7 @@ function getUniqueSelector(el: Element): string {
     fullPath.unshift(`${n.tagName.toLowerCase()}:nth-child(${nthChildIndex(n)})`);
     n = p;
   }
-  const full = fullPath.join(' > ');
+  const full = 'body > ' + fullPath.join(' > ');
   return matchesTarget(full, el) ? full : 'body';
 }
 
