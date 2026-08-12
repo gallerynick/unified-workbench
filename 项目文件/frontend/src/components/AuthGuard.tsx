@@ -3,7 +3,7 @@ import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { Result, Button } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
 import { isAuthenticated, isAdmin, clearTokens } from '@/utils/auth';
-import { isDebugModeEnabled } from '@/pages/settings/SiteSettings';
+import { isMaintenanceModeEnabled } from '@/pages/settings/SiteSettings';
 
 export default function AuthGuard() {
   const navigate = useNavigate();
@@ -35,8 +35,8 @@ export default function AuthGuard() {
     return <Navigate to="/login" replace />;
   }
 
-  // 调试模式且非管理员 → 403 禁止访问
-  if (isDebugModeEnabled() && !isAdmin()) {
+  // 维护模式且非管理员 → 403 禁止访问
+  if (isMaintenanceModeEnabled() && !isAdmin()) {
     return (
       <div style={{
         display: 'flex',
@@ -48,7 +48,7 @@ export default function AuthGuard() {
         <Result
           status="403"
           title={<span style={{ color: 'var(--ink)' }}>访问被拒绝</span>}
-          subTitle={<span style={{ color: 'var(--text-secondary)' }}>系统当前处于调试模式，仅管理员可以访问。</span>}
+          subTitle={<span style={{ color: 'var(--text-secondary)' }}>系统当前处于维护模式，仅管理员可以访问。</span>}
           icon={<LockOutlined style={{ fontSize: 72, color: 'var(--color-info)' }} />}
           extra={
             <Button type="primary" onClick={() => { clearTokens(); navigate('/login', { replace: true }); }}>

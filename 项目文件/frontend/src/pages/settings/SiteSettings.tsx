@@ -12,12 +12,14 @@ interface SiteConfig {
   site_port: string;
   site_ip: string;
   debug_mode: boolean;
+  maintenance_mode: boolean;
 }
 
 const DEFAULT_CONFIG: SiteConfig = {
   site_port: '80',
   site_ip: 'localhost',
   debug_mode: false,
+  maintenance_mode: false,
 };
 
 function getSiteConfig(): SiteConfig {
@@ -36,6 +38,10 @@ function saveSiteConfig(config: SiteConfig): void {
 
 export function isDebugModeEnabled(): boolean {
   return getSiteConfig().debug_mode;
+}
+
+export function isMaintenanceModeEnabled(): boolean {
+  return getSiteConfig().maintenance_mode;
 }
 
 export default function SiteSettings() {
@@ -66,6 +72,7 @@ export default function SiteSettings() {
         site_port: values.site_port,
         site_ip: values.site_ip,
         debug_mode: values.debug_mode,
+        maintenance_mode: values.maintenance_mode,
       });
       message.success('站点配置已保存');
     } catch {
@@ -101,12 +108,23 @@ export default function SiteSettings() {
           </Form.Item>
         </Card>
 
+        <Card title={<><SafetyOutlined /> 维护模式</>} style={{ marginBottom: "var(--spacing-lg)" }}>
+          <Form.Item
+            label="开启维护模式"
+            name="maintenance_mode"
+            valuePropName="checked"
+            extra="开启后，普通成员访问系统将显示维护提示页，无法进入系统。只有管理员可以正常访问。"
+          >
+            <Switch />
+          </Form.Item>
+        </Card>
+
         <Card title={<><SafetyOutlined /> 调试模式</>} style={{ marginBottom: "var(--spacing-lg)" }}>
           <Form.Item
             label="开启调试模式"
             name="debug_mode"
             valuePropName="checked"
-            extra="开启后，普通成员访问系统将显示测试提示页，无法进入系统。只有管理员可以正常访问。"
+            extra="开启后，工作台右下角显示调试面板，可查看界面元素信息并复制元素选择器。仅供管理员开发调试使用，不影响普通成员访问。"
           >
             <Switch />
           </Form.Item>

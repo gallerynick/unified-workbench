@@ -99,16 +99,20 @@ interface RectState {
   height: number;
 }
 
+interface PickedElement {
+  selector: string;
+  tagName: string;
+  rect: RectState;
+}
+
 export default function DebugModeOverlay() {
   const location = useLocation();
-  const rafRef = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [enabled, setEnabled] = useState<boolean>(() => isDebugModeEnabled());
   const [menuKey, setMenuKey] = useState<string>('-');
-  const [selector, setSelector] = useState<string>('-');
-  const [tagName, setTagName] = useState<string>('-');
-  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [rect, setRect] = useState<RectState | null>(null);
+  const [picking, setPicking] = useState<boolean>(false);
+  const [picked, setPicked] = useState<PickedElement | null>(null);
+  const [hoverRect, setHoverRect] = useState<RectState | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -122,51 +126,60 @@ export default function DebugModeOverlay() {
   }, []);
 
   useEffect(() => {
+    if (!enabled || !picking) return;
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (!enabled) return;
-      if (rafRef.current) return;
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = 0;
-        setMousePos({ x: e.clientX, y: e.clientY });
-        setMenuKey(getSelectedMenuKey());
-        const el = document.elementFromPoint(e.clientX, e.clientY);
-        if (el && el !== document.documentElement && el !== document.body) {
-          if (containerRef.current && containerRef.current.contains(el)) {
-            setRect(null);
-            return;
-          }
-          setSelector(getUniqueSelector(el));
-          setTagName(el.tagName.toLowerCase());
-          const r = el.getBoundingClientRect();
-          setRect({ left: r.left, top: r.top, width: r.width, height: r.height });
-        } else {
-          setSelector(el?.tagName?.toLowerCase() ?? '-');
-          setTagName(el?.tagName?.toLowerCase() ?? '-');
-          setRect(null);
-        }
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (el && el !== document.documentElement && el !== document.body) {
+        const r = el.getBoundingClientRect();
+        setHoverRect({ left: r.left, top: r.top, width: r.width, height: r.height });
+      } else {
+        setHoverRect(null);
+      }
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (!el || el === document.documentElement || el === document.body) return;
+      if (containerRef.current && containerRef.current.contains(el)) return;
+
+      const r = el.getBoundingClientRect();
+      const selector = getUniqueSelector(el);
+      setPicked({
+        selector,
+        tagName: el.tagName.toLowerCase(),
+        rect: { left: r.left, top: r.top, width: r.width, height: r.height },
       });
+      setMenuKey(getSelectedMenuKey());
+      setPicking(false);
+      setHoverRect(null);
     };
 
-    const handleScroll = () => {
-      setRect(null);
-      setSelector('-');
-      setTagName('-');
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPicking(false);
+        setHoverRect(null);
+      }
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('scroll', handleScroll, true);
+    document.addEventListener('mousemove', handleMouseMove, true);
+    document.addEventListener('click', handleClick, true);
+    document.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('scroll', handleScroll, true);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      document.removeEventListener('mousemove', handleMouseMove, true);
+      document.removeEventListener('click', handleClick, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [enabled]);
+  }, [enabled, picking]);
 
   if (!enabled) return null;
 
   const copySelector = async () => {
+    if (!picked) return;
     try {
-      await navigator.clipboard.writeText(selector);
+      await navigator.clipboard.writeText(picked.selector);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -174,16 +187,23 @@ export default function DebugModeOverlay() {
     }
   };
 
+  const startPicking = () => {
+    setPicked(null);
+    setPicking(true);
+  };
+
+  const highlightRect = hoverRect ?? picked?.rect ?? null;
+
   return createPortal(
     <>
-      {rect && (
+      {highlightRect && (
         <div
           className={styles.highlight ?? ''}
           style={{
-            left: rect.left,
-            top: rect.top,
-            width: rect.width,
-            height: rect.height,
+            left: highlightRect.left,
+            top: highlightRect.top,
+            width: highlightRect.width,
+            height: highlightRect.height,
           }}
         />
       )}
@@ -205,26 +225,44 @@ export default function DebugModeOverlay() {
         </div>
         <div className={styles.divider ?? ''} />
         <div className={styles.section ?? ''}>
-          <div className={styles.sectionTitle ?? ''}>悬停元素</div>
-          <div className={styles.row ?? ''}>
-            <span className={styles.label ?? ''}>标签</span>
-            <span className={styles.value ?? ''}>{tagName}</span>
-          </div>
-          <div className={styles.row ?? ''}>
-            <span className={styles.label ?? ''}>鼠标</span>
-            <span className={styles.value ?? ''}>
-              ({mousePos.x}, {mousePos.y})
-            </span>
-          </div>
-          <div className={styles.selectorBox ?? ''}>{selector}</div>
-          <button
-            type="button"
-            className={styles.copyBtn ?? ''}
-            onClick={copySelector}
-            disabled={selector === '-'}
-          >
-            {copied ? '已复制' : '复制选择器'}
-          </button>
+          <div className={styles.sectionTitle ?? ''}>元素选择</div>
+          {picking ? (
+            <div className={styles.pickingHint ?? ''}>
+              已进入选择模式：移动鼠标高亮目标，点击锁定，Esc 取消
+            </div>
+          ) : picked ? (
+            <>
+              <div className={styles.row ?? ''}>
+                <span className={styles.label ?? ''}>标签</span>
+                <span className={styles.value ?? ''}>{picked.tagName}</span>
+              </div>
+              <div className={styles.selectorBox ?? ''}>{picked.selector}</div>
+              <div className={styles.btnRow ?? ''}>
+                <button
+                  type="button"
+                  className={styles.copyBtn ?? ''}
+                  onClick={copySelector}
+                >
+                  {copied ? '已复制' : '复制选择器'}
+                </button>
+                <button
+                  type="button"
+                  className={styles.copyBtn ?? ''}
+                  onClick={startPicking}
+                >
+                  重新选择
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              type="button"
+              className={styles.copyBtn ?? ''}
+              onClick={startPicking}
+            >
+              选择元素
+            </button>
+          )}
         </div>
       </div>
     </>,
