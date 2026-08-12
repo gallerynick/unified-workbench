@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Card, Table, Typography, Space, message, Alert, Modal } from 'antd';
 import {
   DesktopOutlined,
@@ -8,6 +9,8 @@ import {
   QuestionCircleOutlined,
 } from '@ant-design/icons';
 import { request } from '../../utils/request';
+import { clearTokens } from '../../utils/auth';
+import { getDeviceToken } from '../../utils/device';
 import styles from './DevicesPage.module.css';
 
 const { Title, Text } = Typography;
@@ -45,6 +48,7 @@ const DEVICE_LABELS: Record<string, string> = {
 const getDeviceIcon = (t: string | null) => DEVICE_ICONS[t ?? ''] ?? <QuestionCircleOutlined />;
 
 export default function DevicesPage() {
+  const navigate = useNavigate();
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedSessions, setExpandedSessions] = useState<Record<string, SessionRecord[]>>({});
@@ -91,6 +95,11 @@ export default function DevicesPage() {
           if (res.code === 0) {
             message.success(`已注销 ${res.data?.affected_count ?? device.session_count} 个会话`);
             setExpandedSessions((prev) => { const n = { ...prev }; delete n[device.device_token]; return n; });
+            if (device.device_token === getDeviceToken()) {
+              clearTokens();
+              navigate('/login', { replace: true });
+              return;
+            }
             await fetchDevices();
           } else {
             message.error(res.msg || '操作失败');
