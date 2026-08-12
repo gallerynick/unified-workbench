@@ -97,10 +97,22 @@
   100% { opacity: 1; }
 }
 
-/* ====== Unlock dissolve ====== */
-.dissolving {
+/* ====== Unlock — reverse stagger exit ====== */
+.container.exiting .enterElement {
+  animation: lockPageExit 500ms ease-out forwards;
+}
+
+.container.exiting .enterElement:nth-child(1) { animation-delay: 180ms; } /* avatar — exits last */
+.container.exiting .enterElement:nth-child(2) { animation-delay: 120ms; } /* name   */
+.container.exiting .enterElement:nth-child(3) { animation-delay: 60ms;  } /* lock   */
+.container.exiting .enterElement:nth-child(4) { animation-delay: 0ms;   } /* subtitle — exits first */
+
+.container.exiting .inputArea {
   opacity: 0;
-  filter: blur(4px);
-  transform: scale(1.08);
-  transition: opacity 250ms ease-in, filter 250ms ease-in, transform 250ms ease-in;
+  transition: opacity 150ms ease-in;
+}
+
+@keyframes lockPageExit {
+  from { opacity: 1; filter: blur(0); }
+  to   { opacity: 0; filter: blur(8px); }
 }

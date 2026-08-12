@@ -14,7 +14,7 @@ export default function LockPage() {
   const { user, refreshUser } = useUser();
   const { unlock } = useLockContext();
   const [loading, setLoading] = useState(false);
-  const [dissolving, setDissolving] = useState(false);
+  const [exiting, setExiting] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [password, setPassword] = useState('');
   const passwordInputRef = useRef<InputRef>(null);
@@ -79,14 +79,14 @@ export default function LockPage() {
         body: { password },
       });
       if (res.code === 0 && res.data?.valid === true) {
-        // 溶解动画 250ms 后解锁，同时传信号给 MainLayout 播放反向模糊进场
-        setDissolving(true);
+        setLoading(false);
+        setExiting(true);
         setTimeout(() => {
           unlock();
           const returnPath = sessionStorage.getItem('workbench_lock_return') || '/';
           sessionStorage.setItem('workbench_just_unlocked', '1');
           navigate(returnPath, { replace: true });
-        }, 250);
+        }, 700);
       } else {
         message.error('密码错误');
       }
@@ -97,14 +97,14 @@ export default function LockPage() {
         message.error('解锁失败，请重试');
       }
     } finally {
-      if (!dissolving) setLoading(false);
+      if (!exiting) setLoading(false);
     }
   };
 
   const displayName = user?.nickname || user?.username || '未知用户';
 
   return (
-    <div className={`${styles.container ?? ''} ${dissolving ? (styles.dissolving ?? '') : ''}`}>
+    <div className={`${styles.container ?? ''} ${exiting ? (styles.exiting ?? '') : ''}`}>
       <Avatar
         size={80}
         src={user?.avatar || undefined}
