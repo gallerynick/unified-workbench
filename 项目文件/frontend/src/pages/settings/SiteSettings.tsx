@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Switch, Button, Typography, message, Alert, Space, Result } from 'antd';
-import { SaveOutlined, GlobalOutlined, SafetyOutlined, LockOutlined } from '@ant-design/icons';
+import { Card, Form, Switch, Button, Typography, message, Alert, Space, Result } from 'antd';
+import { SaveOutlined, SafetyOutlined, LockOutlined } from '@ant-design/icons';
 import { isAdmin } from '../../utils/auth';
 import styles from './SiteSettings.module.css';
 
@@ -9,15 +9,11 @@ const { Title } = Typography;
 const SITE_CONFIG_KEY = 'site_config';
 
 interface SiteConfig {
-  site_port: string;
-  site_ip: string;
   debug_mode: boolean;
   maintenance_mode: boolean;
 }
 
 const DEFAULT_CONFIG: SiteConfig = {
-  site_port: '80',
-  site_ip: 'localhost',
   debug_mode: false,
   maintenance_mode: false,
 };
@@ -69,8 +65,6 @@ export default function SiteSettings() {
       const values = await form.validateFields();
       setSaving(true);
       saveSiteConfig({
-        site_port: values.site_port,
-        site_ip: values.site_ip,
         debug_mode: values.debug_mode,
         maintenance_mode: values.maintenance_mode,
       });
@@ -96,18 +90,6 @@ export default function SiteSettings() {
       />
 
       <Form form={form} layout="vertical">
-        <Card title={<><GlobalOutlined /> 访问配置</>} style={{ marginBottom: "var(--spacing-lg)" }}>
-          <Form.Item label="站点端口" name="site_port">
-            <Input placeholder="80" disabled />
-          </Form.Item>
-          <Typography.Text type="secondary" style={{ display: 'block', marginTop: -16, marginBottom: "var(--spacing-card-gap)" }}>
-            端口修改需修改 docker-compose.yml 与 nginx.conf 后重启容器
-          </Typography.Text>
-          <Form.Item label="站点 IP/域名" name="site_ip">
-            <Input placeholder="localhost" />
-          </Form.Item>
-        </Card>
-
         <Card title={<><SafetyOutlined /> 维护模式</>} style={{ marginBottom: "var(--spacing-lg)" }}>
           <Form.Item
             label="开启维护模式"

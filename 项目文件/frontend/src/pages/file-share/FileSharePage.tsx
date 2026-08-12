@@ -38,7 +38,7 @@ export function FileSharePage() {
     const path = `/share/${code}`;
     const protocol = window.location.protocol;
     const local = `${protocol}//localhost${path}`;
-    const network = `${protocol}//192.168.0.106${path}`;
+    const network = `${protocol}//${window.location.hostname}${path}`;
     return { local, network };
   };
 
