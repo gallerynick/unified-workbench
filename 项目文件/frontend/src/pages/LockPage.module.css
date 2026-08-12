@@ -26,7 +26,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--spacing-xs);
   padding: 0;
   border: none;
   background: none;
@@ -43,8 +42,18 @@
 }
 
 .subtitle {
-  margin-bottom: var(--spacing-lg);
   text-align: center;
+}
+
+/* 交互区：锁定态（锁+已锁定）与展开态（输入框）共用固定高度，避免头像/名称被顶动 */
+.interactive {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
 }
 
 /* ====== Password input + circular unlock ====== */
@@ -55,7 +64,6 @@
   align-items: center;
   gap: var(--spacing-sm);
 }
-
 .passwordInput {
   flex: 1;
   border-radius: var(--rounded-pill) !important;
@@ -105,6 +113,10 @@
 .enterElement:nth-child(3) { animation-delay: 120ms; }
 .enterElement:nth-child(4) { animation-delay: 180ms; }
 
+/* interactive 内元素继承原第 3/4 元素时序（锁 120ms → 已锁定 180ms） */
+.lockIcon.enterElement { animation-delay: 120ms; }
+.subtitle.enterElement { animation-delay: 180ms; }
+
 @keyframes lockPageEnter {
   0% {
     opacity: 0;
@@ -132,6 +144,10 @@
 .container.exiting .enterElement:nth-child(2) { animation-delay: 120ms; } /* name   */
 .container.exiting .enterElement:nth-child(3) { animation-delay: 60ms;  } /* lock   */
 .container.exiting .enterElement:nth-child(4) { animation-delay: 0ms;   } /* subtitle — exits first */
+
+/* interactive 内元素继承原反向时序（锁 60ms → 已锁定 0ms） */
+.container.exiting .lockIcon.enterElement { animation-delay: 60ms; }
+.container.exiting .subtitle.enterElement { animation-delay: 0ms; }
 
 .container.exiting .inputArea {
   opacity: 0;

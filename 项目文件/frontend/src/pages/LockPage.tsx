@@ -115,30 +115,32 @@ export default function LockPage() {
         {displayName}
       </Title>
       {showInput ? (
-        <div className={`${styles.inputRow ?? ''} ${styles.enterElement ?? ''}`}>
-          <Input.Password
-            ref={passwordInputRef}
-            size="middle"
-            prefix={<LockOutlined style={{ color: 'var(--text-secondary)' }} />}
-            placeholder="请输入密码"
-            aria-label="解锁密码"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); startIdleTimer(); }}
-            onPressEnter={() => void handleUnlock()}
-            className={styles.passwordInput ?? ''}
-          />
-          <button
-            type="button"
-            aria-label="解锁"
-            disabled={loading}
-            onClick={() => void handleUnlock()}
-            className={styles.unlockCircle ?? ''}
-          >
-            <ArrowRightOutlined />
-          </button>
+        <div className={styles.interactive ?? ''}>
+          <div className={`${styles.inputRow ?? ''} ${styles.enterElement ?? ''}`}>
+            <Input.Password
+              ref={passwordInputRef}
+              size="middle"
+              prefix={<LockOutlined style={{ color: 'var(--text-secondary)' }} />}
+              placeholder="请输入密码"
+              aria-label="解锁密码"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); startIdleTimer(); }}
+              onPressEnter={() => void handleUnlock()}
+              className={styles.passwordInput ?? ''}
+            />
+            <button
+              type="button"
+              aria-label="解锁"
+              disabled={loading}
+              onClick={() => void handleUnlock()}
+              className={styles.unlockCircle ?? ''}
+            >
+              <ArrowRightOutlined />
+            </button>
+          </div>
         </div>
       ) : (
-        <>
+        <div className={styles.interactive ?? ''}>
           <button
             type="button"
             aria-label="解锁"
@@ -150,7 +152,7 @@ export default function LockPage() {
           <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
             已锁定
           </Text>
-        </>
+        </div>
       )}
     </div>
   );
