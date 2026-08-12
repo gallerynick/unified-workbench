@@ -19,17 +19,29 @@ function getSelectedMenuKey(): string {
   ).trim();
 }
 
+/** 计算元素在父元素【所有子节点（含文本/注释节点）】中的位置，与 CSS :nth-child() 计数基准一致 */
+function nthChildIndex(el: Element): number {
+  let i = 1;
+  for (let s = el.previousSibling; s; s = s.previousSibling) i += 1;
+  return i;
+}
+
+/** 校验选择器是否【唯一命中且指向目标元素】，比 length===1 更强，能拦截「唯一但指向错误元素」的情况 */
+function matchesTarget(selector: string, el: Element): boolean {
+  try {
+    return document.querySelector(selector) === el;
+  } catch {
+    return false;
+  }
+}
+
 function getUniqueSelector(el: Element): string {
   if (el === document.documentElement) return 'html';
   if (el === document.body) return 'body';
 
   if (el.id) {
     const idSelector = `#${escapeCss(el.id)}`;
-    try {
-      if (document.querySelectorAll(idSelector).length === 1) return idSelector;
-    } catch {
-      /* id 选择器无效，落入 path 逻辑 */
-    }
+    if (matchesTarget(idSelector, el)) return idSelector;
   }
 
   const path: string[] = [];
@@ -50,23 +62,15 @@ function getUniqueSelector(el: Element): string {
 
     path.unshift(segment);
     const candidate = path.join(' > ');
-    try {
-      if (document.querySelectorAll(candidate).length === 1) return candidate;
-    } catch {
-      /* 选择器无效，继续向上构建 */
-    }
+    if (matchesTarget(candidate, el)) return candidate;
 
     const parent = node.parentElement;
     if (parent) {
-      const idx = Array.from(parent.children).indexOf(node) + 1;
+      const idx = nthChildIndex(node);
       path[0] = segment + `:nth-child(${idx})`;
       const candidateWithIndex = path.join(' > ');
-      try {
-        if (document.querySelectorAll(candidateWithIndex).length === 1) {
-          return candidateWithIndex;
-        }
-      } catch {
-        /* 继续 */
+      if (matchesTarget(candidateWithIndex, el)) {
+        return candidateWithIndex;
       }
     }
 
@@ -74,20 +78,17 @@ function getUniqueSelector(el: Element): string {
   }
 
   const fallback = path.length ? path.join(' > ') : 'body';
-  try {
-    if (document.querySelectorAll(fallback).length === 1) return fallback;
-  } catch {
-    /* fallback 不唯一或无效，继续兜底 */
-  }
+  if (matchesTarget(fallback, el)) return fallback;
+
   const fullPath: string[] = [];
   let n: Element | null = el;
   while (n && n !== document.body && n !== document.documentElement) {
     const p: Element | null = n.parentElement;
-    const idx = p ? Array.from(p.children).indexOf(n) + 1 : 1;
-    fullPath.unshift(`${n.tagName.toLowerCase()}:nth-child(${idx})`);
+    fullPath.unshift(`${n.tagName.toLowerCase()}:nth-child(${nthChildIndex(n)})`);
     n = p;
   }
-  return fullPath.join(' > ');
+  const full = fullPath.join(' > ');
+  return matchesTarget(full, el) ? full : 'body';
 }
 
 interface RectState {
