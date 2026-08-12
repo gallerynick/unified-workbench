@@ -1,21 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Table, Typography, Space, message, Alert } from 'antd';
+import { Button, Card, Table, Typography, Space, message, Alert, Modal } from 'antd';
 import {
   DesktopOutlined,
   MobileOutlined,
   TabletOutlined,
   LogoutOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import { request } from '../../utils/request';
 import styles from './DevicesPage.module.css';
 
 const { Title, Text } = Typography;
 
+interface DeviceRecord {
+  device_token: string;
+  device_name: string | null;
+  device_type: string | null;
+  ip_address: string | null;
+  session_count: number;
+  last_active_at: string;
+}
+
 interface SessionRecord {
   id: string;
   device_name: string | null;
   device_type: string | null;
-  device_token: string | null;
   ip_address: string | null;
   last_active_at: string;
   created_at: string;
@@ -33,21 +42,21 @@ const DEVICE_LABELS: Record<string, string> = {
   tablet: '平板',
 };
 
-export default function DevicesPage() {
-  const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [revokingId, setRevokingId] = useState<string | null>(null);
+const getDeviceIcon = (t: string | null) => DEVICE_ICONS[t ?? ''] ?? <QuestionCircleOutlined />;
 
-  const fetchSessions = useCallback(async () => {
+export default function DevicesPage() {
+  const [devices, setDevices] = useState<DeviceRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expandedSessions, setExpandedSessions] = useState<Record<string, SessionRecord[]>>({});
+  const [loadingSessions, setLoadingSessions] = useState<Record<string, boolean>>({});
+  const [revokingToken, setRevokingToken] = useState<string | null>(null);
+
+  const fetchDevices = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await request<{ items: SessionRecord[] } | SessionRecord[]>('/me/sessions');
-      if (res.code === 0 && res.data) {
-        const list = Array.isArray(res.data) ? res.data : res.data.items;
-        setSessions(list);
-      } else {
-        message.error(res.msg || '获取设备列表失败');
-      }
+      const res = await request<DeviceRecord[]>('/me/devices');
+      if (res.code === 0 && res.data) setDevices(res.data);
+      else message.error(res.msg || '获取设备列表失败');
     } catch {
       message.error('获取设备列表失败');
     } finally {
@@ -55,41 +64,55 @@ export default function DevicesPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+  useEffect(() => { fetchDevices(); }, [fetchDevices]);
 
-  const handleLogoutDevice = async (session: SessionRecord) => {
-    setRevokingId(session.id);
+  const handleExpand = async (expanded: boolean, record: DeviceRecord) => {
+    if (!expanded) return;
+    if (expandedSessions[record.device_token]) return;
+    setLoadingSessions((prev) => ({ ...prev, [record.device_token]: true }));
     try {
-      const res = await request(`/me/sessions/${session.id}`, { method: 'DELETE' });
-      if (res.code === 0) {
-        setSessions((prev) => prev.filter((s) => s.id !== session.id));
-        message.success('设备已退出登录');
-      } else {
-        message.error(res.msg || '操作失败');
-      }
-    } catch {
-      message.error('操作失败');
-    } finally {
-      setRevokingId(null);
-    }
+      const res = await request<SessionRecord[]>(`/me/devices/${encodeURIComponent(record.device_token)}/sessions`);
+      if (res.code === 0) setExpandedSessions((prev) => ({ ...prev, [record.device_token]: res.data ?? [] }));
+    } catch { /* ignore */ }
+    finally { setLoadingSessions((prev) => ({ ...prev, [record.device_token]: false })); }
+  };
+
+  const handleLogoutDevice = (device: DeviceRecord) => {
+    Modal.confirm({
+      title: '注销设备',
+      content: `确定要注销该设备上的 ${device.session_count} 个会话吗？该设备所有会话将被强制下线。`,
+      okText: '注销',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setRevokingToken(device.device_token);
+        try {
+          const res = await request<{ affected_count: number }>(`/me/devices/${encodeURIComponent(device.device_token)}`, { method: 'DELETE' });
+          if (res.code === 0) {
+            message.success(`已注销 ${res.data?.affected_count ?? device.session_count} 个会话`);
+            setExpandedSessions((prev) => { const n = { ...prev }; delete n[device.device_token]; return n; });
+            await fetchDevices();
+          } else {
+            message.error(res.msg || '操作失败');
+          }
+        } catch { message.error('操作失败'); }
+        finally { setRevokingToken(null); }
+      },
+    });
   };
 
   const columns = [
     {
       title: '设备',
       key: 'device',
-      width: 220,
-      render: (_: unknown, record: SessionRecord) => (
+      width: 260,
+      render: (_: unknown, record: DeviceRecord) => (
         <Space>
-          {DEVICE_ICONS[record.device_type || 'desktop']}
+          {getDeviceIcon(record.device_type)}
           <div>
-            <div>
-              {record.device_name || '未知设备'}
-            </div>
+            <div>{record.device_name || '未知设备'}</div>
             <Text type="secondary">
-              {DEVICE_LABELS[record.device_type || 'desktop'] || record.device_type}
+              {(record.device_type ? DEVICE_LABELS[record.device_type] || record.device_type : '未知类型')}
               {record.ip_address ? ` · ${record.ip_address}` : ''}
             </Text>
           </div>
@@ -97,11 +120,10 @@ export default function DevicesPage() {
       ),
     },
     {
-      title: '登录时间',
-      dataIndex: 'created_at' as const,
-      key: 'created_at',
-      width: 170,
-      render: (date: string) => new Date(date).toLocaleString('zh-CN'),
+      title: '登录次数',
+      dataIndex: 'session_count' as const,
+      key: 'session_count',
+      width: 100,
     },
     {
       title: '最后活跃',
@@ -114,17 +136,18 @@ export default function DevicesPage() {
       title: '操作',
       key: 'action',
       width: 140,
-      render: (_: unknown, record: SessionRecord) => (
-        <Button
-          type="link"
-          danger
-          icon={<LogoutOutlined />}
-          onClick={() => handleLogoutDevice(record)}
-          loading={revokingId === record.id}
-        >
-          退出登录
-        </Button>
-      ),
+      render: (_: unknown, record: DeviceRecord) =>
+        record.device_token ? (
+          <Button
+            type="link"
+            danger
+            icon={<LogoutOutlined />}
+            onClick={() => handleLogoutDevice(record)}
+            loading={revokingToken === record.device_token}
+          >
+            注销设备
+          </Button>
+        ) : null,
     },
   ];
 
@@ -136,35 +159,52 @@ export default function DevicesPage() {
           danger
           icon={<LogoutOutlined />}
           onClick={async () => {
-            for (const s of sessions) {
-              try {
-                await request(`/me/sessions/${s.id}`, { method: 'DELETE' });
-              } catch { /* continue */ }
+            for (const d of devices) {
+              if (!d.device_token) continue;
+              try { await request(`/me/devices/${encodeURIComponent(d.device_token)}`, { method: 'DELETE' }); } catch { /* continue */ }
             }
-            setSessions([]);
+            setExpandedSessions({});
+            await fetchDevices();
             message.success('已注销所有设备');
           }}
-          disabled={sessions.length === 0}
+          disabled={devices.length === 0}
         >
           注销所有设备
         </Button>
       </div>
-
       <Alert
-        message="查看和管理当前账号的登录设备。退出设备后该设备下次请求将被要求重新登录。"
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
+        message="按设备分组展示登录记录。点击设备行可展开查看该设备最近的 15 次登录历史。"
+        type="info" showIcon style={{ marginBottom: 16 }}
       />
-
       <Card>
-        <Table<SessionRecord>
+        <Table<DeviceRecord>
           className={styles.table ?? ''}
           columns={columns}
-          dataSource={sessions}
-          rowKey="id"
+          dataSource={devices}
+          rowKey="device_token"
           loading={loading}
           pagination={false}
+          expandable={{
+            expandedRowRender: (record) => {
+              const list = expandedSessions[record.device_token];
+              if (loadingSessions[record.device_token]) return <Text type="secondary">加载中...</Text>;
+              if (!list || list.length === 0) return <Text type="secondary">无记录</Text>;
+              return (
+                <Table<SessionRecord>
+                  rowKey="id"
+                  dataSource={list}
+                  pagination={false}
+                  size="small"
+                  columns={[
+                    { title: '登录时间', dataIndex: 'created_at', width: 170, render: (d: string) => new Date(d).toLocaleString('zh-CN') },
+                    { title: 'IP 地址', dataIndex: 'ip_address', width: 160, render: (ip: string | null) => ip ?? '-' },
+                    { title: '最后活跃', dataIndex: 'last_active_at', width: 170, render: (d: string) => new Date(d).toLocaleString('zh-CN') },
+                  ]}
+                />
+              );
+            },
+            onExpand: (expanded, record) => handleExpand(expanded, record),
+          }}
         />
       </Card>
     </div>
