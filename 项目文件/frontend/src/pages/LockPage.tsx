@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Avatar, Button, Input, Typography, message } from 'antd';
+import { Avatar, Input, Typography, message } from 'antd';
 import type { InputRef } from 'antd';
 import { LockOutlined, UserOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useUser } from '../contexts/UserContext';
@@ -127,14 +127,15 @@ export default function LockPage() {
             onPressEnter={() => void handleUnlock()}
             className={styles.passwordInput ?? ''}
           />
-          <Button
-            type="text"
-            loading={loading}
-            className={styles.unlockCircle ?? ''}
+          <button
+            type="button"
             aria-label="解锁"
+            disabled={loading}
             onClick={() => void handleUnlock()}
-            icon={<ArrowRightOutlined />}
-          />
+            className={styles.unlockCircle ?? ''}
+          >
+            <ArrowRightOutlined />
+          </button>
         </div>
       ) : (
         <>

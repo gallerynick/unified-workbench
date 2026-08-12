@@ -17,7 +17,7 @@
 
 .title {
   margin-top: 0 !important;
-  margin-bottom: var(--spacing-md) !important;
+  margin-bottom: var(--spacing-xl) !important;
   text-align: center;
   color: var(--ink);
 }
@@ -65,7 +65,7 @@
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border-radius: 50% !important;
+  border-radius: 50%;
   border: 1.5px solid var(--text-secondary);
   background: none;
   color: var(--text-secondary);
@@ -73,6 +73,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.unlockCircle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.unlockCircle:hover:not(:disabled) {
+  color: var(--color-info);
+  border-color: var(--color-info);
 }
 
 /* 输入行出现更快：覆盖 enterElement 的 600ms+120ms 延迟 */
