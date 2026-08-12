@@ -352,7 +352,7 @@
   color: var(--text-secondary) !important;
 }
 :root[data-theme="dark"] .ant-modal-confirm-btns .ant-btn-default {
-  background: var(--bg-component);
+  background: var(--bg-primary);
   border-color: var(--border-secondary);
   color: var(--ink);
 }
@@ -364,7 +364,7 @@
 /* ====== 静态方法（Modal/message/notification）深色适配 ====== */
 :root[data-theme="dark"] .ant-modal-content,
 :root[data-theme="dark"] .ant-modal-confirm .ant-modal-content {
-  background: var(--bg-component);
+  background: var(--bg-primary);
 }
 :root[data-theme="dark"] .ant-modal .ant-modal-header,
 :root[data-theme="dark"] .ant-modal-confirm .ant-modal-body {
@@ -372,7 +372,7 @@
 }
 :root[data-theme="dark"] .ant-message-notice-content,
 :root[data-theme="dark"] .ant-notification-notice {
-  background: var(--bg-component);
+  background: var(--bg-primary);
 }
 :root[data-theme="dark"] .ant-message .anticon,
 :root[data-theme="dark"] .ant-message-notice-content {
