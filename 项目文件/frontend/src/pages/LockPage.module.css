@@ -17,9 +17,29 @@
 
 .title {
   margin-top: 0 !important;
-  margin-bottom: var(--spacing-sm) !important;
+  margin-bottom: var(--spacing-md) !important;
   text-align: center;
   color: var(--ink);
+}
+
+.lockIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-md);
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 64px;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 200ms ease, transform 200ms ease;
+}
+
+.lockIcon:hover {
+  color: var(--color-info);
+  transform: scale(1.06);
 }
 
 .subtitle {
@@ -27,14 +47,26 @@
   text-align: center;
 }
 
-.form {
+/* ====== Password input expand ====== */
+.inputArea {
   width: 100%;
   max-width: 360px;
-  margin-top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 300ms ease, opacity 200ms ease;
 }
 
-.submitItem {
-  margin-bottom: 0;
+.inputArea.expanded {
+  max-height: 200px;
+  opacity: 1;
+}
+
+.unlockBtn {
+  width: 100%;
 }
 
 /* ====== Lock page entrance ====== */

@@ -43,7 +43,7 @@ export default function Login() {
         await refreshUser();
         message.success('登录成功');
         setTransitioning(true);
-        setTimeout(() => navigate('/', { replace: true }), 400);
+        setTimeout(() => navigate('/', { replace: true }), 500);
       } else {
         message.error('用户名或密码有误');
       }

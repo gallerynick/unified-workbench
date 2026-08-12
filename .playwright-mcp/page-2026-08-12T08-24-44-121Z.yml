@@ -1,0 +1,13 @@
+- generic [ref=e3]:
+  - img "user" [ref=e5]
+  - heading "未知用户" [level=4] [ref=e8]
+  - button "解锁" [ref=e9] [cursor=pointer]:
+    - img "lock" [ref=e10]
+  - generic [ref=e13]: 已锁定
+  - generic:
+    - generic [ref=e14]:
+      - img "lock" [ref=e16]
+      - textbox "解锁密码" [ref=e19]:
+        - /placeholder: 请输入密码
+      - img "eye-invisible" [ref=e21] [cursor=pointer]
+    - button "解 锁" [ref=e25] [cursor=pointer]

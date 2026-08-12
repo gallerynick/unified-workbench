@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Avatar, Button, Form, Input, Typography, message } from 'antd';
+import { useEffect, useRef, useState } from 'react';
+import { Avatar, Button, Input, Typography, message } from 'antd';
+import type { InputRef } from 'antd';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useUser } from '../contexts/UserContext';
 import { useLockContext } from '../contexts/LockContext';
@@ -8,15 +9,14 @@ import styles from './LockPage.module.css';
 
 const { Title, Text } = Typography;
 
-interface LockFormValues {
-  password: string;
-}
-
 export default function LockPage() {
   const { user, refreshUser } = useUser();
   const { unlock } = useLockContext();
   const [loading, setLoading] = useState(false);
   const [dissolving, setDissolving] = useState(false);
+  const [showInput, setShowInput] = useState(false);
+  const [password, setPassword] = useState('');
+  const passwordInputRef = useRef<InputRef>(null);
 
   useEffect(() => {
     // 直接刷新到 /lock 时 user 可能尚未加载，主动拉取一次
@@ -25,15 +25,26 @@ export default function LockPage() {
     }
   }, [user, refreshUser]);
 
-  const handleUnlock = async (values: LockFormValues) => {
+  // 输入区展开后聚焦密码框
+  useEffect(() => {
+    if (showInput) {
+      passwordInputRef.current?.focus();
+    }
+  }, [showInput]);
+
+  const handleUnlock = async () => {
+    if (!password) {
+      message.warning('请输入密码');
+      return;
+    }
     setLoading(true);
     try {
       const res = await request<{ valid: boolean }>('/auth/verify-password', {
         method: 'POST',
-        body: { password: values.password },
+        body: { password },
       });
       if (res.code === 0 && res.data?.valid === true) {
-        // 溶解动画 400ms 后解锁，同时传信号给 MainLayout 播放反向模糊进场
+        // 溶解动画 250ms 后解锁，同时传信号给 MainLayout 播放反向模糊进场
         setDissolving(true);
         setTimeout(() => {
           sessionStorage.setItem('workbench_just_unlocked', '1');
@@ -68,32 +79,40 @@ export default function LockPage() {
       <Title level={4} className={`${styles.title ?? ''} ${styles.enterElement ?? ''}`}>
         {displayName}
       </Title>
-      <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
-        工作台已锁定，请输入密码解锁
-      </Text>
-      <Form<LockFormValues>
-        name="lock"
-        size="large"
-        onFinish={handleUnlock}
-        className={`${styles.form ?? ''} ${styles.enterElement ?? ''}`}
+      <button
+        type="button"
+        aria-label="解锁"
+        title="点击解锁"
+        onClick={() => setShowInput(true)}
+        className={`${styles.lockIcon ?? ''} ${styles.enterElement ?? ''}`}
       >
-        <Form.Item
-          name="password"
-          rules={[{ required: true, message: '请输入密码' }]}
+        <LockOutlined />
+      </button>
+      <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
+        已锁定
+      </Text>
+      <div className={`${styles.inputArea ?? ''} ${showInput ? (styles.expanded ?? '') : ''}`}>
+        <Input.Password
+          ref={passwordInputRef}
+          size="large"
+          prefix={<LockOutlined />}
+          placeholder="请输入密码"
+          aria-label="解锁密码"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onPressEnter={() => void handleUnlock()}
+        />
+        <Button
+          type="primary"
+          size="large"
+          loading={loading}
+          block
+          className={styles.unlockBtn ?? ''}
+          onClick={() => void handleUnlock()}
         >
-          <Input.Password
-            prefix={<LockOutlined />}
-            placeholder="请输入密码"
-            aria-label="解锁密码"
-            autoFocus
-          />
-        </Form.Item>
-        <Form.Item className={styles.submitItem ?? ''}>
-          <Button type="primary" htmlType="submit" loading={loading} block>
-            解锁
-          </Button>
-        </Form.Item>
-      </Form>
+          解锁
+        </Button>
+      </div>
     </div>
   );
 }
