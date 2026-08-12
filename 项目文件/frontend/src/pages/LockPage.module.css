@@ -22,30 +22,24 @@
   color: var(--ink);
 }
 
-.lockCircle {
+.lockIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
   padding: 0;
   border: none;
-  border-radius: 50%;
-  background: var(--color-info-bg);
-  color: var(--color-info);
+  background: none;
+  font-size: 48px;
+  line-height: 1;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: background 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  transition: color 200ms ease, transform 200ms ease;
 }
 
-.lockCircle:hover {
-  background: #e6f4ff;
-  box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.1);
+.lockIcon:hover {
+  color: var(--color-info);
   transform: scale(1.06);
-}
-
-.lockInnerIcon {
-  font-size: 28px;
 }
 
 .subtitle {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, Button, Input, Typography, message } from 'antd';
 import type { InputRef } from 'antd';
@@ -19,6 +19,39 @@ export default function LockPage() {
   const [password, setPassword] = useState('');
   const passwordInputRef = useRef<InputRef>(null);
   const navigate = useNavigate();
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const IDLE_TIMEOUT = 60_000;
+
+  const startIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(() => {
+      setShowInput(false);
+      setPassword('');
+    }, IDLE_TIMEOUT);
+  }, []);
+
+  // 键盘任意键自动展开输入区并重置 1 分钟无操作计时
+  useEffect(() => {
+    const onKeyDown = () => {
+      setShowInput(true);
+      startIdleTimer();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [startIdleTimer]);
+
+  // 展开后启动计时 / 收起时清理
+  useEffect(() => {
+    if (showInput) {
+      startIdleTimer();
+    }
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [showInput, startIdleTimer]);
 
   useEffect(() => {
     // 直接刷新到 /lock 时 user 可能尚未加载，主动拉取一次
@@ -84,11 +117,11 @@ export default function LockPage() {
       <button
         type="button"
         aria-label="解锁"
-        title="点击解锁"
-        onClick={() => setShowInput(true)}
-        className={`${styles.lockCircle ?? ''} ${styles.enterElement ?? ''}`}
+        title="点击解锁或按任意键"
+        onClick={() => { setShowInput(true); startIdleTimer(); }}
+        className={`${styles.lockIcon ?? ''} ${styles.enterElement ?? ''}`}
       >
-        <LockOutlined className={styles.lockInnerIcon ?? ''} />
+        <LockOutlined />
       </button>
       <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
         已锁定
@@ -101,7 +134,7 @@ export default function LockPage() {
           placeholder="请输入密码"
           aria-label="解锁密码"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => { setPassword(e.target.value); startIdleTimer(); }}
           onPressEnter={() => void handleUnlock()}
         />
         <Button
