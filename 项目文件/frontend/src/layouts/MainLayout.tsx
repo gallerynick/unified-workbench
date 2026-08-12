@@ -221,6 +221,8 @@ export default function MainLayout() {
   const { isLocked, locking, lock } = useLockContext();
   useIdleTimer();
 
+  const [loggingOut, setLoggingOut] = useState(false);
+
   // 解锁溶回：LockPage 通过 sessionStorage 传信号，MainLayout 播放反向模糊进场
   const [welcoming, setWelcoming] = useState(false);
   useEffect(() => {
@@ -252,7 +254,7 @@ export default function MainLayout() {
 
   return (
     <TagProvider>
-      <Layout className={`${locking ? (styles.locking ?? '') : ''}${welcoming ? ' ' + (styles.welcoming ?? '') : ''}`} style={{ minHeight: '100vh', background: 'var(--canvas-parchment)', transition: 'filter 0.5s ease' }}>
+      <Layout className={`${(locking || loggingOut) ? (styles.locking ?? '') : ''}${welcoming ? ' ' + (styles.welcoming ?? '') : ''}`} style={{ minHeight: '100vh', background: 'var(--canvas-parchment)', transition: 'filter 0.5s ease' }}>
         {!isMobile && (
         <div className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`} style={{ height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0, width: collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)', display: 'flex', flexDirection: 'column' }}>
           <div
@@ -450,7 +452,7 @@ export default function MainLayout() {
             />
             <Dropdown menu={{ items: userMenuItems ?? [], onClick: ({ key }) => {
               if (key === 'profile') navigate('/profile');
-              if (key === 'logout') { clearTokens(); navigate('/login'); }
+              if (key === 'logout') { setLoggingOut(true); setTimeout(() => { clearTokens(); navigate('/login'); }, 500); }
             } }} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
                 <Avatar src={user?.avatar || undefined} icon={!user?.avatar ? <UserOutlined /> : undefined} />
@@ -483,7 +485,7 @@ export default function MainLayout() {
           onMarkAllAsRead={markAllAsRead}
         />
         <VotePopup />
-        {locking && <div className={styles.lockOverlay ?? ''} />}
+        {(locking || loggingOut) && <div className={styles.lockOverlay ?? ''} />}
       </Layout>
       </Layout>
     </TagProvider>
