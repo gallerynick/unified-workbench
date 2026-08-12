@@ -63,24 +63,16 @@
 
 .unlockCircle {
   flex-shrink: 0;
-  position: relative;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: none;
+  border: 1.5px solid var(--text-secondary);
+  background: none;
+  color: var(--text-secondary);
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.unlockCircle::before {
-  content: '';
-  position: absolute;
-  inset: 5px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
-  pointer-events: none;
 }
 
 /* ====== Lock page entrance ====== */
@@ -115,7 +107,7 @@
 .container.exiting .enterElement {
   opacity: 1;
   filter: blur(0);
-  animation: lockPageExit 500ms ease-out forwards;
+  animation: lockPageExit 300ms ease-out forwards;
 }
 
 .container.exiting .enterElement:nth-child(1) { animation-delay: 180ms; } /* avatar — exits last */

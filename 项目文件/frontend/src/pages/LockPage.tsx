@@ -86,7 +86,7 @@ export default function LockPage() {
           const returnPath = sessionStorage.getItem('workbench_lock_return') || '/';
           sessionStorage.setItem('workbench_just_unlocked', '1');
           navigate(returnPath, { replace: true });
-        }, 700);
+        }, 500);
       } else {
         message.error('密码错误');
       }
@@ -114,20 +114,12 @@ export default function LockPage() {
       <Title level={4} className={`${styles.title ?? ''} ${styles.enterElement ?? ''}`}>
         {displayName}
       </Title>
-      <button
-        type="button"
-        aria-label="解锁"
-        onClick={() => { setShowInput(true); startIdleTimer(); }}
-        className={`${styles.lockIcon ?? ''} ${styles.enterElement ?? ''}`}
-      >
-        <LockOutlined />
-      </button>
       {showInput ? (
         <div className={`${styles.inputRow ?? ''} ${styles.enterElement ?? ''}`}>
           <Input.Password
             ref={passwordInputRef}
-            size="large"
-            prefix={<LockOutlined />}
+            size="middle"
+            prefix={<LockOutlined style={{ color: 'var(--text-secondary)' }} />}
             placeholder="请输入密码"
             aria-label="解锁密码"
             value={password}
@@ -136,7 +128,7 @@ export default function LockPage() {
             className={styles.passwordInput ?? ''}
           />
           <Button
-            type="primary"
+            type="text"
             loading={loading}
             className={styles.unlockCircle ?? ''}
             aria-label="解锁"
@@ -145,9 +137,19 @@ export default function LockPage() {
           />
         </div>
       ) : (
-        <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
-          已锁定
-        </Text>
+        <>
+          <button
+            type="button"
+            aria-label="解锁"
+            onClick={() => { setShowInput(true); startIdleTimer(); }}
+            className={`${styles.lockIcon ?? ''} ${styles.enterElement ?? ''}`}
+          >
+            <LockOutlined />
+          </button>
+          <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
+            已锁定
+          </Text>
+        </>
       )}
     </div>
   );
