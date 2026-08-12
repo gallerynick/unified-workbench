@@ -84,9 +84,9 @@ export default function LockPage() {
         aria-label="解锁"
         title="点击解锁"
         onClick={() => setShowInput(true)}
-        className={`${styles.lockIcon ?? ''} ${styles.enterElement ?? ''}`}
+        className={`${styles.lockCircle ?? ''} ${styles.enterElement ?? ''}`}
       >
-        <LockOutlined />
+        <LockOutlined className={styles.lockInnerIcon ?? ''} />
       </button>
       <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
         已锁定
