@@ -82,9 +82,21 @@ async def _clear_login_attempts(username: str) -> None:
 
 
 async def login(
-    db: AsyncSession, request: LoginRequest, ip: str | None = None, user_agent: str | None = None
+    db: AsyncSession,
+    request: LoginRequest,
+    ip: str | None = None,
+    user_agent: str | None = None,
+    device_token: str | None = None,
 ) -> TokenResponse:
-    """用户登录，验证凭据并返回令牌。包含登录失败限制。"""
+    """用户登录，验证凭据并返回令牌。包含登录失败限制。
+
+    Args:
+        db: 数据库会话。
+        request: 登录请求。
+        ip: 客户端 IP 地址。
+        user_agent: 客户端 User-Agent。
+        device_token: 设备标识符，前端生成的 UUID，用于设备分组统计。
+    """
     await _check_login_rate_limit(request.username, ip)
 
     result = await db.execute(select(User).where(User.username == request.username))
@@ -112,6 +124,7 @@ async def login(
         device_type=device_type,
         ip_address=ip,
         user_agent=user_agent,
+        device_token=device_token or None,
     )
     db.add(session)
     await db.commit()

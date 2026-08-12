@@ -18,6 +18,96 @@
   white-space: nowrap;
 }
 
+.deviceGridWrap {
+  background: transparent;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.deviceGridWrap :global(.ant-card-body) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-card-gap);
+  padding: 0;
+}
+
+.deviceCard {
+  flex: 1 1 calc(25% - var(--spacing-card-gap));
+  min-width: 240px;
+  width: calc(25% - var(--spacing-card-gap));
+  background: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: var(--radius-md, 8px);
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.deviceCard:hover {
+  background: var(--card-hover-bg) !important;
+  border-color: var(--card-hover-border) !important;
+}
+
+.deviceCardExpanded {
+  border-color: var(--color-primary) !important;
+}
+
+.deviceCardStatic {
+  cursor: default;
+}
+
+.deviceCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.deviceCardTop {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.deviceIcon {
+  font-size: 22px;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.deviceName {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deviceInfo {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deviceStats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+  font-size: var(--text-caption-size);
+}
+
+.sessionPanel {
+  box-shadow: var(--shadow-content-image, none);
+}
+
+.sessionTitle {
+  margin-top: 0 !important;
+}
+
 .table {
   flex: 1;
 }
@@ -33,6 +123,12 @@
   }
 
   .header > * {
+    width: 100%;
+  }
+
+  .deviceCard {
+    flex: 1 1 100%;
+    min-width: 0;
     width: 100%;
   }
 

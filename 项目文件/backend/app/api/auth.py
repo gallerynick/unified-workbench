@@ -32,7 +32,8 @@ async def login_endpoint(request: LoginRequest, req: Request, db: AsyncSession =
     """用户登录。"""
     ip = req.client.host if req.client else None
     user_agent = req.headers.get("User-Agent", "")
-    tokens = await login(db, request, ip, user_agent)
+    device_token = req.headers.get("X-Device-Token", "")
+    tokens = await login(db, request, ip, user_agent, device_token)
     return UnifiedResponse(data=tokens)
 
 

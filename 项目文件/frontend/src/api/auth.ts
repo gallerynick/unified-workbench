@@ -1,4 +1,5 @@
 import { request } from '../utils/request';
+import { getDeviceToken } from '../utils/device';
 import type {
   LoginRequest,
   TokenResponse,
@@ -12,6 +13,7 @@ export async function login(data: LoginRequest): Promise<UnifiedResponse<TokenRe
   return request<TokenResponse>('/auth/login', {
     method: 'POST',
     body: data,
+    headers: { 'X-Device-Token': getDeviceToken() },
   });
 }
 

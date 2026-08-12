@@ -35,6 +35,9 @@ class UserSession(Base):
     device_type: Mapped[str | None] = mapped_column(String(20))
     ip_address: Mapped[str | None] = mapped_column(String(45))
     user_agent: Mapped[str | None] = mapped_column(String(500))
+    device_token: Mapped[str | None] = mapped_column(
+        String(36), comment="设备标识符，前端生成的 UUID，用于分组统计"
+    )
     is_revoked: Mapped[bool] = mapped_column(default=False)
     last_active_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
