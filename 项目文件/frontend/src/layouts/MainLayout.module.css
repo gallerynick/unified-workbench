@@ -4,7 +4,6 @@
 :global(.sider-scroll-container > div:first-child),
 :global(.sider-menu-scroll) {
   opacity: 0;
-  transform: translateX(-16px);
   transition: opacity 0.2s ease;
 }
 
@@ -13,7 +12,7 @@
 :global(.sidebar-entered > div:first-child),
 :global(.sidebar-entered .sider-menu-scroll) {
   animation: menuItemFlyIn 300ms ease-out forwards;
-  will-change: transform, opacity;
+  will-change: opacity;
 }
 
 :global(.sidebar-entered .ant-menu-item:nth-child(1)),
@@ -71,12 +70,10 @@
   0% {
     opacity: 0;
     filter: blur(6px);
-    transform: translateX(-16px);
   }
   100% {
     opacity: 1;
     filter: blur(0);
-    transform: translateX(0);
   }
 }
 
