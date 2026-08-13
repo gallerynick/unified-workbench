@@ -100,6 +100,10 @@
 /* ====== App entrance (after login) ====== */
 .appLayout {
   opacity: 0;
+  scrollbar-width: none;
+}
+.appLayout::-webkit-scrollbar {
+  display: none;
 }
 
 .appEntered {
@@ -118,6 +122,12 @@
   }
 }
 
+.content {
+  scrollbar-width: none;
+}
+.content::-webkit-scrollbar {
+  display: none;
+}
 .content::after {
   content: '';
   display: block;
