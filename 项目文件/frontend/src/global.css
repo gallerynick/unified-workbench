@@ -20,10 +20,11 @@ body {
 
 /* ── 全局滚动条 ─────────────────────────────────── */
 
-/* Webkit 浏览器 (Chrome, Safari, Edge) */
+/* Webkit 浏览器 (Chrome, Safari, Edge) — 全局隐藏滚动条（保留滚动功能） */
 ::-webkit-scrollbar {
-  width: var(--scrollbar-width);
-  height: var(--scrollbar-width);
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 ::-webkit-scrollbar-track {
@@ -47,8 +48,7 @@ body {
 
 /* Firefox 滚动条 */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
+  scrollbar-width: none;
 }
 
 /* ── 侧边栏滚动条 ───────────────────────────────── */
