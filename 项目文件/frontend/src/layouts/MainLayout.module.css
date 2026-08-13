@@ -83,15 +83,17 @@
 /* ====== Route transition ====== */
 .transitionWrapper {
   animation: routeFadeIn 300ms ease-out;
-  will-change: opacity;
+  will-change: transform, opacity;
 }
 
 @keyframes routeFadeIn {
   0% {
     opacity: 0;
+    transform: translateY(8px);
   }
   100% {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -102,15 +104,17 @@
 
 .appEntered {
   animation: appFloatIn 500ms ease-out forwards;
-  will-change: opacity;
+  will-change: transform, opacity;
 }
 
 @keyframes appFloatIn {
   0% {
     opacity: 0;
+    transform: translateY(24px);
   }
   100% {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
