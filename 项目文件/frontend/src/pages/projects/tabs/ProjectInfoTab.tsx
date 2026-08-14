@@ -13,7 +13,8 @@ import {
   Divider,
 } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
-import { PROJECT_PRIORITY, PROJECT_TYPE, IS_OPEN_SOURCE } from '../../../constants/project';
+import { PROJECT_PRIORITY, PROJECT_TYPE, IS_OPEN_SOURCE, parseRelatedProjects } from '../../../constants/project';
+import { listProjects } from '../../../api/projects';
 import type { Project, ProjectStatus } from '../../../types/project';
 import type { Template } from '../../../types/template';
 import { getVisibilityConfig, Visibility } from '../../../utils/visibility';
@@ -55,6 +56,20 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
   const [editVisibility, setEditVisibility] = useState<Visibility>('private');
   const [editRestrictedUsers, setEditRestrictedUsers] = useState<string[]>([]);
   const [editSourceOpen, setEditSourceOpen] = useState(false);
+  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    listProjects({ page: 1, page_size: 100 }).then((res) => {
+      if (res.code === 0 && res.data) {
+        const items = (res.data as { items?: Project[] }).items || [];
+        setProjectOptions(
+          (Array.isArray(items) ? items : [])
+            .filter((p) => p.id !== project.id)
+            .map((p) => ({ value: p.id, label: p.title || p.number || p.id }))
+        );
+      }
+    }).catch(() => {});
+  }, [project.id]);
 
   const statusCfg = STATUS_MAP[project.status] || { color: 'default', text: project.status };
 
@@ -71,7 +86,7 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
       requirements: project.requirements ?? undefined,
       additional_req: project.additional_req ?? undefined,
       modules: project.modules ?? undefined,
-      related_projects: project.related_projects ?? undefined,
+      related_projects: parseRelatedProjects(project.related_projects),
       dev_process: project.dev_process ?? undefined,
     });
     setEditVisibility(project.visibility);
@@ -104,7 +119,7 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
         ...(values.requirements ? { requirements: values.requirements } : {}),
         ...(values.additional_req ? { additional_req: values.additional_req } : {}),
         ...(values.modules ? { modules: values.modules } : {}),
-        ...(values.related_projects ? { related_projects: values.related_projects } : {}),
+        ...(values.related_projects && values.related_projects.length > 0 ? { related_projects: JSON.stringify(values.related_projects) } : {}),
         ...(values.dev_process ? { dev_process: values.dev_process } : {}),
       });
       setEditModalVisible(false);
@@ -172,7 +187,14 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
           <Descriptions.Item label="附加需求">{project.additional_req}</Descriptions.Item>
         )}
         <Descriptions.Item label="模块划分">{project.modules || '-'}</Descriptions.Item>
-        <Descriptions.Item label="关联项目">{project.related_projects || '-'}</Descriptions.Item>
+        <Descriptions.Item label="关联项目">
+          {(() => {
+            const ids = parseRelatedProjects(project.related_projects);
+            if (ids.length === 0) return '-';
+            const names = ids.map((id) => projectOptions.find((o) => o.value === id)?.label || id);
+            return names.join('、');
+          })()}
+        </Descriptions.Item>
         <Descriptions.Item label="开发流程">{project.dev_process || '-'}</Descriptions.Item>
         <Descriptions.Item label="创建时间">
           {new Date(project.created_at).toLocaleString('zh-CN')}
@@ -301,7 +323,14 @@ export default function ProjectInfoTab({ project, template, onUpdate }: ProjectI
             name="related_projects"
             label="关联项目"
           >
-            <Input placeholder="关联项目，逗号分隔（可选）" maxLength={200} />
+            <Select
+              mode="multiple"
+              options={projectOptions}
+              placeholder="选择关联项目（可多选，不含当前项目）"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+            />
           </Form.Item>
           <Form.Item
             name="dev_process"

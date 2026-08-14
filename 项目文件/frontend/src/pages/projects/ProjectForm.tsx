@@ -1,8 +1,8 @@
 import { useEffect, useCallback, useState } from 'react';
 import { Modal, Form, Input, Select, Row, Col, message } from 'antd';
-import { createProject, updateProject } from '../../api/projects';
+import { createProject, listProjects, updateProject } from '../../api/projects';
 import { listUsers } from '../../api/users';
-import { PROJECT_PRIORITY, PROJECT_TYPE, IS_OPEN_SOURCE } from '../../constants/project';
+import { PROJECT_PRIORITY, PROJECT_TYPE, IS_OPEN_SOURCE, parseRelatedProjects } from '../../constants/project';
 import type { Project, ProjectCreate, ProjectUpdate } from '../../types/project';
 import type { Visibility } from '../../utils/visibility';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
@@ -42,7 +42,23 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
+  const [projectOptions, setProjectOptions] = useState<UserOption[]>([]);
   const [isOpenSource, setIsOpenSource] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      listProjects({ page: 1, page_size: 100 }).then((res) => {
+        if (res.code === 0 && res.data) {
+          const items = (res.data as { items?: Project[] }).items || [];
+          setProjectOptions(
+            (Array.isArray(items) ? items : [])
+              .filter((p) => !project || p.id !== project.id)
+              .map((p) => ({ value: p.id, label: p.title || p.number || p.id }))
+          );
+        }
+      }).catch(() => {});
+    }
+  }, [visible, project]);
 
   useEffect(() => {
     if (visible) {
@@ -78,7 +94,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           requirements: project.requirements ?? undefined,
           additional_req: project.additional_req ?? undefined,
           modules: project.modules ?? undefined,
-          related_projects: project.related_projects ?? undefined,
+          related_projects: parseRelatedProjects(project.related_projects),
           dev_process: project.dev_process ?? undefined,
         });
         setVisibility((project.visibility as Visibility) || 'private');
@@ -117,7 +133,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           ...(values.requirements ? { requirements: values.requirements } : {}),
           ...(values.additional_req ? { additional_req: values.additional_req } : {}),
           ...(values.modules ? { modules: values.modules } : {}),
-          ...(values.related_projects ? { related_projects: values.related_projects } : {}),
+          ...(values.related_projects && values.related_projects.length > 0 ? { related_projects: JSON.stringify(values.related_projects) } : {}),
           ...(values.dev_process ? { dev_process: values.dev_process } : {}),
         };
         const res = await updateProject(project.id, data);
@@ -147,7 +163,7 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           ...(values.requirements ? { requirements: values.requirements } : {}),
           ...(values.additional_req ? { additional_req: values.additional_req } : {}),
           ...(values.modules ? { modules: values.modules } : {}),
-          ...(values.related_projects ? { related_projects: values.related_projects } : {}),
+          ...(values.related_projects && values.related_projects.length > 0 ? { related_projects: JSON.stringify(values.related_projects) } : {}),
           ...(values.dev_process ? { dev_process: values.dev_process } : {}),
         };
         const res = await createProject(data);
@@ -310,7 +326,14 @@ export default function ProjectForm({ visible, mode, project, onClose, onSuccess
           name="related_projects"
           label="关联项目"
         >
-          <Input placeholder="关联项目，逗号分隔（可选）" maxLength={200} />
+          <Select
+            mode="multiple"
+            options={projectOptions}
+            placeholder="选择关联项目（可多选，不含当前项目）"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+          />
         </Form.Item>
         <Form.Item
           name="dev_process"

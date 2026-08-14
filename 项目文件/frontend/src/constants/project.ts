@@ -127,3 +127,17 @@ export const IS_OPEN_SOURCE = [
   { value: true, label: '是' },
   { value: false, label: '否' },
 ] as const;
+
+/**
+ * 解析关联项目字段（存储为 JSON 数组字符串，兼容旧数据逗号分隔文本）
+ */
+export function parseRelatedProjects(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string');
+  } catch {
+    // 兼容旧数据：逗号分隔文本
+  }
+  return value.split(',').map((v) => v.trim()).filter(Boolean);
+}
