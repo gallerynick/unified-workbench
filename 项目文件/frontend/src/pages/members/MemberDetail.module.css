@@ -7,6 +7,8 @@
 .header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  min-height: var(--spacing-xxl);
   gap: var(--spacing-card-gap);
 }
 

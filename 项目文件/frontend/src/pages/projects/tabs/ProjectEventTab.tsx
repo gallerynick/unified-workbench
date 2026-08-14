@@ -474,16 +474,16 @@ export default function ProjectEventTab({ project }: { project: Project }) {
       {
         title: '操作',
         key: 'actions',
-        width: 100,
+        width: 140,
         align: 'right',
         render: (_, record) => {
           if (!canOperate) return null;
           return (
-            <Space size={4} wrap>
+            <Space size="small" wrap>
               <Tooltip title="编辑">
                 <Button
                   size="small"
-                  type="text"
+                  type="link"
                   icon={<EditOutlined />}
                   aria-label="编辑"
                   onClick={() => handleEdit(record)}
@@ -492,7 +492,7 @@ export default function ProjectEventTab({ project }: { project: Project }) {
               <Tooltip title="删除">
                 <Button
                   size="small"
-                  type="text"
+                  type="link"
                   danger
                   icon={<DeleteOutlined />}
                   aria-label="删除"
@@ -541,9 +541,12 @@ export default function ProjectEventTab({ project }: { project: Project }) {
         loading={loading}
         columns={columns}
         dataSource={filteredEvents}
+        className={styles.table ?? ''}
         pagination={{
           pageSize: 8,
-          showSizeChanger: false,
+          pageSizeOptions: [8, 10, 20, 50],
+          showSizeChanger: true,
+          showQuickJumper: true,
           showTotal: (total) => `共 ${total} 条`,
         }}
         scroll={{ x: 880 }}

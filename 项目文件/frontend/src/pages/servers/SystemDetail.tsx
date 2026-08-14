@@ -366,7 +366,7 @@ export default function SystemDetail() {
     {
       title: '操作',
       key: 'action',
-      width: 130,
+      width: 140,
       render: (_: unknown, record: ServiceRecord) => (
         <Space size="small">
           <Tooltip title="编辑">

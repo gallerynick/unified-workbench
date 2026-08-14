@@ -489,7 +489,7 @@ export default function ProposalTab({ project }: { project: Project }) {
         render: (_, record) => {
           const count = todoCountByProposal[record.id] ?? 0;
           return (
-            <Space size={4}>
+            <Space size="small">
               <Tag color={count > 0 ? 'blue' : 'default'}>{count}</Tag>
               <Button
                 size="small"
@@ -512,12 +512,12 @@ export default function ProposalTab({ project }: { project: Project }) {
         key: 'actions',
         width: 230,
         render: (_, record) => (
-          <Space size={4} wrap>
+          <Space size="small" wrap>
             {record.status === 'pending' && (
               <>
                 <Button
                   size="small"
-                  type="primary"
+                  type="link"
                   icon={<CheckOutlined />}
                   disabled={!canOperate}
                   onClick={() => void handleChangeStatus(record, 'approved')}
@@ -526,6 +526,7 @@ export default function ProposalTab({ project }: { project: Project }) {
                 </Button>
                 <Button
                   size="small"
+                  type="link"
                   danger
                   icon={<CloseOutlined />}
                   disabled={!canOperate}
@@ -538,6 +539,7 @@ export default function ProposalTab({ project }: { project: Project }) {
             {record.status === 'approved' && (
               <Button
                 size="small"
+                type="link"
                 icon={<CheckOutlined />}
                 disabled={!canOperate}
                 onClick={() => void handleChangeStatus(record, 'completed')}
@@ -548,6 +550,7 @@ export default function ProposalTab({ project }: { project: Project }) {
             <Tooltip title="编辑">
               <Button
                 size="small"
+                type="link"
                 icon={<EditOutlined />}
                 disabled={!canOperate}
                 aria-label="编辑"
@@ -557,6 +560,7 @@ export default function ProposalTab({ project }: { project: Project }) {
             <Tooltip title="删除">
               <Button
                 size="small"
+                type="link"
                 danger
                 icon={<DeleteOutlined />}
                 disabled={!canOperate}
@@ -599,7 +603,7 @@ export default function ProposalTab({ project }: { project: Project }) {
   );
 
   return (
-    <>
+    <div className={styles.container ?? ''}>
       {/* 工具栏：搜索 + 筛选 + 新建 */}
       <div className={styles.header ?? ''}>
         <Space>
@@ -656,9 +660,12 @@ export default function ProposalTab({ project }: { project: Project }) {
         loading={proposalsLoading}
         columns={columns}
         dataSource={filteredProposals}
+        className={styles.table ?? ''}
         pagination={{
           pageSize: 8,
-          showSizeChanger: false,
+          pageSizeOptions: [8, 10, 20, 50],
+          showSizeChanger: true,
+          showQuickJumper: true,
           showTotal: (total) => `共 ${total} 条`,
         }}
         scroll={{ x: 1200 }}
@@ -808,6 +815,6 @@ export default function ProposalTab({ project }: { project: Project }) {
           />
         )}
       </Modal>
-    </>
+    </div>
   );
 }

@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-card-gap);
   min-height: var(--spacing-xxl);
 }
 

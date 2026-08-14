@@ -22,6 +22,7 @@ export default function FormResponses() {
   const [responses, setResponses] = useState<ResponseRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const loadForm = useCallback(async () => {
     if (!id) return;
@@ -38,14 +39,14 @@ export default function FormResponses() {
   const loadResponses = useCallback(async () => {
     if (!id) return;
     try {
-      const res = await getFormResponses(id, page, 20);
+      const res = await getFormResponses(id, page, pageSize);
       if (res.code === 0 && res.data) {
         setResponses(res.data.items.map(r => ({ ...r.data, id: r.id, respondent_id: r.respondent_id, created_at: r.created_at })));
         setTotal(res.data.total);
       }
     } catch (e) { console.warn('Failed to load form responses:', e); }
     finally { setLoading(false); }
-  }, [id, page]);
+  }, [id, page, pageSize]);
 
   useEffect(() => { loadForm(); }, [loadForm]);
   useEffect(() => { loadResponses(); }, [loadResponses]);
@@ -66,7 +67,7 @@ export default function FormResponses() {
 <Title level={4} className={styles.title ?? ''}>{title} - 回复</Title>
         <Tag>{total} 条</Tag>
       </div>
-      <Table columns={columns} dataSource={responses} rowKey="id" pagination={{ current: page, total, pageSize: 20, onChange: (p) => setPage(p) }} scroll={{ x: 'max-content' }} />
+      <Table className={styles.table ?? ''} columns={columns} dataSource={responses} rowKey="id" pagination={{ current: page, pageSize, total, pageSizeOptions: [10, 20, 50, 100], showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p, ps) => { setPage(p); setPageSize(ps); } }} scroll={{ x: 'max-content' }} />
     </div>
   );
 }

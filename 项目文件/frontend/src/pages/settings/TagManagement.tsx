@@ -142,7 +142,7 @@ export default function TagManagement() {
         columns={columns}
         dataSource={tags}
         rowKey="id"
-        pagination={false}
+        pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条` }}
       />
 
       <Modal

@@ -1,3 +1,12 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -5,7 +14,13 @@
   flex-wrap: wrap;
   gap: var(--spacing-card-gap);
   margin-bottom: var(--spacing-card-gap);
+  min-height: var(--spacing-xxl);
   flex-shrink: 0;
+}
+
+.table {
+  flex: 1;
+  overflow-x: auto;
 }
 
 .searchInput {
@@ -22,5 +37,10 @@
 
   .searchInput {
     max-width: 100%;
+  }
+
+  .table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }

@@ -454,17 +454,17 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
       const actionColumn: ColumnsType<ProjectMember>[number] = {
         title: '操作',
         key: 'action',
-        width: 150,
+        width: 140,
         align: 'right',
         render: (_, member) => {
           if (!canManage) return null;
           const isOwnerMember = member.is_owner || member.user_id === project.owner_id;
           return (
-            <Space size={4} className={styles.actionCell ?? ''}>
+            <Space size="small" className={styles.actionCell ?? ''}>
               {isOwner && (
                 <Tooltip title="权限设置">
                   <Button
-                    type="text"
+                    type="link"
                     size="small"
                     icon={<SettingOutlined />}
                     aria-label="权限设置"
@@ -474,7 +474,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
               )}
               <Tooltip title="编辑职务/备注">
                 <Button
-                  type="text"
+                  type="link"
                   size="small"
                   icon={<EditOutlined />}
                   aria-label="编辑"
@@ -484,7 +484,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
               {isOwnerMember ? (
                 <Tooltip title="负责人不可移除">
                   <Button
-                    type="text"
+                    type="link"
                     size="small"
                     danger
                     icon={<DeleteOutlined />}
@@ -495,7 +495,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
               ) : (
                 <Tooltip title="移除成员">
                   <Button
-                    type="text"
+                    type="link"
                     size="small"
                     danger
                     icon={<DeleteOutlined />}
@@ -515,7 +515,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
     const historyActionColumn: ColumnsType<ProjectMember>[number] = {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 140,
       align: 'right',
       render: (_, member) => {
         if (!canManage) return null;
@@ -631,7 +631,13 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
         columns={columns}
         dataSource={filteredMembers}
         loading={loading}
-        pagination={false}
+        className={styles.table ?? ''}
+        pagination={{
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total) => `共 ${total} 条`,
+        }}
         locale={{
           emptyText: viewMode === 'active' ? '暂无当前成员' : '暂无历史成员',
         }}

@@ -170,9 +170,9 @@ export function FileSharePage() {
     {
       title: '操作',
       key: 'actions',
-      width: 150,
+      width: 140,
       render: (_, record) => (
-        <Space size={0}>
+        <Space size="small">
           <Tooltip title="共享">
             <Button
               type="link"

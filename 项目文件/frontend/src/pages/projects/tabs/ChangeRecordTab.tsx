@@ -373,25 +373,29 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
     {
       title: '操作',
       key: 'action',
-      width: 70,
+      width: 140,
       render: (_: unknown, record: ProjectChange) =>
         canEdit ? (
           <Space size="small">
-            <Button
-              type="link"
-              size="small"
-              icon={<EditOutlined />}
-              aria-label="编辑修改记录"
-              onClick={() => openEdit(record)}
-            />
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              aria-label="删除修改记录"
-              onClick={() => handleDelete(record)}
-            />
+            <Tooltip title="编辑修改记录">
+              <Button
+                type="link"
+                size="small"
+                icon={<EditOutlined />}
+                aria-label="编辑修改记录"
+                onClick={() => openEdit(record)}
+              />
+            </Tooltip>
+            <Tooltip title="删除修改记录">
+              <Button
+                type="link"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                aria-label="删除修改记录"
+                onClick={() => handleDelete(record)}
+              />
+            </Tooltip>
           </Space>
         ) : null,
     },

@@ -187,7 +187,7 @@ export default function ContactManagement() {
       </div>
 
       <Table<Contact> className={styles.table ?? ''} columns={columns} dataSource={contacts} rowKey="id" loading={loading}
-        pagination={{ current: page, pageSize, total, showSizeChanger: true, showTotal: (t) => `共 ${t} 条`,
+        pagination={{ current: page, pageSize, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`,
           onChange: (p, ps) => { setPage(p); setPageSize(ps); },
         }}
       />

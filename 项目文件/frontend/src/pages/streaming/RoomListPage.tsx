@@ -235,23 +235,27 @@ export default function RoomListPage() {
       width: 220,
       render: (_: unknown, record: StreamRoom) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EnterOutlined />}
-            onClick={() => navigate(`/streaming/studio/${record.id}`)}
-          >
-            进入
-          </Button>
-          {isAdmin() && (
+          <Tooltip title="进入">
             <Button
               type="link"
               size="small"
-              icon={<SettingOutlined />}
-              onClick={() => setManageRoom(record)}
+              icon={<EnterOutlined />}
+              onClick={() => navigate(`/streaming/studio/${record.id}`)}
             >
-              管理
+              进入
             </Button>
+          </Tooltip>
+          {isAdmin() && (
+            <Tooltip title="管理">
+              <Button
+                type="link"
+                size="small"
+                icon={<SettingOutlined />}
+                onClick={() => setManageRoom(record)}
+              >
+                管理
+              </Button>
+            </Tooltip>
           )}
           {(currentUserId === record.creator_id) && (
             <Popconfirm
@@ -262,14 +266,16 @@ export default function RoomListPage() {
               cancelText="取消"
               okButtonProps={{ danger: true }}
             >
-              <Button
-                type="link"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-              >
-                删除
-              </Button>
+              <Tooltip title="删除">
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                >
+                  删除
+                </Button>
+              </Tooltip>
             </Popconfirm>
           )}
         </Space>

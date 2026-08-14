@@ -258,6 +258,7 @@ export default function AnnouncementManagement() {
               pageSize={12}
               total={total}
               showSizeChanger={false}
+              showTotal={(t) => `共 ${t} 条`}
               onChange={(p) => setPage(p)}
             />
           </div>

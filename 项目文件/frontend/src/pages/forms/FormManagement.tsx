@@ -79,8 +79,9 @@ export default function FormManagement() {
     {
       title: '操作',
       key: 'actions',
+      width: 180,
       render: (_: unknown, record: FormItem) => (
-        <Space>
+        <Space size="small">
           {record.is_active && record.visibility === 'public' && (
             <Tooltip title="填写表单">
               <Button type="link" size="small" icon={<FormOutlined />}
@@ -101,8 +102,10 @@ export default function FormManagement() {
               <Button type="link" size="small" icon={<ShareAltOutlined />}>分享</Button>
             </Dropdown>
           )}
-          <Button type="link" size="small" danger icon={<DeleteOutlined />} aria-label="删除"
-            onClick={() => handleDelete(record)} />
+          <Tooltip title="删除">
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} aria-label="删除"
+              onClick={() => handleDelete(record)} />
+          </Tooltip>
         </Space>
       )
     },

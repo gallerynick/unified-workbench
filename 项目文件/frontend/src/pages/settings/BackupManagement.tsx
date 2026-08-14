@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Card, Switch, InputNumber, Input, Result } from 'antd';
+import { Table, Button, Typography, Modal, message, Space, Card, Switch, InputNumber, Input, Result, Tooltip } from 'antd';
 import { CloudServerOutlined, DeleteOutlined, ReloadOutlined, CloudDownloadOutlined, LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { createBackup, listBackups, deleteBackup, restoreBackup } from '../../api/backups';
@@ -142,23 +142,30 @@ export default function BackupManagement() {
     {
       title: '操作',
       key: 'action',
+      width: 140,
       render: (_: unknown, record: BackupInfo) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<CloudDownloadOutlined />}
-            onClick={() => handleRestore(record.filename)}
-          >
-            恢复
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.filename)}
-          >
-            删除
-          </Button>
+        <Space size="small">
+          <Tooltip title="恢复">
+            <Button
+              type="link"
+              size="small"
+              icon={<CloudDownloadOutlined />}
+              onClick={() => handleRestore(record.filename)}
+            >
+              恢复
+            </Button>
+          </Tooltip>
+          <Tooltip title="删除">
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.filename)}
+            >
+              删除
+            </Button>
+          </Tooltip>
         </Space>
       ),
     },
@@ -217,6 +224,11 @@ export default function BackupManagement() {
         dataSource={backups}
         rowKey="filename"
         loading={loading}
+        pagination={{
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (t) => `共 ${t} 条`,
+        }}
       />
     </div>
   );

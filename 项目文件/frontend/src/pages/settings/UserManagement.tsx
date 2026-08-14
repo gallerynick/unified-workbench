@@ -10,6 +10,7 @@ import {
   message,
   Space,
   Result,
+  Tooltip,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, EditOutlined, StopOutlined, LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -181,24 +182,28 @@ export default function UserManagement() {
       width: 140,
       render: (_: unknown, record: User) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          {record.status === 'active' && (
+          <Tooltip title="编辑">
             <Button
               type="link"
               size="small"
-              danger
-              icon={<StopOutlined />}
-              onClick={() => handleDisable(record)}
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
             >
-              禁用
+              编辑
             </Button>
+          </Tooltip>
+          {record.status === 'active' && (
+            <Tooltip title="禁用">
+              <Button
+                type="link"
+                size="small"
+                danger
+                icon={<StopOutlined />}
+                onClick={() => handleDisable(record)}
+              >
+                禁用
+              </Button>
+            </Tooltip>
           )}
         </Space>
       ),

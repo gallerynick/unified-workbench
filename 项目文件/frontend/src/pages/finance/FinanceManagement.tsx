@@ -269,7 +269,7 @@ export default function FinanceManagement() {
                     新增预算
                   </Button>
                 </div>
-                <Table className={styles.table ?? ''} columns={budgetColumns} dataSource={budgets} rowKey="id" />
+                <Table className={styles.table ?? ''} columns={budgetColumns} dataSource={budgets} rowKey="id" pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条` }} />
               </>
             ),
           },
@@ -283,7 +283,7 @@ export default function FinanceManagement() {
                     新增订阅
                   </Button>
                 </div>
-                <Table className={styles.table ?? ''} columns={subColumns} dataSource={subscriptions} rowKey="id" />
+                <Table className={styles.table ?? ''} columns={subColumns} dataSource={subscriptions} rowKey="id" pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条` }} />
               </>
             ),
           },

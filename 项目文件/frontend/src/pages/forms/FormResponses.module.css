@@ -11,3 +11,12 @@
   min-height: var(--spacing-xxl);
 }
 .header h4 { margin: 0; }
+.table {
+  flex: 1;
+  overflow-x: auto;
+}
+@media (max-width: 767px) {
+  .table {
+    overflow-x: auto;
+  }
+}

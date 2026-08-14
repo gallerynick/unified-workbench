@@ -185,6 +185,7 @@ export default function ProjectManagement() {
     {
       title: '操作',
       key: 'action',
+      width: 140,
       render: (_: unknown, record: Project) => (
         <Space size="small">
           <Tooltip title="进入项目">
