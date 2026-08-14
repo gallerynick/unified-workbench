@@ -16,6 +16,7 @@ export default function VoteManagement() {
   const [votes, setVotes] = useState<Vote[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [resultsVisible, setResultsVisible] = useState(false);
@@ -34,11 +35,11 @@ export default function VoteManagement() {
   const fetchVotes = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listVotes({ page, page_size: 20 });
+      const res = await listVotes({ page, page_size: pageSize });
       if (res.code === 0) { setVotes(res.data.items); setTotal(res.data.total); }
     } catch { message.error('获取投票列表失败'); }
     finally { setLoading(false); }
-  }, [page]);
+  }, [page, pageSize]);
 
   useEffect(() => { fetchVotes(); }, [fetchVotes]);
 
@@ -158,7 +159,7 @@ export default function VoteManagement() {
         </Space>
       </div>
       <Table<Vote> className={styles.table ?? ''} columns={columns} dataSource={votes} rowKey="id" loading={loading}
-        pagination={{ current: page, pageSize: 20, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p) => setPage(p) }} />
+        pagination={{ current: page, pageSize, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p, ps) => { setPage(p); setPageSize(ps); } }} />
       <Modal title="新建投票" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="投票标题" rules={[{ required: true, message: '请输入投票标题' }]}>

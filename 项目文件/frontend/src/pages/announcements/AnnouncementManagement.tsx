@@ -38,6 +38,7 @@ export default function AnnouncementManagement() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [modalVisible, setModalVisible] = useState(false);
@@ -58,7 +59,7 @@ export default function AnnouncementManagement() {
     try {
       const params: { page: number; page_size: number; owner_id?: string } = {
         page,
-        page_size: 12,
+        page_size: pageSize,
       };
       if (activeTab === 'mine' && currentUserId) {
         params.owner_id = currentUserId;
@@ -73,7 +74,7 @@ export default function AnnouncementManagement() {
     } finally {
       setLoading(false);
     }
-  }, [page, activeTab, currentUserId]);
+  }, [page, pageSize, activeTab, currentUserId]);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -255,11 +256,13 @@ export default function AnnouncementManagement() {
           <div className={styles.pagination}>
             <Pagination
               current={page}
-              pageSize={12}
+              pageSize={pageSize}
               total={total}
-              showSizeChanger={false}
+              showSizeChanger
+              showQuickJumper
+              pageSizeOptions={[10, 12, 20, 50]}
               showTotal={(t) => `共 ${t} 条`}
-              onChange={(p) => setPage(p)}
+              onChange={(p, ps) => { setPage(p); if (ps) setPageSize(ps); }}
             />
           </div>
         </>

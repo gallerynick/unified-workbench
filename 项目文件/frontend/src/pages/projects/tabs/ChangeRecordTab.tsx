@@ -425,6 +425,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
             value={searchText}
             onChange={(e) => {
               setSearchText(e.target.value);
+              setPage(1);
             }}
             allowClear
           />

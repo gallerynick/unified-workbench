@@ -129,6 +129,7 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
   const [meetings, setMeetings] = useState<ProjectMeeting[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchText, setSearchText] = useState('');
@@ -188,7 +189,7 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
       const params: ProjectMeetingListParams = {
         project_id: project.id,
         page,
-        page_size: PAGE_SIZE,
+          page_size: pageSize,
       };
       if (filterType !== 'all') params.type = filterType;
       const res = await listProjectMeetings(params);
@@ -203,7 +204,7 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
     } finally {
       setLoading(false);
     }
-  }, [project.id, page, filterType]);
+  }, [project.id, page, pageSize, filterType]);
 
   useEffect(() => {
     void fetchMeetings();
@@ -373,8 +374,9 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
   );
 
   // ── 分页切换 ──
-  const handlePageChange = useCallback((p: number) => {
+  const handlePageChange = useCallback((p: number, ps?: number) => {
     setPage(p);
+    if (ps) setPageSize(ps);
     setExpandedId(null);
   }, []);
 
@@ -609,9 +611,11 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
           <Pagination
             current={page}
             total={total}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             onChange={handlePageChange}
-            showSizeChanger={false}
+            showSizeChanger
+            showQuickJumper
+            pageSizeOptions={[10, 20, 50]}
             showTotal={(t) => `共 ${t} 条`}
           />
         </div>
