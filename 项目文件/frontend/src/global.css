@@ -272,14 +272,24 @@ a:hover {
   background-color: var(--bg-tertiary);
 }
 
-/* Steps 步骤条深色模式 */
-[data-theme="dark"] .ant-steps .ant-steps-item-finish .ant-steps-item-icon {
-  background: var(--canvas) !important;
-  border-color: var(--color-primary) !important;
+/* Steps 步骤条：图标正圆 + 内容居中（修复自定义 icon 导致的 24×36 椭圆） */
+.ant-steps .ant-steps-item-icon {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
-[data-theme="dark"] .ant-steps .ant-steps-item-process .ant-steps-item-icon {
-  background: var(--canvas) !important;
-  border-color: var(--color-info) !important;
+.ant-steps .ant-steps-item-icon .ant-steps-icon {
+  line-height: 1;
+}
+
+/* Steps 步骤条深色模式：统一可见底圆 */
+[data-theme="dark"] .ant-steps .ant-steps-item-icon {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-secondary) !important;
 }
 [data-theme="dark"] .ant-steps .ant-steps-item-finish .ant-steps-item-title,
 [data-theme="dark"] .ant-steps .ant-steps-item-finish .ant-steps-item-description {
@@ -287,10 +297,6 @@ a:hover {
 }
 [data-theme="dark"] .ant-steps .ant-steps-item-process .ant-steps-item-title {
   color: var(--text-primary) !important;
-}
-[data-theme="dark"] .ant-steps .ant-steps-item-wait .ant-steps-item-icon {
-  background: var(--bg-tertiary) !important;
-  border-color: var(--border-secondary) !important;
 }
 
 /* Timeline 时间轴深色模式 */
