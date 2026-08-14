@@ -486,6 +486,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
             name="category_major"
             label="大类"
             rules={[{ required: true, message: '请选择大类' }]}
+            getValueProps={(v?: string) => ({ value: v ? getMajorLabel(v) : v })}
           >
             <AutoComplete
               placeholder="请选择或输入大类"
@@ -502,6 +503,9 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
                 message: majorValue === 'other' ? '请输入小类' : '请选择小类',
               },
             ]}
+            getValueProps={(v?: string) => ({
+              value: v ? getMinorLabel(majorValue ?? '', v) : v,
+            })}
           >
             {majorValue === 'other' ? (
               <Input placeholder="请输入小类（自由填写）" maxLength={50} showCount />
