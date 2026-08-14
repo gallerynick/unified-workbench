@@ -123,7 +123,11 @@ export default function ProjectProgressTab({ project, onUpdate }: ProjectProgres
 
   return (
     <div>
-      <Card title="项目状态流程" style={{ marginBottom: "var(--spacing-card-gap)" }}>
+      <Card
+        title="项目状态流程"
+        style={{ marginBottom: "var(--spacing-card-gap)" }}
+        styles={{ body: { paddingTop: 10, paddingBottom: 10 } }}
+      >
         <Steps
           current={currentStepIndex}
           items={STATUS_FLOW.map((item) => ({
@@ -136,6 +140,7 @@ export default function ProjectProgressTab({ project, onUpdate }: ProjectProgres
 
       <Card
         title="状态变更"
+        styles={{ body: { paddingTop: 10, paddingBottom: 10 } }}
         extra={
           <Button type="primary" onClick={openTransitionModal}>
             转换
