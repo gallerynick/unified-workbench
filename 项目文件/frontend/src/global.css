@@ -432,3 +432,12 @@ a:hover {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
+
+/* 表格单元格长文本统一省略号（仅固定布局表格）
+   antd v5 设 scroll.x 时通过内联 table-layout: fixed 标记固定布局（非类），
+   用属性选择器匹配，避免影响无 width 的自适应小表格（td 被长内容撑宽） */
+.ant-table table[style*="table-layout: fixed"] > tbody > tr > td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
