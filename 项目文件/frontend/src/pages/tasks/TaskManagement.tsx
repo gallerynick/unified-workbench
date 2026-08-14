@@ -163,10 +163,10 @@ export default function TaskManagement() {
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>任务中心</Title>
         <Space>
-          <Select value={statusFilter} onChange={setStatusFilter} placeholder="状态筛选" allowClear style={{ width: 120 }}
+          <Select value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} placeholder="状态筛选" allowClear style={{ width: 120 }}
             options={[{ value: '', label: '全部' }, ...Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
           />
-          <Select value={priorityFilter} onChange={setPriorityFilter} placeholder="优先级筛选" allowClear style={{ width: 120 }}
+          <Select value={priorityFilter} onChange={(v) => { setPriorityFilter(v); setPage(1); }} placeholder="优先级筛选" allowClear style={{ width: 120 }}
             options={[{ value: '', label: '全部' }, ...Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建待办</Button>

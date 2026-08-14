@@ -16,6 +16,7 @@ export default function FormManagement() {
   const [forms, setForms] = useState<FormItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -128,7 +129,7 @@ export default function FormManagement() {
         </Space>
       </div>
       <Table<FormItem> className={styles.table ?? ''} columns={columns} dataSource={forms} rowKey="id" loading={loading}
-        pagination={{ current: page, pageSize: 20, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p) => setPage(p) }} />
+        pagination={{ current: page, pageSize, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p, ps) => { setPage(p); setPageSize(ps); } }} />
       <Modal title="新建表单" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="表单标题" rules={[{ required: true, message: '请输入表单标题' }]}>

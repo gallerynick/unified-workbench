@@ -564,6 +564,7 @@ export default function SystemDetail() {
       <Table<ServiceRecord>
         className={styles.table ?? ''}
         rowKey="id"
+        size="small"
         columns={serviceColumns}
         dataSource={services}
         loading={servicesLoading}
