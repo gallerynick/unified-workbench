@@ -5,7 +5,6 @@ import {
   Input,
   Tag,
   Typography,
-  Modal,
   message,
   Space,
   Tooltip,
@@ -14,12 +13,11 @@ import {
   PlusOutlined,
   SearchOutlined,
   EyeOutlined,
-  DeleteOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
-import { listProjects, deleteProject } from '../../api/projects';
+import { listProjects } from '../../api/projects';
 import type { Project } from '../../types/project';
 import { getVisibilityConfig } from '../../utils/visibility';
 import ProjectForm from './ProjectForm';
@@ -81,30 +79,6 @@ export default function ProjectManagement() {
     setFormMode('create');
     setEditingProject(null);
     setFormVisible(true);
-  };
-
-  const handleDelete = (project: Project) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除项目「${project.title}」吗？此操作不可恢复。`,
-      okText: '删除',
-      okType: 'danger',
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          const res = await deleteProject(project.id);
-          if (res.code === 0) {
-            message.success('项目已删除');
-            fetchProjects();
-          } else {
-            message.error(res.msg || '删除失败');
-          }
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : '删除失败';
-          message.error(msg);
-        }
-      },
-    });
   };
 
   const handleFormClose = () => {
@@ -185,7 +159,7 @@ export default function ProjectManagement() {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 140,
       render: (_: unknown, record: Project) => (
         <Space size="small">
           <Tooltip title="进入项目">
@@ -196,17 +170,6 @@ export default function ProjectManagement() {
               onClick={() => navigate(`/projects/${record.id}`)}
             >
               进入
-            </Button>
-          </Tooltip>
-          <Tooltip title="删除">
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record)}
-            >
-              删除
             </Button>
           </Tooltip>
         </Space>

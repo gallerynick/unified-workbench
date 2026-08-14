@@ -93,7 +93,7 @@ a:hover {
   color: var(--color-primary);
 }
 
-/* ── 深色模式：Input/Select 等表单控件边框覆盖（按钮除外——按钮边框由 antd Button token 统一为 transparent 无边框） ── */
+/* ── 深色模式：Input/Select 等表单控件边框覆盖 ── */
 [data-theme="dark"] input,
 [data-theme="dark"] select,
 [data-theme="dark"] textarea,

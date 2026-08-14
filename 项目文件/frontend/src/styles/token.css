@@ -353,12 +353,12 @@
 }
 :root[data-theme="dark"] .ant-modal-confirm-btns .ant-btn-default {
   background: var(--bg-primary);
-  border-color: transparent;
+  border-color: var(--border-secondary);
   color: var(--ink);
 }
 :root[data-theme="dark"] .ant-modal-confirm-btns .ant-btn-default:hover {
   color: var(--color-info);
-  border-color: transparent;
+  border-color: var(--color-info);
 }
 
 /* ====== 静态方法（Modal/message/notification）深色适配 ====== */
