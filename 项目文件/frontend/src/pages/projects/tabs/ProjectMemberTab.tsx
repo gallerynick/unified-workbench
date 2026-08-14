@@ -291,7 +291,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
         icon: <ExclamationCircleOutlined />,
         content: `确定要将「${getDisplayName(member)}」从项目中移除吗？移除后可在历史成员中查看。`,
         okText: '移除',
-        okType: 'danger',
+        okButtonProps: { danger: true },
         cancelText: '取消',
         onOk: async () => {
           try {

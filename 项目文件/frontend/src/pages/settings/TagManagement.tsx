@@ -74,7 +74,7 @@ export default function TagManagement() {
       title: '确认删除',
       content: `确定要删除标签「${tag.name}」吗？删除后，所有用户关联的此标签将被移除。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

@@ -113,7 +113,7 @@ export default function InventoryManagement() {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除物品「${item.name}」吗？`,
-      okText: '删除', okType: 'danger', cancelText: '取消',
+      okText: '删除', okButtonProps: { danger: true }, cancelText: '取消',
       onOk: async () => {
         try {
           const res = await deleteInventory(item.id);

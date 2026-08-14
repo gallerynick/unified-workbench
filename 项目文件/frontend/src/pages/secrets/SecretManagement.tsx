@@ -79,7 +79,7 @@ export default function SecretManagement() {
       title: '确认删除',
       content: `确定要删除分类「${category.name}」吗？该分类下的密钥将变为未分类。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

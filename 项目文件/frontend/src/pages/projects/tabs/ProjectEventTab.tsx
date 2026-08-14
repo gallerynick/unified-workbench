@@ -408,7 +408,7 @@ export default function ProjectEventTab({ project }: { project: Project }) {
         icon: <ExclamationCircleOutlined />,
         content: `确定要删除事件「${record.number} ${record.title}」吗？此操作不可恢复。`,
         okText: '删除',
-        okType: 'danger',
+        okButtonProps: { danger: true },
         cancelText: '取消',
         onOk: async () => {
           try {

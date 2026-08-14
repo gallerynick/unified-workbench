@@ -141,7 +141,7 @@ export default function ServerSystemsPage() {
       icon: <ExclamationCircleOutlined />,
       content: `确定要删除系统「${record.name}」吗？该系统下的所有服务将一并删除，此操作不可恢复。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

@@ -274,7 +274,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         icon: <ExclamationCircleOutlined />,
         content: `确定要删除文档「${docTitle}」吗？此操作不可撤销。`,
         okText: '删除',
-        okType: 'danger',
+        okButtonProps: { danger: true },
         cancelText: '取消',
         onOk: () => {
           const updatedDocs = documents.filter((d) => d.id !== docId);
@@ -343,7 +343,7 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
         icon: <ExclamationCircleOutlined />,
         content: `确定要删除分类「${category}」及其包含的 ${docsInCategory.length} 篇文档吗？此操作不可撤销。`,
         okText: '删除',
-        okType: 'danger',
+        okButtonProps: { danger: true },
         cancelText: '取消',
         onOk: () => {
           if (docsInCategory.length > 0) {

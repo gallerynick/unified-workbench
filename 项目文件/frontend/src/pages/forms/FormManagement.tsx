@@ -56,7 +56,7 @@ export default function FormManagement() {
   };
 
   const handleDelete = (form: FormItem) => {
-    Modal.confirm({ title: '确认删除', content: `确定要删除表单「${form.title}」吗？`, okText: '删除', okType: 'danger', cancelText: '取消',
+    Modal.confirm({ title: '确认删除', content: `确定要删除表单「${form.title}」吗？`, okText: '删除', okButtonProps: { danger: true }, cancelText: '取消',
       onOk: async () => { try { const res = await deleteForm(form.id); if (res.code === 0) { message.success('表单已删除'); fetchForms(); } } catch { message.error('删除失败'); } },
     });
   };

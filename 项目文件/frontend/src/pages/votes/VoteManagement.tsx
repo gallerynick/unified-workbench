@@ -63,7 +63,7 @@ export default function VoteManagement() {
   const handleDelete = (vote: Vote) => {
     Modal.confirm({
       title: '确认删除', content: `确定要删除投票「${vote.title}」吗？`,
-      okText: '删除', okType: 'danger', cancelText: '取消',
+      okText: '删除', okButtonProps: { danger: true }, cancelText: '取消',
       onOk: async () => {
         try { const res = await deleteVote(vote.id); if (res.code === 0) { message.success('投票已删除'); fetchVotes(); } }
         catch { message.error('删除失败'); }

@@ -236,7 +236,7 @@ export default function TopologyManagement() {
   const handleDelete = (topology: Topology) => {
     modal.confirm({
       title: '确认删除', content: `确定要删除拓扑「${topology.name}」吗？`,
-      okText: '删除', okType: 'danger', cancelText: '取消',
+      okText: '删除', okButtonProps: { danger: true }, cancelText: '取消',
       onOk: async () => {
         try {
           const res = await deleteTopology(topology.id);

@@ -220,7 +220,7 @@ export default function NotificationConfig() {
                  title: '确认全部重置',
                  content: '所有通知配置（飞书、邮件、企微等）将被恢复为默认值。',
                  okText: '确认重置',
-                 okType: 'danger',
+                 okButtonProps: { danger: true },
                  cancelText: '取消',
                  onOk: async () => {
                    form.resetFields();

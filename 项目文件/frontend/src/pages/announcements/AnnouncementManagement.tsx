@@ -238,7 +238,7 @@ export default function AnnouncementManagement() {
                         description={`确定要删除公告「${item.title}」吗？`}
                         okText="删除"
                         cancelText="取消"
-                        okType="danger"
+                        okButtonProps={{ danger: true }}
                         onConfirm={() => handleDelete(item)}
                       >
                         <Tooltip title="删除">

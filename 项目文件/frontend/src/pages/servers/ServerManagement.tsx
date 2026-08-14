@@ -107,7 +107,7 @@ export default function ServerManagement() {
       title: '确认删除',
       content: `确定要删除服务器「${record.name}」吗？此操作不可恢复。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

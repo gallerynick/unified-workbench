@@ -322,7 +322,7 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
         icon: <ExclamationCircleOutlined />,
         content: `确定要删除交流记录「${m.number}」吗？此操作不可撤销。`,
         okText: '删除',
-        okType: 'danger',
+        okButtonProps: { danger: true },
         cancelText: '取消',
         onOk: async () => {
           try {

@@ -110,7 +110,7 @@ export default function FinanceManagement() {
       title: '确认删除',
       content: `确定要删除预算「${item.name}」吗？`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {
@@ -165,7 +165,7 @@ export default function FinanceManagement() {
       title: '确认删除',
       content: `确定要删除订阅「${item.name}」吗？`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

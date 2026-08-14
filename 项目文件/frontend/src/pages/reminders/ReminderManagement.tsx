@@ -106,7 +106,7 @@ export default function ReminderManagement() {
       title: '确认删除',
       content: `确定要删除提醒「${record.title}」吗？此操作不可撤销。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

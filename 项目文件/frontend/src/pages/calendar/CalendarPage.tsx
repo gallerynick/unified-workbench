@@ -135,7 +135,7 @@ export default function CalendarPage() {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除事件「${event.title}」吗？`,
-      okText: '删除', okType: 'danger', cancelText: '取消',
+      okText: '删除', okButtonProps: { danger: true }, cancelText: '取消',
       onOk: async () => {
         try {
           const res = await deleteCalendarEvent(event.id);

@@ -81,7 +81,7 @@ export function FileSharePage() {
       content: `确定要删除「${record.original_name}」的分享吗？删除后分享链接将立即失效。`,
       okText: '删除',
       cancelText: '取消',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       onOk: async () => {
         try {
           const res = await deleteFileShare(record.id);

@@ -115,7 +115,7 @@ export default function CategoryDetail({ categoryId, onBack }: CategoryDetailPro
       title: '确认删除',
       content: `确定要删除密钥「${secret.name}」吗？删除后无法恢复。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

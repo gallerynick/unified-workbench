@@ -118,7 +118,7 @@ export default function ContentManagement() {
       title: '确认删除',
       content: `确定要删除内容「${content.title}」吗？此操作不可恢复。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

@@ -139,7 +139,7 @@ function ProjectDocsTab() {
       title: '确认删除',
       content: `确定要删除文档「${tpl.name}」吗？此操作不可撤销。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

@@ -95,7 +95,7 @@ export default function UserManagement() {
       title: '确认禁用',
       content: `确定要禁用用户「${user.nickname}」吗？禁用后该用户将无法登录。`,
       okText: '禁用',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

@@ -171,7 +171,7 @@ export default function NoteManagement() {
       content: hasChildren
         ? `确定要删除笔记「${note.title}」吗？其子笔记将变为根笔记。`
         : `确定要删除笔记「${note.title}」吗？`,
-      okText: '删除', okType: 'danger', cancelText: '取消',
+      okText: '删除', okButtonProps: { danger: true }, cancelText: '取消',
       onOk: async () => {
         try {
           const res = await deleteNote(note.id);

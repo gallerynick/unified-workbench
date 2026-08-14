@@ -173,7 +173,7 @@ export default function CustomizationSettings() {
       title: '确认全部重置',
       content: '所有自定义配置（名称、图标、展示模式等）将被恢复为默认值，刷新后生效。',
       okText: '确认重置',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: () => {
         form.resetFields();

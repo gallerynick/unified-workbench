@@ -357,7 +357,7 @@ export default function DataManagement() {
       width: 520,
       content,
       okText: '确认导入',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: () => {
         setVerifyPasswordValue('');

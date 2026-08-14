@@ -231,7 +231,7 @@ export default function SystemDetail() {
       icon: <ExclamationCircleOutlined />,
       content: `确定要删除虚拟机「${record.name}」吗？该虚拟机下的所有服务将一并删除，此操作不可恢复。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {
@@ -280,7 +280,7 @@ export default function SystemDetail() {
       icon: <ExclamationCircleOutlined />,
       content: `确定要删除服务「${record.name}」吗？此操作不可恢复。`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

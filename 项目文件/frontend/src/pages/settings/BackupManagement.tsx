@@ -75,7 +75,7 @@ export default function BackupManagement() {
       title: '确认删除',
       content: `确定要删除备份 ${filename} 吗？`,
       okText: '删除',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {
@@ -97,7 +97,7 @@ export default function BackupManagement() {
       title: '确认恢复',
       content: `确定要从 ${filename} 恢复数据库吗？此操作不可撤销！`,
       okText: '恢复',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {

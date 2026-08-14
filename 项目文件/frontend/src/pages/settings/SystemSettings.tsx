@@ -191,7 +191,7 @@ export default function SystemSettings() {
       ),
       okText: '继续',
       cancelText: '取消',
-      okType: 'danger',
+      okButtonProps: { danger: true },
       onOk: () => {
         _resetPassword = pwd;
         Modal.confirm({
@@ -200,7 +200,7 @@ export default function SystemSettings() {
           content: '选择「保留」将保留已上传的文件和文档附件。选择「不保留」将删除所有文件，系统回到初始状态。',
           okText: '不保留，全部删除',
           cancelText: '保留文件',
-          okType: 'danger',
+          okButtonProps: { danger: true },
           onOk: () => doReset(false),
           onCancel: () => doReset(true),
         });
