@@ -317,6 +317,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
       title: '标题',
       dataIndex: 'title',
       key: 'title',
+      width: 160,
       ellipsis: true,
     },
     {
