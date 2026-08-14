@@ -112,7 +112,7 @@ export function getAntdThemeConfig(isDark: boolean) {
         primaryColor: '#ffffff',
         defaultBg: isDark ? 'transparent' : '#ffffff',
         defaultColor: isDark ? '#2997ff' : '#0066cc',
-        defaultBorderColor: isDark ? '#2997ff' : '#0066cc',
+        defaultBorderColor: isDark ? '#434343' : '#0066cc',
       },
       Modal: {
         contentBg: isDark ? '#1d1d1f' : '#ffffff',
@@ -343,7 +343,7 @@ export function getAntdThemeConfig(isDark: boolean) {
         iconSize: 32,
         iconFontSize: 14,
         titleFontSize: 14,
-        finishIconBorderColor: isDark ? '#2997ff' : '#1677ff',
+        finishIconBorderColor: isDark ? '#434343' : '#1677ff',
       },
       Timeline: {
         dotBg: isDark ? '#2997ff' : '#1677ff',
