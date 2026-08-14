@@ -32,10 +32,10 @@ export default function FormManagement() {
 
   const fetchForms = useCallback(async () => {
     setLoading(true);
-    try { const res = await listForms({ page, page_size: 20 }); if (res.code === 0) { setForms(res.data.items); setTotal(res.data.total); } }
+    try { const res = await listForms({ page, page_size: pageSize }); if (res.code === 0) { setForms(res.data.items); setTotal(res.data.total); } }
     catch { message.error('获取表单列表失败'); }
     finally { setLoading(false); }
-  }, [page]);
+  }, [page, pageSize]);
 
   useEffect(() => { fetchForms(); }, [fetchForms]);
 
