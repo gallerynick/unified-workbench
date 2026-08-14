@@ -86,7 +86,7 @@ async def create_project_member(
             existing.role_title = data["role_title"]
         if data.get("notes") is not None:
             existing.notes = data["notes"]
-        existing.joined_at = data.get("joined_at", existing.joined_at)  # 保留原加入时间
+        existing.joined_at = data.get("joined_at") or existing.joined_at or datetime.now()  # 保留原加入时间，缺失则补当前时间
         await db.flush()
         await db.refresh(existing)
         return existing
