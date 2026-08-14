@@ -25,7 +25,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Project } from '../../../types/project';
-import type { ProjectProposal } from '../../../types/project-proposal';
+import type { AttachmentLink, ProjectProposal } from '../../../types/project-proposal';
 import type { ProjectTodo } from '../../../types/project-todo';
 import type { User } from '../../../types/user';
 import {
@@ -141,7 +141,7 @@ interface ProposalFormValues {
   type: string;
   priority: string;
   description?: string;
-  attachment_links?: string[];
+  attachment_links?: AttachmentLink[];
   assignee_id?: string;
 }
 
@@ -280,7 +280,9 @@ export default function ProposalTab({ project }: { project: Project }) {
         title: record.title,
         type: record.type,
         priority: record.priority,
-        attachment_links: record.attachment_links ?? [],
+        attachment_links: (record.attachment_links ?? []).map((l) =>
+          typeof l === 'string' ? { url: l, description: '' } : l,
+        ),
       };
       if (record.description) initValues.description = record.description;
       if (record.assignee_id) initValues.assignee_id = record.assignee_id;
@@ -300,8 +302,8 @@ export default function ProposalTab({ project }: { project: Project }) {
         priority: values.priority,
         ...(values.description?.trim() ? { description: values.description.trim() } : {}),
         attachment_links: (values.attachment_links ?? [])
-          .map((l) => l.trim())
-          .filter((l) => l.length > 0),
+          .map((l) => ({ url: (l.url ?? '').trim(), description: (l.description ?? '').trim() }))
+          .filter((l) => l.url.length > 0),
         ...(values.assignee_id ? { assignee_id: values.assignee_id } : {}),
       };
       if (editing) {
@@ -718,35 +720,40 @@ export default function ProposalTab({ project }: { project: Project }) {
                 {fields.map((field, index) => (
                   <Form.Item
                     key={field.key}
-                    label={index === 0 ? '附件链接' : ' '}
+                    label={index === 0 ? '附件' : ' '}
                     required={false}
                     style={{ marginBottom: 'var(--spacing-xs)' }}
                   >
-                    <Space style={{ display: 'flex', width: '100%' }}>
-                      <Form.Item
-                        {...field}
-                        noStyle
-                        rules={[{ type: 'url', message: '请输入合法的 URL' }]}
-                      >
-                        <Input placeholder="https://..." style={{ flex: 1 }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xxs)' }}>
+                      <Space style={{ display: 'flex', width: '100%' }}>
+                        <Form.Item
+                          name={[field.name, 'url']}
+                          noStyle
+                          rules={[{ type: 'url', message: '请输入合法的 URL' }]}
+                        >
+                          <Input placeholder="附件地址 https://..." style={{ flex: 1 }} />
+                        </Form.Item>
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          aria-label="删除附件"
+                          onClick={() => remove(field.name)}
+                        />
+                      </Space>
+                      <Form.Item name={[field.name, 'description']} noStyle>
+                        <Input placeholder="附件说明（可选）" />
                       </Form.Item>
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        aria-label="删除链接"
-                        onClick={() => remove(field.name)}
-                      />
-                    </Space>
+                    </div>
                   </Form.Item>
                 ))}
                 <Button
                   type="dashed"
                   icon={<PlusOutlined />}
-                  onClick={() => add('')}
+                  onClick={() => add({ url: '', description: '' })}
                   block
                 >
-                  添加附件链接
+                  添加附件
                 </Button>
               </>
             )}

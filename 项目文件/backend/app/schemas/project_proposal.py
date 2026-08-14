@@ -20,7 +20,7 @@ class ProjectProposalCreate(BaseModel):
     description: str | None = None
     status: str = "pending"
     reject_reason: str | None = None
-    attachment_links: list[str] = []
+    attachment_links: list[dict[str, Any]] = []
     assignee_id: uuid.UUID | None = None
 
 
@@ -34,7 +34,7 @@ class ProjectProposalUpdate(BaseModel):
     description: str | None = None
     status: str | None = None
     reject_reason: str | None = None
-    attachment_links: list[str] | None = None
+    attachment_links: list[dict[str, Any]] | None = None
     assignee_id: uuid.UUID | None = None
 
 

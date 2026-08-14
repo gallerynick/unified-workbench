@@ -1,5 +1,11 @@
 /** 项目提案类型定义 */
 
+/** 附件链接（地址 + 说明） */
+export interface AttachmentLink {
+  url: string;
+  description?: string | null;
+}
+
 export interface ProjectProposal {
   id: string;
   project_id: string;
@@ -10,7 +16,7 @@ export interface ProjectProposal {
   description: string | null;
   status: string;
   reject_reason: string | null;
-  attachment_links: string[];
+  attachment_links: AttachmentLink[];
   creator_id: string;
   assignee_id: string | null;
   created_at: string;
@@ -26,7 +32,7 @@ export interface ProjectProposalCreate {
   description?: string;
   status?: string;
   reject_reason?: string;
-  attachment_links?: string[];
+  attachment_links?: AttachmentLink[];
   assignee_id?: string;
 }
 
@@ -38,7 +44,7 @@ export interface ProjectProposalUpdate {
   description?: string;
   status?: string;
   reject_reason?: string;
-  attachment_links?: string[];
+  attachment_links?: AttachmentLink[];
   assignee_id?: string;
 }
 
