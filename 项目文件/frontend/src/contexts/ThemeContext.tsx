@@ -115,6 +115,7 @@ export function getAntdThemeConfig(isDark: boolean) {
         defaultBorderColor: 'transparent',
         defaultHoverBorderColor: 'transparent',
         defaultActiveBorderColor: 'transparent',
+        defaultGhostBorderColor: 'transparent',
       },
       Modal: {
         contentBg: isDark ? '#1d1d1f' : '#ffffff',
