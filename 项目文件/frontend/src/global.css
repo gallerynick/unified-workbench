@@ -281,15 +281,18 @@ a:hover {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: transparent !important;
+  border: none !important;
 }
 .ant-steps .ant-steps-item-icon .ant-steps-icon {
   line-height: 1;
 }
 
-/* Steps 步骤条深色模式：统一可见底圆 */
+/* Steps 步骤条：图标无底圆（浅色深色统一透明，只显示图标本身） */
+.ant-steps .ant-steps-item-icon,
 [data-theme="dark"] .ant-steps .ant-steps-item-icon {
-  background: var(--bg-tertiary) !important;
-  border-color: var(--border-secondary) !important;
+  background: transparent !important;
+  border: none !important;
 }
 [data-theme="dark"] .ant-steps .ant-steps-item-finish .ant-steps-item-title,
 [data-theme="dark"] .ant-steps .ant-steps-item-finish .ant-steps-item-description {
