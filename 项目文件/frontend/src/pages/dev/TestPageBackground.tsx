@@ -31,10 +31,14 @@ const SPRING_DAMP = 0.88;   /* 聚拢阻尼 */
 const JITTER_AMP = 60;      /* 炸开时抖动幅度 */
 const BREATH_AMP = 6;       /* 成形后呼吸幅度 */
 const BREATH_FREQ = 1.0;
-const TRAIL_FILL = 'rgba(5, 8, 15, 0.16)';
 const DREAM_JITTER = 0.7;
 
 const SPRITE_SIZE = 22;
+const MAX_SHADOW = 20;
+const MIN_TRAIL_ALPHA = 0.05;
+const MAX_TRAIL_ALPHA = 0.32;
+const FLOW_STRENGTH = 30;
+const DRIFT_DAMP = 0.94;
 
 /* 色板 */
 const COLOR_A = { r: 185, g: 192, b: 205 };
@@ -213,9 +217,20 @@ export default function BackgroundAnimationSection() {
     const t = (performance.now() - startRef.current) / 1000;
     const dt = Math.min(0.05, 1 / 60);
 
-    /* 烟雾阶段清除画布；粒子阶段用拖影营造运动模糊 */
+    const particles = particlesRef.current;
+
+    /* 计算全局最大速度 → 动态调整拖影 alpha（速度大 → 拖影长） */
+    let maxSpeed = 0;
     if (t >= T_BURST_START) {
-      ctx.fillStyle = TRAIL_FILL;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i]!;
+        if (!p.activated) continue;
+        const spd = Math.hypot(p.vx, p.vy);
+        if (spd > maxSpeed) maxSpeed = spd;
+      }
+      const speedNorm = Math.min(1, maxSpeed / 900);
+      const trailAlpha = MAX_TRAIL_ALPHA * (1 - speedNorm * 0.65);
+      ctx.fillStyle = `rgba(5, 8, 15, ${Math.max(MIN_TRAIL_ALPHA, trailAlpha)})`;
       ctx.fillRect(0, 0, w, h);
     } else {
       ctx.clearRect(0, 0, w, h);
@@ -223,9 +238,8 @@ export default function BackgroundAnimationSection() {
 
     ctx.globalCompositeOperation = 'lighter';
     const sprite = spriteRef.current;
-    const particles = particlesRef.current;
 
-    /* 全局 alpha：粒子在 T_BURST_START 后 0.3s 内淡入 */
+    /* 全局 alpha：粒子淡入 */
     let globalAlphaMul = 0;
     if (t >= T_BURST_START && t < T_BURST_START + 0.3) {
       globalAlphaMul = (t - T_BURST_START) / 0.3;
@@ -233,7 +247,7 @@ export default function BackgroundAnimationSection() {
       globalAlphaMul = 1;
     }
 
-    /* 在 T_BURST_START 时一次性激活所有粒子（赋予炸开初速度） */
+    /* 一次性激活粒子 */
     if (t >= T_BURST_START && t < T_BURST_START + 0.03) {
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]!;
@@ -249,21 +263,15 @@ export default function BackgroundAnimationSection() {
 
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i]!;
+      if (!p.activated) continue;
 
-      if (!p.activated) {
-        continue;
-      }
-
+      /* ── 物理更新 ── */
       if (t < T_BURST_END) {
-        /* ── 炸开阶段：高初速 + 高阻尼 + 抖动 ── */
         p.vx += (Math.random() - 0.5) * JITTER_AMP;
         p.vy += (Math.random() - 0.5) * JITTER_AMP;
         p.vx *= BURST_DAMP;
         p.vy *= BURST_DAMP;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
       } else if (t < T_CONVERGE_END) {
-        /* ── 聚拢阶段：弹簧力拉向目标 ── */
         if (p.mode === 'letter' || p.converge) {
           const dx = p.tx - p.x;
           const dy = p.ty - p.y;
@@ -271,39 +279,38 @@ export default function BackgroundAnimationSection() {
           p.vy += dy * SPRING_K;
           p.vx *= SPRING_DAMP;
           p.vy *= SPRING_DAMP;
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
         } else {
           p.vx += rand(-0.08, 0.08);
           p.vy += rand(-0.08, 0.08);
           p.vx *= 0.96;
           p.vy *= 0.96;
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
         }
       } else {
-        /* ── 成形后：呼吸 + 微动 ── */
+        /* 成形后：呼吸 + 流场流动 */
         if (p.mode === 'letter' || p.converge) {
           p.phase += BREATH_FREQ * dt;
           const bx = Math.sin(p.phase) * BREATH_AMP;
           const by = Math.cos(p.phase * 0.7) * BREATH_AMP;
           const targetX = p.tx + bx;
           const targetY = p.ty + by;
-          p.vx += (targetX - p.x) * 0.01;
-          p.vy += (targetY - p.y) * 0.01;
-          p.vx *= 0.94;
-          p.vy *= 0.94;
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
+          p.vx += (targetX - p.x) * 0.012;
+          p.vy += (targetY - p.y) * 0.012;
+          const flowAngle = Math.sin(p.x * 0.003 + t * 0.1)
+            * Math.cos(p.y * 0.004 - t * 0.08) * Math.PI * 2;
+          p.vx += Math.cos(flowAngle) * FLOW_STRENGTH * dt;
+          p.vy += Math.sin(flowAngle) * FLOW_STRENGTH * dt;
+          p.vx *= DRIFT_DAMP;
+          p.vy *= DRIFT_DAMP;
         } else {
           p.vx += rand(-0.04, 0.04);
           p.vy += rand(-0.04, 0.04);
           p.vx *= 0.98;
           p.vy *= 0.98;
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
         }
       }
+
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
 
       /* 软边界 */
       if (p.x < 4) { p.x = 4; p.vx = Math.abs(p.vx) * 0.3; }
@@ -311,31 +318,41 @@ export default function BackgroundAnimationSection() {
       if (p.y < 4) { p.y = 4; p.vy = Math.abs(p.vy) * 0.3; }
       if (p.y > h - 4) { p.y = h - 4; p.vy = -Math.abs(p.vy) * 0.3; }
 
-      /* 绘制：核心圆点 + 辉光 sprite */
-      const jitterX = (Math.random() - 0.5) * DREAM_JITTER;
-      const jitterY = (Math.random() - 0.5) * DREAM_JITTER;
+      /* ═══ 绘制：速度驱动的模糊 + 发光 + 拖影 + 失真 ═══ */
+      const speed = Math.hypot(p.vx, p.vy);
+      const speedNorm = Math.min(1, speed / 900);
+
+      /* 微失真：速度越大抖动越大 */
+      const jitterX = (Math.random() - 0.5) * (DREAM_JITTER + speedNorm * 2.5);
+      const jitterY = (Math.random() - 0.5) * (DREAM_JITTER + speedNorm * 2.5);
       const sizeJitter = 0.9 + Math.random() * 0.2;
       const drawSize = p.size * 4.5 * sizeJitter;
       const phaseAlpha = 0.7 + 0.3 * Math.sin(p.phase * 0.5);
       const alpha = p.alpha * phaseAlpha * globalAlphaMul;
       const col = p.color;
+      const px = p.x + jitterX;
+      const py = p.y + jitterY;
 
-      ctx.globalAlpha = Math.max(0.02, Math.min(1, alpha * 0.85));
+      /* shadowBlur/shadowColor → 速度越大，发光拖影越大 */
+      ctx.shadowColor = `rgba(${col.r},${col.g},${col.b},${alpha * 0.55})`;
+      ctx.shadowBlur = speedNorm * MAX_SHADOW;
+
+      /* 核心圆点 */
+      ctx.globalAlpha = Math.max(0.02, Math.min(1, alpha));
       ctx.fillStyle = `rgb(${col.r},${col.g},${col.b})`;
       ctx.beginPath();
-      ctx.arc(p.x + jitterX, p.y + jitterY, p.size * 0.65 * sizeJitter, 0, Math.PI * 2);
+      ctx.arc(px, py, p.size * 0.55 * sizeJitter, 0, Math.PI * 2);
       ctx.fill();
 
+      /* 辉光 sprite */
       if (sprite) {
-        ctx.globalAlpha = Math.max(0.02, Math.min(0.6, alpha * 0.5));
-        ctx.drawImage(
-          sprite,
-          p.x + jitterX - drawSize / 2,
-          p.y + jitterY - drawSize / 2,
-          drawSize,
-          drawSize,
-        );
+        ctx.globalAlpha = Math.max(0.02, Math.min(0.55, alpha * 0.45));
+        ctx.drawImage(sprite, px - drawSize / 2, py - drawSize / 2, drawSize, drawSize);
       }
+
+      /* 重置 shadow（避免叠加累积） */
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
     }
 
     ctx.globalAlpha = 1;
