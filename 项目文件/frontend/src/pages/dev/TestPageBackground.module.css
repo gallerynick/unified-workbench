@@ -15,7 +15,7 @@
 .smoke2,
 .smoke3 {
   position: absolute;
-  z-index: 3;
+  z-index: 1;
   pointer-events: none;
   mix-blend-mode: screen;
 }
