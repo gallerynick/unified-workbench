@@ -35,8 +35,8 @@ const DREAM_JITTER = 0.7;
 
 const SPRITE_SIZE = 22;
 const MAX_SHADOW = 20;
-const MIN_TRAIL_ALPHA = 0.05;
-const MAX_TRAIL_ALPHA = 0.32;
+const MIN_TRAIL_ALPHA = 0.35;
+const MAX_TRAIL_ALPHA = 0.70;
 const FLOW_STRENGTH = 30;
 const DRIFT_DAMP = 0.94;
 
@@ -61,6 +61,8 @@ interface Particle {
   mode: ParticleMode;
   converge: boolean;
   activated: boolean;
+  fillStyle: string;
+  shadowBase: string;
 }
 
 function rand(min: number, max: number): number {
@@ -160,6 +162,7 @@ export default function BackgroundAnimationSection() {
     for (let i = 0; i < letterCount; i++) {
       const idx = Math.floor(Math.random() * coords.length);
       const target = coords[idx]!;
+      const col = COLOR_A;
       particles.push({
         x: cx + rand(-15, 15),
         y: cy + rand(-15, 15),
@@ -169,11 +172,13 @@ export default function BackgroundAnimationSection() {
         ty: target.y,
         size: rand(1.4, 2.2),
         alpha: rand(0.6, 0.95),
-        color: COLOR_A,
+        color: col,
         phase: Math.random() * Math.PI * 2,
         mode: 'letter',
         converge: true,
         activated: false,
+        fillStyle: `rgb(${col.r},${col.g},${col.b})`,
+        shadowBase: `${col.r},${col.g},${col.b}`,
       });
     }
 
@@ -186,6 +191,7 @@ export default function BackgroundAnimationSection() {
         : null;
       const tx = target ? target.x : rand(0, w);
       const ty = target ? target.y : rand(0, h);
+      const col = isDim ? COLOR_DIM : COLOR_ENV;
       particles.push({
         x: cx + rand(-15, 15),
         y: cy + rand(-15, 15),
@@ -195,11 +201,13 @@ export default function BackgroundAnimationSection() {
         ty,
         size: rand(0.7, 1.5),
         alpha: rand(0.05, 0.2),
-        color: isDim ? COLOR_DIM : COLOR_ENV,
+        color: col,
         phase: Math.random() * Math.PI * 2,
         mode: 'env',
         converge,
         activated: false,
+        fillStyle: `rgb(${col.r},${col.g},${col.b})`,
+        shadowBase: `${col.r},${col.g},${col.b}`,
       });
     }
 
@@ -329,17 +337,16 @@ export default function BackgroundAnimationSection() {
       const drawSize = p.size * 4.5 * sizeJitter;
       const phaseAlpha = 0.7 + 0.3 * Math.sin(p.phase * 0.5);
       const alpha = p.alpha * phaseAlpha * globalAlphaMul;
-      const col = p.color;
       const px = p.x + jitterX;
       const py = p.y + jitterY;
 
-      /* shadowBlur/shadowColor → 速度越大，发光拖影越大 */
-      ctx.shadowColor = `rgba(${col.r},${col.g},${col.b},${alpha * 0.55})`;
+       /* shadowBlur/shadowColor → 速度越大，发光拖影越大 */
+      ctx.shadowColor = `rgba(${p.shadowBase},${alpha * 0.55})`;
       ctx.shadowBlur = speedNorm * MAX_SHADOW;
 
       /* 核心圆点 */
       ctx.globalAlpha = Math.max(0.02, Math.min(1, alpha));
-      ctx.fillStyle = `rgb(${col.r},${col.g},${col.b})`;
+      ctx.fillStyle = p.fillStyle;
       ctx.beginPath();
       ctx.arc(px, py, p.size * 0.55 * sizeJitter, 0, Math.PI * 2);
       ctx.fill();
@@ -371,6 +378,7 @@ export default function BackgroundAnimationSection() {
     if (!canvas) return;
 
     const resize = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       const dpr = Math.min(window.devicePixelRatio ?? 1, 2);
       const cw = canvas.clientWidth || window.innerWidth;
       const ch = canvas.clientHeight || window.innerHeight;
