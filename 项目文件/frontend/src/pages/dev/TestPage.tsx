@@ -1,10 +1,21 @@
-import { AppstoreOutlined, ThunderboltOutlined, ThunderboltTwoTone } from '@ant-design/icons';
+import {
+  AppstoreOutlined,
+  CloudOutlined,
+  FireOutlined,
+  ThunderboltOutlined,
+  ThunderboltTwoTone,
+  UnorderedListOutlined,
+  SyncOutlined,
+} from '@ant-design/icons';
 import { Button, List, Result, Space, Typography } from 'antd';
 import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { isDebugModeEnabled } from '@/pages/settings/SiteSettings';
 import BackgroundAnimationSection from './TestPageBackground';
 import HapticsTestSection from './TestPageHaptics';
+import WelcomeAnimationSection from './TestPageWelcome';
+import ConvergenceAnimationSection from './TestPageConvergence';
+import AftermathAnimationSection from './TestPageAftermath';
 import styles from './TestPage.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -43,6 +54,34 @@ const SECTIONS: Section[] = [
     icon: <AppstoreOutlined />,
     description: '按钮与基础组件展示',
     render: () => <ExampleSection />,
+  },
+  {
+    key: 'animation-bg',
+    label: 'Phase 1 — 氛围背景',
+    icon: <CloudOutlined />,
+    description: '深色径向渐变 + CSS 迷雾缓漂，纯 CSS 零 Canvas',
+    render: () => <BackgroundAnimationSection />,
+  },
+  {
+    key: 'animation-welcome',
+    label: 'Phase 2 — 欢迎语+圆环炸开',
+    icon: <FireOutlined />,
+    description: 'hi初次见面淡入淡出后从文字位置炸开圆环粒子扩散',
+    render: () => <WelcomeAnimationSection />,
+  },
+  {
+    key: 'animation-convergence',
+    label: 'Phase 3 — 粒子汇聚成字',
+    icon: <UnorderedListOutlined />,
+    description: '800粒子从屏幕随机位置飞入汇聚拼出UNIFIED WORKBENCH',
+    render: () => <ConvergenceAnimationSection />,
+  },
+  {
+    key: 'animation-aftermath',
+    label: 'Phase 4 — 汇聚后持续运动',
+    icon: <SyncOutlined />,
+    description: '汇聚成字后粒子呼吸+流场漂移不死板不散架',
+    render: () => <AftermathAnimationSection />,
   },
   {
     key: 'background-animation',
