@@ -51,6 +51,7 @@ interface Particle {
   converge: boolean;
   activated: boolean;
   fillStyle: string;
+  shadowBase: string;
 }
 
 function rand(min: number, max: number): number {
@@ -155,6 +156,7 @@ export default function BackgroundAnimationSection() {
         converge: true,
         activated: false,
         fillStyle: `rgb(${COLOR_A.r},${COLOR_A.g},${COLOR_A.b})`,
+        shadowBase: `${COLOR_A.r},${COLOR_A.g},${COLOR_A.b}`,
       });
     }
 
@@ -179,6 +181,7 @@ export default function BackgroundAnimationSection() {
         converge,
         activated: false,
         fillStyle: `rgb(${col.r},${col.g},${col.b})`,
+        shadowBase: `${col.r},${col.g},${col.b}`,
       });
     }
 
@@ -302,7 +305,7 @@ export default function BackgroundAnimationSection() {
         const px = p.x + jitterX;
         const py = p.y + jitterY;
 
-        c.shadowColor = `rgba(${p.fillStyle.slice(4, -1)},${alpha * 0.5})`;
+        c.shadowColor = `rgba(${p.shadowBase},${alpha * 0.5})`;
         c.shadowBlur = speedNorm * MAX_SHADOW;
         c.globalAlpha = Math.max(0.02, alpha);
         c.fillStyle = p.fillStyle;
