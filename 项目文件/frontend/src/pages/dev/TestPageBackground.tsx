@@ -27,7 +27,7 @@ const DREAM_JITTER = 0.7;
 
 const SPRITE_SIZE = 22;
 const MAX_SHADOW = 16;
-const TRAIL_ALPHA = 0.20;
+const TRAIL_ALPHA = 0.12;
 const FLOW_STRENGTH = 30;
 const DRIFT_DAMP = 0.94;
 
@@ -98,6 +98,40 @@ function sampleWord(w: number, h: number): { x: number; y: number }[] {
   return coords;
 }
 
+/* ═══════════════════════════════════════════════════════
+   Canvas 烟雾系统
+   ═══════════════════════════════════════════════════════ */
+
+interface SmokePuff {
+  x: number;
+  y: number;
+  r: number;
+  alpha: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  hue: number;
+}
+
+function createSmokePuff(w: number, h: number): SmokePuff {
+  return {
+    x: rand(0, w),
+    y: rand(0, h),
+    r: rand(180, 380),
+    alpha: rand(0.10, 0.20),
+    vx: rand(-0.20, 0.20),
+    vy: rand(-0.15, 0.10),
+    life: 0,
+    maxLife: rand(800, 1500),
+    hue: rand(200, 220),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   组件
+   ═══════════════════════════════════════════════════════ */
+
 export default function BackgroundAnimationSection() {
   const [reduced, setReduced] = useState(false);
 
@@ -105,6 +139,7 @@ export default function BackgroundAnimationSection() {
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const spriteRef = useRef<HTMLCanvasElement | null>(null);
   const particlesRef = useRef<Particle[]>([]);
+  const smokeRef = useRef<SmokePuff[]>([]);
   const rafRef = useRef<number>(0);
   const startRef = useRef<number>(0);
   const isVisibleRef = useRef(true);
@@ -188,6 +223,40 @@ export default function BackgroundAnimationSection() {
     return particles;
   }, []);
 
+  const initSmoke = useCallback((w: number, h: number): SmokePuff[] => {
+    const puffs: SmokePuff[] = [];
+    for (let i = 0; i < 48; i++) {
+      const puff = createSmokePuff(w, h);
+      puff.life = rand(0, puff.maxLife);
+      puffs.push(puff);
+    }
+    return puffs;
+  }, []);
+
+  const drawSmoke = useCallback((c: CanvasRenderingContext2D, w: number, h: number, smoke: SmokePuff[]): void => {
+    c.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < smoke.length; i++) {
+      const s = smoke[i]!;
+      s.x += s.vx;
+      s.y += s.vy;
+      s.life++;
+      if (s.x < -s.r || s.x > w + s.r || s.y < -s.r || s.y > h + s.r || s.life > s.maxLife) {
+        smoke[i] = createSmokePuff(w, h);
+        continue;
+      }
+      const lifeRatio = s.life / s.maxLife;
+      const fadeIn = Math.min(1, lifeRatio * 4);
+      const fadeOut = Math.min(1, (1 - lifeRatio) * 3);
+      const alphaMul = fadeIn * fadeOut;
+      const r = s.r * (0.8 + 0.4 * lifeRatio);
+      const grd = c.createRadialGradient(s.x, s.y, 0, s.x, s.y, r);
+      grd.addColorStop(0, `hsla(${s.hue}, 20%, 60%, ${s.alpha * alphaMul})`);
+      grd.addColorStop(1, `hsla(${s.hue}, 20%, 30%, 0)`);
+      c.fillStyle = grd;
+      c.fillRect(s.x - r, s.y - r, r * 2, r * 2);
+    }
+  }, []);
+
   const startLoop = useCallback((): void => {
     if (runningRef.current) return;
     const ctx = ctxRef.current;
@@ -202,6 +271,7 @@ export default function BackgroundAnimationSection() {
     const h = canvas.height;
     const sprite = spriteRef.current;
     const trailFill = `rgba(5, 8, 15, ${TRAIL_ALPHA})`;
+    const smoke = smokeRef.current;
 
     function frame(): void {
       if (!runningRef.current) return;
@@ -215,12 +285,16 @@ export default function BackgroundAnimationSection() {
       const t = (performance.now() - startRef.current) / 1000;
       const dt = 1 / 60;
 
+      /* ── 拖影衰减（先于烟雾绘制，避免覆盖烟雾） ── */
       if (t >= T_BURST_START) {
         c.fillStyle = trailFill;
         c.fillRect(0, 0, w, h);
       } else {
         c.clearRect(0, 0, w, h);
       }
+
+      /* ── 烟雾层（Canvas 内绘制，始终可见） ── */
+      drawSmoke(c, w, h, smoke);
 
       c.globalCompositeOperation = 'lighter';
 
@@ -327,7 +401,7 @@ export default function BackgroundAnimationSection() {
     }
 
     rafRef.current = requestAnimationFrame(frame);
-  }, []);
+  }, [drawSmoke]);
 
   const stopLoop = useCallback((): void => {
     runningRef.current = false;
@@ -357,6 +431,7 @@ export default function BackgroundAnimationSection() {
       ctxRef.current = canvas.getContext('2d') ?? null;
       if (canvas.width > 0 && canvas.height > 0) {
         particlesRef.current = initParticles(canvas.width, canvas.height);
+        smokeRef.current = initSmoke(canvas.width, canvas.height);
       }
       if (isVisibleRef.current) {
         startLoop();
@@ -382,16 +457,13 @@ export default function BackgroundAnimationSection() {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('resize', resize);
     };
-  }, [startLoop, stopLoop, initParticles, buildSprite]);
+  }, [startLoop, stopLoop, initParticles, initSmoke, buildSprite]);
 
   return (
     <section
       className={styles.stage + (reduced ? ' ' + styles.reduced : '')}
       aria-label="烟雾背景——hi文字淡入淡出，粒子从中心炸开并聚拢成UNIFIED WORKBENCH"
     >
-      <div className={styles.smoke1} aria-hidden="true" />
-      <div className={styles.smoke2} aria-hidden="true" />
-      <div className={styles.smoke3} aria-hidden="true" />
       <canvas
         ref={canvasRef}
         className={styles.canvas}
