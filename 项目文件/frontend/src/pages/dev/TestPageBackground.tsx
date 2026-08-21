@@ -27,7 +27,7 @@ const DREAM_JITTER = 0.7;
 
 const SPRITE_SIZE = 22;
 const MAX_SHADOW = 16;
-const TRAIL_ALPHA = 0.42;
+const TRAIL_ALPHA = 0.20;
 const FLOW_STRENGTH = 30;
 const DRIFT_DAMP = 0.94;
 
