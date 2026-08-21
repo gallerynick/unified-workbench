@@ -119,7 +119,7 @@ function createSmokePuff(w: number, h: number): SmokePuff {
     x: rand(0, w),
     y: rand(0, h),
     r: rand(180, 380),
-    alpha: rand(0.10, 0.20),
+    alpha: rand(0.20, 0.32),
     vx: rand(-0.20, 0.20),
     vy: rand(-0.15, 0.10),
     life: 0,
@@ -234,7 +234,7 @@ export default function BackgroundAnimationSection() {
   }, []);
 
   const drawSmoke = useCallback((c: CanvasRenderingContext2D, w: number, h: number, smoke: SmokePuff[]): void => {
-    c.globalCompositeOperation = 'source-over';
+    c.globalCompositeOperation = 'screen';
     for (let i = 0; i < smoke.length; i++) {
       const s = smoke[i]!;
       s.x += s.vx;
@@ -250,7 +250,7 @@ export default function BackgroundAnimationSection() {
       const alphaMul = fadeIn * fadeOut;
       const r = s.r * (0.8 + 0.4 * lifeRatio);
       const grd = c.createRadialGradient(s.x, s.y, 0, s.x, s.y, r);
-      grd.addColorStop(0, `hsla(${s.hue}, 20%, 60%, ${s.alpha * alphaMul})`);
+      grd.addColorStop(0, `hsla(${s.hue}, 20%, 68%, ${s.alpha * alphaMul})`);
       grd.addColorStop(1, `hsla(${s.hue}, 20%, 30%, 0)`);
       c.fillStyle = grd;
       c.fillRect(s.x - r, s.y - r, r * 2, r * 2);
@@ -396,7 +396,7 @@ export default function BackgroundAnimationSection() {
       }
 
       c.globalAlpha = 1;
-      c.globalCompositeOperation = 'source-over';
+    c.globalCompositeOperation = 'screen';
       rafRef.current = requestAnimationFrame(frame);
     }
 
