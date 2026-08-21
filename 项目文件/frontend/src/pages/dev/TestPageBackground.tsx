@@ -119,7 +119,7 @@ function createSmokePuff(w: number, h: number): SmokePuff {
     x: rand(0, w),
     y: rand(0, h),
     r: rand(180, 380),
-    alpha: rand(0.20, 0.32),
+    alpha: rand(0.25, 0.40),
     vx: rand(-0.20, 0.20),
     vy: rand(-0.15, 0.10),
     life: 0,
