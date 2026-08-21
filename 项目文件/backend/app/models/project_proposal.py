@@ -41,7 +41,7 @@ class ProjectProposal(Base):
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="提案描述")
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, server_default="pending", comment="状态: pending/approved/rejected/done"
+        String(20), nullable=False, server_default="pending", comment="状态: pending/approved/in_progress/completed/rejected"
     )
     reject_reason: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="驳回原因"

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import require_admin
+from app.core.deps import require_admin, get_current_user
 from app.models.user import User
 from app.schemas.common import UnifiedResponse
 from app.schemas.user import (
@@ -14,6 +14,10 @@ from app.schemas.user import (
     UserListResponse,
     UserResponse,
     UserUpdateRequest,
+)
+from app.schemas.user_preference import (
+    UserPreferenceResponse,
+    UserPreferenceUpdate,
 )
 from app.services.user import (
     create_user,
@@ -87,3 +91,39 @@ async def disable_user_endpoint(
     """管理员：软删除（禁用）用户。"""
     user = await disable_user(db, uuid.UUID(user_id))
     return UnifiedResponse(data=UserResponse.model_validate(user))
+
+
+@router.get("/me/preferences", response_model=UnifiedResponse[UserPreferenceResponse])
+async def get_user_preferences_endpoint(
+    current_user: User = Depends(get_current_user),
+):
+    """获取当前用户的偏好设置。"""
+    prefs = current_user.preferences or {}
+    return UnifiedResponse(
+        data=UserPreferenceResponse(
+            page_zoom=prefs.get("page_zoom", "100"),
+            theme_mode=prefs.get("theme_mode", "system"),
+        )
+    )
+
+
+@router.put("/me/preferences", response_model=UnifiedResponse[UserPreferenceResponse])
+async def update_user_preferences_endpoint(
+    body: UserPreferenceUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """更新当前用户的偏好设置。"""
+    from sqlalchemy import text
+
+    stmt = text(
+        'UPDATE "user" SET preferences = COALESCE(preferences, \'{}\'::jsonb) '
+        f'|| \'{{"page_zoom": "{body.page_zoom}", "theme_mode": "{body.theme_mode}"}}\'::jsonb '
+        f'WHERE id = :user_id'
+    )
+    await db.execute(stmt, {"user_id": current_user.id})
+    await db.commit()
+
+    return UnifiedResponse(
+        data=UserPreferenceResponse(page_zoom=body.page_zoom, theme_mode=body.theme_mode)
+    )

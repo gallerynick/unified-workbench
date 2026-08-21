@@ -11,7 +11,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = "033"
-down_revision: Union[str, None] = "032_user_notification_config"
+down_revision: Union[str, None] = "032"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -65,12 +65,12 @@ def require_project_section_permission(
 ) -> None:
     """校验用户对项目某分区的写权限。
 
-    - 所有者：始终放行
+    - 所有者/管理员：始终放行
     - 其他成员：按嵌套结构 `member_permissions[member_id][section]` 查找，
       值为 'readonly' 时拒绝（403「该分区为只读，无权操作」）
     - 未配置或非 dict 结构：放行（manage 默认）
     """
-    if project.owner_id == user.id:
+    if user.role == "admin" or project.owner_id == user.id:
         return
     perms = (
         member_permissions
@@ -81,4 +81,31 @@ def require_project_section_permission(
     if isinstance(user_perms, dict) and user_perms.get(section) == "readonly":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="该分区为只读，无权操作"
+        )
+
+
+def require_project_section_manage_permission(
+    project: Project,
+    user: User,
+    section: str,
+    member_permissions: dict | None = None,
+) -> None:
+    """校验用户对项目某分区的管理权限（编辑/删除/审批）。
+
+    - 所有者/管理员：始终放行
+    - 其他成员：需要对应职务角色（如 proposals_approver / changes_approver）为 true
+    - 无职务角色时拒绝（403「无管理权限」）
+    """
+    if user.role == "admin" or project.owner_id == user.id:
+        return
+    perms = (
+        member_permissions
+        if member_permissions is not None
+        else (project.member_permissions or {})
+    )
+    user_perms = (perms or {}).get(str(user.id))
+    role_key = f"{section}_approver"
+    if not (isinstance(user_perms, dict) and user_perms.get(role_key) is True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="无管理权限，无法执行此操作"
         )

@@ -42,7 +42,7 @@ export interface Project {
   /** 开发流程 */
   dev_process?: string | null;
   /** 成员权限配置：成员ID → 分区键 → 权限级别（如 readonly/manage） */
-  member_permissions: Record<string, Record<string, string>> | null;
+  member_permissions: Record<string, Record<string, string | boolean>> | null;
   created_at: string;
   updated_at: string;
   status_log: StatusLogEntry[] | null;
@@ -77,7 +77,7 @@ export interface ProjectCreate {
   modules?: string | null;
   related_projects?: string | null;
   dev_process?: string | null;
-  member_permissions?: Record<string, Record<string, string>>;
+  member_permissions?: Record<string, Record<string, string | boolean>>;
 }
 
 export interface ProjectUpdate {
@@ -103,7 +103,7 @@ export interface ProjectUpdate {
   modules?: string | null;
   related_projects?: string | null;
   dev_process?: string | null;
-  member_permissions?: Record<string, Record<string, string>>;
+  member_permissions?: Record<string, Record<string, string | boolean>>;
 }
 
 export interface ProjectListResponse {

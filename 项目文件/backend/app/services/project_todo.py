@@ -111,7 +111,7 @@ async def update_project_todo(
         "proposal_id",
         "due_date",
     ):
-        if field in data and data[field] is not None:
+        if field in data:
             setattr(item, field, data[field])
     await db.flush()
     await db.refresh(item)

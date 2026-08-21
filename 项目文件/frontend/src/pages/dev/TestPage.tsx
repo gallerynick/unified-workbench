@@ -1,9 +1,10 @@
-import { AppstoreOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, ThunderboltOutlined, ThunderboltTwoTone } from '@ant-design/icons';
 import { Button, List, Result, Space, Typography } from 'antd';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { isDebugModeEnabled } from '@/pages/settings/SiteSettings';
+import BackgroundAnimationSection from './TestPageBackground';
+import HapticsTestSection from './TestPageHaptics';
 import styles from './TestPage.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -12,6 +13,7 @@ interface Section {
   key: string;
   label: string;
   icon: ReactNode;
+  description: string;
   render: () => ReactNode;
 }
 
@@ -21,8 +23,8 @@ function ExampleSection() {
       <div>
         <Text strong>这是一个示例分区</Text>
         <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-          新增分区：在下方 SECTIONS 数组中追加一个条目，填写 key、label、icon 与 render，
-          即可在左侧列表中看到新分区。框架本身不需要改动。
+          新增分区：在下方 SECTIONS 数组中追加一个条目，填写 key、label、icon、description 与 render，
+          即可在索引页中看到新分区。框架本身不需要改动。
         </Paragraph>
       </div>
       <Space wrap>
@@ -39,14 +41,28 @@ const SECTIONS: Section[] = [
     key: 'example',
     label: '示例分区',
     icon: <AppstoreOutlined />,
+    description: '按钮与基础组件展示',
     render: () => <ExampleSection />,
+  },
+  {
+    key: 'background-animation',
+    label: '背景互动动画',
+    icon: <ThunderboltOutlined />,
+    description: '粒子网络跟随鼠标互动',
+    render: () => <BackgroundAnimationSection />,
+  },
+  {
+    key: 'haptics-test',
+    label: 'Mac 触控板震动测试',
+    icon: <ThunderboltTwoTone />,
+    description: 'navigator.vibrate / Force Touch / Web Haptics 可行性验证',
+    render: () => <HapticsTestSection />,
   },
 ];
 
 export default function TestPage() {
   const navigate = useNavigate();
-  const [activeKey, setActiveKey] = useState<string>(() => SECTIONS[0]?.key ?? '');
-  const active = SECTIONS.find((s) => s.key === activeKey) ?? SECTIONS[0];
+  const { key } = useParams<{ key?: string }>();
 
   if (!isDebugModeEnabled()) {
     return (
@@ -63,38 +79,75 @@ export default function TestPage() {
     );
   }
 
-  return (
-    <div className={styles.page ?? ''}>
-      <header className={styles.topbar ?? ''}>
-        <Title level={4} style={{ margin: 0 }}>
-          测试工作台
-        </Title>
-        <Button onClick={() => navigate('/', { replace: true })}>返回工作台</Button>
-      </header>
-      <div className={styles.body ?? ''}>
-        <nav className={styles.sider ?? ''}>
+  // ── 索引页 ──
+  if (!key) {
+    return (
+      <div className={styles.page ?? ''}>
+        <header className={styles.topbar ?? ''}>
+            <Title level={4} style={{ margin: 0 }}>
+              开发测试页
+            </Title>
+          <Button onClick={() => navigate('/', { replace: true })}>返回工作台</Button>
+        </header>
+        <div className={styles.indexContainer ?? ''}>
+          <Paragraph type="secondary" style={{ marginBottom: 'var(--spacing-sm)' }}>
+            以下列出所有测试分区，点击即可进入对应的测试页面。
+          </Paragraph>
           <List
             size="small"
             dataSource={SECTIONS}
             renderItem={(s) => (
-              <List.Item
-                className={
-                  s.key === activeKey ? (styles.itemActive ?? '') : (styles.item ?? '')
-                }
-                onClick={() => setActiveKey(s.key)}
-              >
-                <Space size={6}>
-                  {s.icon}
-                  {s.label}
-                </Space>
+              <List.Item className={styles.indexItem ?? ''}>
+                <a
+                  href={`/dev/testpage/${s.key}`}
+                  className={styles.indexLink ?? ''}
+                >
+                  <Space size={12} className={styles.indexContent ?? ''}>
+                    <span className={styles.indexIcon}>{s.icon}</span>
+                    <div className={styles.indexText}>
+                      <Text strong>{s.label}</Text>
+                      <Text type="secondary" style={{ fontSize: 'var(--text-caption-size)' }}>
+                        {s.description}
+                      </Text>
+                    </div>
+                  </Space>
+                </a>
               </List.Item>
             )}
           />
-        </nav>
-        <main className={styles.content ?? ''}>
-          {active ? active.render() : <Paragraph type="secondary">暂无分区</Paragraph>}
-        </main>
+        </div>
       </div>
+    );
+  }
+
+  // ── 单项页 ──
+  const section = SECTIONS.find((s) => s.key === key);
+  if (!section) {
+    return (
+      <div className={styles.page ?? ''}>
+        <header className={styles.topbar ?? ''}>
+          <Title level={4} style={{ margin: 0 }}>
+            测试工作台
+          </Title>
+          <Button onClick={() => navigate('/dev/testpage', { replace: true })}>返回索引</Button>
+        </header>
+        <Result
+          status="404"
+          title="未找到测试分区"
+          subTitle={`没有找到 key 为 "${key}" 的测试分区`}
+          extra={
+            <Button type="primary" onClick={() => navigate('/dev/testpage', { replace: true })}>
+              返回索引
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.page ?? ''}>
+      {section.render()}
     </div>
   );
 }

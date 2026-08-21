@@ -99,17 +99,15 @@ def read_manifest(
 def validate_version(manifest_version: str) -> None:
     """校验数据版本与当前应用版本的兼容性。
 
-    - manifest_version > __version__ → 拒绝（数据来源版本高于当前）
-    - manifest_version == __version__ → 直接导入，无需迁移
-    - manifest_version < __version__ → 导入时由迁移链处理版本升级
+    2.0.0 版本开始不兼容旧数据，只允许完全一致版本导入。
+    - manifest_version == __version__ → 直接导入
+    - manifest_version != __version__ → 拒绝
 
     Raises:
-        ValueError: 数据来源版本高于当前版本时抛出。
+        ValueError: 版本不匹配时抛出。
     """
-    if _version_gt(manifest_version, __version__):
-        raise ValueError("数据来源版本高于当前版本，无法导入")
-    # == : 无需迁移
-    # <  : 迁移链将在 import_table_data 中处理
+    if manifest_version != __version__:
+        raise ValueError(f"数据来源版本 {manifest_version} 与当前版本 {__version__} 不兼容，无法导入")
 
 
 # ═══════════════════════ 3. 清空数据库 ══════════════════════════════════

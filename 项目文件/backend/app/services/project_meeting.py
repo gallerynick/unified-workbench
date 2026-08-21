@@ -101,8 +101,10 @@ async def update_project_meeting(
         "participants",
         "content",
         "notes",
+        "proposal_id",
+        "todo_id",
     ):
-        if field in data and data[field] is not None:
+        if field in data:
             setattr(item, field, data[field])
     await db.flush()
     await db.refresh(item)

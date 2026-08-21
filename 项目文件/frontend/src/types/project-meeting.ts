@@ -10,6 +10,8 @@ export interface ProjectMeeting {
   participants: string[];
   content: string | null;
   notes: unknown[];
+  proposal_id: string | null;
+  todo_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +35,8 @@ export interface ProjectMeetingUpdate {
   participants?: string[];
   content?: string;
   notes?: unknown[];
+  proposal_id?: string | null;
+  todo_id?: string | null;
 }
 
 export interface ProjectMeetingListResponse {

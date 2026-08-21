@@ -27,22 +27,22 @@ export async function createServer(data: ServerFormValues): Promise<UnifiedRespo
 }
 
 export async function getServer(id: string): Promise<UnifiedResponse<ServerRecord>> {
-  return request<ServerRecord>(`/servers/${id}/`);
+  return request<ServerRecord>(`/servers/${id}`);
 }
 
 export async function updateServer(
   id: string,
   data: Partial<ServerFormValues>
 ): Promise<UnifiedResponse<ServerRecord>> {
-  return request<ServerRecord>(`/servers/${id}/`, { method: 'PUT', body: data });
+  return request<ServerRecord>(`/servers/${id}`, { method: 'PUT', body: data });
 }
 
 export async function deleteServer(id: string): Promise<UnifiedResponse<null>> {
-  return request<null>(`/servers/${id}/`, { method: 'DELETE' });
+  return request<null>(`/servers/${id}`, { method: 'DELETE' });
 }
 
 export async function getServerSystems(
   id: string
 ): Promise<UnifiedResponse<SystemListResponse>> {
-  return request<SystemListResponse>(`/servers/${id}/systems/`);
+  return request<SystemListResponse>(`/servers/${id}/systems`);
 }

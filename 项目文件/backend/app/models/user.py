@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -55,6 +56,11 @@ class User(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    # 用户偏好设置（JSONB），例如 {"page_zoom": "100"}
+    preferences: Mapped[dict | None] = mapped_column(
+        JSONB, nullable=True, default=dict
     )
 
     # 多对多关系：用户 <-> 标签

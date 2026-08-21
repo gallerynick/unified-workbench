@@ -37,6 +37,14 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-secondary);
   border-radius: var(--rounded-sm);
+  cursor: pointer;
+  transition: box-shadow var(--anim-fast) var(--anim-ease),
+              transform var(--anim-fast) var(--anim-ease);
+}
+
+.meetingCard:hover {
+  box-shadow: 0 2px 8px var(--shadow-1);
+  transform: translateY(-1px);
 }
 
 .meetingRow {
@@ -84,54 +92,6 @@
 
 .meetingSummary {
   margin-top: var(--spacing-xxs);
-}
-
-.expandArea {
-  padding: var(--spacing-xxs) var(--spacing-sm) var(--spacing-sm);
-  border-top: 1px dashed var(--border-secondary);
-}
-
-.fullContent {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: var(--text-body-sm-size);
-  color: var(--text-primary);
-  padding: var(--spacing-sm) 0;
-}
-
-.notesSection {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  padding-top: var(--spacing-sm);
-  border-top: 1px dashed var(--border-secondary);
-}
-
-.noteItem {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--rounded-xs);
-  padding: var(--spacing-xs) var(--spacing-sm);
-}
-
-.noteText {
-  font-size: var(--text-body-sm-size);
-  color: var(--text-primary);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.noteMeta {
-  font-size: var(--text-caption-size);
-  color: var(--text-secondary);
-  margin-top: var(--spacing-xxs);
-}
-
-.noteInputRow {
-  display: flex;
-  gap: var(--spacing-xs);
-  align-items: flex-end;
-  padding-top: var(--spacing-sm);
 }
 
 .emptyState {

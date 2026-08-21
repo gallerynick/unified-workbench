@@ -25,13 +25,15 @@
     "@tiptap/extension-underline": "^3.27.0",
     "@tiptap/react": "^3.27.0",
     "@tiptap/starter-kit": "^3.27.0",
+    "@types/three": "^0.185.4",
     "antd": "^5.22.0",
     "antd-img-crop": "^4.30.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-force-graph-2d": "^1.29.1",
-    "react-router-dom": "^6.28.0"
+    "react-router-dom": "^6.28.0",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",

@@ -13,6 +13,7 @@ from app.models.user import User
 from app.services.project_common import (
     get_project_or_404,
     require_project_member,
+    require_project_section_manage_permission,
     require_project_section_permission,
 )
 
@@ -98,10 +99,10 @@ async def update_project_proposal(
     current_user: User,
     data: dict,
 ) -> ProjectProposal:
-    """更新项目提案，仅项目成员可更新，proposals 分区只读时禁止。"""
+    """更新项目提案，仅拥有管理权限的成员可更新。"""
     item = await get_project_proposal(db, proposal_id, current_user)
     project = await get_project_or_404(db, item.project_id)
-    require_project_section_permission(project, current_user, "proposals")
+    require_project_section_manage_permission(project, current_user, "proposals")
     for field in (
         "number",
         "title",
@@ -125,9 +126,9 @@ async def delete_project_proposal(
     proposal_id: uuid.UUID,
     current_user: User,
 ) -> None:
-    """删除项目提案，仅项目成员可删除，proposals 分区只读时禁止。"""
+    """删除项目提案，仅拥有管理权限的成员可删除。"""
     item = await get_project_proposal(db, proposal_id, current_user)
     project = await get_project_or_404(db, item.project_id)
-    require_project_section_permission(project, current_user, "proposals")
+    require_project_section_manage_permission(project, current_user, "proposals")
     await db.delete(item)
     await db.flush()

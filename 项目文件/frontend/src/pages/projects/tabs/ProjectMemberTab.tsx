@@ -3,10 +3,13 @@ import {
   AutoComplete,
   Avatar,
   Button,
+  Checkbox,
+  Col,
   Form,
   Input,
   Modal,
   Radio,
+  Row,
   Segmented,
   Select,
   Space,
@@ -42,7 +45,7 @@ import type { User } from '../../../types/user';
 import { useUser } from '../../../contexts/UserContext';
 import styles from './ProjectMemberTab.module.css';
 
-const { Text } = Typography;
+const { Text, Title, Paragraph } = Typography;
 
 /** 职务预设（下拉可选 + 自由填写） */
 const ROLE_PRESETS = ['开发', '设计', '测试', '运维', '文档', '顾问', '其他'];
@@ -85,6 +88,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
   const [permissionMember, setPermissionMember] = useState<ProjectMember | null>(null);
   const [permissionValues, setPermissionValues] = useState<Record<string, string>>({});
+  const [permissionRoles, setPermissionRoles] = useState<Record<string, boolean>>({});
 
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -355,10 +359,14 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
     (member: ProjectMember) => {
       const current = project.member_permissions?.[member.user_id] ?? {};
       const initial: Record<string, string> = {};
+      const roles: Record<string, boolean> = {};
       for (const key of Object.keys(PERMISSION_SECTIONS)) {
-        initial[key] = current[key] ?? 'manage';
+        initial[key] = typeof current[key] === 'string' ? current[key] : 'readonly';
       }
+      if (current.proposals_approver === true) roles.proposals_approver = true;
+      if (current.changes_approver === true) roles.changes_approver = true;
       setPermissionValues(initial);
+      setPermissionRoles(roles);
       setPermissionMember(member);
       setPermissionModalVisible(true);
     },
@@ -369,7 +377,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
     if (!permissionMember) return;
     const newPerms = {
       ...(project.member_permissions ?? {}),
-      [permissionMember.user_id]: { ...permissionValues },
+      [permissionMember.user_id]: { ...permissionValues, ...permissionRoles },
     };
     try {
       const res = await updateProject(project.id, { member_permissions: newPerms });
@@ -385,7 +393,7 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
     } catch (err: unknown) {
       if (err instanceof Error) message.error(err.message);
     }
-  }, [permissionMember, permissionValues, project.id, project.member_permissions, onUpdate]);
+  }, [permissionMember, permissionValues, permissionRoles, project.id, project.member_permissions, onUpdate]);
 
   // ── 表格列 ──
   const columns = useMemo<ColumnsType<ProjectMember>>(() => {
@@ -717,25 +725,78 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
         onOk={handleSavePermission}
         onCancel={() => setPermissionModalVisible(false)}
         destroyOnClose
-        width={560}
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
+        width={800}
+        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' } }}
       >
-        <Form layout="vertical">
-          {Object.entries(PERMISSION_SECTIONS).map(([key, label]) => (
-            <Form.Item key={key} label={label}>
-              <Radio.Group
-                value={permissionValues[key] ?? 'manage'}
-                onChange={(e) =>
-                  setPermissionValues((prev) => ({ ...prev, [key]: e.target.value }))
-                }
-                options={[
-                  { value: 'readonly', label: '只读' },
-                  { value: 'manage', label: '可管理' },
-                ]}
-              />
-            </Form.Item>
-          ))}
-        </Form>
+        <div style={{ marginBottom: 24 }}>
+          <Title level={5}>分区权限</Title>
+          <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+            提案和修改记录分区仅有「只读」和「可创建」；其他模块为「只读」或「可管理」。
+          </Paragraph>
+          <Row gutter={[16, 16]}>
+            {Object.entries(PERMISSION_SECTIONS).map(([key, label]) => {
+              const isSpecial = key === 'proposals' || key === 'changes';
+              const curVal = permissionValues[key] ?? 'readonly';
+              return (
+                <Col key={key} span={8}>
+                  <div style={{ padding: '12px 16px', border: '1px solid var(--border-secondary)', borderRadius: 8 }}>
+                    <Text strong style={{ display: 'block', marginBottom: 8 }}>{label}</Text>
+                    <Radio.Group
+                      value={curVal}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPermissionValues((prev) => ({ ...prev, [key]: val }));
+                        if (val === 'readonly') {
+                          const roleKey = `${key}_approver`;
+                          setPermissionRoles((prev) => {
+                            if (!(roleKey in prev)) return prev;
+                            const next = { ...prev };
+                            delete next[roleKey];
+                            return next;
+                          });
+                        }
+                      }}
+                      options={
+                        isSpecial
+                          ? [
+                              { value: 'readonly', label: '只读' },
+                              { value: 'create', label: '可创建' },
+                            ]
+                          : [
+                              { value: 'readonly', label: '只读' },
+                              { value: 'manage', label: '可管理' },
+                            ]
+                      }
+                    />
+                  </div>
+                </Col>
+              );
+            })}
+          </Row>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 24 }}>
+          <Title level={5}>职务设置</Title>
+          <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+            仅当对应分区为「可创建」时，职务勾选才可用。勾选后获得该分区的完整操作权限。
+          </Paragraph>
+          <Space direction="vertical" size="middle">
+            <Checkbox
+              checked={!!permissionRoles.proposals_approver}
+              disabled={permissionValues.proposals !== 'manage' && permissionValues.proposals !== 'create'}
+              onChange={(e) => setPermissionRoles((prev) => ({ ...prev, proposals_approver: e.target.checked }))}
+            >
+              项目提案 - 管理人
+            </Checkbox>
+            <Checkbox
+              checked={!!permissionRoles.changes_approver}
+              disabled={permissionValues.changes !== 'manage' && permissionValues.changes !== 'create'}
+              onChange={(e) => setPermissionRoles((prev) => ({ ...prev, changes_approver: e.target.checked }))}
+            >
+              修改记录 - 管理人
+            </Checkbox>
+          </Space>
+        </div>
       </Modal>
     </div>
   );

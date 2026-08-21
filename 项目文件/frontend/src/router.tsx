@@ -45,6 +45,9 @@ const NotificationsCenter = lazy(() => import('@/pages/notifications/Notificatio
 const UserNotificationConfig = lazy(() => import('@/pages/settings/UserNotificationConfig'));
 const DebugModePage = lazy(() => import('@/pages/DebugModePage'));
 const ProjectDetailPage = lazy(() => import('@/pages/projects/ProjectDetailPage'));
+const ProposalDetailPage = lazy(() => import('@/pages/projects/ProposalDetailPage'));
+const TodoDetailPage = lazy(() => import('@/pages/projects/TodoDetailPage'));
+const MeetingDetailPage = lazy(() => import('@/pages/projects/MeetingDetailPage'));
 const SystemSettings = lazy(() => import('@/pages/settings/SystemSettings'));
 const TopologyManagement = lazy(() => import('@/pages/topology/TopologyManagement'));
 const StreamStudio = lazy(() => import('@/pages/streaming/StreamStudio'));
@@ -147,6 +150,30 @@ export const router = createBrowserRouter([
                 element: (
                   <LazyPage>
                     <ProjectDetailPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'projects/:id/proposal/:proposalId',
+                element: (
+                  <LazyPage>
+                    <ProposalDetailPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'projects/:id/todo/:todoId',
+                element: (
+                  <LazyPage>
+                    <TodoDetailPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'projects/:id/meeting/:meetingId',
+                element: (
+                  <LazyPage>
+                    <MeetingDetailPage />
                   </LazyPage>
                 ),
               },
@@ -435,6 +462,14 @@ export const router = createBrowserRouter([
           },
           {
             path: '/dev/testpage',
+            element: (
+              <LazyPage>
+                <TestPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: '/dev/testpage/:key',
             element: (
               <LazyPage>
                 <TestPage />

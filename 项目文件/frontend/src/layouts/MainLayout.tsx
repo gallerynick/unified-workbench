@@ -56,8 +56,9 @@ import VotePopup from '../components/VotePopup';
 import { getRouteTitle } from '../config/routeTitles';
 import { useLockContext } from '../contexts/LockContext';
 import { TagProvider } from '../contexts/TagContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme, type ThemeMode } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
+import { getUserPreferences } from '../api/user-preferences';
 import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
 import { pauseIdleTimer, resumeIdleTimer, useIdleTimer } from '../hooks/useIdleTimer';
@@ -103,6 +104,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { key: '/notifications', label: '通知中心', icon: 'BellOutlined' },
   { key: '/announcements', label: '公告通知', icon: 'SoundOutlined' },
   { key: '/tasks', label: '任务中心', icon: 'CheckSquareOutlined' },
+  { key: '/members', label: '成员目录', icon: 'TeamOutlined' },
   { key: '/contacts', label: '联系人管理', icon: 'ContactsOutlined' },
   { key: '/calendar', label: '日程日历', icon: 'CalendarOutlined' },
   { key: '/votes', label: '投票决策', icon: 'LikeOutlined' },
@@ -117,7 +119,6 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { key: '/reminders', label: '提醒事项', icon: 'BellOutlined' },
   { key: '/topology', label: '拓扑结构', icon: 'ApartmentOutlined' },
   { key: '/servers', label: '服务器管理', icon: 'CloudServerOutlined' },
-  { key: '/members', label: '成员目录', icon: 'TeamOutlined' },
   { key: '/streaming', label: '直播工作室', icon: 'VideoCameraOutlined' },
 ];
 
@@ -253,10 +254,42 @@ export default function MainLayout() {
   }, []);
   const { isMobile } = useResponsive();
   const customization = useCustomization();
-  const { isDark } = useTheme();
+  const { isDark, setTheme } = useTheme();
   const { user } = useUser();
   const { isLocked, locking, lock } = useLockContext();
   useIdleTimer();
+
+  // 页面缩放 + 主题（从用户偏好加载）
+  const [pageZoom, setPageZoom] = useState<string>('100');
+  const zoomScale = useMemo(() => Number(pageZoom) / 100, [pageZoom]);
+
+  useEffect(() => {
+    if (!user) return;
+    void (async () => {
+      try {
+        const res = await getUserPreferences();
+        if (res.code === 0 && res.data) {
+          setPageZoom(res.data.page_zoom || '100');
+          if (res.data.theme_mode) {
+            setTheme(res.data.theme_mode as ThemeMode);
+          }
+        }
+      } catch {
+        // 忽略错误
+      }
+    })();
+  }, [user, setTheme]);
+
+  useEffect(() => {
+    const zoomHandler = (e: CustomEvent<string>) => setPageZoom(e.detail);
+    const themeHandler = (e: CustomEvent<string>) => setTheme(e.detail as ThemeMode);
+    window.addEventListener('zoom-changed', zoomHandler as EventListener);
+    window.addEventListener('theme-changed', themeHandler as EventListener);
+    return () => {
+      window.removeEventListener('zoom-changed', zoomHandler as EventListener);
+      window.removeEventListener('theme-changed', themeHandler as EventListener);
+    };
+  }, [setTheme]);
 
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -290,29 +323,47 @@ export default function MainLayout() {
   }, []);
 
   return (
-    <TagProvider>
-      <Layout
-        className={`${locking || loggingOut ? (styles.locking ?? '') : ''}${welcoming ? ' ' + (styles.welcoming ?? '') : ''}`}
-        style={{
-          minHeight: '100vh',
-          background: 'var(--canvas-parchment)',
-          transition: 'filter 0.5s ease',
-        }}
-      >
-        {!isMobile && (
-          <div
-            className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`}
-            style={{
-              height: '100vh',
-              position: 'fixed',
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        transform: `scale(${zoomScale})`,
+        transformOrigin: 'top left',
+        width: `${100 / zoomScale}%`,
+        height: `${100 / zoomScale}vh`,
+        overflow: 'hidden',
+      }}
+    >
+      <TagProvider>
+        <Layout
+          className={[
+            locking || loggingOut ? styles.locking ?? '' : '',
+            welcoming ? styles.welcoming ?? '' : '',
+          ].filter(Boolean).join(' ')}
+          style={{
+            height: '100%',
+            background: 'var(--canvas-parchment)',
+            transition: 'filter 0.5s ease',
+            display: 'flex',
+          }}
+        >
+          {!isMobile && (
+            <div
+              className={`sider-scroll-container${sidebarEntered ? ' sidebar-entered' : ''}`}
+              style={{
+                height: '100%',
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: collapsed ? 'var(--sider-collapsed-width)' : 'var(--sider-width)',
+                display: 'flex',
+                flexDirection: 'column',
+                flexShrink: 0,
+              }}
+            >
             <div
               style={{
                 height: 64,
@@ -487,8 +538,9 @@ export default function MainLayout() {
                 : 'var(--sider-width)',
             transition: 'margin-left 0.2s',
             background: 'var(--canvas-parchment)',
-            height: '100vh',
+            height: '100%',
             overflowY: 'auto',
+            flex: 1,
           }}
         >
           <Header
@@ -632,5 +684,6 @@ export default function MainLayout() {
         </Layout>
       </Layout>
     </TagProvider>
+    </div>
   );
 }

@@ -24,7 +24,7 @@ export interface ProjectTodoCreate {
   priority?: string;
   status?: string;
   assignee_id?: string;
-  proposal_id?: string;
+  proposal_id?: string | null;
   due_date?: string;
 }
 
@@ -35,7 +35,7 @@ export interface ProjectTodoUpdate {
   priority?: string;
   status?: string;
   assignee_id?: string;
-  proposal_id?: string;
+  proposal_id?: string | null;
   due_date?: string;
 }
 

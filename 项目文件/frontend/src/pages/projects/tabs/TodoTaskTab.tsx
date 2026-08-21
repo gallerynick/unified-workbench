@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   DatePicker,
@@ -16,15 +17,10 @@ import {
 } from 'antd';
 import {
   PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  RightOutlined,
-  LeftOutlined,
   CalendarOutlined,
   UserOutlined,
   LinkOutlined,
   CheckSquareOutlined,
-  ExclamationCircleOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -36,7 +32,6 @@ import {
   listProjectTodos,
   createProjectTodo,
   updateProjectTodo,
-  deleteProjectTodo,
 } from '../../../api/project-todos';
 import { listProjectProposals } from '../../../api/project-proposals';
 import { listUsers } from '../../../api/users';
@@ -60,18 +55,6 @@ const PRIORITY_COLOR: Record<string, string> = {
   P4: 'default',
 };
 
-/** 状态流转方向：前进一步 / 后退一步 */
-const STATUS_NEXT: Record<string, TodoStatus> = {
-  pending: 'in_progress',
-  in_progress: 'completed',
-  completed: 'in_progress',
-};
-const STATUS_PREV: Record<string, TodoStatus> = {
-  pending: 'in_progress',
-  in_progress: 'pending',
-  completed: 'in_progress',
-};
-
 const statusLabel = (status: string): string =>
   TODO_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
 
@@ -91,6 +74,7 @@ function buildTodoNumber(project: Project, existing: ProjectTodo[]): string {
 
 export default function TodoTaskTab({ project }: { project: Project }) {
   const { user } = useUser();
+  const navigate = useNavigate();
   // ── 数据状态 ──
   const [todos, setTodos] = useState<ProjectTodo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,22 +176,6 @@ export default function TodoTaskTab({ project }: { project: Project }) {
     setModalVisible(true);
   }, [form]);
 
-  const handleOpenEdit = useCallback(
-    (todo: ProjectTodo) => {
-      setEditingTodo(todo);
-      form.setFieldsValue({
-        title: todo.title,
-        description: todo.description ?? undefined,
-        priority: todo.priority,
-        assignee_id: todo.assignee_id ?? undefined,
-        proposal_id: todo.proposal_id ?? undefined,
-        due_date: todo.due_date ? dayjs(todo.due_date) : undefined,
-      });
-      setModalVisible(true);
-    },
-    [form],
-  );
-
   const handleCloseModal = useCallback(() => {
     setModalVisible(false);
     setEditingTodo(null);
@@ -275,51 +243,6 @@ export default function TodoTaskTab({ project }: { project: Project }) {
   }, [form, editingTodo, project, todos, fetchTodos]);
 
   // ── 删除 ──
-  const handleDelete = useCallback(
-    (todo: ProjectTodo) => {
-      Modal.confirm({
-        title: '确认删除待办',
-        icon: <ExclamationCircleOutlined />,
-        content: `确定要删除待办「${todo.title}」吗？此操作不可撤销。`,
-        okText: '删除',
-        okButtonProps: { danger: true },
-        cancelText: '取消',
-        onOk: async () => {
-          try {
-            const res = await deleteProjectTodo(todo.id);
-            if (res.code === 0) {
-              message.success('待办已删除');
-              void fetchTodos();
-            } else {
-              message.error(res.msg || '删除待办失败');
-            }
-          } catch (err: unknown) {
-            message.error(err instanceof Error ? err.message : '删除待办失败');
-          }
-        },
-      });
-    },
-    [fetchTodos],
-  );
-
-  // ── 状态流转 ──
-  const handleMoveStatus = useCallback(
-    async (todo: ProjectTodo, nextStatus: TodoStatus) => {
-      try {
-        const res = await updateProjectTodo(todo.id, { status: nextStatus });
-        if (res.code === 0) {
-          message.success(`已流转为「${statusLabel(nextStatus)}」`);
-          void fetchTodos();
-        } else {
-          message.error(res.msg || '状态流转失败');
-        }
-      } catch (err: unknown) {
-        message.error(err instanceof Error ? err.message : '状态流转失败');
-      }
-    },
-    [fetchTodos],
-  );
-
   // ── 卡片渲染 ──
   const renderCard = (todo: ProjectTodo) => {
     const proposal = todo.proposal_id ? proposalMap[todo.proposal_id] : undefined;
@@ -331,7 +254,19 @@ export default function TodoTaskTab({ project }: { project: Project }) {
       : '未设置截止日期';
 
     return (
-      <div key={todo.id} className={styles.card ?? ''}>
+      <div
+        key={todo.id}
+        className={styles.card ?? ''}
+        role="button"
+        tabIndex={0}
+        onClick={() => navigate(`/projects/${project.id}/todo/${todo.id}`)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            navigate(`/projects/${project.id}/todo/${todo.id}`);
+          }
+        }}
+      >
         <div className={styles.cardHeader ?? ''}>
           <div className={styles.cardTitle ?? ''}>{todo.title}</div>
           <div className={styles.cardNumber ?? ''}>{todo.number}</div>
@@ -362,55 +297,6 @@ export default function TodoTaskTab({ project }: { project: Project }) {
           )}
         </div>
 
-        {canOperate && (
-          <div className={styles.cardActions ?? ''}>
-            <div className={styles.cardActionsGroup ?? ''}>
-              {todo.status !== 'pending' && STATUS_PREV[todo.status] && (
-                <Tooltip title={`回到「${statusLabel(STATUS_PREV[todo.status]!)}」`}>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<LeftOutlined />}
-                    aria-label="上一步"
-                    onClick={() => void handleMoveStatus(todo, STATUS_PREV[todo.status]!)}
-                  />
-                </Tooltip>
-              )}
-              {todo.status !== 'completed' && STATUS_NEXT[todo.status] && (
-                <Tooltip title={`进入「${statusLabel(STATUS_NEXT[todo.status]!)}」`}>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<RightOutlined />}
-                    aria-label="下一步"
-                    onClick={() => void handleMoveStatus(todo, STATUS_NEXT[todo.status]!)}
-                  />
-                </Tooltip>
-              )}
-            </div>
-            <div className={styles.cardActionsGroup ?? ''}>
-              <Tooltip title="编辑">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<EditOutlined />}
-                  aria-label="编辑"
-                  onClick={() => handleOpenEdit(todo)}
-                />
-              </Tooltip>
-              <Tooltip title="删除">
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  aria-label="删除"
-                  onClick={() => handleDelete(todo)}
-                />
-              </Tooltip>
-            </div>
-          </div>
-        )}
       </div>
     );
   };

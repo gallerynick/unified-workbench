@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   AutoComplete,
   Button,
@@ -10,7 +11,6 @@ import {
   Modal,
   Pagination,
   Segmented,
-  Select,
   Space,
   Spin,
   Tag,
@@ -46,14 +46,13 @@ import type { User } from '../../../types/user';
 import styles from './MeetingRecordTab.module.css';
 
 const { Text } = Typography;
-const { TextArea } = Input;
 
 const PAGE_SIZE = 10;
 
 /** 类型标签配色（未命中时回退 default） */
 const TYPE_TAG_COLOR: Record<string, string> = {
-  meeting: 'blue',
-  communication: 'green',
+  '会议纪要': 'blue',
+  '沟通记录': 'green',
 };
 
 /** 类型筛选选项：全部 + 预设类型 */
@@ -78,13 +77,6 @@ function splitTitleContent(content: string | null): { title: string; body: strin
   return { title: raw.slice(0, idx).trim(), body: raw.slice(idx + 2) };
 }
 
-function joinTitleContent(title: string, body: string): string {
-  const t = title.trim();
-  const b = body.trim();
-  if (t) return b ? `${t}\n\n${b}` : t;
-  return b;
-}
-
 /** 格式化时间 */
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '-';
@@ -97,25 +89,6 @@ function formatDate(iso: string | null | undefined): string {
   });
 }
 
-/** 安全解析 notes 数组元素 */
-interface MeetingNote {
-  content: string;
-  author: string;
-  created_at: string;
-}
-
-function parseNote(note: unknown): MeetingNote {
-  if (note && typeof note === 'object') {
-    const o = note as Record<string, unknown>;
-    return {
-      content: typeof o.content === 'string' ? o.content : String(o.content ?? ''),
-      author: typeof o.author === 'string' ? o.author : '',
-      created_at: typeof o.created_at === 'string' ? o.created_at : '',
-    };
-  }
-  return { content: String(note ?? ''), author: '', created_at: '' };
-}
-
 /** 用户选项（下拉选择使用） */
 interface UserOption {
   id: string;
@@ -125,6 +98,7 @@ interface UserOption {
 
 export default function MeetingRecordTab({ project }: { project: Project }) {
   const { user } = useUser();
+  const navigate = useNavigate();
   // ── 数据状态 ──
   const [meetings, setMeetings] = useState<ProjectMeeting[]>([]);
   const [total, setTotal] = useState(0);
@@ -133,16 +107,12 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
   const [loading, setLoading] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchText, setSearchText] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // ── 表单状态 ──
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<ProjectMeeting | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
-
-  // ── 备注输入 ──
-  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
 
   // ── 用户选项 ──
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
@@ -214,7 +184,6 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
   const handleFilterChange = useCallback((value: string | number) => {
     setFilterType(String(value));
     setPage(1);
-    setExpandedId(null);
   }, []);
 
   const filteredMeetings = useMemo(() => {
@@ -229,11 +198,6 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
       );
     });
   }, [meetings, searchText]);
-
-  // ── 展开/收起详情 ──
-  const toggleExpand = useCallback((id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
-  }, []);
 
   // ── 打开新建 ──
   const openCreate = useCallback(() => {
@@ -251,17 +215,14 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
   useEffect(() => {
     if (!modalVisible) return;
     if (editing) {
-      const { title, body } = splitTitleContent(editing.content);
+      const { title } = splitTitleContent(editing.content);
       form.setFieldsValue({
         type: editing.type,
         title,
-        speaker: editing.speaker ?? '',
-        participants: editing.participants ?? [],
-        content: body,
-        started_at: editing.started_at ? dayjs(editing.started_at) : undefined,
+        started_at: editing.started_at ? dayjs(editing.started_at) : dayjs(),
       });
     } else {
-      form.resetFields();
+      form.setFieldsValue({ started_at: dayjs() });
     }
   }, [modalVisible, editing, form]);
 
@@ -271,12 +232,12 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
       const values = await form.validateFields();
       setSubmitting(true);
 
-      const content = joinTitleContent(values.title ?? '', values.content ?? '');
+      const content = values.title ?? '';
       const common = {
         type: values.type as string,
         started_at: (values.started_at as dayjs.Dayjs).toISOString(),
-        speaker: values.speaker as string,
-        participants: (values.participants as string[] | undefined) ?? [],
+        speaker: '',
+        participants: [],
         content,
       };
 
@@ -342,42 +303,18 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
     [fetchMeetings],
   );
 
-  // ── 追加备注（在 notes 末尾 push 后整组提交） ──
-  const handleAppendNote = useCallback(
-    async (m: ProjectMeeting) => {
-      if (!canManage) return;
-      const text = (noteDrafts[m.id] ?? '').trim();
-      if (!text) {
-        void message.warning('请输入备注内容');
-        return;
-      }
-      const currentNotes = Array.isArray(m.notes) ? m.notes : [];
-      const note = {
-        content: text,
-        author: currentUserId ?? 'unknown',
-        created_at: new Date().toISOString(),
-      };
-      try {
-        const res = await updateProjectMeeting(m.id, { notes: [...currentNotes, note] });
-        if (res.code === 0) {
-          void message.success('备注已添加');
-          setNoteDrafts((prev) => ({ ...prev, [m.id]: '' }));
-          void fetchMeetings();
-        } else {
-          void message.error(res.msg || '添加备注失败');
-        }
-      } catch (err: unknown) {
-        void message.error(err instanceof Error ? err.message : '添加备注失败');
-      }
+  // ── 进入详情页 ──
+  const handleGoToDetail = useCallback(
+    (m: ProjectMeeting) => {
+      navigate(`/projects/${project.id}/meeting/${m.id}`);
     },
-    [canManage, currentUserId, noteDrafts, fetchMeetings],
+    [project.id, navigate],
   );
 
   // ── 分页切换 ──
   const handlePageChange = useCallback((p: number, ps?: number) => {
     setPage(p);
     if (ps) setPageSize(ps);
-    setExpandedId(null);
   }, []);
 
   // ── 渲染 ──
@@ -442,10 +379,8 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
             filteredMeetings.map((m) => {
               const { title, body } = splitTitleContent(m.content);
               const summary = title || body || '无内容';
-              const isExpanded = expandedId === m.id;
               const typeLabel = getTypeLabel(m.type);
               const typeColor = TYPE_TAG_COLOR[m.type] ?? 'default';
-              const notes = (Array.isArray(m.notes) ? m.notes : []).map(parseNote);
               const participantText = (m.participants ?? []).map(
                 (id) => userLabelMap[id] ?? id,
               );
@@ -455,7 +390,14 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
                   <button
                     type="button"
                     className={styles.meetingRow ?? ''}
-                    onClick={() => toggleExpand(m.id)}
+                    tabIndex={0}
+                    onClick={() => handleGoToDetail(m)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleGoToDetail(m);
+                      }
+                    }}
                   >
                     <FileTextOutlined
                       style={{
@@ -534,70 +476,6 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
                       </Tooltip>
                     )}
                   </button>
-
-                  {/* 展开详情：完整内容 + 备注 + 追加 */}
-                  {isExpanded && (
-                    <div className={styles.expandArea ?? ''}>
-                      {title && (
-                        <Text
-                          strong
-                          style={{
-                            display: 'block',
-                            marginBottom: 'var(--spacing-xs)',
-                            fontSize: 'var(--text-body-sm-size)',
-                          }}
-                        >
-                          {title}
-                        </Text>
-                      )}
-                      <div className={styles.fullContent ?? ''}>{body || '无内容'}</div>
-
-                      {notes.length > 0 && (
-                        <div className={styles.notesSection ?? ''}>
-                          <Text
-                            strong
-                            style={{
-                              fontSize: 'var(--text-body-xs-size)',
-                              color: 'var(--text-secondary)',
-                            }}
-                          >
-                            备注（{notes.length}）
-                          </Text>
-                          {notes.map((n) => (
-                            <div
-                              key={`${n.created_at}-${n.content}`}
-                              className={styles.noteItem ?? ''}
-                            >
-                              <div className={styles.noteText ?? ''}>{n.content || '-'}</div>
-                              <div className={styles.noteMeta ?? ''}>
-                                {(userLabelMap[n.author] ?? n.author) || '未知'} ·{' '}
-                                {formatDate(n.created_at)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {canManage && (
-                        <div className={styles.noteInputRow ?? ''}>
-                          <TextArea
-                            rows={2}
-                            placeholder="添加备注..."
-                            value={noteDrafts[m.id] ?? ''}
-                            onChange={(e) =>
-                              setNoteDrafts((prev) => ({
-                                ...prev,
-                                [m.id]: e.target.value,
-                              }))
-                            }
-                          />
-                          <Button type="primary" onClick={() => void handleAppendNote(m)}>
-                            添加备注
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               );
             })
@@ -646,41 +524,12 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
               allowClear
             />
           </Form.Item>
-          <Form.Item name="title" label="标题（可选）">
-            <Input placeholder="请输入标题（可选）" maxLength={200} showCount />
-          </Form.Item>
           <Form.Item
-            name="speaker"
-            label="发言人"
-            rules={[{ required: true, message: '请输入发言人' }]}
+            name="title"
+            label="标题"
+            rules={[{ required: true, message: '请输入标题' }]}
           >
-            <AutoComplete
-              options={userOptions.map((u) => ({
-                value: u.nickname,
-                label: `${u.nickname} (${u.username})`,
-              }))}
-              placeholder="选择用户或自由输入"
-              allowClear
-            />
-          </Form.Item>
-          <Form.Item name="participants" label="参与人">
-            <Select
-              mode="multiple"
-              options={userOptions.map((u) => ({
-                value: u.id,
-                label: `${u.nickname} (${u.username})`,
-              }))}
-              placeholder="选择参与人（可选）"
-              allowClear
-              maxTagCount="responsive"
-            />
-          </Form.Item>
-          <Form.Item
-            name="content"
-            label="内容"
-            rules={[{ required: true, message: '请输入内容' }]}
-          >
-            <TextArea rows={5} placeholder="请输入交流记录内容" maxLength={5000} showCount />
+            <Input placeholder="请输入标题" maxLength={200} showCount />
           </Form.Item>
           <Form.Item
             name="started_at"
@@ -695,6 +544,12 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
             />
           </Form.Item>
         </Form>
+        <Text
+          type="secondary"
+          style={{ fontSize: 'var(--text-caption-size)', display: 'block', marginTop: 12 }}
+        >
+          发言人、参与人、交流内容请在详情页编辑
+        </Text>
       </Modal>
     </div>
   );

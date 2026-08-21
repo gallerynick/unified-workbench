@@ -18,10 +18,19 @@ export const PROPOSAL_PRIORITY_OPTIONS = [
 
 export const PROPOSAL_STATUS_OPTIONS = [
   { value: 'pending', label: '待审核' },
-  { value: 'approved', label: '已采纳' },
-  { value: 'rejected', label: '已拒绝' },
+  { value: 'approved', label: '待实现' },
+  { value: 'in_progress', label: '实现中' },
   { value: 'completed', label: '已完成' },
+  { value: 'rejected', label: '已废弃' },
 ] as const;
+
+export const PROPOSAL_STATUS_LABEL: Record<string, string> = {
+  pending: '待审核',
+  approved: '待实现',
+  in_progress: '实现中',
+  completed: '已完成',
+  rejected: '已废弃',
+};
 
 export const CHANGE_CATEGORY_MAJOR = [
   { value: 'code', label: '代码' },
@@ -65,10 +74,10 @@ export const TODO_STATUS_OPTIONS = [
   { value: 'completed', label: '已完成' },
 ] as const;
 
-/** 会议/交流记录类型（允许自由填写，此列表为常用预设） */
+/** 会议/交流记录类型 */
 export const MEETING_TYPE_OPTIONS = [
-  { value: 'meeting', label: '会议纪要' },
-  { value: 'communication', label: '沟通记录' },
+  { value: '会议纪要', label: '会议纪要' },
+  { value: '沟通记录', label: '沟通记录' },
 ] as const;
 
 export const EVENT_TYPE_OPTIONS = [
@@ -91,15 +100,15 @@ export const PROJECT_NUMBER_PREFIX = {
 
 /** 项目分区权限配置：分区键 → 中文名，供分区权限设置弹窗使用 */
 export const PERMISSION_SECTIONS = {
-  info: '信息',
-  members: '人员',
-  progress: '进度',
-  proposals: '提案',
-  todos: '待办',
-  meetings: '交流',
-  changes: '修改',
-  documents: '文档',
-  events: '事件',
+  info: '项目信息',
+  members: '成员管理',
+  progress: '项目进度',
+  proposals: '提案管理',
+  todos: '待办事项',
+  meetings: '交流记录',
+  changes: '修改记录',
+  documents: '文档管理',
+  events: '事件记录',
 } as const;
 
 /** 项目优先级选项 */

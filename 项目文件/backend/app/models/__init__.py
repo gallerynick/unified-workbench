@@ -17,6 +17,7 @@ from app.models.project_event import ProjectEvent
 from app.models.project_meeting import ProjectMeeting
 from app.models.project_member import ProjectMember
 from app.models.project_proposal import ProjectProposal
+from app.models.project_proposal_comment import ProjectProposalComment
 from app.models.project_todo import ProjectTodo
 
 from app.models.reminder import Reminder, ReminderStatus
@@ -60,6 +61,7 @@ __all__ = [
     "ProjectMeeting",
     "ProjectMember",
     "ProjectProposal",
+    "ProjectProposalComment",
     "ProjectTodo",
 
     "Reminder",

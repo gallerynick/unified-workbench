@@ -81,11 +81,20 @@
   border: 1px solid var(--border-secondary);
   border-radius: var(--rounded-sm);
   padding: var(--spacing-sm);
-  transition: border-color var(--anim-fast) var(--anim-ease);
+  cursor: pointer;
+  transition:
+    border-color var(--anim-fast) var(--anim-ease),
+    box-shadow var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
 }
 
 .card:hover {
   border-color: var(--border-primary);
+  box-shadow: 0 2px 8px var(--shadow-sm);
+}
+
+.card:active {
+  transform: scale(0.98);
 }
 
 .cardHeader {

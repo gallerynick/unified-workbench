@@ -44,7 +44,7 @@ export async function createSystem(data: SystemCreateData): Promise<UnifiedRespo
 }
 
 export async function getSystem(id: string): Promise<UnifiedResponse<SystemRecord>> {
-  const res = await request<SystemRecord>(`/systems/${id}/`);
+  const res = await request<SystemRecord>(`/systems/${id}`);
   if (res.code === 0) {
     return { ...res, data: withIsVm(res.data) };
   }
@@ -55,7 +55,7 @@ export async function updateSystem(
   id: string,
   data: Partial<SystemFormValues>
 ): Promise<UnifiedResponse<SystemRecord>> {
-  const res = await request<SystemRecord>(`/systems/${id}/`, { method: 'PUT', body: data });
+  const res = await request<SystemRecord>(`/systems/${id}`, { method: 'PUT', body: data });
   if (res.code === 0) {
     return { ...res, data: withIsVm(res.data) };
   }
@@ -63,5 +63,5 @@ export async function updateSystem(
 }
 
 export async function deleteSystem(id: string): Promise<UnifiedResponse<null>> {
-  return request<null>(`/systems/${id}/`, { method: 'DELETE' });
+  return request<null>(`/systems/${id}`, { method: 'DELETE' });
 }

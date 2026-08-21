@@ -14,6 +14,8 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.project import Project
+    from app.models.project_proposal import ProjectProposal
+    from app.models.project_todo import ProjectTodo
 
 
 class ProjectMeeting(Base):
@@ -43,6 +45,18 @@ class ProjectMeeting(Base):
     )
     content: Mapped[str | None] = mapped_column(Text, nullable=True, comment="会议内容")
     notes: Mapped[list] = mapped_column(JSONB, default=list, comment="会议记录列表")
+    proposal_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("project_proposal.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="关联提案ID",
+    )
+    todo_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("project_todo.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="关联待办ID",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -52,3 +66,7 @@ class ProjectMeeting(Base):
 
     # 关系
     project: Mapped[Project] = relationship("Project", lazy="selectin")
+    proposal: Mapped["ProjectProposal | None"] = relationship(
+        "ProjectProposal", lazy="selectin"
+    )
+    todo: Mapped["ProjectTodo | None"] = relationship("ProjectTodo", lazy="selectin")

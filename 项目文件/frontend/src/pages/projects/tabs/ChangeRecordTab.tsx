@@ -136,7 +136,11 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
   const isAdminUser = isAdmin();
   const isOwner = !!currentUserId && currentUserId === project.owner_id;
   const changesPermission = project.member_permissions?.[user?.id ?? '']?.['changes'] ?? '';
-  const canEdit = isAdminUser || isOwner || changesPermission !== 'readonly';
+  const changesApprover = !!user && project.member_permissions?.[user?.id ?? '']?.changes_approver === true;
+  const isProjectOwner = !!user && project.owner_id === user?.id;
+  const canCreateChange = isAdminUser || isOwner || changesPermission === 'create';
+  const canManageChange = isAdminUser || isOwner || changesApprover;
+  const canApproveChange = isAdminUser || isProjectOwner || changesApprover;
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -229,6 +233,14 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
       const category_major = values.category_major as string;
       const content = values.content as string;
       const status = (values.status as string) || 'pending';
+      if (!editing && (status === 'approved' || status === 'rejected') && !canApproveChange) {
+        message.error('您没有权限将修改记录标记为已采纳或已拒绝');
+        return;
+      }
+      if (editing && (status === 'approved' || status === 'rejected') && !canApproveChange) {
+        message.error('您没有权限将修改记录标记为已采纳或已拒绝');
+        return;
+      }
       const category_minor = values.category_minor as string | undefined;
       const category_detail = values.category_detail as string | undefined;
 
@@ -375,7 +387,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
       key: 'action',
       width: 140,
       render: (_: unknown, record: ProjectChange) =>
-        canEdit ? (
+        canManageChange ? (
           <Space size="small">
             <Tooltip title="编辑修改记录">
               <Button
@@ -435,7 +447,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
             type="primary"
             icon={<PlusOutlined />}
             onClick={openCreate}
-            disabled={!canEdit}
+            disabled={!canCreateChange}
           >
             新建记录
           </Button>
@@ -546,7 +558,11 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
           <Form.Item name="status" label="状态">
             <Select
               placeholder="请选择状态"
-              options={CHANGE_STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label }))}
+              options={CHANGE_STATUS_OPTIONS.map((s) => ({
+                value: s.value,
+                label: s.label,
+                disabled: (!canApproveChange && (s.value === 'approved' || s.value === 'rejected')),
+              }))}
             />
           </Form.Item>
         </Form>

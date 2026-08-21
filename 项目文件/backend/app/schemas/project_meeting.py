@@ -32,6 +32,8 @@ class ProjectMeetingUpdate(BaseModel):
     participants: list[str] | None = None
     content: str | None = None
     notes: list[Any] | None = None
+    proposal_id: uuid.UUID | None = None
+    todo_id: uuid.UUID | None = None
 
 
 class ProjectMeetingResponse(BaseModel):
@@ -48,6 +50,8 @@ class ProjectMeetingResponse(BaseModel):
     participants: list[Any] = []
     content: str | None = None
     notes: list[Any] = []
+    proposal_id: uuid.UUID | None = None
+    todo_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
 

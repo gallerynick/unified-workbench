@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   Button,
@@ -16,25 +17,17 @@ import {
 import {
   PlusOutlined,
   SearchOutlined,
-  EditOutlined,
   DeleteOutlined,
-  CheckOutlined,
-  CloseOutlined,
-  LinkOutlined,
-  ExclamationCircleOutlined,
+  RightOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Project } from '../../../types/project';
 import type { AttachmentLink, ProjectProposal } from '../../../types/project-proposal';
-import type { ProjectTodo } from '../../../types/project-todo';
 import type { User } from '../../../types/user';
 import {
   listProjectProposals,
   createProjectProposal,
-  updateProjectProposal,
-  deleteProjectProposal,
 } from '../../../api/project-proposals';
-import { listProjectTodos } from '../../../api/project-todos';
 import { listUsers } from '../../../api/users';
 import { useUser } from '../../../contexts/UserContext';
 import styles from './ProposalTab.module.css';
@@ -42,7 +35,6 @@ import {
   PROPOSAL_TYPE_OPTIONS,
   PROPOSAL_PRIORITY_OPTIONS,
   PROPOSAL_STATUS_OPTIONS,
-  TODO_STATUS_OPTIONS,
   PROJECT_NUMBER_PREFIX,
 } from '../../../constants/project';
 
@@ -70,14 +62,9 @@ const PRIORITY_COLOR: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   pending: 'processing',
   approved: 'success',
+  in_progress: 'processing',
   rejected: 'error',
   completed: 'default',
-};
-
-const TODO_STATUS_COLOR: Record<string, string> = {
-  pending: 'default',
-  in_progress: 'processing',
-  completed: 'success',
 };
 
 // ─── 工具函数 ────────────────────────────────────────────────────────
@@ -92,10 +79,6 @@ const priorityOptions: { value: string; label: string }[] = PROPOSAL_PRIORITY_OP
   label: o.label,
 }));
 const statusOptions: { value: string; label: string }[] = PROPOSAL_STATUS_OPTIONS.map((o) => ({
-  value: o.value,
-  label: o.label,
-}));
-const todoStatusOptions: { value: string; label: string }[] = TODO_STATUS_OPTIONS.map((o) => ({
   value: o.value,
   label: o.label,
 }));
@@ -147,11 +130,11 @@ interface ProposalFormValues {
 
 export default function ProposalTab({ project }: { project: Project }) {
   const { user } = useUser();
+  const navigate = useNavigate();
 
   // ── 数据状态 ──
   const [proposals, setProposals] = useState<ProjectProposal[]>([]);
   const [proposalsLoading, setProposalsLoading] = useState(false);
-  const [todos, setTodos] = useState<ProjectTodo[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
   // ── 筛选状态（空字符串表示"全部"） ──
@@ -162,43 +145,29 @@ export default function ProposalTab({ project }: { project: Project }) {
   });
   const [search, setSearch] = useState('');
 
-  // ── 新建/编辑 ──
+  // ── 新建 ──
   const [modalVisible, setModalVisible] = useState(false);
-  const [editing, setEditing] = useState<ProjectProposal | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm<ProposalFormValues>();
-
-  // ── 拒绝弹窗 ──
-  const [rejectVisible, setRejectVisible] = useState(false);
-  const [rejectTarget, setRejectTarget] = useState<ProjectProposal | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-
-  // ── 关联待办弹窗 ──
-  const [todoModalVisible, setTodoModalVisible] = useState(false);
-  const [todoTarget, setTodoTarget] = useState<ProjectProposal | null>(null);
 
   // ── 权限：负责人+管理员始终可操作；普通成员按 member_permissions.proposals 分区 ──
   const isOwner = !!user && project.owner_id === user.id;
   const isAdmin = user?.role === 'admin';
   const proposalsPerm = project.member_permissions?.[user?.id ?? '']?.proposals;
-  const canOperate = isOwner || isAdmin || proposalsPerm !== 'readonly';
+  const canCreateProposal = isOwner || isAdmin || proposalsPerm === 'create';
 
   // ── 数据拉取 ──
   const fetchData = useCallback(async () => {
     setProposalsLoading(true);
     try {
-      const [proposalRes, todoRes, userRes] = await Promise.all([
+      const [proposalRes, userRes] = await Promise.all([
         listProjectProposals({ project_id: project.id, page_size: 100 }),
-        listProjectTodos({ project_id: project.id, page_size: 100 }),
         listUsers({ page_size: 100 }),
       ]);
       if (proposalRes.code === 0) {
         setProposals(proposalRes.data.items);
       } else {
         message.error(proposalRes.msg || '获取提案列表失败');
-      }
-      if (todoRes.code === 0) {
-        setTodos(todoRes.data.items);
       }
       if (userRes.code === 0) {
         setUsers(userRes.data.items);
@@ -231,17 +200,6 @@ export default function ProposalTab({ project }: { project: Project }) {
     [userMap],
   );
 
-  /** 每个提案关联的待办数量 */
-  const todoCountByProposal = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const t of todos) {
-      if (t.proposal_id) {
-        map[t.proposal_id] = (map[t.proposal_id] ?? 0) + 1;
-      }
-    }
-    return map;
-  }, [todos]);
-
   /** 按类型/优先级/状态 + 关键词（标题/编号）过滤后的列表 */
   const filteredProposals = useMemo(() => {
     let list = proposals;
@@ -259,38 +217,12 @@ export default function ProposalTab({ project }: { project: Project }) {
     return list;
   }, [proposals, filters, search]);
 
-  const relatedTodos = useMemo(
-    () => (todoTarget ? todos.filter((t) => t.proposal_id === todoTarget.id) : []),
-    [todos, todoTarget],
-  );
-
-  // ── 新建/编辑 ──
+  // ── 新建 ──
   const handleCreate = useCallback(() => {
-    setEditing(null);
     form.resetFields();
     form.setFieldsValue({ type: 'feature', priority: 'P2', attachment_links: [] });
     setModalVisible(true);
   }, [form]);
-
-  const handleEdit = useCallback(
-    (record: ProjectProposal) => {
-      setEditing(record);
-      form.resetFields();
-      const initValues: ProposalFormValues = {
-        title: record.title,
-        type: record.type,
-        priority: record.priority,
-        attachment_links: (record.attachment_links ?? []).map((l) =>
-          typeof l === 'string' ? { url: l, description: '' } : l,
-        ),
-      };
-      if (record.description) initValues.description = record.description;
-      if (record.assignee_id) initValues.assignee_id = record.assignee_id;
-      form.setFieldsValue(initValues);
-      setModalVisible(true);
-    },
-    [form],
-  );
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -306,28 +238,17 @@ export default function ProposalTab({ project }: { project: Project }) {
           .filter((l) => l.url.length > 0),
         ...(values.assignee_id ? { assignee_id: values.assignee_id } : {}),
       };
-      if (editing) {
-        const res = await updateProjectProposal(editing.id, payload);
-        if (res.code === 0) {
-          message.success('提案已更新');
-          setModalVisible(false);
-          void fetchData();
-        } else {
-          message.error(res.msg || '更新失败');
-        }
+      const res = await createProjectProposal({
+        project_id: project.id,
+        number: buildProposalNumber(project, proposals),
+        ...payload,
+      });
+      if (res.code === 0) {
+        message.success('提案已创建');
+        setModalVisible(false);
+        void fetchData();
       } else {
-        const res = await createProjectProposal({
-          project_id: project.id,
-          number: buildProposalNumber(project, proposals),
-          ...payload,
-        });
-        if (res.code === 0) {
-          message.success('提案已创建');
-          setModalVisible(false);
-          void fetchData();
-        } else {
-          message.error(res.msg || '创建失败');
-        }
+        message.error(res.msg || '创建失败');
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -336,77 +257,7 @@ export default function ProposalTab({ project }: { project: Project }) {
     } finally {
       setSubmitting(false);
     }
-  }, [form, editing, project, proposals, fetchData]);
-
-  // ── 审批流转 ──
-  const handleChangeStatus = useCallback(
-    async (record: ProjectProposal, status: string, reason?: string) => {
-      try {
-        const res =
-          reason !== undefined
-            ? await updateProjectProposal(record.id, { status, reject_reason: reason })
-            : await updateProjectProposal(record.id, { status });
-        if (res.code === 0) {
-          const text =
-            status === 'approved' ? '提案已采纳' : status === 'rejected' ? '提案已拒绝' : '提案已完成';
-          message.success(text);
-          void fetchData();
-        } else {
-          message.error(res.msg || '状态更新失败');
-        }
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : '状态更新失败';
-        message.error(msg);
-      }
-    },
-    [fetchData],
-  );
-
-  const openReject = useCallback((record: ProjectProposal) => {
-    setRejectTarget(record);
-    setRejectReason('');
-    setRejectVisible(true);
-  }, []);
-
-  const confirmReject = useCallback(async () => {
-    const reason = rejectReason.trim();
-    if (!reason) {
-      message.warning('请填写拒绝原因');
-      return;
-    }
-    if (!rejectTarget) return;
-    await handleChangeStatus(rejectTarget, 'rejected', reason);
-    setRejectVisible(false);
-  }, [rejectReason, rejectTarget, handleChangeStatus]);
-
-  // ── 删除 ──
-  const handleDelete = useCallback(
-    (record: ProjectProposal) => {
-      Modal.confirm({
-        title: '确认删除提案',
-        icon: <ExclamationCircleOutlined />,
-        content: `确定要删除提案「${record.number} ${record.title}」吗？此操作不可恢复。`,
-        okText: '删除',
-        okButtonProps: { danger: true },
-        cancelText: '取消',
-        onOk: async () => {
-          try {
-            const res = await deleteProjectProposal(record.id);
-            if (res.code === 0) {
-              message.success('提案已删除');
-              void fetchData();
-            } else {
-              message.error(res.msg || '删除失败');
-            }
-          } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : '删除失败';
-            message.error(msg);
-          }
-        },
-      });
-    },
-    [fetchData],
-  );
+  }, [form, project, proposals, fetchData]);
 
   // ── 列定义 ──
   const columns = useMemo<ColumnsType<ProjectProposal>>(
@@ -416,19 +267,34 @@ export default function ProposalTab({ project }: { project: Project }) {
         dataIndex: 'number',
         key: 'number',
         width: 180,
-        render: (number: string) => <Text strong>{number}</Text>,
+        ellipsis: true,
+        render: (number: string, record: ProjectProposal) => (
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, height: 'auto' }}
+            onClick={() => navigate(`/projects/${project.id}/proposal/${record.id}`)}
+          >
+            {number}
+          </Button>
+        ),
       },
       {
         title: '标题',
         dataIndex: 'title',
         key: 'title',
         ellipsis: true,
+        render: (text: string) => (
+          <Tooltip title={text}>
+            <Text>{text}</Text>
+          </Tooltip>
+        ),
       },
       {
         title: '类型',
         dataIndex: 'type',
         key: 'type',
-        width: 100,
+        width: 90,
         render: (type: string) => (
           <Tag color={TYPE_COLOR[type] ?? 'default'}>{getLabel(typeOptions, type)}</Tag>
         ),
@@ -437,7 +303,7 @@ export default function ProposalTab({ project }: { project: Project }) {
         title: '优先级',
         dataIndex: 'priority',
         key: 'priority',
-        width: 100,
+        width: 80,
         render: (priority: string) => (
           <Tag color={PRIORITY_COLOR[priority] ?? 'default'}>
             {getLabel(priorityOptions, priority)}
@@ -448,8 +314,8 @@ export default function ProposalTab({ project }: { project: Project }) {
         title: '状态',
         dataIndex: 'status',
         key: 'status',
-        width: 110,
-        render: (status: string, record) => (
+        width: 90,
+        render: (status: string, record: ProjectProposal) => (
           <Tooltip
             title={
               status === 'rejected' && record.reject_reason
@@ -465,14 +331,14 @@ export default function ProposalTab({ project }: { project: Project }) {
         title: '创建人',
         dataIndex: 'creator_id',
         key: 'creator_id',
-        width: 120,
+        width: 100,
         render: (id: string) => displayName(id),
       },
       {
         title: '执行人',
         dataIndex: 'assignee_id',
         key: 'assignee_id',
-        width: 120,
+        width: 100,
         render: (id: string | null) => displayName(id),
       },
       {
@@ -483,123 +349,22 @@ export default function ProposalTab({ project }: { project: Project }) {
         render: (time: string) => formatDate(time),
       },
       {
-        title: '关联待办',
-        key: 'todos',
-        width: 110,
-        render: (_, record) => {
-          const count = todoCountByProposal[record.id] ?? 0;
-          return (
-            <Space size="small">
-              <Tag color={count > 0 ? 'blue' : 'default'}>{count}</Tag>
-              <Button
-                size="small"
-                type="link"
-                icon={<LinkOutlined />}
-                disabled={count === 0}
-                onClick={() => {
-                  setTodoTarget(record);
-                  setTodoModalVisible(true);
-                }}
-              >
-                查看
-              </Button>
-            </Space>
-          );
-        },
-      },
-      {
         title: '操作',
         key: 'actions',
-        width: 230,
-        render: (_, record) => (
-          <Space size="small" wrap>
-            {record.status === 'pending' && (
-              <>
-                <Button
-                  size="small"
-                  type="link"
-                  icon={<CheckOutlined />}
-                  disabled={!canOperate}
-                  onClick={() => void handleChangeStatus(record, 'approved')}
-                >
-                  采纳
-                </Button>
-                <Button
-                  size="small"
-                  type="link"
-                  danger
-                  icon={<CloseOutlined />}
-                  disabled={!canOperate}
-                  onClick={() => openReject(record)}
-                >
-                  拒绝
-                </Button>
-              </>
-            )}
-            {record.status === 'approved' && (
-              <Button
-                size="small"
-                type="link"
-                icon={<CheckOutlined />}
-                disabled={!canOperate}
-                onClick={() => void handleChangeStatus(record, 'completed')}
-              >
-                标记完成
-              </Button>
-            )}
-            <Tooltip title="编辑">
-              <Button
-                size="small"
-                type="link"
-                icon={<EditOutlined />}
-                disabled={!canOperate}
-                aria-label="编辑"
-                onClick={() => handleEdit(record)}
-              />
-            </Tooltip>
-            <Tooltip title="删除">
-              <Button
-                size="small"
-                type="link"
-                danger
-                icon={<DeleteOutlined />}
-                disabled={!canOperate}
-                aria-label="删除"
-                onClick={() => handleDelete(record)}
-              />
-            </Tooltip>
-          </Space>
+        width: 90,
+        render: (_: unknown, record: ProjectProposal) => (
+          <Button
+            type="link"
+            size="small"
+            icon={<RightOutlined />}
+            onClick={() => navigate(`/projects/${project.id}/proposal/${record.id}`)}
+          >
+            进入
+          </Button>
         ),
       },
     ],
-    [todoCountByProposal, canOperate, displayName, handleChangeStatus, openReject, handleEdit, handleDelete],
-  );
-
-  // ── 关联待办列定义 ──
-  const todoColumns = useMemo<ColumnsType<ProjectTodo>>(
-    () => [
-      { title: '编号', dataIndex: 'number', key: 'number', width: 160 },
-      { title: '标题', dataIndex: 'title', key: 'title', ellipsis: true },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        render: (status: string) => (
-          <Tag color={TODO_STATUS_COLOR[status] ?? 'default'}>
-            {getLabel(todoStatusOptions, status)}
-          </Tag>
-        ),
-      },
-      {
-        title: '执行人',
-        dataIndex: 'assignee_id',
-        key: 'assignee_id',
-        width: 120,
-        render: (id: string | null) => displayName(id),
-      },
-    ],
-    [displayName],
+    [displayName, project.id, navigate],
   );
 
   return (
@@ -646,7 +411,7 @@ export default function ProposalTab({ project }: { project: Project }) {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            disabled={!canOperate}
+            disabled={!canCreateProposal}
             onClick={handleCreate}
           >
             新建提案
@@ -657,6 +422,7 @@ export default function ProposalTab({ project }: { project: Project }) {
       {/* 提案列表 */}
       <Table<ProjectProposal>
         rowKey="id"
+        size="small"
         loading={proposalsLoading}
         columns={columns}
         dataSource={filteredProposals}
@@ -668,15 +434,15 @@ export default function ProposalTab({ project }: { project: Project }) {
           showQuickJumper: true,
           showTotal: (total) => `共 ${total} 条`,
         }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 900 }}
         locale={{
           emptyText: <Empty description="暂无提案" />,
         }}
       />
 
-      {/* 新建/编辑提案 Modal */}
+      {/* 新建提案 Modal */}
       <Modal
-        title={editing ? '编辑提案' : '新建提案'}
+        title="新建提案"
         open={modalVisible}
         onOk={() => void handleSubmit()}
         onCancel={() => setModalVisible(false)}
@@ -766,54 +532,6 @@ export default function ProposalTab({ project }: { project: Project }) {
             )}
           </Form.List>
         </Form>
-      </Modal>
-
-      {/* 拒绝提案 Modal */}
-      <Modal
-        title="拒绝提案"
-        open={rejectVisible}
-        onOk={() => void confirmReject()}
-        onCancel={() => setRejectVisible(false)}
-        okText="确认拒绝"
-        okButtonProps={{ danger: true }}
-        cancelText="取消"
-        destroyOnClose
-        width={520}
-      >
-        <Text type="secondary">请填写拒绝原因（必填）：</Text>
-        <TextArea
-          rows={4}
-          value={rejectReason}
-          onChange={(e) => setRejectReason(e.target.value)}
-          placeholder="请输入拒绝原因"
-          maxLength={500}
-          showCount
-          style={{ marginTop: 'var(--spacing-xs)' }}
-        />
-      </Modal>
-
-      {/* 关联待办 Modal */}
-      <Modal
-        title={`关联待办（${todoTarget ? todoTarget.number : ''}）`}
-        open={todoModalVisible}
-        onCancel={() => setTodoModalVisible(false)}
-        footer={<Button onClick={() => setTodoModalVisible(false)}>关闭</Button>}
-        width={640}
-        styles={{
-          body: { maxHeight: 'calc(100vh - 260px)', overflowY: 'auto', overflowX: 'hidden' },
-        }}
-      >
-        {relatedTodos.length === 0 ? (
-          <Empty description="暂无关联待办" />
-        ) : (
-          <Table<ProjectTodo>
-            rowKey="id"
-            size="small"
-            dataSource={relatedTodos}
-            columns={todoColumns}
-            pagination={false}
-          />
-        )}
       </Modal>
     </div>
   );
