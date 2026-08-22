@@ -148,7 +148,7 @@ export default function AftermathAnimationSection() {
 
   const fullText = 'hi，初次见面';
   const [typedText, setTypedText] = useState('');
-  const [cursorVisible, setCursorVisible] = useState(true);
+  const [cursorVisible, setCursorVisible] = useState(false);
 
   useEffect(() => {
     let typingTimer: ReturnType<typeof setTimeout>;
@@ -158,6 +158,7 @@ export default function AftermathAnimationSection() {
     let step = 0;
 
     const startDelay = setTimeout(() => {
+      setCursorVisible(true);
       const typeNext = () => {
         if (step < fullText.length) {
           step++;
@@ -436,7 +437,7 @@ export default function AftermathAnimationSection() {
       <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" tabIndex={-1} />
       <div className={styles.typewriter}>
         <span className={styles.typewriterText}>{typedText}</span>
-        {cursorVisible && <span className={styles.cursor}>|</span>}
+        {cursorVisible && <span className={styles.cursor} />}
       </div>
     </section>
   );

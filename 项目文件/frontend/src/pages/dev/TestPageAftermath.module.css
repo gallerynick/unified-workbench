@@ -38,10 +38,12 @@
 
 .cursor {
   display: inline-block;
-  width: 2px;
-  margin-left: 2px;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 300;
+  width: 4px;
+  height: 1.1em;
+  margin-left: 3px;
+  background: rgba(255, 255, 255, 0.9);
+  vertical-align: middle;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
   animation: blink 0.5s steps(2) infinite;
 }
 
