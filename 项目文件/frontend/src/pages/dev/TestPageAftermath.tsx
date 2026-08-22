@@ -121,9 +121,9 @@ void main() {
   float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
 
   vec3 col = vec3(0.0);
-  col.r = 0.35 * wireR * vignette;
-  col.g = 0.35 * wireG * vignette;
-  col.b = 0.35 * wireB * vignette;
+  col.r = 0.08 * wireR * vignette;
+  col.g = 0.08 * wireG * vignette;
+  col.b = 0.08 * wireB * vignette;
 
   gl_FragColor = vec4(col, 1.0);
 }
