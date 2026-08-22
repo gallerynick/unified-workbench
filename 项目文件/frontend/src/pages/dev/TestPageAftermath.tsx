@@ -60,8 +60,9 @@ const FS_SOURCE = `
     vec2 c = gl_PointCoord - vec2(0.5);
     float r = dot(c, c);
     if (r > 0.25) discard;
-    float a = v_alpha * smoothstep(0.25, 0.0, r);
-    gl_FragColor = vec4(a, a, a, a);
+    float edge = smoothstep(0.25, 0.0, r);
+    float a = v_alpha * edge;
+    gl_FragColor = vec4(a, a, a, edge);
   }
 `;
 
