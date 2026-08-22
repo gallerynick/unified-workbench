@@ -28,7 +28,7 @@ void main() {
   vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
   vec2 sc = uv - center;
 
-  float flow = sin(mod(u_time * 0.02, 6.28318)) * 0.5;
+  float flow = sin(mod(u_time * 0.02, 6.28318)) * 0.2;
 
   float r2 = sc.x * sc.x + sc.y * sc.y;
   float k = 1.5;
@@ -39,7 +39,7 @@ void main() {
   float freq2 = 16.0;
   float dX2 = abs(fract(fx * freq2) - 0.5);
   float dY2 = abs(fract(fy * freq2) - 0.5);
-  float wire2 = smoothstep(0.010, 0.0, min(dX2, dY2));
+  float wire2 = smoothstep(0.025, 0.0, min(dX2, dY2));
 
   float vignette = 1.0 - smoothstep(0.2, 0.6, r2);
 
