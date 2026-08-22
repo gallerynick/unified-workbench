@@ -212,7 +212,6 @@ export default function AftermathAnimationSection() {
 
     const gridUTime = gl.getUniformLocation(gProg, 'u_time');
     const gridURes = gl.getUniformLocation(gProg, 'u_res');
-    gl.uniform2f(gridURes, W, H);
 
     // ── Phase 2 原样复制：粒子缓冲设置 ──
     const aPos = gl.getAttribLocation(pProg, 'a_pos');
@@ -340,6 +339,7 @@ export default function AftermathAnimationSection() {
       // Pass 1: Phase 1 网格凹面背景（原样着色器）
       gl!.disable(gl!.BLEND);
       gl!.useProgram(gProg);
+      gl!.uniform2f(gridURes, W, H);
       gl!.uniform1f(gridUTime, now);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
       gl!.enableVertexAttribArray(gl!.getAttribLocation(gProg, 'a_pos'));
