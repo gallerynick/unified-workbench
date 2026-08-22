@@ -31,6 +31,8 @@ interface Stream {
 interface Particle {
   streamIdx: number;
   x: number;
+  y: number;
+  vy: number;
   size: number;
   brightness: number;
   twinkle: number;
@@ -159,9 +161,14 @@ export default function SmokeBandAnimationSection() {
     const particles: Particle[] = [];
     for (let i = 0; i < TOTAL; i++) {
       const isBright = hash1d(i * 13.7) > 0.85;
+      const si = i % STREAM_COUNT;
+      const s = streams[si]!;
+      const px = Math.random() * 2.4 - 1.2;
       particles.push({
-        streamIdx: i % STREAM_COUNT,
-        x: Math.random() * 2.4 - 1.2,
+        streamIdx: si,
+        x: px,
+        y: s.baseY,
+        vy: 0,
         size: isBright ? 2.5 + hash1d(i * 6.6) * 2.5 : 1.2 + hash1d(i * 6.6) * 1.3,
         brightness: isBright ? 1.5 : 1.0,
         twinkle: hash1d(i * 8.2) * Math.PI * 2,
@@ -181,7 +188,7 @@ export default function SmokeBandAnimationSection() {
     function update(dt: number, t: number): void {
       const mr = 0.2;
       const mr2 = mr * mr;
-      const dispMax = 0.06;
+      const push = 0.012;
       for (let i = 0; i < TOTAL; i++) {
         const p = particles[i]!;
         const stream = streams[p.streamIdx]!;
@@ -190,19 +197,22 @@ export default function SmokeBandAnimationSection() {
         if (p.x > 1.2) p.x -= 2.4;
 
         const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
-        let y = stream.baseY + waveY;
+        const targetY = stream.baseY + waveY;
 
         if (mouse.active) {
           const dx = p.x - mouse.x;
-          const dy = y - mouse.y;
+          const dy = p.y - mouse.y;
           const d2 = dx * dx + dy * dy;
           if (d2 < mr2 && d2 > 0.00001) {
             const d = Math.sqrt(d2);
-            const strength = (1 - d / mr) * dispMax;
-            y += (dy / d) * strength;
-            // no X displacement — keep stream flowing
+            const force = (1 - d / mr) * push;
+            p.vy += (dy / d) * force;
           }
         }
+
+        p.vy += (targetY - p.y) * 2.0 * dt;
+        p.vy *= 0.93;
+        p.y += p.vy * dt;
 
         const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
         const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
@@ -210,7 +220,7 @@ export default function SmokeBandAnimationSection() {
 
         const idx = i * 4;
         data[idx] = p.x;
-        data[idx + 1] = y;
+        data[idx + 1] = p.y;
         data[idx + 2] = p.size;
         data[idx + 3] = alpha;
       }
