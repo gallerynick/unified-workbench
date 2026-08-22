@@ -39,8 +39,8 @@ void main() {
   // 失真：noise 给网格坐标加微小偏移
   float nx = noise2(sc * 4.0 + vec2(0.0, u_time * 0.02));
   float ny = noise2(sc * 4.0 + vec2(u_time * 0.02, 100.0));
-  fx += (nx - 0.5) * 0.03;
-  fy += (ny - 0.5) * 0.03;
+  fx += (nx - 0.5) * 0.015;
+  fy += (ny - 0.5) * 0.015;
 
   float freq2 = 16.0;
   float dX2 = abs(fract(fx * freq2) - 0.5);
