@@ -98,12 +98,7 @@ float gridWire(vec2 sc, float flow, float edgeFactor, float t) {
   fx += (nx - 0.5) * 0.015 * edgeFactor;
   fy += (ny - 0.5) * 0.015 * edgeFactor;
   float freq2 = 16.0;
-  float d = min(abs(fract(fx * freq2) - 0.5), abs(fract(fy * freq2) - 0.5));
-  float eps = 0.010;
-  float w0 = smoothstep(0.035, 0.005, d);
-  float w1 = smoothstep(0.035, 0.005, d - eps);
-  float w2 = smoothstep(0.035, 0.005, d + eps);
-  return (w0 + w1 + w2) / 3.0;
+  return smoothstep(0.035, 0.005, min(abs(fract(fx * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
 }
 
 void main() {
@@ -123,19 +118,12 @@ void main() {
   float wireG = gridWire(sc, flow, edgeFactor, u_time);
   float wireB = gridWire(sc - dir * ca, flow, edgeFactor, u_time);
 
-  float vignette = 1.0 - smoothstep(0.15, 0.35, r2);
-  float verticalFade = 1.0 - smoothstep(0.15, 0.3, abs(sc.y));
+  float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
 
   vec3 col = vec3(0.0);
-  col.r = 0.18 * wireR * vignette * verticalFade;
-  col.g = 0.18 * wireG * vignette * verticalFade;
-  col.b = 0.18 * wireB * vignette * verticalFade;
-
-  // 隔离光晕环：网格边界处柔和发光，圈住网格区域
-  float r = length(sc);
-  float ring = smoothstep(0.28, 0.34, r) * (1.0 - smoothstep(0.34, 0.5, r));
-  float yFade2 = 1.0 - smoothstep(0.2, 0.4, abs(sc.y));
-  col += vec3(0.08) * ring * yFade2;
+  col.r = 0.35 * wireR * vignette;
+  col.g = 0.35 * wireG * vignette;
+  col.b = 0.35 * wireB * vignette;
 
   gl_FragColor = vec4(col, 1.0);
 }
