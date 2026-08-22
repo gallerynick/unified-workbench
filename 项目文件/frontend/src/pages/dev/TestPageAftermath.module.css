@@ -75,21 +75,39 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
   animation: bounce 1.5s ease-in-out infinite;
 }
 
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(8px); }
+  50% { transform: translateY(10px); }
 }
 
 .chevron {
+  display: block;
   width: 10px;
   height: 10px;
   border-right: 2px solid rgba(255, 255, 255, 0.7);
   border-bottom: 2px solid rgba(255, 255, 255, 0.7);
   transform: rotate(45deg);
+}
+
+.chevron:first-child {
+  animation: spreadUp 1.5s ease-in-out infinite;
+}
+
+.chevron:last-child {
+  animation: spreadDown 1.5s ease-in-out infinite;
+}
+
+@keyframes spreadUp {
+  0%, 100% { transform: rotate(45deg) translateY(0); }
+  50% { transform: rotate(45deg) translateY(-4px); }
+}
+
+@keyframes spreadDown {
+  0%, 100% { transform: rotate(45deg) translateY(0); }
+  50% { transform: rotate(45deg) translateY(4px); }
 }
 
 .hintText {
