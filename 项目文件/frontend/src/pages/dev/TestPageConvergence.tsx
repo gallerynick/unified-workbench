@@ -63,7 +63,7 @@ const FADE_VS = `
 const FADE_FS = `
   precision highp float;
   void main() {
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.05);
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.03);
   }
 `;
 
@@ -233,7 +233,7 @@ export default function ConvergenceAnimationSection() {
         vy: 0,
         targetX: tgt.x,
         targetY: tgt.y,
-        size: isBright ? 2.0 + hash1d(i * 6.6) * 2.0 : 1.0 + hash1d(i * 6.6) * 1.0,
+        size: isBright ? 3.0 + hash1d(i * 6.6) * 3.0 : 2.0 + hash1d(i * 6.6) * 2.0,
         brightness: isBright ? 1.5 : 1.0,
         twinkle: hash1d(i * 8.2) * Math.PI * 2,
       });
@@ -297,7 +297,7 @@ export default function ConvergenceAnimationSection() {
         p.y += p.vy * dt;
 
         const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
-        const alpha = p.brightness * (0.5 + 0.5 * convergeWeight) * twinkle;
+        const alpha = p.brightness * (0.6 + 0.6 * convergeWeight) * twinkle;
 
         const idx = i * 4;
         data[idx] = p.x;
