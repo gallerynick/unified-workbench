@@ -213,6 +213,8 @@ export default function AftermathAnimationSection() {
   const convergeCompleteRef = useRef(false);
   const darkenRef = useRef(0);
   const [showArrow, setShowArrow] = useState(false);
+  const [hintGlow, setHintGlow] = useState(0);
+  const hintRef = useRef<HTMLDivElement>(null);
 
   const fullText = 'hi，初次见面';
   const [typedText, setTypedText] = useState('');
@@ -278,6 +280,25 @@ export default function AftermathAnimationSection() {
     }, 200);
     return () => clearInterval(poll);
   }, []);
+
+  useEffect(() => {
+    if (!showArrow) return;
+    const onMove = (e: MouseEvent) => {
+      const el = hintRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxDist = 300;
+      const glow = Math.max(0, 1 - dist / maxDist);
+      setHintGlow(glow);
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [showArrow]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -560,11 +581,11 @@ export default function AftermathAnimationSection() {
         {cursorVisible && <span className={styles.cursor} />}
       </div>
       {showArrow && (
-        <div className={styles.scrollHint}>
+        <div className={styles.scrollHint} ref={hintRef} style={{ opacity: 0.4 + hintGlow * 0.6 }}>
           <svg className={styles.arrowSvg} width="14" height="22" viewBox="0 0 14 22" fill="none" role="img" aria-label="向下滚动">
             <title>向下滚动</title>
-            <path className={styles.arrowTop} d="M2 4 L7 9 L12 4" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path className={styles.arrowBottom} d="M2 13 L7 18 L12 13" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2 4 L7 9 L12 4" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2 13 L7 18 L12 13" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span className={styles.hintText}>开始使用</span>
         </div>

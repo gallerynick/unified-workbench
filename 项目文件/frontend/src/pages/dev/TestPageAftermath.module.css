@@ -63,12 +63,7 @@
   align-items: center;
   gap: 6px;
   pointer-events: none;
-  animation: fadeIn 0.8s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  transition: opacity 0.3s ease;
 }
 
 .arrowSvg {
