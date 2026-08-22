@@ -75,7 +75,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: bounce 1.5s ease-in-out infinite;
 }
 
 @keyframes bounce {
@@ -93,21 +92,21 @@
 }
 
 .chevron:first-child {
-  animation: spreadUp 1.5s ease-in-out infinite;
+  animation: arrowUp 1.5s ease-in-out infinite;
 }
 
 .chevron:last-child {
-  animation: spreadDown 1.5s ease-in-out infinite;
+  animation: arrowDown 1.5s ease-in-out infinite;
 }
 
-@keyframes spreadUp {
+@keyframes arrowUp {
   0%, 100% { transform: translateY(0) rotate(45deg); }
-  50% { transform: translateY(-1.5px) rotate(45deg); }
+  50% { transform: translateY(-4px) rotate(45deg); }
 }
 
-@keyframes spreadDown {
+@keyframes arrowDown {
   0%, 100% { transform: translateY(0) rotate(45deg); }
-  50% { transform: translateY(0.3px) rotate(45deg); }
+  50% { transform: translateY(1px) rotate(45deg); }
 }
 
 .hintText {
