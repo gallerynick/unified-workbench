@@ -33,7 +33,7 @@ void main() {
   float flow = fract(u_time * 0.02);
 
   // ── Concave distortion: fx = sc * (1 + k*r2), grid lines pulled toward center ──
-  float k = 1.2;
+  float k = 1.5;
   float fx = sc.x * (1.0 + k * r2) + flow;
   float fy = sc.y * (1.0 + k * r2) + flow * 0.5;
 
@@ -54,9 +54,9 @@ void main() {
   float bright = 0.15 + 0.85 * r2;
 
   float sd = length(sc);
-  float fineFade = smoothstep(0.60, 0.10, sd);
+  float fineFade = smoothstep(0.10, 0.60, sd);
   fineFade = fineFade * fineFade;
-  float coarseFade = smoothstep(0.90, 0.08, sd);
+  float coarseFade = smoothstep(0.08, 0.90, sd);
 
   vec3 col = vec3(0.0);
   col += vec3(0.42) * wireHV1 * bright * fineFade;
