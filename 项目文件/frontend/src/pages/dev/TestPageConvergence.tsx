@@ -53,6 +53,20 @@ const FS_SOURCE = `
   }
 `;
 
+const FADE_VS = `
+  attribute vec2 a_pos;
+  void main() {
+    gl_Position = vec4(a_pos, 0.0, 1.0);
+  }
+`;
+
+const FADE_FS = `
+  precision highp float;
+  void main() {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.085);
+  }
+`;
+
 function sampleTextParticles(count: number): Array<{ x: number; y: number }> {
   const offscreen = document.createElement('canvas');
   const tw = 400;
@@ -184,6 +198,22 @@ export default function ConvergenceAnimationSection() {
     gl.enableVertexAttribArray(aAlpha);
     gl.vertexAttribPointer(aAlpha, 1, gl.FLOAT, false, 16, 12);
 
+    const fadeVs = compile(gl.VERTEX_SHADER, FADE_VS);
+    const fadeFs = compile(gl.FRAGMENT_SHADER, FADE_FS);
+    const fadeProg = gl.createProgram();
+    if (!fadeProg || !fadeVs || !fadeFs) return;
+    gl.attachShader(fadeProg, fadeVs);
+    gl.attachShader(fadeProg, fadeFs);
+    gl.linkProgram(fadeProg);
+    if (!gl.getProgramParameter(fadeProg, gl.LINK_STATUS)) {
+      console.error('[WebGL] fade link:', gl.getProgramInfoLog(fadeProg));
+      return;
+    }
+    const fadePos = gl.getAttribLocation(fadeProg, 'a_pos');
+    const fadeQuad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, fadeQuad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -279,6 +309,7 @@ export default function ConvergenceAnimationSection() {
 
     startTimeRef.current = performance.now();
     let lastTime = 0;
+    let firstFrame = true;
 
     function frame(): void {
       const now = (performance.now() - startTimeRef.current) / 1000.0;
@@ -289,7 +320,29 @@ export default function ConvergenceAnimationSection() {
 
       gl!.bufferData(gl!.ARRAY_BUFFER, data, gl!.DYNAMIC_DRAW);
       gl!.viewport(0, 0, W, H);
-      gl!.clear(gl!.COLOR_BUFFER_BIT);
+
+      if (firstFrame) {
+        gl!.clear(gl!.COLOR_BUFFER_BIT);
+        firstFrame = false;
+      } else {
+        gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE_MINUS_SRC_ALPHA);
+        gl!.useProgram(fadeProg);
+        gl!.bindBuffer(gl!.ARRAY_BUFFER, fadeQuad);
+        gl!.enableVertexAttribArray(fadePos);
+        gl!.vertexAttribPointer(fadePos, 2, gl!.FLOAT, false, 0, 0);
+        gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
+
+        gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE);
+        gl!.useProgram(prog);
+        gl!.bindBuffer(gl!.ARRAY_BUFFER, buffer);
+        gl!.enableVertexAttribArray(aPos);
+        gl!.vertexAttribPointer(aPos, 2, gl!.FLOAT, false, 16, 0);
+        gl!.enableVertexAttribArray(aSize);
+        gl!.vertexAttribPointer(aSize, 1, gl!.FLOAT, false, 16, 8);
+        gl!.enableVertexAttribArray(aAlpha);
+        gl!.vertexAttribPointer(aAlpha, 1, gl!.FLOAT, false, 16, 12);
+      }
+
       gl!.drawArrays(gl!.POINTS, 0, TOTAL);
 
       rafRef.current = requestAnimationFrame(frame);
