@@ -98,7 +98,12 @@ float gridWire(vec2 sc, float flow, float edgeFactor, float t) {
   fx += (nx - 0.5) * 0.015 * edgeFactor;
   fy += (ny - 0.5) * 0.015 * edgeFactor;
   float freq2 = 16.0;
-  return smoothstep(0.035, 0.005, min(abs(fract(fx * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
+  float d = min(abs(fract(fx * freq2) - 0.5), abs(fract(fy * freq2) - 0.5));
+  float eps = 0.003;
+  float w0 = smoothstep(0.035, 0.005, d);
+  float w1 = smoothstep(0.035, 0.005, d - eps);
+  float w2 = smoothstep(0.035, 0.005, d + eps);
+  return (w0 + w1 + w2) / 3.0;
 }
 
 void main() {
