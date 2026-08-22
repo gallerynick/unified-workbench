@@ -47,7 +47,7 @@ void main() {
   float edgeFactor = smoothstep(0.05, 0.4, r2);
 
   // 透镜色散：径向偏移 screen 坐标后重新计算网格
-  float ca = smoothstep(0.15, 0.6, r2) * 0.008;
+  float ca = smoothstep(0.1, 0.5, r2) * 0.015;
   vec2 dir = normalize(sc + vec2(0.001));
 
   float wireR = gridWire(sc + dir * ca, flow, edgeFactor, u_time);
