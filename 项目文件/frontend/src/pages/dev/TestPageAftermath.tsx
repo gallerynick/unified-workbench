@@ -123,13 +123,19 @@ void main() {
   float wireG = gridWire(sc, flow, edgeFactor, u_time);
   float wireB = gridWire(sc - dir * ca, flow, edgeFactor, u_time);
 
-  float vignette = 1.0 - smoothstep(0.2, 0.55, r2);
-  float verticalFade = 1.0 - smoothstep(0.25, 0.55, abs(sc.y));
+  float vignette = 1.0 - smoothstep(0.15, 0.35, r2);
+  float verticalFade = 1.0 - smoothstep(0.15, 0.3, abs(sc.y));
 
   vec3 col = vec3(0.0);
-  col.r = 0.07 * wireR * vignette * verticalFade;
-  col.g = 0.09 * wireG * vignette * verticalFade;
-  col.b = 0.15 * wireB * vignette * verticalFade;
+  col.r = 0.18 * wireR * vignette * verticalFade;
+  col.g = 0.18 * wireG * vignette * verticalFade;
+  col.b = 0.18 * wireB * vignette * verticalFade;
+
+  // 隔离光晕环：网格边界处柔和发光，圈住网格区域
+  float r = length(sc);
+  float ring = smoothstep(0.28, 0.34, r) * (1.0 - smoothstep(0.34, 0.5, r));
+  float yFade2 = 1.0 - smoothstep(0.2, 0.4, abs(sc.y));
+  col += vec3(0.08) * ring * yFade2;
 
   gl_FragColor = vec4(col, 1.0);
 }
