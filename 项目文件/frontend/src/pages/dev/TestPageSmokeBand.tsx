@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import styles from './TestPageSmokeBand.module.css';
 
-const RING_COUNT = 28;
-const PARTICLES_PER_RING = 280;
-const TOTAL = RING_COUNT * PARTICLES_PER_RING;
+const STREAM_COUNT = 65;
+const PARTICLES_PER_STREAM = 350;
+const TOTAL = STREAM_COUNT * PARTICLES_PER_STREAM;
 
 function hash1d(n: number): number {
   const s = Math.sin(n * 12.9898) * 43758.5453;
@@ -19,19 +19,20 @@ function noise1d(x: number): number {
   return a * (1 - s) + b * s;
 }
 
-interface Ring {
-  radiusX: number;
-  radiusY: number;
-  speed: number;
+interface Stream {
+  baseY: number;
+  amp: number;
+  freq: number;
   phase: number;
+  brightness: number;
+  speed: number;
 }
 
 interface Particle {
-  ringIdx: number;
-  angle: number;
-  angularVel: number;
-  brightness: number;
+  streamIdx: number;
+  x: number;
   size: number;
+  brightness: number;
   twinkle: number;
 }
 
@@ -135,29 +136,33 @@ export default function SmokeBandAnimationSection() {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    const rings: Ring[] = [];
-    for (let i = 0; i < RING_COUNT; i++) {
-      const t = (i + 0.5) / RING_COUNT;
-      const gap = noise1d(t * 6.0) > 0.72 ? 0.0 : 1.0;
-      const rx = 0.2 + t * 1.1 + (hash1d(i * 3.1) - 0.5) * 0.03;
-      rings.push({
-        radiusX: rx * gap,
-        radiusY: rx * 0.1,
-        speed: 0.08 / Math.sqrt(rx + 0.3) * (hash1d(i * 7.7) > 0.5 ? 1 : -1),
-        phase: hash1d(i * 5.5) * Math.PI * 2,
+    const streams: Stream[] = [];
+    for (let i = 0; i < STREAM_COUNT; i++) {
+      const t = i / STREAM_COUNT;
+      const layer = hash1d(i * 3.3);
+      const brightness = layer > 0.75
+        ? 0.35 + hash1d(i * 4.1) * 0.20
+        : layer > 0.4
+          ? 0.15 + hash1d(i * 4.1) * 0.10
+          : 0.06 + hash1d(i * 4.1) * 0.06;
+      streams.push({
+        baseY: -0.25 + t * 0.5 + (hash1d(i * 7.7) - 0.5) * 0.03,
+        amp: 0.012 + hash1d(i * 9.2) * 0.028,
+        freq: 2.0 + hash1d(i * 11.5) * 6.0,
+        phase: hash1d(i * 5.5) * 100.0,
+        brightness,
+        speed: 0.03 + hash1d(i * 2.7) * 0.04,
       });
     }
 
     const particles: Particle[] = [];
     for (let i = 0; i < TOTAL; i++) {
-      const ri = i % RING_COUNT;
-      const isBright = hash1d(i * 13.7) > 0.88;
+      const isBright = hash1d(i * 13.7) > 0.85;
       particles.push({
-        ringIdx: ri,
-        angle: hash1d(i * 2.3) * Math.PI * 2,
-        angularVel: 0.8 + hash1d(i * 9.1) * 0.4,
-        brightness: isBright ? 0.25 + hash1d(i * 4.4) * 0.15 : 0.06 + hash1d(i * 4.4) * 0.06,
-        size: isBright ? 2.5 + hash1d(i * 6.6) * 2.0 : 1.0 + hash1d(i * 6.6) * 1.2,
+        streamIdx: i % STREAM_COUNT,
+        x: Math.random() * 2.4 - 1.2,
+        size: isBright ? 2.5 + hash1d(i * 6.6) * 2.5 : 1.2 + hash1d(i * 6.6) * 1.3,
+        brightness: isBright ? 1.5 : 1.0,
         twinkle: hash1d(i * 8.2) * Math.PI * 2,
       });
     }
@@ -165,21 +170,20 @@ export default function SmokeBandAnimationSection() {
     function update(dt: number, t: number): void {
       for (let i = 0; i < TOTAL; i++) {
         const p = particles[i]!;
-        const ring = rings[p.ringIdx]!;
+        const stream = streams[p.streamIdx]!;
 
-        p.angle += ring.speed * p.angularVel * dt;
+        p.x += stream.speed * dt;
+        if (p.x > 1.2) p.x -= 2.4;
 
-        const ca = Math.cos(p.angle + ring.phase);
-        const sa = Math.sin(p.angle + ring.phase);
-        const x = ring.radiusX * ca;
-        const y = ring.radiusY * sa;
+        const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
+        const y = stream.baseY + waveY;
 
-        const density = noise1d(p.angle * 3.0 + ring.phase + t * 0.05);
-        const twinkle = 0.7 + 0.3 * Math.sin(t * 2.0 + p.twinkle);
-        const alpha = p.brightness * density * twinkle;
+        const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
+        const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
+        const alpha = stream.brightness * p.brightness * density * twinkle;
 
         const idx = i * 4;
-        data[idx] = x;
+        data[idx] = p.x;
         data[idx + 1] = y;
         data[idx + 2] = p.size;
         data[idx + 3] = alpha;
@@ -205,7 +209,7 @@ export default function SmokeBandAnimationSection() {
     }
     rafRef.current = requestAnimationFrame(frame);
 
-    console.log('[WebGL] star ring system active, particles:', TOTAL, 'rings:', RING_COUNT);
+    console.log('[WebGL] silk stream system active, particles:', TOTAL, 'streams:', STREAM_COUNT);
 
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
