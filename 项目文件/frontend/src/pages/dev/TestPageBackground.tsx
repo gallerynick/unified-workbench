@@ -7,59 +7,37 @@ varying vec2 v_uv;
 uniform float u_time;
 uniform vec2 u_res;
 
-float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
-
-float noise2(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  float a = hash(i);
-  float b = hash(i + vec2(1.0, 0.0));
-  float c = hash(i + vec2(0.0, 1.0));
-  float d = hash(i + vec2(1.0, 1.0));
-  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-}
-
-float gridWire(vec2 sc, float flow, float edgeFactor, float t) {
-  float r2 = sc.x * sc.x + sc.y * sc.y;
-  float k = 1.5;
-  float scale = 1.0 / (1.0 + k * r2);
-  float fx = sc.x * scale + flow;
-  float fy = sc.y * scale + flow * 0.5;
-  float nx = noise2(sc * 4.0 + vec2(0.0, t * 0.02));
-  float ny = noise2(sc * 4.0 + vec2(t * 0.02, 100.0));
-  fx += (nx - 0.5) * 0.015 * edgeFactor;
-  fy += (ny - 0.5) * 0.015 * edgeFactor;
-  float freq2 = 16.0;
-  return smoothstep(0.035, 0.005, min(abs(fract(fx * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
-}
-
 void main() {
   vec2 uv = v_uv;
   uv.x *= u_res.x / u_res.y;
   vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
   vec2 sc = uv - center;
 
-  float flow = sin(mod(u_time * 0.05, 6.28318)) * 0.2;
   float r2 = sc.x * sc.x + sc.y * sc.y;
-  float edgeFactor = smoothstep(0.05, 0.4, r2);
 
-  // 透镜色散：径向偏移 screen 坐标后重新计算网格
-  float ca = smoothstep(0.1, 0.5, r2) * 0.015;
-  vec2 dir = normalize(sc + vec2(0.001));
+  // 稳定流动：有界 sin 振荡，无累积误差，无跳变
+  float flow = sin(u_time * 0.3) * 0.12;
 
-  float wireR = gridWire(sc + dir * ca, flow, edgeFactor, u_time);
-  float wireG = gridWire(sc, flow, edgeFactor, u_time);
-  float wireB = gridWire(sc - dir * ca, flow, edgeFactor, u_time);
+  // 凹面缩放：恒正，无符号翻转，中心强、边缘弱
+  float k = 2.5;
+  float scale = 1.0 / (1.0 + k * r2);
+  vec2 sc2 = sc * scale;
 
-  float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
+  float fx = sc2.x + flow;
+  float fy = sc2.y + flow * 0.5;
+
+  // 单层密集网格
+  float freq = 20.0;
+  float dX = abs(fract(fx * freq) - 0.5);
+  float dY = abs(fract(fy * freq) - 0.5);
+  float wire = smoothstep(0.03, 0.005, min(dX, dY));
 
   vec3 col = vec3(0.0);
-  col.r = 0.35 * wireR * vignette;
-  col.g = 0.35 * wireG * vignette;
-  col.b = 0.35 * wireB * vignette;
+  col += vec3(0.35) * wire;
+
+  // 全屏暗角：边缘大幅变暗
+  float vig = 1.0 - smoothstep(0.25, 0.7, r2);
+  col *= vig;
 
   gl_FragColor = vec4(col, 1.0);
 }
