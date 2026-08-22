@@ -22,6 +22,20 @@ float noise2(vec2 p) {
   return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
+float gridWire(vec2 sc, float flow, float edgeFactor, float t) {
+  float r2 = sc.x * sc.x + sc.y * sc.y;
+  float k = 1.5;
+  float scale = 1.0 / (1.0 + k * r2);
+  float fx = sc.x * scale + flow;
+  float fy = sc.y * scale + flow * 0.5;
+  float nx = noise2(sc * 4.0 + vec2(0.0, t * 0.02));
+  float ny = noise2(sc * 4.0 + vec2(t * 0.02, 100.0));
+  fx += (nx - 0.5) * 0.015 * edgeFactor;
+  fy += (ny - 0.5) * 0.015 * edgeFactor;
+  float freq2 = 16.0;
+  return smoothstep(0.035, 0.005, min(abs(fract(fx * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
+}
+
 void main() {
   vec2 uv = v_uv;
   uv.x *= u_res.x / u_res.y;
@@ -29,34 +43,23 @@ void main() {
   vec2 sc = uv - center;
 
   float flow = sin(mod(u_time * 0.05, 6.28318)) * 0.2;
-
   float r2 = sc.x * sc.x + sc.y * sc.y;
-  float k = 1.5;
-  float scale = 1.0 / (1.0 + k * r2);
-  float fx = sc.x * scale + flow;
-  float fy = sc.y * scale + flow * 0.5;
-
-  // 失真：仅边缘生效
   float edgeFactor = smoothstep(0.05, 0.4, r2);
-  float nx = noise2(sc * 4.0 + vec2(0.0, u_time * 0.02));
-  float ny = noise2(sc * 4.0 + vec2(u_time * 0.02, 100.0));
-  fx += (nx - 0.5) * 0.015 * edgeFactor;
-  fy += (ny - 0.5) * 0.015 * edgeFactor;
 
-  // 色散：边缘 RGB 通道偏移
-  float ca = smoothstep(0.2, 0.7, r2) * 0.005;
-  float freq2 = 16.0;
+  // 透镜色散：径向偏移 screen 坐标后重新计算网格
+  float ca = smoothstep(0.15, 0.6, r2) * 0.008;
+  vec2 dir = normalize(sc + vec2(0.001));
 
-  float wireR = smoothstep(0.035, 0.005, min(abs(fract((fx + ca) * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
-  float wireG = smoothstep(0.035, 0.005, min(abs(fract(fx * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
-  float wireB = smoothstep(0.035, 0.005, min(abs(fract((fx - ca) * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
+  float wireR = gridWire(sc + dir * ca, flow, edgeFactor, u_time);
+  float wireG = gridWire(sc, flow, edgeFactor, u_time);
+  float wireB = gridWire(sc - dir * ca, flow, edgeFactor, u_time);
 
   float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
 
   vec3 col = vec3(0.0);
-  col.r += 0.35 * wireR * vignette;
-  col.g += 0.35 * wireG * vignette;
-  col.b += 0.35 * wireB * vignette;
+  col.r = 0.35 * wireR * vignette;
+  col.g = 0.35 * wireG * vignette;
+  col.b = 0.35 * wireB * vignette;
 
   gl_FragColor = vec4(col, 1.0);
 }
