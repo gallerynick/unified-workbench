@@ -220,14 +220,14 @@ export default function ConvergenceAnimationSection() {
     canvas.addEventListener('mouseleave', onLeave);
 
     const CONVERGE_TIME = 0.2;
-    const SPRING_STRENGTH = 6.0;
+    const SPRING_STRENGTH = 8.0;
     const DAMPING = 0.92;
 
     function update(dt: number, t: number): void {
       const raw = Math.min(1, Math.max(0, (t - CONVERGE_TIME) / 0.2));
       const convergeWeight = raw < 0.5
-        ? 0.5 * Math.pow(2 * raw, 1.8)
-        : 1 - 0.5 * Math.pow(2 * (1 - raw), 0.6);
+        ? 0.5 * Math.pow(2 * raw, 2.0)
+        : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
 
       const mr = 0.2;
       const mr2 = mr * mr;
