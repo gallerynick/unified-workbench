@@ -36,21 +36,27 @@ void main() {
   float fx = sc.x * scale + flow;
   float fy = sc.y * scale + flow * 0.5;
 
-  // 失真：noise 给网格坐标加微小偏移
+  // 失真：仅边缘生效
+  float edgeFactor = smoothstep(0.05, 0.4, r2);
   float nx = noise2(sc * 4.0 + vec2(0.0, u_time * 0.02));
   float ny = noise2(sc * 4.0 + vec2(u_time * 0.02, 100.0));
-  fx += (nx - 0.5) * 0.015;
-  fy += (ny - 0.5) * 0.015;
+  fx += (nx - 0.5) * 0.015 * edgeFactor;
+  fy += (ny - 0.5) * 0.015 * edgeFactor;
 
+  // 色散：边缘 RGB 通道偏移
+  float ca = smoothstep(0.2, 0.7, r2) * 0.015;
   float freq2 = 16.0;
-  float dX2 = abs(fract(fx * freq2) - 0.5);
-  float dY2 = abs(fract(fy * freq2) - 0.5);
-  float wire2 = smoothstep(0.035, 0.005, min(dX2, dY2));
+
+  float wireR = smoothstep(0.035, 0.005, min(abs(fract((fx + ca) * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
+  float wireG = smoothstep(0.035, 0.005, min(abs(fract(fx * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
+  float wireB = smoothstep(0.035, 0.005, min(abs(fract((fx - ca) * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
 
   float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
 
   vec3 col = vec3(0.0);
-  col += vec3(0.35) * wire2 * vignette;
+  col.r += 0.35 * wireR * vignette;
+  col.g += 0.35 * wireG * vignette;
+  col.b += 0.35 * wireB * vignette;
 
   gl_FragColor = vec4(col, 1.0);
 }
