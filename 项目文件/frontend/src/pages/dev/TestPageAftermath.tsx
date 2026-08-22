@@ -75,6 +75,7 @@ precision highp float;
 varying vec2 v_uv;
 uniform float u_time;
 uniform vec2 u_res;
+uniform float u_darken;
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -129,6 +130,8 @@ void main() {
   col.r = 0.35 * wireR * vignette * bandDarken;
   col.g = 0.35 * wireG * vignette * bandDarken;
   col.b = 0.35 * wireB * vignette * bandDarken;
+
+  col *= (1.0 - u_darken * 0.7);
 
   gl_FragColor = vec4(col, 1.0);
 }
@@ -207,6 +210,8 @@ export default function AftermathAnimationSection() {
   const mouseRef = useRef({ x: 0, y: 0, active: false });
   const convergeTriggeredRef = useRef(false);
   const convergeStartTimeRef = useRef(-1);
+  const convergeCompleteRef = useRef(false);
+  const [showArrow, setShowArrow] = useState(false);
 
   const fullText = 'hi，初次见面';
   const [typedText, setTypedText] = useState('');
@@ -261,6 +266,16 @@ export default function AftermathAnimationSection() {
       clearTimeout(convergeTimer);
       clearInterval(cursorTimer);
     };
+  }, []);
+
+  useEffect(() => {
+    const poll = setInterval(() => {
+      if (convergeCompleteRef.current) {
+        clearInterval(poll);
+        setTimeout(() => setShowArrow(true), 2000);
+      }
+    }, 200);
+    return () => clearInterval(poll);
   }, []);
 
   useEffect(() => {
@@ -331,6 +346,7 @@ export default function AftermathAnimationSection() {
 
     const gridUTime = gl.getUniformLocation(gProg, 'u_time');
     const gridURes = gl.getUniformLocation(gProg, 'u_res');
+    const gridUDarken = gl.getUniformLocation(gProg, 'u_darken');
 
     // ── Phase 2 原样复制：粒子缓冲设置 ──
     const aPos = gl.getAttribLocation(pProg, 'a_pos');
@@ -413,6 +429,9 @@ export default function AftermathAnimationSection() {
       const convergeT = convergeStartTimeRef.current > 0 ? t - convergeStartTimeRef.current : -1;
 
       const raw = convergeT >= 0 ? Math.min(1, Math.max(0, convergeT / 1.0)) : 0;
+      if (raw >= 1.0 && !convergeCompleteRef.current) {
+        convergeCompleteRef.current = true;
+      }
       const cw = raw < 0.5
         ? 0.5 * Math.pow(2 * raw, 2.0)
         : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
@@ -486,14 +505,17 @@ export default function AftermathAnimationSection() {
 
       update(dt, now);
 
+      const cT = convergeStartTimeRef.current > 0 ? now - convergeStartTimeRef.current : -1;
+      const darken = cT >= 0 ? Math.min(1, Math.max(0, cT / 1.0)) : 0;
+
       gl!.viewport(0, 0, W, H);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
 
-      // Pass 1: Phase 1 网格凹面背景（原样着色器）
       gl!.disable(gl!.BLEND);
       gl!.useProgram(gProg);
       gl!.uniform2f(gridURes, W, H);
       gl!.uniform1f(gridUTime, now);
+      gl!.uniform1f(gridUDarken, darken);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
       gl!.enableVertexAttribArray(gl!.getAttribLocation(gProg, 'a_pos'));
       gl!.vertexAttribPointer(gl!.getAttribLocation(gProg, 'a_pos'), 2, gl!.FLOAT, false, 0, 0);
@@ -536,6 +558,15 @@ export default function AftermathAnimationSection() {
         <span className={styles.typewriterText}>{typedText}</span>
         {cursorVisible && <span className={styles.cursor} />}
       </div>
+      {showArrow && (
+        <div className={styles.scrollHint}>
+          <div className={styles.chevrons}>
+            <span className={styles.chevron} />
+            <span className={styles.chevron} />
+          </div>
+          <span className={styles.hintText}>开始使用</span>
+        </div>
+      )}
     </section>
   );
 }
