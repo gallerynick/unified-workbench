@@ -247,7 +247,7 @@ export default function AftermathAnimationSection() {
         }
       };
       typeNext();
-    }, 500);
+    }, 1000);
 
     cursorTimer = setInterval(() => {
       setCursorVisible((v) => !v);
@@ -412,7 +412,7 @@ export default function AftermathAnimationSection() {
       }
       const convergeT = convergeStartTimeRef.current > 0 ? t - convergeStartTimeRef.current : -1;
 
-      const raw = convergeT >= 0 ? Math.min(1, Math.max(0, convergeT / 0.2)) : 0;
+      const raw = convergeT >= 0 ? Math.min(1, Math.max(0, convergeT / 1.0)) : 0;
       const cw = raw < 0.5
         ? 0.5 * Math.pow(2 * raw, 2.0)
         : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
