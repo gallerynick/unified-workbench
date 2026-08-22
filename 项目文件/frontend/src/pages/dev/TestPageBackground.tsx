@@ -28,7 +28,8 @@ void main() {
   vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
   vec2 sc = uv - center;
 
-  float flow = fract(u_time * 0.02);
+  // 稳定连续移动（不用fract，避免周期性跳变）
+  float flow = u_time * 0.01;
 
   float D = 2.5;
   float k = 2.0;
@@ -43,23 +44,18 @@ void main() {
   float fx = x + flow;
   float fy = y + flow * 0.5;
 
-  float freq1 = 20.0;
-  float dX1 = abs(fract(fx * freq1) - 0.5);
-  float dY1 = abs(fract(fy * freq1) - 0.5);
-  float wireHV1 = smoothstep(0.016, 0.0, min(dX1, dY1));
-
-  float dD1 = abs(fract((fx + fy) * freq1) - 0.5) * 0.707;
-  float wireD1 = smoothstep(0.018, 0.0, dD1);
-
-  float freq2 = 5.0;
+  // 只保留粗网格（更密集），删除细网格
+  float freq2 = 10.0;
   float dX2 = abs(fract(fx * freq2) - 0.5);
   float dY2 = abs(fract(fy * freq2) - 0.5);
-  float wire2 = smoothstep(0.014, 0.0, min(dX2, dY2));
+  float wire2 = smoothstep(0.012, 0.0, min(dX2, dY2));
+
+  // 边缘渐暗（vignette），隐藏边缘拱起
+  float r2 = sc.x * sc.x + sc.y * sc.y;
+  float vignette = 1.0 - smoothstep(0.05, 0.25, r2);
 
   vec3 col = vec3(0.0);
-  col += vec3(0.42) * wireHV1;
-  col += vec3(0.42) * wireD1;
-  col += vec3(1.0) * wire2;
+  col += vec3(1.0) * wire2 * vignette;
 
   gl_FragColor = vec4(col, 1.0);
 }
