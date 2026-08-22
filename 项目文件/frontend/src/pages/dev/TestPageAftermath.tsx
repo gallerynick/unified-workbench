@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './TestPageAftermath.module.css';
 
 // ── Phase 2 原样复制：常量与工具函数 ──
@@ -145,6 +145,54 @@ export default function AftermathAnimationSection() {
   const rafRef = useRef(0);
   const startTimeRef = useRef(0);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
+
+  const fullText = 'hi，初次见面';
+  const [typedText, setTypedText] = useState('');
+  const [cursorVisible, setCursorVisible] = useState(true);
+
+  useEffect(() => {
+    let typingTimer: ReturnType<typeof setTimeout>;
+    let pauseTimer: ReturnType<typeof setTimeout>;
+    let deletingTimer: ReturnType<typeof setTimeout>;
+    let cursorTimer: ReturnType<typeof setInterval>;
+    let step = 0;
+
+    const startDelay = setTimeout(() => {
+      const typeNext = () => {
+        if (step < fullText.length) {
+          step++;
+          setTypedText(fullText.slice(0, step));
+          typingTimer = setTimeout(typeNext, 150);
+        } else {
+          pauseTimer = setTimeout(() => {
+            const deleteNext = () => {
+              if (step > 0) {
+                step--;
+                setTypedText(fullText.slice(0, step));
+                deletingTimer = setTimeout(deleteNext, 80);
+              } else {
+                setCursorVisible(false);
+              }
+            };
+            deleteNext();
+          }, 2000);
+        }
+      };
+      typeNext();
+    }, 500);
+
+    cursorTimer = setInterval(() => {
+      setCursorVisible((v) => !v);
+    }, 500);
+
+    return () => {
+      clearTimeout(startDelay);
+      clearTimeout(typingTimer);
+      clearTimeout(pauseTimer);
+      clearTimeout(deletingTimer);
+      clearInterval(cursorTimer);
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -386,6 +434,10 @@ export default function AftermathAnimationSection() {
       aria-label="Phase 4 整合：网格凹面背景上叠加丝绸流粒子"
     >
       <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" tabIndex={-1} />
+      <div className={styles.typewriter}>
+        <span className={styles.typewriterText}>{typedText}</span>
+        {cursorVisible && <span className={styles.cursor}>|</span>}
+      </div>
     </section>
   );
 }
