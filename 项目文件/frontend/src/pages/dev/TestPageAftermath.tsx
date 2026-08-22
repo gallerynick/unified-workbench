@@ -61,7 +61,7 @@ const FS_SOURCE = `
     float r = dot(c, c);
     if (r > 0.25) discard;
     float a = v_alpha * smoothstep(0.25, 0.0, r);
-    gl_FragColor = vec4(a, a, a, 1.0);
+    gl_FragColor = vec4(a, a, a, a);
   }
 `;
 
@@ -348,7 +348,7 @@ export default function AftermathAnimationSection() {
 
       // Pass 2: Phase 2 丝绸流粒子（原样着色器，加法混合）叠加在网格上
       gl!.enable(gl!.BLEND);
-      gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE);
+      gl!.blendFunc(gl!.ONE, gl!.ONE_MINUS_SRC_ALPHA);
       gl!.useProgram(pProg);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, buffer);
       gl!.bufferData(gl!.ARRAY_BUFFER, data, gl!.DYNAMIC_DRAW);
