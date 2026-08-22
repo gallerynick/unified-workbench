@@ -28,31 +28,20 @@ void main() {
   vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
   vec2 sc = uv - center;
 
-  // 稳定连续移动（不用fract，避免周期性跳变）
   float flow = u_time * 0.01;
 
-  float D = 2.5;
-  float k = 2.0;
-  float x = sc.x, y = sc.y;
-  for (int i = 0; i < 6; i++) {
-    float r2w = x*x + y*y;
-    if (r2w > 2.0) break;
-    x = sc.x * (D - k * r2w) / D;
-    y = sc.y * (D - k * r2w) / D;
-  }
+  float r2 = sc.x * sc.x + sc.y * sc.y;
+  float k = 3.0;
+  float scale = 1.0 / (1.0 + k * r2);
+  float fx = sc.x * scale + flow;
+  float fy = sc.y * scale + flow * 0.5;
 
-  float fx = x + flow;
-  float fy = y + flow * 0.5;
-
-  // 只保留粗网格（更密集），删除细网格
-  float freq2 = 10.0;
+  float freq2 = 16.0;
   float dX2 = abs(fract(fx * freq2) - 0.5);
   float dY2 = abs(fract(fy * freq2) - 0.5);
-  float wire2 = smoothstep(0.012, 0.0, min(dX2, dY2));
+  float wire2 = smoothstep(0.010, 0.0, min(dX2, dY2));
 
-  // 边缘渐暗（vignette），隐藏边缘拱起
-  float r2 = sc.x * sc.x + sc.y * sc.y;
-  float vignette = 1.0 - smoothstep(0.05, 0.25, r2);
+  float vignette = 1.0 - smoothstep(0.25, 0.7, r2);
 
   vec3 col = vec3(0.0);
   col += vec3(1.0) * wire2 * vignette;
