@@ -32,18 +32,10 @@ void main() {
 
   float flow = fract(u_time * 0.02);
 
-  // ── Inverse projection: screen → param on bowl, concave ──
-  float D = 3.0;
-  float k = 2.0;
-  float x = sc.x, y = sc.y;
-  for (int i = 0; i < 6; i++) {
-    float zz = k * (x*x + y*y);
-    x = sc.x * (D - zz) / D;
-    y = sc.y * (D - zz) / D;
-  }
-
-  float fx = x + flow;
-  float fy = y + flow * 0.5;
+  // ── Concave distortion: fx = sc * (1 + k*r2), grid lines pulled toward center ──
+  float k = 1.2;
+  float fx = sc.x * (1.0 + k * r2) + flow;
+  float fy = sc.y * (1.0 + k * r2) + flow * 0.5;
 
   float freq1 = 20.0;
   float dX1 = abs(fract(fx * freq1) - 0.5);
