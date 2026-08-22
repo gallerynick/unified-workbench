@@ -63,7 +63,7 @@ const FADE_VS = `
 const FADE_FS = `
   precision highp float;
   void main() {
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.085);
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.05);
   }
 `;
 
