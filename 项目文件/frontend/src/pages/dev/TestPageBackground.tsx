@@ -44,7 +44,7 @@ void main() {
   fy += (ny - 0.5) * 0.015 * edgeFactor;
 
   // 色散：边缘 RGB 通道偏移
-  float ca = smoothstep(0.2, 0.7, r2) * 0.015;
+  float ca = smoothstep(0.2, 0.7, r2) * 0.005;
   float freq2 = 16.0;
 
   float wireR = smoothstep(0.035, 0.005, min(abs(fract((fx + ca) * freq2) - 0.5), abs(fract(fy * freq2) - 0.5)));
