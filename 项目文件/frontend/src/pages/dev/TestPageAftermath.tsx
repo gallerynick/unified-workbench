@@ -292,7 +292,7 @@ export default function AftermathAnimationSection() {
       const dx = e.clientX - cx;
       const dy = e.clientY - cy;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const maxDist = 300;
+      const maxDist = 120;
       const glow = Math.max(0, 1 - dist / maxDist);
       setHintGlow(glow);
     };
