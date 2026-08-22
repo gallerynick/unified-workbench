@@ -28,14 +28,26 @@ void main() {
   vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
   vec2 sc = uv - center;
 
-  float r2 = sc.x * sc.x + sc.y * sc.y;
+void main() {
+  vec2 uv = v_uv;
+  uv.x *= u_res.x / u_res.y;
+  vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
+  vec2 sc = uv - center;
 
   float flow = fract(u_time * 0.02);
 
-  // ── Concave distortion: fx = sc * (1 + k*r2), grid lines pulled toward center ──
-  float k = 1.5;
-  float fx = sc.x * (1.0 + k * r2) + flow;
-  float fy = sc.y * (1.0 + k * r2) + flow * 0.5;
+  float D = 2.5;
+  float k = 2.0;
+  float x = sc.x, y = sc.y;
+  for (int i = 0; i < 6; i++) {
+    float r2w = x*x + y*y;
+    if (r2w > 2.0) break;
+    x = sc.x * (D - k * r2w) / D;
+    y = sc.y * (D - k * r2w) / D;
+  }
+
+  float fx = x + flow;
+  float fy = y + flow * 0.5;
 
   float freq1 = 20.0;
   float dX1 = abs(fract(fx * freq1) - 0.5);
@@ -50,18 +62,10 @@ void main() {
   float dY2 = abs(fract(fy * freq2) - 0.5);
   float wire2 = smoothstep(0.014, 0.0, min(dX2, dY2));
 
-  // concave: center dark (deep shadow), edges bright (rim light)
-  float bright = 0.15 + 0.85 * r2;
-
-  float sd = length(sc);
-  float fineFade = smoothstep(0.10, 0.60, sd);
-  fineFade = fineFade * fineFade;
-  float coarseFade = smoothstep(0.08, 0.90, sd);
-
   vec3 col = vec3(0.0);
-  col += vec3(0.42) * wireHV1 * bright * fineFade;
-  col += vec3(0.42) * wireD1 * bright * fineFade;
-  col += vec3(1.0) * wire2 * bright * coarseFade;
+  col += vec3(0.42) * wireHV1;
+  col += vec3(0.42) * wireD1;
+  col += vec3(1.0) * wire2;
 
   gl_FragColor = vec4(col, 1.0);
 }
