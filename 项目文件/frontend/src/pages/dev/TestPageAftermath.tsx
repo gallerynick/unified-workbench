@@ -211,6 +211,7 @@ export default function AftermathAnimationSection() {
   const convergeTriggeredRef = useRef(false);
   const convergeStartTimeRef = useRef(-1);
   const convergeCompleteRef = useRef(false);
+  const darkenRef = useRef(0);
   const [showArrow, setShowArrow] = useState(false);
 
   const fullText = 'hi，初次见面';
@@ -272,7 +273,7 @@ export default function AftermathAnimationSection() {
     const poll = setInterval(() => {
       if (convergeCompleteRef.current) {
         clearInterval(poll);
-        setTimeout(() => setShowArrow(true), 2000);
+        setTimeout(() => setShowArrow(true), 4000);
       }
     }, 200);
     return () => clearInterval(poll);
@@ -436,6 +437,7 @@ export default function AftermathAnimationSection() {
         ? 0.5 * Math.pow(2 * raw, 2.0)
         : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
       const sw = 1 - cw;
+      darkenRef.current = cw;
 
       const mr = 0.2;
       const mr2 = mr * mr;
@@ -505,9 +507,6 @@ export default function AftermathAnimationSection() {
 
       update(dt, now);
 
-      const cT = convergeStartTimeRef.current > 0 ? now - convergeStartTimeRef.current : -1;
-      const darken = cT >= 0 ? Math.min(1, Math.max(0, cT / 1.0)) : 0;
-
       gl!.viewport(0, 0, W, H);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
 
@@ -515,7 +514,7 @@ export default function AftermathAnimationSection() {
       gl!.useProgram(gProg);
       gl!.uniform2f(gridURes, W, H);
       gl!.uniform1f(gridUTime, now);
-      gl!.uniform1f(gridUDarken, darken);
+      gl!.uniform1f(gridUDarken, darkenRef.current);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
       gl!.enableVertexAttribArray(gl!.getAttribLocation(gProg, 'a_pos'));
       gl!.vertexAttribPointer(gl!.getAttribLocation(gProg, 'a_pos'), 2, gl!.FLOAT, false, 0, 0);
