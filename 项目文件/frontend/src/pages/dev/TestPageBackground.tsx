@@ -36,10 +36,16 @@ void main() {
   float fx = sc.x * scale + flow;
   float fy = sc.y * scale + flow * 0.5;
 
+  // 失真：noise 给网格坐标加微小偏移
+  float nx = noise2(sc * 4.0 + vec2(0.0, u_time * 0.02));
+  float ny = noise2(sc * 4.0 + vec2(u_time * 0.02, 100.0));
+  fx += (nx - 0.5) * 0.03;
+  fy += (ny - 0.5) * 0.03;
+
   float freq2 = 16.0;
   float dX2 = abs(fract(fx * freq2) - 0.5);
   float dY2 = abs(fract(fy * freq2) - 0.5);
-  float wire2 = smoothstep(0.025, 0.0, min(dX2, dY2));
+  float wire2 = smoothstep(0.035, 0.005, min(dX2, dY2));
 
   float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
 
