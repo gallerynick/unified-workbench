@@ -207,15 +207,15 @@ export default function SmokeBandAnimationSection() {
           const d2 = dx * dx + dy * dy;
           if (d2 < mr2 && d2 > 0.0001) {
             const d = Math.sqrt(d2);
-            const force = (1 - d / mr) * 0.015;
+            const force = (1 - d / mr) * 0.005;
             p.vx += (dx / d) * force;
             p.vy += (dy / d) * force;
           }
         }
 
-        p.vy += (targetY - p.y) * 3.0 * dt;
-        p.vx *= 0.92;
-        p.vy *= 0.92;
+        p.vy += (targetY - p.y) * 1.2 * dt;
+        p.vx *= 0.95;
+        p.vy *= 0.95;
         p.x += p.vx;
         p.y += p.vy;
 
