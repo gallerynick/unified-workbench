@@ -317,9 +317,6 @@ export default function AftermathAnimationSection() {
         p.vy += (targetY - p.y) * 2.0 * dt;
         p.vy *= 0.93;
         p.y += p.vy * dt;
-        if (expandFactor > 0) {
-          p.y += (targetY - p.y) * expandFactor * 0.15;
-        }
 
         const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
         const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
