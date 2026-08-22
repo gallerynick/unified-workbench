@@ -69,6 +69,7 @@ function sampleTextParticles(count: number): Array<{ x: number; y: number }> {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';
+  ctx.letterSpacing = '4px';
   ctx.fillText('UNIFIED', tw / 2, th / 2 - fontSize * 0.6);
   ctx.fillText('WORKBENCH', tw / 2, th / 2 + fontSize * 0.5);
 
@@ -218,12 +219,12 @@ export default function ConvergenceAnimationSection() {
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseleave', onLeave);
 
-    const CONVERGE_TIME = 0.5;
-    const SPRING_STRENGTH = 3.0;
+    const CONVERGE_TIME = 0.3;
+    const SPRING_STRENGTH = 5.0;
     const DAMPING = 0.92;
 
     function update(dt: number, t: number): void {
-      const convergeWeight = Math.min(1, Math.max(0, (t - CONVERGE_TIME) / 0.5));
+      const convergeWeight = Math.min(1, Math.max(0, (t - CONVERGE_TIME) / 0.25));
 
       const mr = 0.2;
       const mr2 = mr * mr;
