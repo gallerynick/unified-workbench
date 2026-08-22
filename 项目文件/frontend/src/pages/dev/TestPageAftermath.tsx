@@ -34,7 +34,10 @@ interface Particle {
   streamIdx: number;
   x: number;
   y: number;
+  vx: number;
   vy: number;
+  targetX: number;
+  targetY: number;
   size: number;
   brightness: number;
   twinkle: number;
@@ -140,11 +143,70 @@ const GRID_VS = `
   }
 `;
 
+function sampleTextParticles(count: number): Array<{ x: number; y: number }> {
+  const offscreen = document.createElement('canvas');
+  const tw = 400;
+  const th = 160;
+  offscreen.width = tw;
+  offscreen.height = th;
+  const ctx = offscreen.getContext('2d');
+  if (!ctx) return [];
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, tw, th);
+
+  const fontSize = 48;
+  ctx.font = `bold ${fontSize}px "Inter", "SF Pro Display", -apple-system, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.letterSpacing = '2px';
+  ctx.fillText('UNIFIED', tw / 2, th / 2 - fontSize * 0.6);
+  ctx.fillText('WORKBENCH', tw / 2, th / 2 + fontSize * 0.5);
+
+  const imageData = ctx.getImageData(0, 0, tw, th);
+  const pixels: Array<{ x: number; y: number }> = [];
+  const pxData = imageData.data;
+
+  for (let y = 0; y < th; y++) {
+    for (let x = 0; x < tw; x++) {
+      const idx = (y * tw + x) * 4;
+      if (pxData[idx]! > 128) {
+        const cx = (x / tw) * 2 - 1;
+        const cy = -((y / th) * 2 - 1);
+        pixels.push({ x: cx, y: cy });
+      }
+    }
+  }
+
+  if (pixels.length === 0) {
+    const fallback: Array<{ x: number; y: number }> = [];
+    const w = Math.ceil(Math.sqrt(count));
+    for (let i = 0; i < count; i++) {
+      const col = i % w;
+      const row = Math.floor(i / w);
+      fallback.push({
+        x: (col / w) * 1.2 - 0.6,
+        y: (row / (count / w)) * 0.8 - 0.4,
+      });
+    }
+    return fallback;
+  }
+
+  const result: Array<{ x: number; y: number }> = [];
+  for (let i = 0; i < count; i++) {
+    const idx = Math.floor(Math.random() * pixels.length);
+    result.push({ x: pixels[idx]!.x, y: pixels[idx]!.y });
+  }
+  return result;
+}
+
 export default function AftermathAnimationSection() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
   const startTimeRef = useRef(0);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
+  const convergeTriggeredRef = useRef(false);
+  const convergeStartTimeRef = useRef(-1);
 
   const fullText = 'hi，初次见面';
   const [typedText, setTypedText] = useState('');
@@ -154,6 +216,7 @@ export default function AftermathAnimationSection() {
     let typingTimer: ReturnType<typeof setTimeout>;
     let pauseTimer: ReturnType<typeof setTimeout>;
     let deletingTimer: ReturnType<typeof setTimeout>;
+    let convergeTimer: ReturnType<typeof setTimeout>;
     let cursorTimer: ReturnType<typeof setInterval>;
     let step = 0;
 
@@ -173,10 +236,13 @@ export default function AftermathAnimationSection() {
                 deletingTimer = setTimeout(deleteNext, 80);
               } else {
                 setCursorVisible(false);
+                convergeTimer = setTimeout(() => {
+                  convergeTriggeredRef.current = true;
+                }, 2000);
               }
             };
             deleteNext();
-          }, 2000);
+          }, 3000);
         }
       };
       typeNext();
@@ -191,6 +257,7 @@ export default function AftermathAnimationSection() {
       clearTimeout(typingTimer);
       clearTimeout(pauseTimer);
       clearTimeout(deletingTimer);
+      clearTimeout(convergeTimer);
       clearInterval(cursorTimer);
     };
   }, []);
@@ -304,17 +371,23 @@ export default function AftermathAnimationSection() {
       });
     }
 
+    const targets = sampleTextParticles(TOTAL);
+
     const particles: Particle[] = [];
     for (let i = 0; i < TOTAL; i++) {
       const isBright = hash1d(i * 13.7) > 0.85;
       const si = i % STREAM_COUNT;
       const s = streams[si]!;
       const px = Math.random() * 2.4 - 1.2;
+      const tgt = targets[i]!;
       particles.push({
         streamIdx: si,
         x: px,
         y: s.baseY,
+        vx: 0,
         vy: 0,
+        targetX: tgt.x,
+        targetY: tgt.y,
         size: isBright ? 2.5 + hash1d(i * 6.6) * 2.5 : 1.2 + hash1d(i * 6.6) * 1.3,
         brightness: isBright ? 1.5 : 1.0,
         twinkle: hash1d(i * 8.2) * Math.PI * 2,
@@ -332,50 +405,113 @@ export default function AftermathAnimationSection() {
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseleave', onLeave);
 
-    // ── Phase 2 原样复制：粒子更新逻辑 ──
+    // ── 粒子更新逻辑：丝绸流模式 + 汇聚模式 ──
     function update(dt: number, t: number): void {
+      if (convergeTriggeredRef.current && convergeStartTimeRef.current < 0) {
+        convergeStartTimeRef.current = t;
+      }
+      const convergeT = convergeStartTimeRef.current > 0 ? t - convergeStartTimeRef.current : -1;
+
       const mr = 0.2;
       const mr2 = mr * mr;
       const push = 0.012;
-      for (let i = 0; i < TOTAL; i++) {
-        const p = particles[i]!;
-        const stream = streams[p.streamIdx]!;
 
-        p.x += stream.speed * dt;
-        if (p.x > 1.2) {
-          p.x -= 2.4;
-          p.vy = 0;
-        }
+      if (convergeT < 0) {
+        // ── 丝绸流模式 (Phase 2) ──
+        for (let i = 0; i < TOTAL; i++) {
+          const p = particles[i]!;
+          const stream = streams[p.streamIdx]!;
 
-        const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
-        const xAbs = Math.abs(p.x);
-        const expandFactor = xAbs > 0.72 ? Math.min(1, (xAbs - 0.72) / 0.48) : 0;
-        const targetY = (stream.baseY + waveY) * (1 + expandFactor * 1.5);
-
-        if (mouse.active) {
-          const dx = p.x - mouse.x;
-          const dy = p.y - mouse.y;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < mr2 && d2 > 0.00001) {
-            const d = Math.sqrt(d2);
-            const force = (1 - d / mr) * push;
-            p.vy += (dy / d) * force;
+          p.x += stream.speed * dt;
+          if (p.x > 1.2) {
+            p.x -= 2.4;
+            p.vy = 0;
           }
+
+          const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
+          const xAbs = Math.abs(p.x);
+          const expandFactor = xAbs > 0.72 ? Math.min(1, (xAbs - 0.72) / 0.48) : 0;
+          const targetY = (stream.baseY + waveY) * (1 + expandFactor * 1.5);
+
+          if (mouse.active) {
+            const dx = p.x - mouse.x;
+            const dy = p.y - mouse.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < mr2 && d2 > 0.00001) {
+              const d = Math.sqrt(d2);
+              const force = (1 - d / mr) * push;
+              p.vy += (dy / d) * force;
+            }
+          }
+
+          p.vy += (targetY - p.y) * 2.0 * dt;
+          p.vy *= 0.93;
+          p.y += p.vy * dt;
+
+          const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
+          const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
+          const alpha = stream.brightness * p.brightness * density * twinkle;
+
+          const idx = i * 4;
+          data[idx] = p.x;
+          data[idx + 1] = p.y;
+          data[idx + 2] = p.size;
+          data[idx + 3] = alpha;
         }
+      } else {
+        // ── 汇聚模式 (Phase 3) ──
+        const CONVERGE_TIME = 0.2;
+        const SPRING_STRENGTH = 8.0;
+        const DAMPING = 0.92;
 
-        p.vy += (targetY - p.y) * 2.0 * dt;
-        p.vy *= 0.93;
-        p.y += p.vy * dt;
+        const raw = Math.min(1, Math.max(0, (convergeT - CONVERGE_TIME) / 0.2));
+        const convergeWeight = raw < 0.5
+          ? 0.5 * Math.pow(2 * raw, 2.0)
+          : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
 
-        const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
-        const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
-        const alpha = stream.brightness * p.brightness * density * twinkle;
+        for (let i = 0; i < TOTAL; i++) {
+          const p = particles[i]!;
 
-        const idx = i * 4;
-        data[idx] = p.x;
-        data[idx + 1] = p.y;
-        data[idx + 2] = p.size;
-        data[idx + 3] = alpha;
+          p.vx += (Math.sin(t * 0.3 + p.twinkle) * 0.1) * dt;
+
+          const dx = p.targetX - p.x;
+          const dy = p.targetY - p.y;
+          p.vx += dx * SPRING_STRENGTH * convergeWeight * dt;
+          p.vy += dy * SPRING_STRENGTH * convergeWeight * dt;
+
+          const waveX = (noise1d(p.x * 2.0 + t * 0.15) - 0.5) * 0.02 * convergeWeight;
+          const waveY = (noise1d(p.y * 2.0 + t * 0.12 + 100) - 0.5) * 0.02 * convergeWeight;
+          p.vx += waveX * dt;
+          p.vy += waveY * dt;
+
+          if (mouse.active) {
+            const mx = p.x - mouse.x;
+            const my = p.y - mouse.y;
+            const d2 = mx * mx + my * my;
+            if (d2 < mr2 && d2 > 0.00001) {
+              const d = Math.sqrt(d2);
+              const force = (1 - d / mr) * push;
+              p.vx += (mx / d) * force;
+              p.vy += (my / d) * force;
+            }
+          }
+
+          p.vx *= DAMPING;
+          p.vy *= DAMPING;
+
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+
+          const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
+          const fadeOut = i < 8000 ? 1.0 : Math.max(0, 1.0 - convergeWeight);
+          const alpha = p.brightness * (0.5 + 0.5 * convergeWeight) * twinkle * fadeOut;
+
+          const idx = i * 4;
+          data[idx] = p.x;
+          data[idx + 1] = p.y;
+          data[idx + 2] = p.size;
+          data[idx + 3] = alpha;
+        }
       }
     }
 
