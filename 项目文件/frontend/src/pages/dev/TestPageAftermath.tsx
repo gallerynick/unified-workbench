@@ -120,7 +120,7 @@ void main() {
   float wireB = gridWire(sc - dir * ca, flow, edgeFactor, u_time);
 
   float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
-  float bandDarken = smoothstep(0.15, 0.45, abs(sc.y));
+  float bandDarken = smoothstep(0.10, 0.50, abs(sc.y));
 
   vec3 col = vec3(0.0);
   col.r = 0.35 * wireR * vignette * bandDarken;
