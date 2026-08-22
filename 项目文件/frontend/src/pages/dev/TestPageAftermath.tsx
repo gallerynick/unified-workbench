@@ -124,11 +124,12 @@ void main() {
   float wireB = gridWire(sc - dir * ca, flow, edgeFactor, u_time);
 
   float vignette = 1.0 - smoothstep(0.2, 0.55, r2);
+  float verticalFade = 1.0 - smoothstep(0.25, 0.55, abs(sc.y));
 
   vec3 col = vec3(0.0);
-  col.r = 0.20 * wireR * vignette;
-  col.g = 0.20 * wireG * vignette;
-  col.b = 0.20 * wireB * vignette;
+  col.r = 0.07 * wireR * vignette * verticalFade;
+  col.g = 0.09 * wireG * vignette * verticalFade;
+  col.b = 0.15 * wireB * vignette * verticalFade;
 
   gl_FragColor = vec4(col, 1.0);
 }
