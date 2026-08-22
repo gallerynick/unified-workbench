@@ -581,7 +581,7 @@ export default function AftermathAnimationSection() {
         {cursorVisible && <span className={styles.cursor} />}
       </div>
       {showArrow && (
-        <div className={styles.scrollHint} ref={hintRef} style={{ opacity: 0.4 + hintGlow * 0.6 }}>
+        <div className={styles.scrollHint} ref={hintRef} style={{ opacity: 0.3 + hintGlow * 0.7, filter: `brightness(${1 + hintGlow * 1.5}) drop-shadow(0 0 ${hintGlow * 8}px rgba(255,255,255,${hintGlow * 0.5}))` }}>
           <svg className={styles.arrowSvg} width="14" height="22" viewBox="0 0 14 22" fill="none" role="img" aria-label="向下滚动">
             <title>向下滚动</title>
             <path d="M2 4 L7 9 L12 4" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
