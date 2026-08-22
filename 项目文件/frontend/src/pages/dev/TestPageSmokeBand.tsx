@@ -31,6 +31,9 @@ interface Stream {
 interface Particle {
   streamIdx: number;
   x: number;
+  y: number;
+  vx: number;
+  vy: number;
   size: number;
   brightness: number;
   twinkle: number;
@@ -64,6 +67,7 @@ export default function SmokeBandAnimationSection() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
   const startTimeRef = useRef(0);
+  const mouseRef = useRef({ x: 0, y: 0, active: false });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -141,10 +145,10 @@ export default function SmokeBandAnimationSection() {
       const t = i / STREAM_COUNT;
       const layer = hash1d(i * 3.3);
       const brightness = layer > 0.75
-        ? 0.35 + hash1d(i * 4.1) * 0.20
+        ? 0.55 + hash1d(i * 4.1) * 0.30
         : layer > 0.4
-          ? 0.15 + hash1d(i * 4.1) * 0.10
-          : 0.06 + hash1d(i * 4.1) * 0.06;
+          ? 0.25 + hash1d(i * 4.1) * 0.15
+          : 0.12 + hash1d(i * 4.1) * 0.08;
       streams.push({
         baseY: -0.25 + t * 0.5 + (hash1d(i * 7.7) - 0.5) * 0.03,
         amp: 0.012 + hash1d(i * 9.2) * 0.028,
@@ -158,16 +162,35 @@ export default function SmokeBandAnimationSection() {
     const particles: Particle[] = [];
     for (let i = 0; i < TOTAL; i++) {
       const isBright = hash1d(i * 13.7) > 0.85;
+      const si = i % STREAM_COUNT;
+      const stream = streams[si]!;
+      const px = Math.random() * 2.4 - 1.2;
+      const waveY = (noise1d(px * stream.freq + stream.phase) - 0.5) * stream.amp * 2;
       particles.push({
-        streamIdx: i % STREAM_COUNT,
-        x: Math.random() * 2.4 - 1.2,
+        streamIdx: si,
+        x: px,
+        y: stream.baseY + waveY,
+        vx: 0,
+        vy: 0,
         size: isBright ? 2.5 + hash1d(i * 6.6) * 2.5 : 1.2 + hash1d(i * 6.6) * 1.3,
         brightness: isBright ? 1.5 : 1.0,
         twinkle: hash1d(i * 8.2) * Math.PI * 2,
       });
     }
 
+    const mouse = mouseRef.current;
+    const onMove = (e: MouseEvent) => {
+      mouse.x = (e.clientX / W) * 2 - 1;
+      mouse.y = -((e.clientY / H) * 2 - 1);
+      mouse.active = true;
+    };
+    const onLeave = () => { mouse.active = false; };
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseleave', onLeave);
+
     function update(dt: number, t: number): void {
+      const mr = 0.18;
+      const mr2 = mr * mr;
       for (let i = 0; i < TOTAL; i++) {
         const p = particles[i]!;
         const stream = streams[p.streamIdx]!;
@@ -176,7 +199,25 @@ export default function SmokeBandAnimationSection() {
         if (p.x > 1.2) p.x -= 2.4;
 
         const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
-        const y = stream.baseY + waveY;
+        const targetY = stream.baseY + waveY;
+
+        if (mouse.active) {
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < mr2 && d2 > 0.0001) {
+            const d = Math.sqrt(d2);
+            const force = (1 - d / mr) * 0.015;
+            p.vx += (dx / d) * force;
+            p.vy += (dy / d) * force;
+          }
+        }
+
+        p.vy += (targetY - p.y) * 3.0 * dt;
+        p.vx *= 0.92;
+        p.vy *= 0.92;
+        p.x += p.vx;
+        p.y += p.vy;
 
         const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
         const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
@@ -184,7 +225,7 @@ export default function SmokeBandAnimationSection() {
 
         const idx = i * 4;
         data[idx] = p.x;
-        data[idx + 1] = y;
+        data[idx + 1] = p.y;
         data[idx + 2] = p.size;
         data[idx + 3] = alpha;
       }
@@ -211,7 +252,11 @@ export default function SmokeBandAnimationSection() {
 
     console.log('[WebGL] silk stream system active, particles:', TOTAL, 'streams:', STREAM_COUNT);
 
-    return () => cancelAnimationFrame(rafRef.current);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      canvas.removeEventListener('mousemove', onMove);
+      canvas.removeEventListener('mouseleave', onLeave);
+    };
   }, []);
 
   return (
