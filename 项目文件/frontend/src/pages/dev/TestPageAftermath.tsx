@@ -1,8 +1,6 @@
 import { useEffect, useRef } from 'react';
 import styles from './TestPageAftermath.module.css';
 
-// ── Phase 4: 三层整合 — 网格凹面背景 + 丝绸流粒子 → 汇聚文字 ──
-
 const STREAM_COUNT = 65;
 const PARTICLES_PER_STREAM = 350;
 const TOTAL = STREAM_COUNT * PARTICLES_PER_STREAM;
@@ -14,7 +12,7 @@ const CONVERGE_DURATION = 2.0;
 const FADE_START = CONVERGE_START + CONVERGE_DURATION;
 const FADE_DURATION = 2.0;
 
-// ── 工具函数 ──
+// ── Phase 2/3 原样复制：工具函数 ──
 function hash1d(n: number): number {
   const s = Math.sin(n * 12.9898) * 43758.5453;
   return s - Math.floor(s);
@@ -29,7 +27,6 @@ function noise1d(x: number): number {
   return a * (1 - s) + b * s;
 }
 
-// ── 数据接口 ──
 interface Stream {
   baseY: number;
   amp: number;
@@ -52,13 +49,12 @@ interface Particle {
   twinkle: number;
 }
 
-// ── 网格凹面背景着色器（Phase 1 确认版本 100% 复制） ──
+// ── Phase 1 确认版着色器（100% 原样复制，不含任何淡出修改） ──
 const GRID_FS = `
 precision highp float;
 varying vec2 v_uv;
 uniform float u_time;
 uniform vec2 u_res;
-uniform float u_gridAlpha;
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -99,7 +95,6 @@ void main() {
   float r2 = sc.x * sc.x + sc.y * sc.y;
   float edgeFactor = smoothstep(0.05, 0.4, r2);
 
-  // 透镜色散：径向偏移 screen 坐标后重新计算网格
   float ca = smoothstep(0.1, 0.5, r2) * 0.015;
   vec2 dir = normalize(sc + vec2(0.001));
 
@@ -110,15 +105,15 @@ void main() {
   float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
 
   vec3 col = vec3(0.0);
-  col.r = 0.35 * wireR * vignette * u_gridAlpha;
-  col.g = 0.35 * wireG * vignette * u_gridAlpha;
-  col.b = 0.35 * wireB * vignette * u_gridAlpha;
+  col.r = 0.35 * wireR * vignette;
+  col.g = 0.35 * wireG * vignette;
+  col.b = 0.35 * wireB * vignette;
 
   gl_FragColor = vec4(col, 1.0);
 }
 `;
 
-// ── 粒子着色器（Phase 2/3 100% 复制） ──
+// ── Phase 2/3 原样复制：粒子着色器 ──
 const VS_SOURCE = `
   attribute vec2 a_pos;
   attribute float a_size;
@@ -143,6 +138,16 @@ const FS_SOURCE = `
   }
 `;
 
+// ── 整合层新增：全屏覆盖通道（用于 Phase 1/2 淡出，不改动任何 Phase 源码） ──
+const OVERLAY_FS = `
+precision highp float;
+uniform float u_alpha;
+void main() {
+  gl_FragColor = vec4(0.0, 0.0, 0.0, u_alpha);
+}
+`;
+
+// ── Phase 3 原样复制：文字像素采样 ──
 function sampleTextParticles(count: number): Array<{ x: number; y: number }> {
   const offscreen = document.createElement('canvas');
   const tw = 400;
@@ -239,8 +244,24 @@ export default function AftermathAnimationSection() {
       return s;
     }
 
-    // ── 网格着色器程序 ──
-    const GRID_VS = `
+    function linkProgram(vsSrc: string, fsSrc: string): WebGLProgram | null {
+      const vs = compile(gl!.VERTEX_SHADER, vsSrc);
+      const fs = compile(gl!.FRAGMENT_SHADER, fsSrc);
+      if (!vs || !fs) return null;
+      const prog = gl!.createProgram();
+      if (!prog) return null;
+      gl!.attachShader(prog, vs);
+      gl!.attachShader(prog, fs);
+      gl!.linkProgram(prog);
+      if (!gl!.getProgramParameter(prog, gl!.LINK_STATUS)) {
+        console.error('[WebGL] link:', gl!.getProgramInfoLog(prog));
+        gl!.deleteProgram(prog);
+        return null;
+      }
+      return prog;
+    }
+
+    const VS_QUAD = `
       attribute vec2 a_pos;
       varying vec2 v_uv;
       void main() {
@@ -249,55 +270,30 @@ export default function AftermathAnimationSection() {
       }
     `;
 
-    const gridVs = compile(gl.VERTEX_SHADER, GRID_VS);
-    const gridFs = compile(gl.FRAGMENT_SHADER, GRID_FS);
-    if (!gridVs || !gridFs) return;
+    const gridProg = linkProgram(VS_QUAD, GRID_FS);
+    const particleProg = linkProgram(VS_SOURCE, FS_SOURCE);
+    const overlayProg = linkProgram(VS_QUAD, OVERLAY_FS);
+    if (!gridProg || !particleProg || !overlayProg) return;
 
-    const gridProg = gl.createProgram();
-    if (!gridProg) return;
-    gl.attachShader(gridProg, gridVs);
-    gl.attachShader(gridProg, gridFs);
-    gl.linkProgram(gridProg);
-    if (!gl.getProgramParameter(gridProg, gl.LINK_STATUS)) {
-      console.error('[WebGL] grid link:', gl.getProgramInfoLog(gridProg));
-      return;
-    }
+    const gProg: WebGLProgram = gridProg;
+    const pProg: WebGLProgram = particleProg;
+    const oProg: WebGLProgram = overlayProg;
 
-    const gridBuf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
+    const quadBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-
-    const gridAPos = gl.getAttribLocation(gridProg, 'a_pos');
-    gl.enableVertexAttribArray(gridAPos);
-    gl.vertexAttribPointer(gridAPos, 2, gl.FLOAT, false, 0, 0);
 
     const gridUTime = gl.getUniformLocation(gridProg, 'u_time');
     const gridURes = gl.getUniformLocation(gridProg, 'u_res');
-    const gridUAlpha = gl.getUniformLocation(gridProg, 'u_gridAlpha');
+    const overlayUAlpha = gl.getUniformLocation(overlayProg, 'u_alpha');
     gl.uniform2f(gridURes, W, H);
 
-    // ── 粒子着色器程序 ──
-    const vs = compile(gl.VERTEX_SHADER, VS_SOURCE);
-    const fs = compile(gl.FRAGMENT_SHADER, FS_SOURCE);
-    if (!vs || !fs) return;
-
-    const prog = gl.createProgram();
-    if (!prog) return;
-    gl.attachShader(prog, vs);
-    gl.attachShader(prog, fs);
-    gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      console.error('[WebGL] link:', gl.getProgramInfoLog(prog));
-      return;
-    }
-
-    const aPos = gl.getAttribLocation(prog, 'a_pos');
-    const aSize = gl.getAttribLocation(prog, 'a_size');
-    const aAlpha = gl.getAttribLocation(prog, 'a_alpha');
+    const aPos = gl.getAttribLocation(particleProg, 'a_pos');
+    const aSize = gl.getAttribLocation(particleProg, 'a_size');
+    const aAlpha = gl.getAttribLocation(particleProg, 'a_alpha');
 
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-
     const data = new Float32Array(TOTAL * 4);
 
     gl.enableVertexAttribArray(aPos);
@@ -311,7 +307,7 @@ export default function AftermathAnimationSection() {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    // ── 创建丝绸带流（Phase 2 风格） ──
+    // ── Phase 2 原样复制：丝绸带流创建 ──
     const streams: Stream[] = [];
     for (let i = 0; i < STREAM_COUNT; i++) {
       const t = i / STREAM_COUNT;
@@ -367,7 +363,6 @@ export default function AftermathAnimationSection() {
     const DAMPING = 0.92;
 
     function update(dt: number, t: number): void {
-      // 汇聚权重（非对称 S 曲线）
       let convergeWeight = 0;
       if (t >= CONVERGE_START) {
         const raw = Math.min(1, Math.max(0, (t - CONVERGE_START) / CONVERGE_DURATION));
@@ -385,7 +380,6 @@ export default function AftermathAnimationSection() {
         const stream = streams[p.streamIdx]!;
 
         if (t < STREAM_END) {
-          // 丝绸流阶段（Phase 2 逻辑 100% 复制）
           p.x += stream.speed * dt;
           if (p.x > 1.2) p.x -= 2.4;
 
@@ -407,7 +401,6 @@ export default function AftermathAnimationSection() {
           p.vy *= 0.93;
           p.y += p.vy * dt;
         } else {
-          // 汇聚阶段（Phase 3 逻辑 100% 复制）
           p.vx += (Math.sin(t * 0.3 + p.twinkle) * 0.1) * dt;
 
           const dx = p.targetX - p.x;
@@ -438,7 +431,6 @@ export default function AftermathAnimationSection() {
           p.y += p.vy * dt;
         }
 
-        // Alpha
         const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
         let alpha: number;
         if (t < STREAM_END) {
@@ -465,32 +457,39 @@ export default function AftermathAnimationSection() {
       const dt = Math.min(0.05, now - lastTime);
       lastTime = now;
 
-      // 网格淡出
-      let gridAlpha = 1.0;
-      if (now >= FADE_START) {
-        const fadeT = Math.min(1, Math.max(0, (now - FADE_START) / FADE_DURATION));
-        gridAlpha = 1.0 - fadeT;
-      }
-
       update(dt, now);
 
       gl!.viewport(0, 0, W, H);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
 
-      // Pass 1: 网格凹面背景
+      // Pass 1: Phase 1 网格凹面背景（原样着色器，不改动源码）
       gl!.disable(gl!.BLEND);
-      gl!.useProgram(gridProg);
+      gl!.useProgram(gProg);
       gl!.uniform1f(gridUTime, now);
-      gl!.uniform1f(gridUAlpha, gridAlpha);
-      gl!.bindBuffer(gl!.ARRAY_BUFFER, gridBuf);
-      gl!.enableVertexAttribArray(gridAPos);
-      gl!.vertexAttribPointer(gridAPos, 2, gl!.FLOAT, false, 0, 0);
+      gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
+      gl!.enableVertexAttribArray(gl!.getAttribLocation(gProg, 'a_pos'));
+      gl!.vertexAttribPointer(gl!.getAttribLocation(gProg, 'a_pos'), 2, gl!.FLOAT, false, 0, 0);
       gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
 
-      // Pass 2: 粒子（加法混合）
-      gl!.enable(gl!.BLEND);
-      gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE);
-      gl!.useProgram(prog);
+      // Pass 2: 整合层覆盖通道 — 黑色渐覆盖实现 Phase 1/2 淡出（Phase 源码不变）
+      const overlayAlpha = now >= FADE_START
+        ? Math.min(1, Math.max(0, (now - FADE_START) / FADE_DURATION))
+        : 0;
+      if (overlayAlpha > 0) {
+        gl!.enable(gl!.BLEND);
+        gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE_MINUS_SRC_ALPHA);
+        gl!.useProgram(oProg);
+        gl!.uniform1f(overlayUAlpha, overlayAlpha);
+        gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
+        gl!.enableVertexAttribArray(gl!.getAttribLocation(oProg, 'a_pos'));
+        gl!.vertexAttribPointer(gl!.getAttribLocation(oProg, 'a_pos'), 2, gl!.FLOAT, false, 0, 0);
+        gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
+
+        gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE);
+      }
+
+      // Pass 3: Phase 2/3 粒子（原样着色器，加法混合）
+      gl!.useProgram(pProg);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, buffer);
       gl!.bufferData(gl!.ARRAY_BUFFER, data, gl!.DYNAMIC_DRAW);
       gl!.enableVertexAttribArray(aPos);
