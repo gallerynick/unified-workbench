@@ -437,7 +437,6 @@ export default function AftermathAnimationSection() {
         ? 0.5 * Math.pow(2 * raw, 2.0)
         : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
       const sw = 1 - cw;
-      darkenRef.current = cw;
 
       const mr = 0.2;
       const mr2 = mr * mr;
@@ -506,6 +505,9 @@ export default function AftermathAnimationSection() {
       lastTime = now;
 
       update(dt, now);
+
+      const cT = convergeStartTimeRef.current > 0 ? now - convergeStartTimeRef.current : -1;
+      darkenRef.current = cT >= 0 ? Math.min(1, Math.max(0, cT / 2.0)) : 0;
 
       gl!.viewport(0, 0, W, H);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
