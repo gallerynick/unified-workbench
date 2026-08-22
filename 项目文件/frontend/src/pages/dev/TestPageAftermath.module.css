@@ -73,27 +73,12 @@
 
 .arrowSvg {
   display: block;
-  animation: bob 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation: bob 1.2s ease-in-out infinite;
 }
 
 @keyframes bob {
   0%, 100% { transform: translateY(0); }
-  30% { transform: translateY(4px); }
-  60% { transform: translateY(2px); }
-}
-
-.arrowTop {
-  animation: lift 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
-}
-
-@keyframes lift {
-  0%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-2.5px); }
-  60% { transform: translateY(-1px); }
-}
-
-.arrowBottom {
-  animation: none;
+  50% { transform: translateY(4px); }
 }
 
 .hintText {
