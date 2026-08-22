@@ -293,7 +293,10 @@ export default function AftermathAnimationSection() {
         const stream = streams[p.streamIdx]!;
 
         p.x += stream.speed * dt;
-        if (p.x > 1.2) p.x -= 2.4;
+        if (p.x > 1.2) {
+          p.x -= 2.4;
+          p.vy = 0;
+        }
 
         const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
         const xAbs = Math.abs(p.x);
