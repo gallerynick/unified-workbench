@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import styles from './TestPageSmokeBand.module.css';
 
-const FIBER_COUNT = 100;
-const PARTICLES_PER_FIBER = 60;
-const TOTAL = FIBER_COUNT * PARTICLES_PER_FIBER;
+const RING_COUNT = 28;
+const PARTICLES_PER_RING = 280;
+const TOTAL = RING_COUNT * PARTICLES_PER_RING;
 
 function hash1d(n: number): number {
   const s = Math.sin(n * 12.9898) * 43758.5453;
@@ -19,24 +19,20 @@ function noise1d(x: number): number {
   return a * (1 - s) + b * s;
 }
 
-interface Fiber {
-  baseY: number;
-  amp: number;
-  freq: number;
+interface Ring {
+  radiusX: number;
+  radiusY: number;
+  speed: number;
   phase: number;
 }
 
 interface Particle {
-  x: number;
-  y: number;
-  fiberIdx: number;
-  offX: number;
-  offY: number;
-  breakaway: number;
-  breakTime: number;
-  life: number;
-  age: number;
+  ringIdx: number;
+  angle: number;
+  angularVel: number;
+  brightness: number;
   size: number;
+  twinkle: number;
 }
 
 const VS_SOURCE = `
@@ -139,93 +135,52 @@ export default function SmokeBandAnimationSection() {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    const fibers: Fiber[] = [];
-    for (let i = 0; i < FIBER_COUNT; i++) {
-      const t = i / FIBER_COUNT;
-      fibers.push({
-        baseY: -0.22 + t * 0.44 + (hash1d(i * 3.7) - 0.5) * 0.04,
-        amp: 0.008 + hash1d(i * 7.3) * 0.025,
-        freq: 3.0 + hash1d(i * 11.1) * 8.0,
-        phase: hash1d(i * 5.5) * 100.0,
+    const rings: Ring[] = [];
+    for (let i = 0; i < RING_COUNT; i++) {
+      const t = (i + 0.5) / RING_COUNT;
+      const gap = noise1d(t * 6.0) > 0.72 ? 0.0 : 1.0;
+      const rx = 0.2 + t * 1.1 + (hash1d(i * 3.1) - 0.5) * 0.03;
+      rings.push({
+        radiusX: rx * gap,
+        radiusY: rx * 0.1,
+        speed: 0.08 / Math.sqrt(rx + 0.3) * (hash1d(i * 7.7) > 0.5 ? 1 : -1),
+        phase: hash1d(i * 5.5) * Math.PI * 2,
       });
     }
 
     const particles: Particle[] = [];
     for (let i = 0; i < TOTAL; i++) {
-      const fi = Math.floor(Math.random() * FIBER_COUNT);
-      const f = fibers[fi]!;
+      const ri = i % RING_COUNT;
+      const isBright = hash1d(i * 13.7) > 0.88;
       particles.push({
-        x: Math.random() * 2.4 - 1.2,
-        y: f.baseY,
-        fiberIdx: fi,
-        offX: 0,
-        offY: 0,
-        breakaway: 0,
-        breakTime: 0.5 + Math.random() * 5.0,
-        life: 1,
-        age: Math.random() * 4.0,
-        size: 1.5 + Math.random() * 2.0,
+        ringIdx: ri,
+        angle: hash1d(i * 2.3) * Math.PI * 2,
+        angularVel: 0.8 + hash1d(i * 9.1) * 0.4,
+        brightness: isBright ? 0.25 + hash1d(i * 4.4) * 0.15 : 0.06 + hash1d(i * 4.4) * 0.06,
+        size: isBright ? 2.5 + hash1d(i * 6.6) * 2.0 : 1.0 + hash1d(i * 6.6) * 1.2,
+        twinkle: hash1d(i * 8.2) * Math.PI * 2,
       });
     }
 
     function update(dt: number, t: number): void {
       for (let i = 0; i < TOTAL; i++) {
         const p = particles[i]!;
-        const fiber = fibers[p.fiberIdx]!;
+        const ring = rings[p.ringIdx]!;
 
-        p.age += dt;
+        p.angle += ring.speed * p.angularVel * dt;
 
-        const flowSpeed = 0.04 + 0.02 * noise1d(t * 0.15 + p.fiberIdx * 0.3);
-        p.x += flowSpeed * dt;
+        const ca = Math.cos(p.angle + ring.phase);
+        const sa = Math.sin(p.angle + ring.phase);
+        const x = ring.radiusX * ca;
+        const y = ring.radiusY * sa;
 
-        // 空间瓦解因子：某些区域更早瓦解
-        const dissolve = noise1d(p.x * 1.5 + t * 0.08);
-        if (p.age > p.breakTime || dissolve > 0.65) {
-          p.breakaway = Math.min(1, p.breakaway + dt * 0.4);
-        }
-
-        if (p.breakaway < 0.5) {
-          // 纤维态：跟随纤维路径
-          const targetY = fiber.baseY +
-            (noise1d(p.x * fiber.freq + fiber.phase + t * 0.25) - 0.5) * fiber.amp * 2;
-          p.offY = p.offY * 0.92 + (targetY - p.y) * 0.08;
-          p.y += p.offY;
-          p.offX *= 0.9;
-        } else {
-          // 瓦解态：烟雾粒子自由漂移
-          p.offX += (Math.random() - 0.5) * 0.0015;
-          p.offY += (Math.random() - 0.5) * 0.0025 - 0.0008;
-          p.x += p.offX;
-          p.y += p.offY;
-          p.offX *= 0.98;
-          p.offY *= 0.98;
-        }
-
-        // 瓦解后生命衰减
-        if (p.breakaway > 0.5) {
-          p.life -= dt * 0.18;
-        }
-
-        // 重生
-        if (p.x > 1.3 || p.life <= 0) {
-          p.x = -1.3 - Math.random() * 0.2;
-          p.fiberIdx = Math.floor(Math.random() * FIBER_COUNT);
-          const nf = fibers[p.fiberIdx]!;
-          p.y = nf.baseY;
-          p.breakaway = 0;
-          p.breakTime = 0.5 + Math.random() * 5.0;
-          p.life = 1;
-          p.age = 0;
-          p.offX = 0;
-          p.offY = 0;
-          p.size = 1.5 + Math.random() * 2.0;
-        }
-
-        const alpha = (0.14 - 0.06 * p.breakaway) * p.life;
+        const density = noise1d(p.angle * 3.0 + ring.phase + t * 0.05);
+        const twinkle = 0.7 + 0.3 * Math.sin(t * 2.0 + p.twinkle);
+        const alpha = p.brightness * density * twinkle;
 
         const idx = i * 4;
-        data[idx] = p.x;
-        data[idx + 1] = p.y;
+        data[idx] = x;
+        data[idx + 1] = y;
         data[idx + 2] = p.size;
         data[idx + 3] = alpha;
       }
@@ -250,7 +205,7 @@ export default function SmokeBandAnimationSection() {
     }
     rafRef.current = requestAnimationFrame(frame);
 
-    console.log('[WebGL] smoke particle system active, particles:', TOTAL);
+    console.log('[WebGL] star ring system active, particles:', TOTAL, 'rings:', RING_COUNT);
 
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
