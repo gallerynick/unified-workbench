@@ -296,7 +296,9 @@ export default function AftermathAnimationSection() {
         if (p.x > 1.2) p.x -= 2.4;
 
         const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
-        const targetY = stream.baseY + waveY;
+        const xAbs = Math.abs(p.x);
+        const expandFactor = xAbs > 0.72 ? Math.min(1, (xAbs - 0.72) / 0.48) : 0;
+        const targetY = (stream.baseY + waveY) * (1 + expandFactor * 1.5);
 
         if (mouse.active) {
           const dx = p.x - mouse.x;
