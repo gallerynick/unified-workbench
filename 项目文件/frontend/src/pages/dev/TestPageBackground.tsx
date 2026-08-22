@@ -28,12 +28,6 @@ void main() {
   vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
   vec2 sc = uv - center;
 
-void main() {
-  vec2 uv = v_uv;
-  uv.x *= u_res.x / u_res.y;
-  vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
-  vec2 sc = uv - center;
-
   float flow = fract(u_time * 0.02);
 
   float D = 2.5;
