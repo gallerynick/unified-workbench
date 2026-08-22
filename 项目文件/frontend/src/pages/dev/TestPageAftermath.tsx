@@ -561,10 +561,11 @@ export default function AftermathAnimationSection() {
       </div>
       {showArrow && (
         <div className={styles.scrollHint}>
-          <div className={styles.chevrons}>
-            <span className={styles.chevron} />
-            <span className={styles.chevron} />
-          </div>
+          <svg className={styles.arrowSvg} width="14" height="22" viewBox="0 0 14 22" fill="none" role="img" aria-label="向下滚动">
+            <title>向下滚动</title>
+            <path className={styles.arrowTop} d="M2 4 L7 9 L12 4" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path className={styles.arrowBottom} d="M2 13 L7 18 L12 13" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           <span className={styles.hintText}>开始使用</span>
         </div>
       )}
