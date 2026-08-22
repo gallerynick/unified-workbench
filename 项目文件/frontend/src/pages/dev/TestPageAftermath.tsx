@@ -1,18 +1,11 @@
 import { useEffect, useRef } from 'react';
 import styles from './TestPageAftermath.module.css';
 
+// ── Phase 2 原样复制：常量与工具函数 ──
 const STREAM_COUNT = 65;
 const PARTICLES_PER_STREAM = 350;
 const TOTAL = STREAM_COUNT * PARTICLES_PER_STREAM;
 
-// 时间轴
-const STREAM_END = 3.0;
-const CONVERGE_START = STREAM_END;
-const CONVERGE_DURATION = 2.0;
-const FADE_START = CONVERGE_START + CONVERGE_DURATION;
-const FADE_DURATION = 2.0;
-
-// ── Phase 2/3 原样复制：工具函数 ──
 function hash1d(n: number): number {
   const s = Math.sin(n * 12.9898) * 43758.5453;
   return s - Math.floor(s);
@@ -27,6 +20,7 @@ function noise1d(x: number): number {
   return a * (1 - s) + b * s;
 }
 
+// ── Phase 2 原样复制：接口 ──
 interface Stream {
   baseY: number;
   amp: number;
@@ -40,16 +34,38 @@ interface Particle {
   streamIdx: number;
   x: number;
   y: number;
-  vx: number;
   vy: number;
-  targetX: number;
-  targetY: number;
   size: number;
   brightness: number;
   twinkle: number;
 }
 
-// ── Phase 1 确认版着色器（100% 原样复制，不含任何淡出修改） ──
+// ── Phase 2 原样复制：粒子着色器 ──
+const VS_SOURCE = `
+  attribute vec2 a_pos;
+  attribute float a_size;
+  attribute float a_alpha;
+  varying float v_alpha;
+  void main() {
+    gl_Position = vec4(a_pos, 0.0, 1.0);
+    gl_PointSize = a_size;
+    v_alpha = a_alpha;
+  }
+`;
+
+const FS_SOURCE = `
+  precision highp float;
+  varying float v_alpha;
+  void main() {
+    vec2 c = gl_PointCoord - vec2(0.5);
+    float r = dot(c, c);
+    if (r > 0.25) discard;
+    float a = v_alpha * smoothstep(0.25, 0.0, r);
+    gl_FragColor = vec4(a, a, a, 1.0);
+  }
+`;
+
+// ── Phase 1 原样复制：网格凹面背景着色器 ──
 const GRID_FS = `
 precision highp float;
 varying vec2 v_uv;
@@ -113,95 +129,14 @@ void main() {
 }
 `;
 
-// ── Phase 2/3 原样复制：粒子着色器 ──
-const VS_SOURCE = `
+const GRID_VS = `
   attribute vec2 a_pos;
-  attribute float a_size;
-  attribute float a_alpha;
-  varying float v_alpha;
+  varying vec2 v_uv;
   void main() {
+    v_uv = a_pos * 0.5 + 0.5;
     gl_Position = vec4(a_pos, 0.0, 1.0);
-    gl_PointSize = a_size;
-    v_alpha = a_alpha;
   }
 `;
-
-const FS_SOURCE = `
-  precision highp float;
-  varying float v_alpha;
-  void main() {
-    vec2 c = gl_PointCoord - vec2(0.5);
-    float r = dot(c, c);
-    if (r > 0.25) discard;
-    float a = v_alpha * smoothstep(0.25, 0.0, r);
-    gl_FragColor = vec4(a, a, a, 1.0);
-  }
-`;
-
-// ── 整合层新增：全屏覆盖通道（用于 Phase 1/2 淡出，不改动任何 Phase 源码） ──
-const OVERLAY_FS = `
-precision highp float;
-uniform float u_alpha;
-void main() {
-  gl_FragColor = vec4(0.0, 0.0, 0.0, u_alpha);
-}
-`;
-
-// ── Phase 3 原样复制：文字像素采样 ──
-function sampleTextParticles(count: number): Array<{ x: number; y: number }> {
-  const offscreen = document.createElement('canvas');
-  const tw = 400;
-  const th = 160;
-  offscreen.width = tw;
-  offscreen.height = th;
-  const ctx = offscreen.getContext('2d');
-  if (!ctx) return [];
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, tw, th);
-
-  const fontSize = 48;
-  ctx.font = `bold ${fontSize}px "Inter", "SF Pro Display", -apple-system, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#fff';
-  ctx.letterSpacing = '2px';
-  ctx.fillText('UNIFIED', tw / 2, th / 2 - fontSize * 0.6);
-  ctx.fillText('WORKBENCH', tw / 2, th / 2 + fontSize * 0.5);
-
-  const imageData = ctx.getImageData(0, 0, tw, th);
-  const pixels: Array<{ x: number; y: number }> = [];
-  const pxData = imageData.data;
-
-  for (let y = 0; y < th; y++) {
-    for (let x = 0; x < tw; x++) {
-      const idx = (y * tw + x) * 4;
-      if (pxData[idx]! > 128) {
-        pixels.push({ x: (x / tw) * 2 - 1, y: -((y / th) * 2 - 1) });
-      }
-    }
-  }
-
-  if (pixels.length === 0) {
-    const fallback: Array<{ x: number; y: number }> = [];
-    const w = Math.ceil(Math.sqrt(count));
-    for (let i = 0; i < count; i++) {
-      const col = i % w;
-      const row = Math.floor(i / w);
-      fallback.push({
-        x: (col / w) * 1.2 - 0.6,
-        y: (row / (count / w)) * 0.8 - 0.4,
-      });
-    }
-    return fallback;
-  }
-
-  const result: Array<{ x: number; y: number }> = [];
-  for (let i = 0; i < count; i++) {
-    const idx = Math.floor(Math.random() * pixels.length);
-    result.push({ x: pixels[idx]!.x, y: pixels[idx]!.y });
-  }
-  return result;
-}
 
 export default function AftermathAnimationSection() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -261,36 +196,28 @@ export default function AftermathAnimationSection() {
       return prog;
     }
 
-    const VS_QUAD = `
-      attribute vec2 a_pos;
-      varying vec2 v_uv;
-      void main() {
-        v_uv = a_pos * 0.5 + 0.5;
-        gl_Position = vec4(a_pos, 0.0, 1.0);
-      }
-    `;
-
-    const gridProg = linkProgram(VS_QUAD, GRID_FS);
+    // Phase 1 程序（网格背景）
+    const gridProg = linkProgram(GRID_VS, GRID_FS);
+    // Phase 2 程序（粒子）
     const particleProg = linkProgram(VS_SOURCE, FS_SOURCE);
-    const overlayProg = linkProgram(VS_QUAD, OVERLAY_FS);
-    if (!gridProg || !particleProg || !overlayProg) return;
+    if (!gridProg || !particleProg) return;
 
     const gProg: WebGLProgram = gridProg;
     const pProg: WebGLProgram = particleProg;
-    const oProg: WebGLProgram = overlayProg;
 
+    // Phase 1 全屏四边形缓冲
     const quadBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
 
-    const gridUTime = gl.getUniformLocation(gridProg, 'u_time');
-    const gridURes = gl.getUniformLocation(gridProg, 'u_res');
-    const overlayUAlpha = gl.getUniformLocation(overlayProg, 'u_alpha');
+    const gridUTime = gl.getUniformLocation(gProg, 'u_time');
+    const gridURes = gl.getUniformLocation(gProg, 'u_res');
     gl.uniform2f(gridURes, W, H);
 
-    const aPos = gl.getAttribLocation(particleProg, 'a_pos');
-    const aSize = gl.getAttribLocation(particleProg, 'a_size');
-    const aAlpha = gl.getAttribLocation(particleProg, 'a_alpha');
+    // ── Phase 2 原样复制：粒子缓冲设置 ──
+    const aPos = gl.getAttribLocation(pProg, 'a_pos');
+    const aSize = gl.getAttribLocation(pProg, 'a_size');
+    const aAlpha = gl.getAttribLocation(pProg, 'a_alpha');
 
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -327,28 +254,24 @@ export default function AftermathAnimationSection() {
       });
     }
 
-    const targets = sampleTextParticles(TOTAL);
-
     const particles: Particle[] = [];
     for (let i = 0; i < TOTAL; i++) {
-      const tgt = targets[i]!;
+      const isBright = hash1d(i * 13.7) > 0.85;
       const si = i % STREAM_COUNT;
       const s = streams[si]!;
-      const isBright = hash1d(i * 13.7) > 0.85;
+      const px = Math.random() * 2.4 - 1.2;
       particles.push({
         streamIdx: si,
-        x: Math.random() * 2.4 - 1.2,
+        x: px,
         y: s.baseY,
-        vx: 0,
         vy: 0,
-        targetX: tgt.x,
-        targetY: tgt.y,
-        size: isBright ? 2.0 + hash1d(i * 6.6) * 2.0 : 1.0 + hash1d(i * 6.6) * 1.0,
+        size: isBright ? 2.5 + hash1d(i * 6.6) * 2.5 : 1.2 + hash1d(i * 6.6) * 1.3,
         brightness: isBright ? 1.5 : 1.0,
         twinkle: hash1d(i * 8.2) * Math.PI * 2,
       });
     }
 
+    // ── Phase 2 原样复制：鼠标交互 ──
     const mouse = mouseRef.current;
     const onMove = (e: MouseEvent) => {
       mouse.x = (e.clientX / W) * 2 - 1;
@@ -359,87 +282,39 @@ export default function AftermathAnimationSection() {
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseleave', onLeave);
 
-    const SPRING_STRENGTH = 8.0;
-    const DAMPING = 0.92;
-
+    // ── Phase 2 原样复制：粒子更新逻辑 ──
     function update(dt: number, t: number): void {
-      let convergeWeight = 0;
-      if (t >= CONVERGE_START) {
-        const raw = Math.min(1, Math.max(0, (t - CONVERGE_START) / CONVERGE_DURATION));
-        convergeWeight = raw < 0.5
-          ? 0.5 * Math.pow(2 * raw, 2.0)
-          : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
-      }
-
       const mr = 0.2;
       const mr2 = mr * mr;
       const push = 0.012;
-
       for (let i = 0; i < TOTAL; i++) {
         const p = particles[i]!;
         const stream = streams[p.streamIdx]!;
 
-        if (t < STREAM_END) {
-          p.x += stream.speed * dt;
-          if (p.x > 1.2) p.x -= 2.4;
+        p.x += stream.speed * dt;
+        if (p.x > 1.2) p.x -= 2.4;
 
-          const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
-          const targetY = stream.baseY + waveY;
+        const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
+        const targetY = stream.baseY + waveY;
 
-          if (mouse.active) {
-            const dx = p.x - mouse.x;
-            const dy = p.y - mouse.y;
-            const d2 = dx * dx + dy * dy;
-            if (d2 < mr2 && d2 > 0.00001) {
-              const d = Math.sqrt(d2);
-              const force = (1 - d / mr) * push;
-              p.vy += (dy / d) * force;
-            }
+        if (mouse.active) {
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < mr2 && d2 > 0.00001) {
+            const d = Math.sqrt(d2);
+            const force = (1 - d / mr) * push;
+            p.vy += (dy / d) * force;
           }
-
-          p.vy += (targetY - p.y) * 2.0 * dt;
-          p.vy *= 0.93;
-          p.y += p.vy * dt;
-        } else {
-          p.vx += (Math.sin(t * 0.3 + p.twinkle) * 0.1) * dt;
-
-          const dx = p.targetX - p.x;
-          const dy = p.targetY - p.y;
-          p.vx += dx * SPRING_STRENGTH * convergeWeight * dt;
-          p.vy += dy * SPRING_STRENGTH * convergeWeight * dt;
-
-          const waveX = (noise1d(p.x * 2.0 + t * 0.15) - 0.5) * 0.02 * convergeWeight;
-          const waveY = (noise1d(p.y * 2.0 + t * 0.12 + 100) - 0.5) * 0.02 * convergeWeight;
-          p.vx += waveX * dt;
-          p.vy += waveY * dt;
-
-          if (mouse.active) {
-            const mx = p.x - mouse.x;
-            const my = p.y - mouse.y;
-            const d2 = mx * mx + my * my;
-            if (d2 < mr2 && d2 > 0.00001) {
-              const d = Math.sqrt(d2);
-              const force = (1 - d / mr) * push;
-              p.vx += (mx / d) * force;
-              p.vy += (my / d) * force;
-            }
-          }
-
-          p.vx *= DAMPING;
-          p.vy *= DAMPING;
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
         }
 
+        p.vy += (targetY - p.y) * 2.0 * dt;
+        p.vy *= 0.93;
+        p.y += p.vy * dt;
+
+        const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
         const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
-        let alpha: number;
-        if (t < STREAM_END) {
-          const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
-          alpha = stream.brightness * p.brightness * density * twinkle;
-        } else {
-          const fadeOut = i < 8000 ? 1.0 : Math.max(0, 1.0 - convergeWeight);
-          alpha = stream.brightness * p.brightness * (0.5 + 0.5 * convergeWeight) * twinkle * fadeOut;
-        }
+        const alpha = stream.brightness * p.brightness * density * twinkle;
 
         const idx = i * 4;
         data[idx] = p.x;
@@ -462,7 +337,7 @@ export default function AftermathAnimationSection() {
       gl!.viewport(0, 0, W, H);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
 
-      // Pass 1: Phase 1 网格凹面背景（原样着色器，不改动源码）
+      // Pass 1: Phase 1 网格凹面背景（原样着色器）
       gl!.disable(gl!.BLEND);
       gl!.useProgram(gProg);
       gl!.uniform1f(gridUTime, now);
@@ -471,24 +346,9 @@ export default function AftermathAnimationSection() {
       gl!.vertexAttribPointer(gl!.getAttribLocation(gProg, 'a_pos'), 2, gl!.FLOAT, false, 0, 0);
       gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
 
-      // Pass 2: 整合层覆盖通道 — 黑色渐覆盖实现 Phase 1/2 淡出（Phase 源码不变）
-      const overlayAlpha = now >= FADE_START
-        ? Math.min(1, Math.max(0, (now - FADE_START) / FADE_DURATION))
-        : 0;
-      if (overlayAlpha > 0) {
-        gl!.enable(gl!.BLEND);
-        gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE_MINUS_SRC_ALPHA);
-        gl!.useProgram(oProg);
-        gl!.uniform1f(overlayUAlpha, overlayAlpha);
-        gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
-        gl!.enableVertexAttribArray(gl!.getAttribLocation(oProg, 'a_pos'));
-        gl!.vertexAttribPointer(gl!.getAttribLocation(oProg, 'a_pos'), 2, gl!.FLOAT, false, 0, 0);
-        gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
-
-        gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE);
-      }
-
-      // Pass 3: Phase 2/3 粒子（原样着色器，加法混合）
+      // Pass 2: Phase 2 丝绸流粒子（原样着色器，加法混合）叠加在网格上
+      gl!.enable(gl!.BLEND);
+      gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE);
       gl!.useProgram(pProg);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, buffer);
       gl!.bufferData(gl!.ARRAY_BUFFER, data, gl!.DYNAMIC_DRAW);
@@ -504,7 +364,7 @@ export default function AftermathAnimationSection() {
     }
     rafRef.current = requestAnimationFrame(frame);
 
-    console.log('[WebGL] Phase 4 integrated: grid + silk streams → convergence, particles:', TOTAL);
+    console.log('[WebGL] Phase 4 integrated: grid + silk streams, particles:', TOTAL);
 
     return () => {
       cancelAnimationFrame(rafRef.current);
@@ -516,7 +376,7 @@ export default function AftermathAnimationSection() {
   return (
     <section
       className={styles.stage}
-      aria-label="Phase 4 整合：网格凹面背景 + 丝绸流粒子汇聚成文字"
+      aria-label="Phase 4 整合：网格凹面背景上叠加丝绸流粒子"
     >
       <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" tabIndex={-1} />
     </section>
