@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import styles from './TestPageBackground.module.css';
 
 const FS_SOURCE = `
-precision mediump float;
+precision highp float;
 varying vec2 v_uv;
 uniform float u_time;
 uniform vec2 u_res;
@@ -28,7 +28,7 @@ void main() {
   vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
   vec2 sc = uv - center;
 
-  float flow = sin(u_time * 0.02) * 0.5;
+  float flow = sin(mod(u_time * 0.02, 6.28318)) * 0.5;
 
   float r2 = sc.x * sc.x + sc.y * sc.y;
   float k = 1.5;
