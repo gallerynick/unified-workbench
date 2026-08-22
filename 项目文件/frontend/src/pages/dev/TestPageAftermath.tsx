@@ -235,8 +235,9 @@ export default function AftermathAnimationSection() {
                 setTypedText(fullText.slice(0, step));
                 deletingTimer = setTimeout(deleteNext, 80);
               } else {
-                setCursorVisible(false);
                 convergeTimer = setTimeout(() => {
+                  clearInterval(cursorTimer);
+                  setCursorVisible(false);
                   convergeTriggeredRef.current = true;
                 }, 2000);
               }
@@ -405,113 +406,73 @@ export default function AftermathAnimationSection() {
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseleave', onLeave);
 
-    // ── 粒子更新逻辑：丝绸流模式 + 汇聚模式 ──
     function update(dt: number, t: number): void {
       if (convergeTriggeredRef.current && convergeStartTimeRef.current < 0) {
         convergeStartTimeRef.current = t;
       }
       const convergeT = convergeStartTimeRef.current > 0 ? t - convergeStartTimeRef.current : -1;
 
+      const raw = convergeT >= 0 ? Math.min(1, Math.max(0, convergeT / 0.2)) : 0;
+      const cw = raw < 0.5
+        ? 0.5 * Math.pow(2 * raw, 2.0)
+        : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
+      const sw = 1 - cw;
+
       const mr = 0.2;
       const mr2 = mr * mr;
       const push = 0.012;
+      const SPRING = 8.0;
+      const DAMP = 0.92;
 
-      if (convergeT < 0) {
-        // ── 丝绸流模式 (Phase 2) ──
-        for (let i = 0; i < TOTAL; i++) {
-          const p = particles[i]!;
-          const stream = streams[p.streamIdx]!;
+      for (let i = 0; i < TOTAL; i++) {
+        const p = particles[i]!;
+        const stream = streams[p.streamIdx]!;
 
-          p.x += stream.speed * dt;
-          if (p.x > 1.2) {
-            p.x -= 2.4;
-            p.vy = 0;
+        p.x += stream.speed * dt * sw;
+        if (p.x > 1.2) { p.x -= 2.4; p.vy = 0; }
+
+        const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
+        const xAbs = Math.abs(p.x);
+        const expandFactor = xAbs > 0.72 ? Math.min(1, (xAbs - 0.72) / 0.48) : 0;
+        const silkTargetY = (stream.baseY + waveY) * (1 + expandFactor * 1.5);
+        p.vy += (silkTargetY - p.y) * 2.0 * sw * dt;
+
+        p.vx += (p.targetX - p.x) * SPRING * cw * dt;
+        p.vy += (p.targetY - p.y) * SPRING * cw * dt;
+        p.vx += (noise1d(p.x * 2.0 + t * 0.15) - 0.5) * 0.02 * cw * dt;
+        p.vy += (noise1d(p.y * 2.0 + t * 0.12 + 100) - 0.5) * 0.02 * cw * dt;
+        p.vx += Math.sin(t * 0.3 + p.twinkle) * 0.1 * cw * dt;
+
+        if (mouse.active) {
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < mr2 && d2 > 0.00001) {
+            const d = Math.sqrt(d2);
+            const force = (1 - d / mr) * push;
+            p.vx += (dx / d) * force * cw;
+            p.vy += (dy / d) * force;
           }
-
-          const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
-          const xAbs = Math.abs(p.x);
-          const expandFactor = xAbs > 0.72 ? Math.min(1, (xAbs - 0.72) / 0.48) : 0;
-          const targetY = (stream.baseY + waveY) * (1 + expandFactor * 1.5);
-
-          if (mouse.active) {
-            const dx = p.x - mouse.x;
-            const dy = p.y - mouse.y;
-            const d2 = dx * dx + dy * dy;
-            if (d2 < mr2 && d2 > 0.00001) {
-              const d = Math.sqrt(d2);
-              const force = (1 - d / mr) * push;
-              p.vy += (dy / d) * force;
-            }
-          }
-
-          p.vy += (targetY - p.y) * 2.0 * dt;
-          p.vy *= 0.93;
-          p.y += p.vy * dt;
-
-          const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
-          const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
-          const alpha = stream.brightness * p.brightness * density * twinkle;
-
-          const idx = i * 4;
-          data[idx] = p.x;
-          data[idx + 1] = p.y;
-          data[idx + 2] = p.size;
-          data[idx + 3] = alpha;
         }
-      } else {
-        // ── 汇聚模式 (Phase 3) ──
-        const CONVERGE_TIME = 0.2;
-        const SPRING_STRENGTH = 8.0;
-        const DAMPING = 0.92;
 
-        const raw = Math.min(1, Math.max(0, (convergeT - CONVERGE_TIME) / 0.2));
-        const convergeWeight = raw < 0.5
-          ? 0.5 * Math.pow(2 * raw, 2.0)
-          : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
+        p.vx *= DAMP;
+        p.vy *= 0.93 * sw + DAMP * cw;
 
-        for (let i = 0; i < TOTAL; i++) {
-          const p = particles[i]!;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
 
-          p.vx += (Math.sin(t * 0.3 + p.twinkle) * 0.1) * dt;
+        const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
+        const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
+        const fadeOut = i < 8000 ? 1.0 : Math.max(0, 1.0 - cw);
+        const silkAlpha = stream.brightness * p.brightness * density * twinkle;
+        const convergeAlpha = p.brightness * (0.5 + 0.5 * cw) * twinkle * fadeOut;
+        const alpha = silkAlpha * sw + convergeAlpha * cw;
 
-          const dx = p.targetX - p.x;
-          const dy = p.targetY - p.y;
-          p.vx += dx * SPRING_STRENGTH * convergeWeight * dt;
-          p.vy += dy * SPRING_STRENGTH * convergeWeight * dt;
-
-          const waveX = (noise1d(p.x * 2.0 + t * 0.15) - 0.5) * 0.02 * convergeWeight;
-          const waveY = (noise1d(p.y * 2.0 + t * 0.12 + 100) - 0.5) * 0.02 * convergeWeight;
-          p.vx += waveX * dt;
-          p.vy += waveY * dt;
-
-          if (mouse.active) {
-            const mx = p.x - mouse.x;
-            const my = p.y - mouse.y;
-            const d2 = mx * mx + my * my;
-            if (d2 < mr2 && d2 > 0.00001) {
-              const d = Math.sqrt(d2);
-              const force = (1 - d / mr) * push;
-              p.vx += (mx / d) * force;
-              p.vy += (my / d) * force;
-            }
-          }
-
-          p.vx *= DAMPING;
-          p.vy *= DAMPING;
-
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
-
-          const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
-          const fadeOut = i < 8000 ? 1.0 : Math.max(0, 1.0 - convergeWeight);
-          const alpha = p.brightness * (0.5 + 0.5 * convergeWeight) * twinkle * fadeOut;
-
-          const idx = i * 4;
-          data[idx] = p.x;
-          data[idx + 1] = p.y;
-          data[idx + 2] = p.size;
-          data[idx + 3] = alpha;
-        }
+        const idx = i * 4;
+        data[idx] = p.x;
+        data[idx + 1] = p.y;
+        data[idx + 2] = p.size;
+        data[idx + 3] = alpha;
       }
     }
 
