@@ -12,8 +12,8 @@ import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { isDebugModeEnabled } from '@/pages/settings/SiteSettings';
 import BackgroundAnimationSection from './TestPageBackground';
+import SmokeBandAnimationSection from './TestPageSmokeBand';
 import HapticsTestSection from './TestPageHaptics';
-import WelcomeAnimationSection from './TestPageWelcome';
 import ConvergenceAnimationSection from './TestPageConvergence';
 import AftermathAnimationSection from './TestPageAftermath';
 import styles from './TestPage.module.css';
@@ -63,11 +63,11 @@ const SECTIONS: Section[] = [
     render: () => <BackgroundAnimationSection />,
   },
   {
-    key: 'animation-welcome',
-    label: 'Phase 2 — 欢迎语+圆环炸开',
+    key: 'animation-smoke',
+    label: 'Phase 2 — 烟雾纤维横带',
     icon: <FireOutlined />,
-    description: 'hi初次见面淡入淡出后从文字位置炸开圆环粒子扩散',
-    render: () => <WelcomeAnimationSection />,
+    description: '水平横带烟雾纤维湍流 domain warping 双层域扭曲',
+    render: () => <SmokeBandAnimationSection />,
   },
   {
     key: 'animation-convergence',
