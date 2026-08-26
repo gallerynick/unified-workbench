@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './TestPageAftermath.module.css';
 
 // ── Phase 2 原样复制：常量与工具函数 ──
@@ -76,6 +77,12 @@ varying vec2 v_uv;
 uniform float u_time;
 uniform vec2 u_res;
 uniform float u_darken;
+uniform float u_concavity;
+uniform float u_flowSpeed;
+uniform float u_bandDarken;
+uniform float u_brightness;
+uniform float u_white;
+uniform float u_blur;
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -94,7 +101,7 @@ float noise2(vec2 p) {
 
 float gridWire(vec2 sc, float flow, float edgeFactor, float t) {
   float r2 = sc.x * sc.x + sc.y * sc.y;
-  float k = 1.5;
+  float k = 1.5 * u_concavity;
   float scale = 1.0 / (1.0 + k * r2);
   float fx = sc.x * scale + flow;
   float fy = sc.y * scale + flow * 0.5;
@@ -112,7 +119,7 @@ void main() {
   vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
   vec2 sc = uv - center;
 
-  float flow = sin(mod(u_time * 0.05, 6.28318)) * 0.2;
+  float flow = sin(mod(u_time * 0.05 * u_flowSpeed, 6.28318)) * 0.2;
   float r2 = sc.x * sc.x + sc.y * sc.y;
   float edgeFactor = smoothstep(0.05, 0.4, r2);
 
@@ -124,14 +131,16 @@ void main() {
   float wireB = gridWire(sc - dir * ca, flow, edgeFactor, u_time);
 
   float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
-  float bandDarken = smoothstep(0.05, 0.55, abs(sc.y));
+  float bandDarken = mix(1.0, smoothstep(0.05, 0.55, abs(sc.y)), u_bandDarken);
 
   vec3 col = vec3(0.0);
   col.r = 0.35 * wireR * vignette * bandDarken;
   col.g = 0.35 * wireG * vignette * bandDarken;
   col.b = 0.35 * wireB * vignette * bandDarken;
 
-  col *= (1.0 - u_darken * 0.7);
+  col *= (1.0 - u_darken * 0.7) * u_brightness;
+
+  col = mix(col, vec3(1.0), u_white);
 
   gl_FragColor = vec4(col, 1.0);
 }
@@ -211,6 +220,10 @@ export default function AftermathAnimationSection() {
   const convergeTriggeredRef = useRef(false);
   const convergeStartTimeRef = useRef(-1);
   const convergeCompleteRef = useRef(false);
+  const transitionTriggeredRef = useRef(false);
+  const transitionStartRef = useRef(-1);
+  const navigatedRef = useRef(false);
+  const navigate = useNavigate();
   const [showArrow, setShowArrow] = useState(false);
 
   const fullText = 'hi，初次见面';
@@ -278,6 +291,13 @@ export default function AftermathAnimationSection() {
     return () => clearInterval(poll);
   }, []);
 
+  const handleArrowClick = () => {
+    if (transitionTriggeredRef.current) return;
+    transitionTriggeredRef.current = true;
+    transitionStartRef.current = performance.now();
+    setShowArrow(false);
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -344,6 +364,12 @@ export default function AftermathAnimationSection() {
     const gridUTime = gl.getUniformLocation(gProg, 'u_time');
     const gridURes = gl.getUniformLocation(gProg, 'u_res');
     const gridUDarken = gl.getUniformLocation(gProg, 'u_darken');
+    const gridUConcavity = gl.getUniformLocation(gProg, 'u_concavity');
+    const gridUFlowSpeed = gl.getUniformLocation(gProg, 'u_flowSpeed');
+    const gridUBandDarken = gl.getUniformLocation(gProg, 'u_bandDarken');
+    const gridUBrightness = gl.getUniformLocation(gProg, 'u_brightness');
+    const gridUWhite = gl.getUniformLocation(gProg, 'u_white');
+    const gridUBlur = gl.getUniformLocation(gProg, 'u_blur');
 
     const aPos = gl.getAttribLocation(pProg, 'a_pos');
     const aSize = gl.getAttribLocation(pProg, 'a_size');
@@ -431,6 +457,15 @@ export default function AftermathAnimationSection() {
         : 0.5 + 0.5 * Math.pow(2 * (raw - 0.5), 0.7);
       const sw = 1 - cw;
 
+      // 衔接动画时间（点击后计时，单位秒）
+      const transT = transitionTriggeredRef.current
+        ? (performance.now() - transitionStartRef.current) / 1000.0
+        : -1;
+      const phaseA = transT >= 0 ? Math.min(1, Math.max(0, transT / 0.8)) : 0;
+      const phaseB = transT >= 0 ? Math.min(1, Math.max(0, (transT - 0.8) / 1.6)) : 0;
+      const bEase = phaseB * phaseB * (3 - 2 * phaseB);
+
+
       const mr = 0.2;
       const mr2 = mr * mr;
       const push = 0.012;
@@ -469,6 +504,14 @@ export default function AftermathAnimationSection() {
         }
 
         p.vx *= DAMP;
+        // Phase B: 两侧吸走——粒子获得指向左或右的力，像被吸到两侧
+        if (phaseB > 0) {
+          const dir = hash1d(i * 53.7) > 0.5 ? 1 : -1;
+          const attractStrength = 6.0 * bEase;
+          const sideTargetX = dir * 1.6;
+          p.vx += (sideTargetX - p.x) * attractStrength * dt;
+          p.vy += (p.targetY * 0.6 - p.y) * attractStrength * 0.3 * dt;
+        }
         p.vy *= 0.93 * sw + DAMP * cw;
 
         p.x += p.vx * dt;
@@ -476,7 +519,10 @@ export default function AftermathAnimationSection() {
 
         const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
         const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
-        const fadeOut = i < 8000 ? 1.0 : Math.max(0, 1.0 - cw);
+        // Phase A: 点击后汇聚满额，取消 fadeOut 的 8000 粒子限制，让全部 22750 粒子成型
+        const fadeOut = transitionTriggeredRef.current
+          ? (i < 8000 ? 1.0 : Math.max(phaseA, 0.001))
+          : (i < 8000 ? 1.0 : Math.max(0, 1.0 - cw));
         const silkAlpha = stream.brightness * p.brightness * density * twinkle;
         const convergeAlpha = p.brightness * (0.5 + 0.5 * cw) * twinkle * fadeOut;
         const alpha = silkAlpha * sw + convergeAlpha * cw;
@@ -502,6 +548,40 @@ export default function AftermathAnimationSection() {
       const cT = convergeStartTimeRef.current > 0 ? now - convergeStartTimeRef.current : -1;
       const darken = cT >= 0 ? Math.min(1, Math.max(0, cT / 1.0)) : 0;
 
+      // 衔接动画各阶段 uniform 计算
+      const transT = transitionTriggeredRef.current
+        ? (performance.now() - transitionStartRef.current) / 1000.0
+        : -1;
+      // 平滑插值辅助
+      const smooth = (a: number, b: number, x: number) => {
+        const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+        return t * t * (3 - 2 * t);
+      };
+
+      // Phase C (1.8-3.0s): 去中间暗带 + 全局提亮
+      const bandDarkenVal = transT >= 0 ? 1.0 - smooth(1.8, 3.0, transT) : 1.0;
+      const brightnessVal = transT >= 0
+        ? 1.0 + 0.4 * smooth(1.8, 3.0, transT) + 1.0 * smooth(4.2, 5.0, transT)
+        : 1.0;
+
+      // Phase D (2.4-4.2s): 指数型加速
+      const flowSpeedVal = transT >= 0
+        ? 1.0 + (Math.exp(2.2 * smooth(2.4, 4.2, transT)) - 1.0) * 17.0
+        : 1.0;
+
+      // Phase E (3.4-4.8s): 曲面变平面
+      const concavityVal = transT >= 0 ? 1.0 - smooth(3.4, 4.8, transT) : 1.0;
+
+      // Phase F (4.2-5.4s): 全白 + 模糊
+      const whiteVal = transT >= 0 ? smooth(4.2, 5.4, transT) : 0.0;
+      const blurVal = transT >= 0 ? smooth(4.4, 5.4, transT) : 0.0;
+
+      // Phase G (5.6s+): 全白收尾后转场进入主界面
+      if (transT >= 5.8 && !navigatedRef.current) {
+        navigatedRef.current = true;
+        navigate('/', { replace: true });
+      }
+
       gl!.viewport(0, 0, W, H);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
 
@@ -510,6 +590,12 @@ export default function AftermathAnimationSection() {
       gl!.uniform2f(gridURes, W, H);
       gl!.uniform1f(gridUTime, now);
       gl!.uniform1f(gridUDarken, darken);
+      gl!.uniform1f(gridUConcavity, concavityVal);
+      gl!.uniform1f(gridUFlowSpeed, flowSpeedVal);
+      gl!.uniform1f(gridUBandDarken, bandDarkenVal);
+      gl!.uniform1f(gridUBrightness, brightnessVal);
+      gl!.uniform1f(gridUWhite, whiteVal);
+      gl!.uniform1f(gridUBlur, blurVal);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
       gl!.enableVertexAttribArray(gl!.getAttribLocation(gProg, 'a_pos'));
       gl!.vertexAttribPointer(gl!.getAttribLocation(gProg, 'a_pos'), 2, gl!.FLOAT, false, 0, 0);
@@ -552,7 +638,18 @@ export default function AftermathAnimationSection() {
         {cursorVisible && <span className={styles.cursor} />}
       </div>
       {showArrow && (
-        <div className={styles.scrollHint}>
+        <div
+          className={styles.scrollHint}
+          onClick={handleArrowClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleArrowClick();
+            }
+          }}
+        >
           <div className={styles.chevrons}>
             <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
