@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styles from './TestPageAftermath.module.css';
 
 // ── Phase 2 原样复制：常量与工具函数 ──
@@ -83,6 +82,7 @@ uniform float u_bandDarken;
 uniform float u_brightness;
 uniform float u_white;
 uniform float u_blur;
+uniform float u_vignette;
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -119,7 +119,8 @@ void main() {
   vec2 center = vec2(u_res.x / u_res.y * 0.5, 0.5);
   vec2 sc = uv - center;
 
-  float flow = sin(mod(u_time * 0.05 * u_flowSpeed, 6.28318)) * 0.2;
+  // 单向持续移动（不是左右振荡）：flow 随时间线性增长，速度由 u_flowSpeed 控制
+  float flow = u_time * 0.1 * u_flowSpeed;
   float r2 = sc.x * sc.x + sc.y * sc.y;
   float edgeFactor = smoothstep(0.05, 0.4, r2);
 
@@ -130,7 +131,7 @@ void main() {
   float wireG = gridWire(sc, flow, edgeFactor, u_time);
   float wireB = gridWire(sc - dir * ca, flow, edgeFactor, u_time);
 
-  float vignette = 1.0 - smoothstep(0.3, 0.8, r2);
+  float vignette = mix(1.0, 1.0 - smoothstep(0.3, 0.8, r2), u_vignette);
   float bandDarken = mix(1.0, smoothstep(0.05, 0.55, abs(sc.y)), u_bandDarken);
 
   vec3 col = vec3(0.0);
@@ -222,8 +223,7 @@ export default function AftermathAnimationSection() {
   const convergeCompleteRef = useRef(false);
   const transitionTriggeredRef = useRef(false);
   const transitionStartRef = useRef(-1);
-  const navigatedRef = useRef(false);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [showArrow, setShowArrow] = useState(false);
 
   const fullText = 'hi，初次见面';
@@ -370,6 +370,7 @@ export default function AftermathAnimationSection() {
     const gridUBrightness = gl.getUniformLocation(gProg, 'u_brightness');
     const gridUWhite = gl.getUniformLocation(gProg, 'u_white');
     const gridUBlur = gl.getUniformLocation(gProg, 'u_blur');
+    const gridUVignette = gl.getUniformLocation(gProg, 'u_vignette');
 
     const aPos = gl.getAttribLocation(pProg, 'a_pos');
     const aSize = gl.getAttribLocation(pProg, 'a_size');
@@ -461,9 +462,15 @@ export default function AftermathAnimationSection() {
       const transT = transitionTriggeredRef.current
         ? (performance.now() - transitionStartRef.current) / 1000.0
         : -1;
-      const phaseA = transT >= 0 ? Math.min(1, Math.max(0, transT / 0.8)) : 0;
-      const phaseB = transT >= 0 ? Math.min(1, Math.max(0, (transT - 0.8) / 1.6)) : 0;
-      const bEase = phaseB * phaseB * (3 - 2 * phaseB);
+      const phaseA = transT >= 0 ? Math.min(1, Math.max(0, transT / 0.35)) : 0; // 0-0.35s: 文字快速消散（避免看到字型）
+      const phaseB = transT >= 0 ? Math.min(1, Math.max(0, (transT - 0.2) / 2.2)) : 0; // 0.2-2.4s: 丝绸流被吸走
+      const bEase = phaseB; // 线性吸走（更柔和）
+      // 过渡系数：文字→丝绸流（Phase A 期间平滑过渡）
+      const textWeight = transitionTriggeredRef.current ? Math.max(0, 1 - phaseA) : 1;
+      const flowWeight = 1 - textWeight;
+      // 用过渡后的 cw/sw 驱动粒子
+      const cwFinal = cw * textWeight;
+      const swFinal = sw * textWeight + 1.0 * flowWeight;
 
 
       const mr = 0.2;
@@ -474,10 +481,20 @@ export default function AftermathAnimationSection() {
 
       for (let i = 0; i < TOTAL; i++) {
         const p = particles[i]!;
+        // 过渡 cw/sw：文字→丝绸流（点击后平滑过渡）
+        const cw = cwFinal;
+        const sw = swFinal;
         const stream = streams[p.streamIdx]!;
+        // 点击瞬间：给每个粒子随机初始扰动，立即打散字型
+        if (transitionTriggeredRef.current && transT < 0.5) {
+          const burst = hash1d(i * 31.7 + 7.1);
+          const burstDir = hash1d(i * 51.3) > 0.5 ? 1 : -1;
+          p.vx += burstDir * burst * 2.2 * dt * 4;
+          p.vy += (burst - 0.5) * 1.6 * dt * 4;
+        }
 
         p.x += stream.speed * dt * sw;
-        if (p.x > 1.2) { p.x -= 2.4; p.vy = 0; }
+        if (p.x > 1.2 && !transitionTriggeredRef.current) { p.x -= 2.4; p.vy = 0; }
 
         const waveY = (noise1d(p.x * stream.freq + stream.phase + t * 0.08) - 0.5) * stream.amp * 2;
         const xAbs = Math.abs(p.x);
@@ -503,14 +520,25 @@ export default function AftermathAnimationSection() {
           }
         }
 
-        p.vx *= DAMP;
-        // Phase B: 两侧吸走——粒子获得指向左或右的力，像被吸到两侧
-        if (phaseB > 0) {
+        p.vx *= transitionTriggeredRef.current ? 0.97 : DAMP; // 点击后阻尼减弱，粒子持续飘出
+        // Phase B: 粒子像被吸走一样自然消散出屏，优雅柔和
+        // 原理：持续水平加速度 + 飘散中逐渐缩小淡出（像吸入雾中）
+        let shrinkFactor = 1.0;
+        if (bEase > 0) {
           const dir = hash1d(i * 53.7) > 0.5 ? 1 : -1;
-          const attractStrength = 6.0 * bEase;
-          const sideTargetX = dir * 1.6;
-          p.vx += (sideTargetX - p.x) * attractStrength * dt;
-          p.vy += (p.targetY * 0.6 - p.y) * attractStrength * 0.3 * dt;
+          // 每个粒子有随机延迟，不是同时开始飘散
+          const delay = hash1d(i * 73.1 + 17.3);
+          const localB = Math.max(0, (bEase - delay * 0.2) / (1 - delay * 0.2));
+          const gentle = localB * localB * (3 - 2 * localB);
+          // 强水平加速度：保证粒子实际飘出屏幕
+          p.vx += dir * (0.7 + 2.6 * gentle) * dt;
+          // Y 保持波状流动，产生丝带飘散感
+          const waveY = Math.sin(t * 1.2 + p.twinkle + delay * 6.28) * 0.045 * gentle;
+          p.vy += (stream.baseY * 0.5 + waveY - p.y) * 1.4 * gentle * dt;
+          // 飘散中逐渐缩小（粒子越小越接近消失，优雅消散感）
+          shrinkFactor = Math.max(0.3, 1.0 - gentle * 0.7);
+          // 水平漂移随机化：不同粒子速度不同，形成层次
+          p.vx += dir * (hash1d(i * 91.3) - 0.5) * 0.4 * gentle * dt;
         }
         p.vy *= 0.93 * sw + DAMP * cw;
 
@@ -520,18 +548,18 @@ export default function AftermathAnimationSection() {
         const density = 0.35 + 0.65 * noise1d(p.x * 4.5 + stream.phase + t * 0.12);
         const twinkle = 0.8 + 0.2 * Math.sin(t * 1.5 + p.twinkle);
         // Phase A: 点击后汇聚满额，取消 fadeOut 的 8000 粒子限制，让全部 22750 粒子成型
-        const fadeOut = transitionTriggeredRef.current
-          ? (i < 8000 ? 1.0 : Math.max(phaseA, 0.001))
-          : (i < 8000 ? 1.0 : Math.max(0, 1.0 - cw));
+        const fadeOut = i < 8000 ? 1.0 : Math.max(0, 1.0 - cw);
         const silkAlpha = stream.brightness * p.brightness * density * twinkle;
         const convergeAlpha = p.brightness * (0.5 + 0.5 * cw) * twinkle * fadeOut;
         const alpha = silkAlpha * sw + convergeAlpha * cw;
+        // 出屏粒子不绘制（被吸走后不再出现）
+        const finalAlpha = transitionTriggeredRef.current && (Math.abs(p.x) > 1.4 || Math.abs(p.y) > 0.8) ? 0 : alpha * shrinkFactor;
 
         const idx = i * 4;
         data[idx] = p.x;
         data[idx + 1] = p.y;
-        data[idx + 2] = p.size;
-        data[idx + 3] = alpha;
+        data[idx + 2] = p.size * shrinkFactor;
+        data[idx + 3] = finalAlpha;
       }
     }
 
@@ -552,35 +580,37 @@ export default function AftermathAnimationSection() {
       const transT = transitionTriggeredRef.current
         ? (performance.now() - transitionStartRef.current) / 1000.0
         : -1;
-      // 平滑插值辅助
-      const smooth = (a: number, b: number, x: number) => {
-        const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-        return t * t * (3 - 2 * t);
+      // 线性插值辅助（更柔和，不生硬）
+      const lerp = (a: number, b: number, x: number) => {
+        return Math.min(1, Math.max(0, (x - a) / (b - a)));
       };
 
-      // Phase C (1.8-3.0s): 去中间暗带 + 全局提亮
-      const bandDarkenVal = transT >= 0 ? 1.0 - smooth(1.8, 3.0, transT) : 1.0;
+      // Phase C (1.0-3.0s): 压暗/暗角消失
+      const bandDarkenVal = transT >= 0 ? 1.0 - lerp(1.0, 3.0, transT) : 1.0;
+      const vignetteVal = transT >= 0 ? 1.0 - lerp(1.0, 3.0, transT) : 1.0;
+      // 第一阶段提亮：点击后 0-3s 内提亮到 +1.8 倍（网格明显更亮）
+      // 白屏阶段在提亮基础上继续升
       const brightnessVal = transT >= 0
-        ? 1.0 + 0.4 * smooth(1.8, 3.0, transT) + 1.0 * smooth(4.2, 5.0, transT)
+        ? 1.0 + 1.8 * lerp(0.0, 3.0, transT) + 1.2 * lerp(4.5, 6.0, transT)
         : 1.0;
 
-      // Phase D (2.4-4.2s): 指数型加速
+      // Phase D: 网格加速前段柔和抹匀——用 t^2.5 幂缓入
+      // 前段(0-2s)几乎不动，中段缓升，后段快速拉起，避免一开始就提速很快
       const flowSpeedVal = transT >= 0
-        ? 1.0 + (Math.exp(2.2 * smooth(2.4, 4.2, transT)) - 1.0) * 17.0
+        ? 1.0 + 17.0 * Math.pow(lerp(0.0, 5.5, transT), 2.5)
         : 1.0;
 
-      // Phase E (3.4-4.8s): 曲面变平面
-      const concavityVal = transT >= 0 ? 1.0 - smooth(3.4, 4.8, transT) : 1.0;
+      // Phase E (3.5-5.0s): 曲面变平面（线性）
+      const concavityVal = transT >= 0 ? 1.0 - lerp(3.5, 5.0, transT) : 1.0;
 
-      // Phase F (4.2-5.4s): 全白 + 模糊
-      const whiteVal = transT >= 0 ? smooth(4.2, 5.4, transT) : 0.0;
-      const blurVal = transT >= 0 ? smooth(4.4, 5.4, transT) : 0.0;
+      // Phase F: 梦幻全白——粒子飘散完成后，网格高速运动下自然浮现白色
+      // 延迟到 ~4.8s 开始，白屏过渡更晚更从容
+      const whitePhase = transT >= 0 ? lerp(4.8, 6.3, transT) : 0.0;
+      const whiteVal = whitePhase * Math.min(1, (flowSpeedVal - 1.0) / 18.0 * 1.2);
+      // 亮度随着白屏同步增加，产生梦幻模糊感
+      const blurVal = whitePhase;
 
-      // Phase G (5.6s+): 全白收尾后转场进入主界面
-      if (transT >= 5.8 && !navigatedRef.current) {
-        navigatedRef.current = true;
-        navigate('/', { replace: true });
-      }
+      // Phase G: 全白收尾，停留白屏（不跳转）
 
       gl!.viewport(0, 0, W, H);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
@@ -596,6 +626,7 @@ export default function AftermathAnimationSection() {
       gl!.uniform1f(gridUBrightness, brightnessVal);
       gl!.uniform1f(gridUWhite, whiteVal);
       gl!.uniform1f(gridUBlur, blurVal);
+      gl!.uniform1f(gridUVignette, vignetteVal);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
       gl!.enableVertexAttribArray(gl!.getAttribLocation(gProg, 'a_pos'));
       gl!.vertexAttribPointer(gl!.getAttribLocation(gProg, 'a_pos'), 2, gl!.FLOAT, false, 0, 0);
