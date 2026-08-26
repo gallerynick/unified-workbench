@@ -61,23 +61,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  animation: fadeIn 0.8s ease-out;
 }
 
-.arrowSvg {
-  display: block;
-  animation: bob 1.2s ease-in-out infinite;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-@keyframes bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(4px); }
+.chevrons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  animation: floatDown 2s ease-in-out infinite;
+}
+
+@keyframes floatDown {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(10px); opacity: 1; }
 }
 
 .hintText {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.5);
   letter-spacing: 0.1em;
+  margin-top: 4px;
 }

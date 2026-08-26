@@ -211,10 +211,7 @@ export default function AftermathAnimationSection() {
   const convergeTriggeredRef = useRef(false);
   const convergeStartTimeRef = useRef(-1);
   const convergeCompleteRef = useRef(false);
-  const darkenRef = useRef(0);
   const [showArrow, setShowArrow] = useState(false);
-  const [hintGlow, setHintGlow] = useState(0);
-  const hintRef = useRef<HTMLDivElement>(null);
 
   const fullText = 'hi，初次见面';
   const [typedText, setTypedText] = useState('');
@@ -275,30 +272,11 @@ export default function AftermathAnimationSection() {
     const poll = setInterval(() => {
       if (convergeCompleteRef.current) {
         clearInterval(poll);
-        setTimeout(() => setShowArrow(true), 4000);
+        setTimeout(() => setShowArrow(true), 2000);
       }
     }, 200);
     return () => clearInterval(poll);
   }, []);
-
-  useEffect(() => {
-    if (!showArrow) return;
-    const onMove = (e: MouseEvent) => {
-      const el = hintRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const dx = e.clientX - cx;
-      const dy = e.clientY - cy;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const maxDist = 120;
-      const glow = Math.max(0, 1 - dist / maxDist);
-      setHintGlow(glow);
-    };
-    window.addEventListener('mousemove', onMove);
-    return () => window.removeEventListener('mousemove', onMove);
-  }, [showArrow]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -345,23 +323,20 @@ export default function AftermathAnimationSection() {
       gl!.attachShader(prog, fs);
       gl!.linkProgram(prog);
       if (!gl!.getProgramParameter(prog, gl!.LINK_STATUS)) {
-        console.error('[WebGL] link:', gl!.getProgramInfoLog(prog));
+        console.error('[WebGL] link:', gl!.getShaderInfoLog(prog));
         gl!.deleteProgram(prog);
         return null;
       }
       return prog;
     }
 
-    // Phase 1 程序（网格背景）
     const gridProg = linkProgram(GRID_VS, GRID_FS);
-    // Phase 2 程序（粒子）
     const particleProg = linkProgram(VS_SOURCE, FS_SOURCE);
     if (!gridProg || !particleProg) return;
 
     const gProg: WebGLProgram = gridProg;
     const pProg: WebGLProgram = particleProg;
 
-    // Phase 1 全屏四边形缓冲
     const quadBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -370,7 +345,6 @@ export default function AftermathAnimationSection() {
     const gridURes = gl.getUniformLocation(gProg, 'u_res');
     const gridUDarken = gl.getUniformLocation(gProg, 'u_darken');
 
-    // ── Phase 2 原样复制：粒子缓冲设置 ──
     const aPos = gl.getAttribLocation(pProg, 'a_pos');
     const aSize = gl.getAttribLocation(pProg, 'a_size');
     const aAlpha = gl.getAttribLocation(pProg, 'a_alpha');
@@ -390,7 +364,6 @@ export default function AftermathAnimationSection() {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    // ── Phase 2 原样复制：丝绸带流创建 ──
     const streams: Stream[] = [];
     for (let i = 0; i < STREAM_COUNT; i++) {
       const t = i / STREAM_COUNT;
@@ -433,7 +406,6 @@ export default function AftermathAnimationSection() {
       });
     }
 
-    // ── Phase 2 原样复制：鼠标交互 ──
     const mouse = mouseRef.current;
     const onMove = (e: MouseEvent) => {
       mouse.x = (e.clientX / W) * 2 - 1;
@@ -528,7 +500,7 @@ export default function AftermathAnimationSection() {
       update(dt, now);
 
       const cT = convergeStartTimeRef.current > 0 ? now - convergeStartTimeRef.current : -1;
-      darkenRef.current = cT >= 0 ? Math.min(1, Math.max(0, cT / 2.0)) : 0;
+      const darken = cT >= 0 ? Math.min(1, Math.max(0, cT / 1.0)) : 0;
 
       gl!.viewport(0, 0, W, H);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
@@ -537,13 +509,12 @@ export default function AftermathAnimationSection() {
       gl!.useProgram(gProg);
       gl!.uniform2f(gridURes, W, H);
       gl!.uniform1f(gridUTime, now);
-      gl!.uniform1f(gridUDarken, darkenRef.current);
+      gl!.uniform1f(gridUDarken, darken);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
       gl!.enableVertexAttribArray(gl!.getAttribLocation(gProg, 'a_pos'));
       gl!.vertexAttribPointer(gl!.getAttribLocation(gProg, 'a_pos'), 2, gl!.FLOAT, false, 0, 0);
       gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
 
-      // Pass 2: Phase 2 丝绸流粒子（原样着色器，加法混合）叠加在网格上
       gl!.enable(gl!.BLEND);
       gl!.blendFunc(gl!.ONE, gl!.ONE_MINUS_SRC_ALPHA);
       gl!.useProgram(pProg);
@@ -581,12 +552,27 @@ export default function AftermathAnimationSection() {
         {cursorVisible && <span className={styles.cursor} />}
       </div>
       {showArrow && (
-        <div className={styles.scrollHint} ref={hintRef} style={{ opacity: 0.3 + hintGlow * 0.7, filter: `brightness(${1 + hintGlow * 1.5}) drop-shadow(0 0 ${hintGlow * 8}px rgba(255,255,255,${hintGlow * 0.5}))` }}>
-          <svg className={styles.arrowSvg} width="14" height="22" viewBox="0 0 14 22" fill="none" role="img" aria-label="向下滚动">
-            <title>向下滚动</title>
-            <path d="M2 4 L7 9 L12 4" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M2 13 L7 18 L12 13" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className={styles.scrollHint}>
+          <div className={styles.chevrons}>
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M1 2L5 6.5L9 2"
+                stroke="rgba(255,255,255,0.7)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M1 2L5 6.5L9 2"
+                stroke="rgba(255,255,255,0.7)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
           <span className={styles.hintText}>开始使用</span>
         </div>
       )}
