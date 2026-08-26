@@ -231,7 +231,7 @@ export default function SecretManagement() {
         onCancel={() => setPermissionVisible(false)}
         destroyOnClose
       >
-        <div>
+        <div className={styles.permissionContent ?? ''}>
           <Title level={5}>
             密钥私有
           </Title>

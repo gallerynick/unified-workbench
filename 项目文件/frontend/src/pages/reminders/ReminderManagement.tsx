@@ -283,7 +283,7 @@ export default function ReminderManagement() {
         onCancel={() => setPermissionVisible(false)}
         destroyOnClose
       >
-        <div>
+        <div className={styles.permissionContent ?? ''}>
           <Title level={5}>创建者权限</Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>提醒为纯私有，仅创建者本人可以查看、编辑和删除提醒。</Paragraph>
 

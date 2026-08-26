@@ -46,10 +46,10 @@ export default function CalendarPage() {
   const [formAllDay, setFormAllDay] = useState(false);
   const [formLocation, setFormLocation] = useState('');
   const [formColor, setFormColor] = useState(PRESET_COLORS[0]);
-  const [formRepeat, setFormRepeat] = useState<EventRepeat>('none');
-  const [formReminderEnabled, setFormReminderEnabled] = useState(false);
-  const [formReminderMinutes, setFormReminderMinutes] = useState(15);
-  const [visibility, setVisibility] = useState<Visibility>('private');
+   const [formRepeat, setFormRepeat] = useState<EventRepeat>('none');
+   const [formReminderEnabled, setFormReminderEnabled] = useState(false);
+   const [formReminderMinutes, setFormReminderMinutes] = useState(15);
+   const [visibility, setVisibility] = useState<Visibility>('private');
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [permissionVisible, setPermissionVisible] = useState(false);
@@ -62,10 +62,10 @@ export default function CalendarPage() {
     setFormAllDay(false);
     setFormLocation('');
     setFormColor(PRESET_COLORS[0]);
-    setFormRepeat('none');
-    setFormReminderEnabled(false);
-    setFormReminderMinutes(15);
-    setVisibility('private');
+     setFormRepeat('none');
+     setFormReminderEnabled(false);
+     setFormReminderMinutes(15);
+     setVisibility('private');
     setRestrictedUsers([]);
     setEditingEvent(null);
   }, []);
@@ -111,10 +111,10 @@ export default function CalendarPage() {
         all_day: formAllDay,
         location: formLocation || undefined,
         color: formColor,
-        repeat: formRepeat,
-        reminder_enabled: formReminderEnabled,
-        reminder_minutes: formReminderMinutes,
-        visibility,
+         repeat: formRepeat,
+         reminder_enabled: formReminderEnabled,
+         reminder_minutes: formReminderMinutes,
+         visibility,
         ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
       };
       if (editingEvent) {

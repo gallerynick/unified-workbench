@@ -395,7 +395,7 @@ export default function ContentManagement() {
         onCancel={() => setPermissionVisible(false)}
         destroyOnClose
       >
-        <div>
+        <div className={styles.permissionContent ?? ''}>
           <Title level={5}>
             创建权限
           </Title>

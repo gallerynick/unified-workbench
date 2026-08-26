@@ -355,7 +355,7 @@ export default function AnnouncementManagement() {
         onCancel={() => setPermissionVisible(false)}
         destroyOnClose
       >
-        <div>
+        <div className={styles.permissionContent ?? ''}>
           <Title level={5}>
             发布权限
           </Title>

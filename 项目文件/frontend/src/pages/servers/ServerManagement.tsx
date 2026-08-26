@@ -19,8 +19,8 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
-  QuestionCircleOutlined,
-  SearchOutlined,
+   QuestionCircleOutlined,
+   SearchOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { listServers, deleteServer } from '../../api/servers';
@@ -354,7 +354,7 @@ export default function ServerManagement() {
         onCancel={() => setPermissionVisible(false)}
         destroyOnClose
       >
-        <div>
+        <div className={styles.permissionContent ?? ''}>
           <Title level={5}>
             查看权限
           </Title>

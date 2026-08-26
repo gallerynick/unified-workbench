@@ -336,7 +336,7 @@ export function FileSharePage() {
         onCancel={() => setPermissionVisible(false)}
         destroyOnClose
       >
-        <div>
+        <div className={styles.permissionContent ?? ''}>
           <Title level={5}>创建分享</Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以上传文件创建分享。</Paragraph>
 

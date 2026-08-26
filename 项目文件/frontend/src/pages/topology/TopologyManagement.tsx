@@ -709,7 +709,7 @@ export default function TopologyManagement() {
         onCancel={() => setPermissionVisible(false)}
         destroyOnClose
       >
-        <div>
+        <div className={styles.permissionContent ?? ''}>
           <Title level={5}>创建者权限</Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有拓扑的完整管理权限，可以编辑拓扑内容、修改节点和删除拓扑。</Paragraph>
 

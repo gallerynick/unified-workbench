@@ -21,8 +21,8 @@ import {
   EnterOutlined,
   SettingOutlined,
   PoweroffOutlined,
-  QuestionCircleOutlined,
-  SearchOutlined,
+   QuestionCircleOutlined,
+   SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
@@ -234,7 +234,7 @@ export default function RoomListPage() {
       key: 'action',
       width: 220,
       render: (_: unknown, record: StreamRoom) => (
-        <Space size="small">
+         <Space size="small">
           <Tooltip title="进入">
             <Button
               type="link"
@@ -444,7 +444,7 @@ export default function RoomListPage() {
         onCancel={() => setPermissionVisible(false)}
         destroyOnClose
       >
-        <div>
+        <div className={styles.permissionContent ?? ''}>
           <Title level={5}>
             查看与进入
           </Title>

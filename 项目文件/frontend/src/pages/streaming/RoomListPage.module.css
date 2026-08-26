@@ -72,8 +72,6 @@
 .permissionContent > :last-child {
   margin-bottom: 0 !important;
 }
-
-
 @media (max-width: 767px) {
   .container {
     padding: var(--spacing-sm);

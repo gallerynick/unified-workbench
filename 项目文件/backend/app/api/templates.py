@@ -52,7 +52,7 @@ async def list_templates_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    templates, total = await list_templates(db, page, page_size, category, search, location)
+    templates, total = await list_templates(db, page, page_size, category, search, location, user_id=current_user.id)
     items = [TemplateResponse.model_validate(t) for t in templates]
     return UnifiedResponse(data=TemplateListResponse(items=items, total=total))
 
@@ -63,7 +63,7 @@ async def get_template_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    template = await get_template(db, template_id)
+    template = await get_template(db, template_id, user_id=current_user.id)
     return UnifiedResponse(data=TemplateResponse.model_validate(template))
 
 
@@ -71,7 +71,7 @@ async def get_template_endpoint(
 async def update_template_endpoint(
     template_id: uuid.UUID,
     request: TemplateUpdate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     template = await update_template(
@@ -83,7 +83,7 @@ async def update_template_endpoint(
 @router.delete("/{template_id}", response_model=UnifiedResponse[None])
 async def delete_template_endpoint(
     template_id: uuid.UUID,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     await delete_template(db, template_id, current_user)
@@ -96,7 +96,7 @@ async def export_template_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    data = await export_template_json(db, template_id)
+    data = await export_template_json(db, template_id, user_id=current_user.id)
     return UnifiedResponse(data=data)
 
 

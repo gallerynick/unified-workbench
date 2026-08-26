@@ -78,9 +78,9 @@ const SECTIONS: Section[] = [
   },
   {
     key: 'animation-aftermath',
-    label: 'Phase 4 — 整合最终效果',
+    label: '欢迎动画 — 工作台欢迎动画',
     icon: <SyncOutlined />,
-    description: 'Phase 1+2+3 三层叠加整合（待构建）',
+    description: '三层叠加整合动画（欢迎动画）',
     render: () => <AftermathAnimationSection />,
   },
   {
