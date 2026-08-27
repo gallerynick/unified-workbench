@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Steps, Input, Button, Typography, message, Space, Spin } from 'antd';
+import { Card, Steps, Input, Button, Typography, message, Space, Spin, ConfigProvider } from 'antd';
 import { RocketOutlined, UserOutlined, LockOutlined, IdcardOutlined, SettingOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useCustomization, saveAppSettings } from '../hooks/useCustomization';
+import { getAntdThemeConfig } from '../contexts/ThemeContext';
 import AftermathAnimationSection from './dev/TestPageAftermath';
 import styles from './Welcome.module.css';
 
@@ -19,7 +20,18 @@ export default function Welcome() {
   const [creating, setCreating] = useState(false);
   const [checkingInit, setCheckingInit] = useState(true);
   const [showAnimation, setShowAnimation] = useState(true);
+  const [revealed, setRevealed] = useState(false);
   const [isInit, setIsInit] = useState(false);
+
+  // 初始化界面强制浅色主题（不允许深色模式）
+  useEffect(() => {
+    const root = document.documentElement;
+    const prevTheme = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', 'light');
+    return () => {
+      root.setAttribute('data-theme', prevTheme || 'light');
+    };
+  }, []);
 
   useEffect(() => {
     const check = async () => {
@@ -125,13 +137,25 @@ export default function Welcome() {
 
   if (showAnimation) {
     return (
-      <AftermathAnimationSection onComplete={() => setShowAnimation(false)} />
+      <AftermathAnimationSection
+        onComplete={() => {
+          // 白屏后 0.5s，浮窗浮出（Windows OOBE 风格）
+          setTimeout(() => {
+            setShowAnimation(false);
+            setRevealed(true);
+          }, 500);
+        }}
+      />
     );
   }
 
   return (
-    <div className={styles.container}>
-      <Card className={styles.card ?? ''}>
+    <ConfigProvider theme={getAntdThemeConfig(false)}>
+    <div className={styles.container + (revealed ? ' ' + styles.reveal : '')}>
+      <Card
+        className={(revealed ? styles.cardReveal + ' ' : '') + (styles.card ?? '')}
+        styles={{ body: { padding: 'var(--spacing-card-gap)' } }}
+      >
         <Steps
           current={currentStep}
           items={steps.map((s) => ({ title: s.title, icon: s.icon }))}
@@ -161,5 +185,6 @@ export default function Welcome() {
         </div>
       </Card>
     </div>
+    </ConfigProvider>
   );
 }

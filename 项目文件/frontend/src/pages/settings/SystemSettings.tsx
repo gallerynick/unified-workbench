@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Button, Card, Tag, message, Modal, Input, Space, Typography } from 'antd';
-import { ReloadOutlined, CloudDownloadOutlined, SaveOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { ReloadOutlined, CloudDownloadOutlined, SaveOutlined } from '@ant-design/icons';
 import { checkUpdate, getRepo, setRepo, getToken, setToken } from '../../api/system';
-import { clearTokens } from '../../utils/auth';
 import type { UpdateInfo, RepoInfo } from '../../api/system';
 import type { UnifiedResponse } from '../../types/user';
 import styles from './SystemSettings.module.css';
 
 const { Title, Text } = Typography;
 
-let _resetPassword = '';
 
 export default function SystemSettings() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -173,64 +171,6 @@ export default function SystemSettings() {
     });
   };
 
-  const handleReset = () => {
-    let pwd = '';
-    Modal.confirm({
-      title: '删除所有数据',
-      icon: <ExclamationCircleOutlined />,
-      content: (
-        <div>
-          <p>此操作将删除数据库中所有数据（用户、项目、文档、文件记录等）。</p>
-          <p>请输入管理员密码以确认：</p>
-          <Input.Password
-            placeholder="管理员密码"
-            onChange={(e) => { pwd = e.target.value; }}
-            style={{ marginTop: 'var(--spacing-xs)' }}
-          />
-        </div>
-      ),
-      okText: '继续',
-      cancelText: '取消',
-      okButtonProps: { danger: true },
-      onOk: () => {
-        _resetPassword = pwd;
-        Modal.confirm({
-          title: '是否保留应用文件？',
-          icon: <ExclamationCircleOutlined />,
-          content: '选择「保留」将保留已上传的文件和文档附件。选择「不保留」将删除所有文件，系统回到初始状态。',
-          okText: '不保留，全部删除',
-          cancelText: '保留文件',
-          okButtonProps: { danger: true },
-          onOk: () => doReset(false),
-          onCancel: () => doReset(true),
-        });
-      },
-    });
-  };
-
-  const doReset = async (keepFiles: boolean) => {
-    try {
-      const resp = await fetch('/api/v1/system/reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keep_files: keepFiles, password: _resetPassword }),
-      });
-      const json = await resp.json();
-      if (json.code === 0) {
-        // 清除所有本地存储和 Cookie
-        clearTokens();
-        localStorage.clear();
-        document.cookie.split(';').forEach(c => {
-          document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/');
-        });
-        message.success('系统已重置，即将跳转到初始化页面...');
-        setTimeout(() => { window.location.href = '/welcome'; }, 1500);
-      } else {
-        message.error(json.msg || '重置失败');
-      }
-    } catch { message.error('重置失败'); }
-  };
-
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
@@ -334,22 +274,6 @@ export default function SystemSettings() {
             <p>{updateInfo.release_notes}</p>
           </div>
         )}
-      </Card>
-
-      <Card title="危险操作" style={{ marginTop: "var(--spacing-lg)" }}>
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Typography.Paragraph type="danger">
-            删除所有数据将使系统恢复到初始状态。此操作不可撤销。
-          </Typography.Paragraph>
-          <Button
-            type="primary"
-            danger
-            icon={<ExclamationCircleOutlined />}
-            onClick={handleReset}
-          >
-            删除所有数据
-          </Button>
-        </Space>
       </Card>
     </div>
   );

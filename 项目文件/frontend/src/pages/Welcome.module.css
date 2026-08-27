@@ -3,19 +3,99 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--canvas) 100%);
+  background: var(--canvas-parchment);
   padding: var(--spacing-lg);
 }
 
 .card {
   width: 100%;
   max-width: 600px;
-  border-radius: var(--rounded-md);
+  background: var(--card-bg, var(--canvas));
+  border: var(--card-border, 1px solid var(--border-secondary));
+  border-radius: var(--rounded-sm);
   box-shadow: var(--shadow-md);
+}
+
+/* Windows OOBE 徽标浮出效果：
+   初始为纯画布色，浮窗从中心 0.9 缩放 + 淡入 + 柔和展开到完整 */
+.reveal {
+  background: var(--canvas);
+}
+
+.cardReveal {
+  animation: oobeFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes oobeFadeUp {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(12px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
 }
 
 .steps {
   margin-bottom: var(--spacing-xl);
+  /* 精致化：缩小步骤条尺寸，避免顶部过重 */
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Steps 图标精致化 */
+.steps :global(.ant-steps-item-icon) {
+  width: 24px;
+  height: 24px;
+  line-height: 22px;
+  font-size: 12px;
+  border-radius: 50%;
+}
+
+.steps :global(.ant-steps-item-title) {
+  font-size: 13px;
+  line-height: 24px;
+}
+
+.steps :global(.ant-steps-item-tail) {
+  margin-left: 12px;
+}
+
+/* 当前步骤：蓝色胶囊聚焦 */
+.steps :global(.ant-steps-item-process .ant-steps-item-icon) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 已完成步骤：浅蓝底 + 蓝勾 */
+.steps :global(.ant-steps-item-finish .ant-steps-item-icon) {
+  border-color: var(--color-primary);
+}
+
+.steps :global(.ant-steps-item-finish .ant-steps-item-icon .ant-steps-icon) {
+  color: var(--color-primary);
+}
+
+/* 未开始步骤：弱化 */
+.steps :global(.ant-steps-item-wait .ant-steps-item-icon) {
+  border-color: var(--border-primary);
+}
+
+.steps :global(.ant-steps-item-wait .ant-steps-item-icon .ant-steps-icon) {
+  color: var(--text-secondary);
+}
+
+/* 连接线颜色 */
+.steps :global(.ant-steps-item-tail::after) {
+  background-color: var(--border-secondary);
+}
+
+.steps :global(.ant-steps-item-finish .ant-steps-item-tail::after) {
+  background-color: var(--color-primary);
 }
 
 .content {
