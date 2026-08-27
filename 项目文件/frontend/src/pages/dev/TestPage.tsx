@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { Button, List, Result, Space, Typography } from 'antd';
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { isDebugModeEnabled } from '@/pages/settings/SiteSettings';
 import BackgroundAnimationSection from './TestPageBackground';
@@ -102,8 +103,24 @@ const SECTIONS: Section[] = [
 export default function TestPage() {
   const navigate = useNavigate();
   const { key } = useParams<{ key?: string }>();
+  const [debugEnabled, setDebugEnabled] = useState<boolean | null>(null);
 
-  if (!isDebugModeEnabled()) {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const enabled = await isDebugModeEnabled();
+      if (!cancelled) setDebugEnabled(enabled);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (debugEnabled === null) {
+    return null; // 加载中
+  }
+
+  if (!debugEnabled) {
     return (
       <Result
         status="warning"

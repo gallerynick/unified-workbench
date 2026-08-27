@@ -108,7 +108,18 @@ interface PickedElement {
 export default function DebugModeOverlay() {
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [enabled, setEnabled] = useState<boolean>(() => isDebugModeEnabled());
+  const [enabled, setEnabled] = useState<boolean>(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const value = await isDebugModeEnabled();
+      if (!cancelled) setEnabled(value);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [menuKey, setMenuKey] = useState<string>('-');
   const [picking, setPicking] = useState<boolean>(false);
   const [picked, setPicked] = useState<PickedElement | null>(null);
@@ -116,7 +127,12 @@ export default function DebugModeOverlay() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const sync = () => setEnabled(isDebugModeEnabled());
+    const sync = () => {
+      void (async () => {
+        const value = await isDebugModeEnabled();
+        setEnabled(value);
+      })();
+    };
     window.addEventListener('site-config-changed', sync);
     window.addEventListener('storage', sync);
     return () => {

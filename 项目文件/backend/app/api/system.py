@@ -209,3 +209,90 @@ async def test_notification(
         return {"code": 0, "msg": f"{request.channel} 测试通知发送成功", "data": None}
     else:
         raise HTTPException(status_code=500, detail=f"{request.channel} 测试通知发送失败，请检查配置")
+
+
+
+class CustomConfigRequest(BaseModel):
+    """站点自定义配置（全站统一）"""
+    app_name: str = "一站式工作台"
+    app_short_name: str = "工"
+    app_description: str = ""
+    favicon: str = ""
+    logo_expanded: str = ""
+    logo_collapsed: str = ""
+    display_mode: str = "both"  # icon | text | both
+
+
+@router.get("/custom-config")
+async def api_get_custom_config(
+    db: AsyncSession = Depends(get_db),
+):
+    """获取站点自定义配置（所有访问者共享）"""
+    from app.services.system_config import get_config
+
+    cfg = await get_config(db, "custom_config") or {}
+    return {
+        "code": 0,
+        "msg": "",
+        "data": {
+            "app_name": cfg.get("app_name", "一站式工作台"),
+            "app_short_name": cfg.get("app_short_name", "工"),
+            "app_description": cfg.get("app_description", ""),
+            "favicon": cfg.get("favicon", ""),
+            "logo_expanded": cfg.get("logo_expanded", ""),
+            "logo_collapsed": cfg.get("logo_collapsed", ""),
+            "display_mode": cfg.get("display_mode", "both"),
+        },
+    }
+
+
+@router.put("/custom-config")
+async def api_set_custom_config(
+    config: CustomConfigRequest,
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """保存站点自定义配置（管理员，全站统一生效）"""
+    from app.services.system_config import update_config
+
+    await update_config(db, "custom_config", config.model_dump())
+    await db.commit()
+    return {"code": 0, "msg": "站点自定义配置已保存", "data": None}
+
+
+class SiteConfigRequest(BaseModel):
+    """站点开关（全站统一）"""
+    debug_mode: bool = False
+    maintenance_mode: bool = False
+
+
+@router.get("/site-config")
+async def api_get_site_config(
+    db: AsyncSession = Depends(get_db),
+):
+    """获取站点开关（所有访问者共享）"""
+    from app.services.system_config import get_config
+
+    cfg = await get_config(db, "site_config") or {}
+    return {
+        "code": 0,
+        "msg": "",
+        "data": {
+            "debug_mode": bool(cfg.get("debug_mode", False)),
+            "maintenance_mode": bool(cfg.get("maintenance_mode", False)),
+        },
+    }
+
+
+@router.put("/site-config")
+async def api_set_site_config(
+    config: SiteConfigRequest,
+    db: AsyncSession = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """保存站点开关（管理员，全站统一生效）"""
+    from app.services.system_config import update_config
+
+    await update_config(db, "site_config", config.model_dump())
+    await db.commit()
+    return {"code": 0, "msg": "站点开关已保存", "data": None}

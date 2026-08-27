@@ -58,7 +58,7 @@ export default function Welcome() {
       });
       const json = await res.json();
       if (json.code === 0) {
-        saveAppSettings({ name: appName });
+        void saveAppSettings({ name: appName });
         message.success(`管理员 ${adminUser} 创建成功，即将跳转登录页...`);
         setTimeout(() => navigate('/login', { replace: true }), 2000);
       } else {

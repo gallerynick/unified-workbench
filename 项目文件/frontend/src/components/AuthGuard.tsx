@@ -12,6 +12,7 @@ export default function AuthGuard() {
     complete: null,
   });
   const [authChecked, setAuthChecked] = useState<boolean>(false);
+  const [maintenance, setMaintenance] = useState<boolean>(false);
 
   useEffect(() => {
     fetch('/api/v1/auth/setup-status')
@@ -33,7 +34,12 @@ export default function AuthGuard() {
       await tryRefreshAuth();
       if (!cancelled) setAuthChecked(true);
     };
+    const checkMaintenance = async () => {
+      const enabled = await isMaintenanceModeEnabled();
+      if (!cancelled) setMaintenance(enabled);
+    };
     checkAuth();
+    checkMaintenance();
     return () => {
       cancelled = true;
     };
@@ -53,7 +59,7 @@ export default function AuthGuard() {
   }
 
   // 维护模式且非管理员 → 403 禁止访问
-  if (isMaintenanceModeEnabled() && !isAdmin()) {
+  if (maintenance && !isAdmin()) {
     return (
       <div style={{
         display: 'flex',

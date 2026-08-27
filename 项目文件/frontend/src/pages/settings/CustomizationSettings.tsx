@@ -141,7 +141,7 @@ export default function CustomizationSettings() {
     try {
       const values = await form.validateFields();
       setSaving(true);
-      saveAppSettings({
+      const res = await saveAppSettings({
         name: values.appName,
         shortName: values.appShortName,
         description: values.appDescription,
@@ -150,7 +150,11 @@ export default function CustomizationSettings() {
         logoCollapsed: logoCollapsedFile[0]?.url || '',
         displayMode: values.displayMode,
       });
-      message.success('设置已保存，刷新页面后生效');
+      if (res.code === 0) {
+        message.success('设置已保存，全站统一生效');
+      } else {
+        message.error(res.msg || '保存失败');
+      }
     } catch {
       message.error('请检查输入');
     } finally {
@@ -180,16 +184,22 @@ export default function CustomizationSettings() {
         setFaviconFile([]);
         setLogoExpandedFile([]);
         setLogoCollapsedFile([]);
-        saveAppSettings({
-          name: DEFAULT_CONFIG.app.name,
-          shortName: DEFAULT_CONFIG.app.shortName,
-          description: DEFAULT_CONFIG.app.description,
-          favicon: '',
-          logoExpanded: '',
-          logoCollapsed: '',
-          displayMode: DEFAULT_CONFIG.branding.displayMode,
-        });
-        message.success('已全部重置为默认值，刷新页面后生效');
+        void (async () => {
+          const res = await saveAppSettings({
+            name: DEFAULT_CONFIG.app.name,
+            shortName: DEFAULT_CONFIG.app.shortName,
+            description: DEFAULT_CONFIG.app.description,
+            favicon: '',
+            logoExpanded: '',
+            logoCollapsed: '',
+            displayMode: DEFAULT_CONFIG.branding.displayMode,
+          });
+          if (res.code === 0) {
+            message.success('已全部重置为默认值，全站统一生效');
+          } else {
+            message.error(res.msg || '重置失败');
+          }
+        })();
       },
     });
   };

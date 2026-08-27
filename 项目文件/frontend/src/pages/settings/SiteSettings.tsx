@@ -6,7 +6,7 @@ import styles from './SiteSettings.module.css';
 
 const { Title } = Typography;
 
-const SITE_CONFIG_KEY = 'site_config';
+const SITE_CONFIG_API = '/api/v1/system/site-config';
 
 interface SiteConfig {
   debug_mode: boolean;
@@ -18,26 +18,56 @@ const DEFAULT_CONFIG: SiteConfig = {
   maintenance_mode: false,
 };
 
-function getSiteConfig(): SiteConfig {
+/** 从后端读取站点开关（全站统一） */
+async function fetchSiteConfig(): Promise<SiteConfig> {
   try {
-    const stored = localStorage.getItem(SITE_CONFIG_KEY);
-    return stored ? { ...DEFAULT_CONFIG, ...JSON.parse(stored) } : DEFAULT_CONFIG;
+    const resp = await fetch(SITE_CONFIG_API);
+    const json = await resp.json();
+    if (json?.code === 0 && json.data) {
+      return {
+        debug_mode: Boolean(json.data.debug_mode),
+        maintenance_mode: Boolean(json.data.maintenance_mode),
+      };
+    }
+  } catch { /* 后端不可用时回退默认 */ }
+  return DEFAULT_CONFIG;
+}
+
+/** 保存站点开关到后端（管理员，全站统一生效） */
+async function saveSiteConfig(config: SiteConfig): Promise<{ code: number; msg?: string }> {
+  try {
+    const resp = await fetch(SITE_CONFIG_API, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    return await resp.json();
   } catch {
-    return DEFAULT_CONFIG;
+    return { code: 1, msg: '网络错误' };
   }
 }
 
-function saveSiteConfig(config: SiteConfig): void {
-  localStorage.setItem(SITE_CONFIG_KEY, JSON.stringify(config));
-  window.dispatchEvent(new Event('site-config-changed'));
+let cachedSiteConfig: SiteConfig | null = null;
+
+/** 调试模式是否开启（后端全站统一，带缓存） */
+export async function isDebugModeEnabled(): Promise<boolean> {
+  if (!cachedSiteConfig) {
+    cachedSiteConfig = await fetchSiteConfig();
+  }
+  return cachedSiteConfig.debug_mode;
 }
 
-export function isDebugModeEnabled(): boolean {
-  return getSiteConfig().debug_mode;
+/** 维护模式是否开启（后端全站统一，带缓存） */
+export async function isMaintenanceModeEnabled(): Promise<boolean> {
+  if (!cachedSiteConfig) {
+    cachedSiteConfig = await fetchSiteConfig();
+  }
+  return cachedSiteConfig.maintenance_mode;
 }
 
-export function isMaintenanceModeEnabled(): boolean {
-  return getSiteConfig().maintenance_mode;
+/** 刷新站点开关缓存（保存后调用） */
+export function refreshSiteConfigCache(config: SiteConfig): void {
+  cachedSiteConfig = config;
 }
 
 export default function SiteSettings() {
@@ -45,8 +75,11 @@ export default function SiteSettings() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const config = getSiteConfig();
-    form.setFieldsValue(config);
+    void (async () => {
+      const config = await fetchSiteConfig();
+      refreshSiteConfigCache(config);
+      form.setFieldsValue(config);
+    })();
   }, [form]);
 
   if (!isAdmin()) {
@@ -64,11 +97,18 @@ export default function SiteSettings() {
     try {
       const values = await form.validateFields();
       setSaving(true);
-      saveSiteConfig({
-        debug_mode: values.debug_mode,
-        maintenance_mode: values.maintenance_mode,
-      });
-      message.success('站点配置已保存');
+      const config: SiteConfig = {
+        debug_mode: Boolean(values.debug_mode),
+        maintenance_mode: Boolean(values.maintenance_mode),
+      };
+      const res = await saveSiteConfig(config);
+      if (res.code === 0) {
+        refreshSiteConfigCache(config);
+        window.dispatchEvent(new Event('site-config-changed'));
+        message.success('站点配置已保存，全站统一生效');
+      } else {
+        message.error(res.msg || '保存失败');
+      }
     } catch {
       message.error('请检查输入');
     } finally {
@@ -83,7 +123,7 @@ export default function SiteSettings() {
       </div>
       <Alert
         message="管理员专属"
-        description="这些配置影响整个站点的访问方式。修改后可能需要重启服务才能生效。"
+        description="这些配置影响整个站点的访问方式，保存后对全站所有成员统一生效。"
         type="warning"
         showIcon
         style={{ marginBottom: "var(--spacing-lg)" }}
