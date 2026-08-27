@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Steps, Input, Button, Typography, message, Space, Spin } from 'antd';
 import { RocketOutlined, UserOutlined, LockOutlined, IdcardOutlined, SettingOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useCustomization, saveAppSettings } from '../hooks/useCustomization';
+import AftermathAnimationSection from './dev/TestPageAftermath';
 import styles from './Welcome.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -17,6 +18,7 @@ export default function Welcome() {
   const [adminName, setAdminName] = useState('');
   const [creating, setCreating] = useState(false);
   const [checkingInit, setCheckingInit] = useState(true);
+  const [showAnimation, setShowAnimation] = useState(true);
   const [isInit, setIsInit] = useState(false);
 
   useEffect(() => {
@@ -119,6 +121,12 @@ export default function Welcome() {
 
   if (isInit) {
     return <div style={{ textAlign: 'center', padding: '40px' }}><Button type="primary" onClick={() => navigate('/login')}>系统已初始化，前往登录</Button></div>;
+  }
+
+  if (showAnimation) {
+    return (
+      <AftermathAnimationSection onComplete={() => setShowAnimation(false)} />
+    );
   }
 
   return (

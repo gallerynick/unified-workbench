@@ -213,7 +213,12 @@ function sampleTextParticles(count: number): Array<{ x: number; y: number }> {
   return result;
 }
 
-export default function AftermathAnimationSection() {
+interface AftermathProps {
+  /** 动画完成（全白收尾）后的回调 */
+  onComplete?: () => void;
+}
+
+export default function AftermathAnimationSection({ onComplete }: AftermathProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
   const startTimeRef = useRef(0);
@@ -223,6 +228,7 @@ export default function AftermathAnimationSection() {
   const convergeCompleteRef = useRef(false);
   const transitionTriggeredRef = useRef(false);
   const transitionStartRef = useRef(-1);
+  const completeRef = useRef(false);
   // const navigate = useNavigate();
   const [showArrow, setShowArrow] = useState(false);
   const hintRef = useRef<HTMLDivElement>(null);
@@ -631,7 +637,11 @@ export default function AftermathAnimationSection() {
       // 亮度随着白屏同步增加，产生梦幻模糊感
       const blurVal = whitePhase;
 
-      // Phase G: 全白收尾，停留白屏（不跳转）
+      // Phase G: 全白收尾——白屏完成后触发 onComplete（衔接初始化页面）
+      if (transT >= 0 && whitePhase >= 1.0 && !completeRef.current && onComplete) {
+        completeRef.current = true;
+        onComplete();
+      }
 
       gl!.viewport(0, 0, W, H);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
