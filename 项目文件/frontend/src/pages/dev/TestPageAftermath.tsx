@@ -225,6 +225,7 @@ export default function AftermathAnimationSection() {
   const transitionStartRef = useRef(-1);
   // const navigate = useNavigate();
   const [showArrow, setShowArrow] = useState(false);
+  const hintRef = useRef<HTMLDivElement>(null);
 
   const fullText = 'hi，初次见面';
   const [typedText, setTypedText] = useState('');
@@ -290,6 +291,26 @@ export default function AftermathAnimationSection() {
     }, 200);
     return () => clearInterval(poll);
   }, []);
+
+  // 鼠标距离感应亮度：直接写 DOM style（无 React 渲染延迟）
+  useEffect(() => {
+    if (!showArrow) return;
+    const onMove = (e: MouseEvent) => {
+      const el = hintRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxDist = 300;
+      const glow = Math.max(0, 1 - dist / maxDist);
+      el.style.opacity = String(0.4 + glow * 0.6);
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [showArrow]);
 
   const handleArrowClick = () => {
     if (transitionTriggeredRef.current) return;
@@ -670,6 +691,7 @@ export default function AftermathAnimationSection() {
       </div>
       {showArrow && (
         <div
+          ref={hintRef}
           className={styles.scrollHint}
           onClick={handleArrowClick}
           role="button"

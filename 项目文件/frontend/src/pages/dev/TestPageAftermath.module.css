@@ -65,11 +65,11 @@
   cursor: pointer;
   user-select: none;
   animation: fadeIn 0.8s ease-out;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.05s ease, filter 0.05s ease;
 }
 
 .scrollHint:hover {
-  opacity: 0.9;
+  filter: brightness(1.2);
 }
 
 .scrollHint:active {
