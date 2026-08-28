@@ -2,6 +2,7 @@ import { request } from '../utils/request';
 import { getDeviceToken } from '../utils/device';
 import type {
   LoginRequest,
+  LoginResponse,
   TokenResponse,
   User,
   PasswordChangeRequest,
@@ -9,8 +10,8 @@ import type {
   UserNotificationConfig,
 } from '../types/user';
 
-export async function login(data: LoginRequest): Promise<UnifiedResponse<TokenResponse>> {
-  return request<TokenResponse>('/auth/login', {
+export async function login(data: LoginRequest): Promise<UnifiedResponse<LoginResponse>> {
+  return request<LoginResponse>('/auth/login', {
     method: 'POST',
     body: data,
     headers: { 'X-Device-Token': getDeviceToken() },

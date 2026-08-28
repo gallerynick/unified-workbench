@@ -48,6 +48,7 @@ const ProjectDetailPage = lazy(() => import('@/pages/projects/ProjectDetailPage'
 const ProposalDetailPage = lazy(() => import('@/pages/projects/ProposalDetailPage'));
 const TodoDetailPage = lazy(() => import('@/pages/projects/TodoDetailPage'));
 const MeetingDetailPage = lazy(() => import('@/pages/projects/MeetingDetailPage'));
+const SecuritySettings = lazy(() => import('@/pages/settings/SecuritySettings'));
 const SystemSettings = lazy(() => import('@/pages/settings/SystemSettings'));
 const TopologyManagement = lazy(() => import('@/pages/topology/TopologyManagement'));
 const StreamStudio = lazy(() => import('@/pages/streaming/StreamStudio'));
@@ -314,6 +315,14 @@ export const router = createBrowserRouter([
                 element: (
                   <LazyPage>
                     <UserNotificationConfig />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/security',
+                element: (
+                  <LazyPage>
+                    <SecuritySettings />
                   </LazyPage>
                 ),
               },

@@ -19,7 +19,6 @@ from app.models.project_member import ProjectMember
 from app.models.project_proposal import ProjectProposal
 from app.models.project_proposal_comment import ProjectProposalComment
 from app.models.project_todo import ProjectTodo
-
 from app.models.reminder import Reminder, ReminderStatus
 from app.models.secret import Secret
 from app.models.secret_category import SecretCategory
@@ -35,8 +34,10 @@ from app.models.template import Template
 from app.models.topology import Topology
 from app.models.user import User, UserRole, UserStatus
 from app.models.user_notification_config import UserNotificationConfig
+from app.models.user_recovery_code import UserRecoveryCode
 from app.models.user_session import UserSession
 from app.models.user_tag import UserTag
+from app.models.user_totp import UserTotp
 from app.models.vote import Vote, VoteRecord, VoteStatus
 
 __all__ = [
@@ -86,9 +87,11 @@ __all__ = [
     "Topology",
     "User",
     "UserNotificationConfig",
+    "UserRecoveryCode",
     "UserRole",
     "UserSession",
     "UserStatus",
+    "UserTotp",
     "UserTag",
     "Vote",
     "VoteRecord",

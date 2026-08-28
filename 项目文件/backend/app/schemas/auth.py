@@ -1,6 +1,7 @@
 """认证相关 Schema。"""
 
-import re
+import uuid
+from datetime import datetime
 from typing import ClassVar
 
 from pydantic import BaseModel, field_validator
@@ -19,6 +20,23 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+class LoginResponse(BaseModel):
+    """登录响应：无 2FA 时直接返回令牌；有 2FA 时返回 pending 令牌进入第二步。"""
+
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str = "bearer"
+    pending_2fa: bool = False
+    pending_token: str | None = None
+
+
+class Verify2FARequest(BaseModel):
+    """二次验证请求（动态码或恢复码）。"""
+
+    pending_token: str
+    code: str
 
 
 class RefreshRequest(BaseModel):
@@ -77,3 +95,52 @@ class ProfileUpdateRequest(BaseModel):
         if len(v) > cls.AVATAR_MAX_BYTES:
             raise ValueError(f"头像数据过大（最大 {cls.AVATAR_MAX_BYTES // (1024 * 1024)}MB）")
         return v
+
+
+# ---------------------------------------------------------------------------
+# 双因素认证（2FA）管理
+# ---------------------------------------------------------------------------
+
+
+class TwoFASetupRequest(BaseModel):
+    """创建新的待绑定 TOTP 设备。"""
+
+    password: str
+    label: str | None = None
+
+
+class TwoFAActivateRequest(BaseModel):
+    """激活待绑定设备（校验动态码）。"""
+
+    device_id: uuid.UUID
+    code: str
+
+
+class TwoFADeviceResponse(BaseModel):
+    """TOTP 设备信息（不返回密钥）。"""
+
+    id: uuid.UUID
+    label: str
+    is_active: bool
+    created_at: datetime
+    last_used_at: datetime | None = None
+
+
+class TwoFARecoveryCodesRequest(BaseModel):
+    """重新生成恢复码。"""
+
+    password: str
+
+
+class TwoFARemoveDeviceRequest(BaseModel):
+    """删除认证器设备。"""
+
+    password: str
+
+
+class TwoFAStatusResponse(BaseModel):
+    """当前用户 2FA 状态。"""
+
+    enabled: bool
+    device_count: int
+    recovery_codes_remaining: int

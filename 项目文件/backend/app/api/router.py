@@ -21,13 +21,12 @@ from app.api.notes import router as notes_router
 from app.api.notifications import router as notifications_router
 from app.api.project_changes import router as project_changes_router
 from app.api.project_events import router as project_events_router
-from app.api.project_members import router as project_members_router
 from app.api.project_meetings import router as project_meetings_router
-from app.api.project_proposals import router as project_proposals_router
+from app.api.project_members import router as project_members_router
 from app.api.project_proposal_comments import router as project_proposal_comments_router
+from app.api.project_proposals import router as project_proposals_router
 from app.api.project_todos import router as project_todos_router
 from app.api.projects import router as projects_router
-
 from app.api.reminders import router as reminders_router
 from app.api.secret_categories import router as secret_categories_router
 from app.api.secrets import router as secrets_router
@@ -42,6 +41,7 @@ from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
 from app.api.templates import router as templates_router
 from app.api.topology import router as topology_router
+from app.api.two_factor import router as two_factor_router
 from app.api.user_notification_config import router as notification_config_router
 from app.api.user_sessions import router as user_sessions_router
 from app.api.users import router as users_router
@@ -91,4 +91,5 @@ api_router.include_router(servers_router, prefix="/servers", tags=["服务器管
 api_router.include_router(systems_router, prefix="/systems", tags=["系统管理"])
 api_router.include_router(services_router, prefix="/services", tags=["服务管理"])
 api_router.include_router(notification_config_router, prefix="/auth", tags=["个人通知配置"])
+api_router.include_router(two_factor_router, prefix="/auth/2fa", tags=["双因素认证"])
 api_router.include_router(user_sessions_router, tags=["设备终端"])

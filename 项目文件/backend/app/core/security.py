@@ -46,6 +46,18 @@ def create_refresh_token(user_id: str) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
 
+def create_pending_2fa_token(user_id: str) -> str:
+    """创建二次验证用短期令牌（仅用于登录第二步，无实际访问权限）。"""
+    settings = get_settings()
+    expire = datetime.now(UTC) + timedelta(minutes=settings.PENDING_2FA_EXPIRE_MINUTES)
+    payload = {
+        "sub": user_id,
+        "type": "pending_2fa",
+        "exp": expire,
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+
+
 def decode_token(token: str) -> dict:
     """Decode and verify a JWT token.
 

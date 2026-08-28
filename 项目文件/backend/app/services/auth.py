@@ -8,16 +8,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.security import (
-    decode_token,
     create_access_token,
+    create_pending_2fa_token,
     create_refresh_token,
+    decode_token,
     hash_password,
     validate_password_strength,
     verify_password,
 )
 from app.models.user import User, UserStatus
 from app.models.user_session import UserSession
-from app.schemas.auth import LoginRequest, PasswordChangeRequest, RefreshRequest, TokenResponse
+from app.schemas.auth import (
+    LoginRequest,
+    LoginResponse,
+    PasswordChangeRequest,
+    RefreshRequest,
+    TokenResponse,
+    Verify2FARequest,
+)
+from app.services import two_factor
 
 # 登录失败限制配置
 MAX_LOGIN_ATTEMPTS = 5
@@ -81,14 +90,50 @@ async def _clear_login_attempts(username: str) -> None:
         pass
 
 
+async def _issue_tokens(
+    db: AsyncSession,
+    user: User,
+    ip: str | None = None,
+    user_agent: str | None = None,
+    device_token: str | None = None,
+) -> LoginResponse:
+    """为已通过全部认证的用户签发令牌并创建登录会话。"""
+    access_token = create_access_token(str(user.id), user.role.value)
+    refresh_token = create_refresh_token(str(user.id))
+
+    payload = decode_token(access_token)
+    jti = payload.get("jti", "")
+    device_name, device_type = _parse_user_agent(user_agent or "")
+    session = UserSession(
+        user_id=user.id,
+        jti=jti,
+        device_name=device_name,
+        device_type=device_type,
+        ip_address=ip,
+        user_agent=user_agent,
+        device_token=device_token or None,
+    )
+    db.add(session)
+    await db.commit()
+
+    return LoginResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+    )
+
+
 async def login(
     db: AsyncSession,
     request: LoginRequest,
     ip: str | None = None,
     user_agent: str | None = None,
     device_token: str | None = None,
-) -> TokenResponse:
-    """用户登录，验证凭据并返回令牌。包含登录失败限制。
+) -> LoginResponse:
+    """用户登录第一步：验证账号密码。
+
+    若用户已启用 2FA（绑定过 TOTP 设备），不直接签发正式令牌，
+    而是返回短期 pending 令牌，交由 verify_2fa 完成第二步验证。
 
     Args:
         db: 数据库会话。
@@ -111,25 +156,57 @@ async def login(
 
     await _clear_login_attempts(request.username)
 
-    access_token = create_access_token(str(user.id), user.role.value)
-    refresh_token = create_refresh_token(str(user.id))
+    if await two_factor.has_active_devices(db, user.id):
+        # 已启用 2FA：进入第二步，暂不创建会话
+        pending_token = create_pending_2fa_token(str(user.id))
+        return LoginResponse(pending_2fa=True, pending_token=pending_token)
 
-    payload = decode_token(access_token)
-    jti = payload.get("jti", "")
-    device_name, device_type = _parse_user_agent(user_agent or "")
-    session = UserSession(
-        user_id=user.id,
-        jti=jti,
-        device_name=device_name,
-        device_type=device_type,
-        ip_address=ip,
-        user_agent=user_agent,
-        device_token=device_token or None,
-    )
-    db.add(session)
-    await db.commit()
+    return await _issue_tokens(db, user, ip, user_agent, device_token)
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+async def verify_2fa(
+    db: AsyncSession,
+    request: Verify2FARequest,
+    ip: str | None = None,
+    user_agent: str | None = None,
+    device_token: str | None = None,
+) -> LoginResponse:
+    """登录第二步：用动态码或恢复码完成二次验证，签发正式令牌。"""
+    try:
+        payload = decode_token(request.pending_token)
+        if payload.get("type") != "pending_2fa":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="无效的二次验证令牌"
+            )
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="无效的二次验证令牌"
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="二次验证已过期，请重新登录"
+        )
+
+    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+    user = result.scalar_one_or_none()
+    if not user or user.status == UserStatus.DISABLED:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在或已禁用"
+        )
+
+    code = request.code.strip()
+    device = await two_factor.verify_and_get_device(db, user.id, code)
+    if device is not None:
+        await two_factor.mark_device_used(db, device)
+    elif not await two_factor.verify_recovery_code(db, user.id, code):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="动态码或恢复码错误"
+        )
+
+    return await _issue_tokens(db, user, ip, user_agent, device_token)
 
 
 def _parse_user_agent(ua: str) -> tuple[str, str]:

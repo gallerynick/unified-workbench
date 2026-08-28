@@ -11,6 +11,7 @@ import {
   ContactsOutlined,
   DatabaseOutlined,
   DesktopOutlined,
+  SafetyOutlined,
   FileOutlined,
   FileTextOutlined,
   FormOutlined,
@@ -152,6 +153,11 @@ function getMenuItems(): MenuProps['items'] {
       key: '/settings/devices',
       icon: <DesktopOutlined />,
       label: '设备终端',
+    },
+    {
+      key: '/settings/security',
+      icon: <SafetyOutlined />,
+      label: '安全设置',
     },
   );
 

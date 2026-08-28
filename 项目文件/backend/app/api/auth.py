@@ -1,10 +1,8 @@
 """认证 API 路由。"""
 
-import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
-from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -13,27 +11,41 @@ from app.core.security import verify_password
 from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
+    LoginResponse,
     PasswordChangeRequest,
     PasswordVerifyRequest,
     ProfileUpdateRequest,
     RefreshRequest,
     TokenResponse,
+    Verify2FARequest,
 )
 from app.schemas.common import UnifiedResponse
 from app.schemas.user import UserResponse
-from app.services.auth import change_password, login, refresh_access_token
+from app.services.auth import change_password, login, refresh_access_token, verify_2fa
 from app.services.system_config import get_config, update_config
 
 router = APIRouter()
 
 
-@router.post("/login", response_model=UnifiedResponse[TokenResponse])
+@router.post("/login", response_model=UnifiedResponse[LoginResponse])
 async def login_endpoint(request: LoginRequest, req: Request, db: AsyncSession = Depends(get_db)):
-    """用户登录。"""
+    """用户登录。未启用 2FA 直接返回令牌；已启用则返回 pending 令牌进入二次验证。"""
     ip = req.client.host if req.client else None
     user_agent = req.headers.get("User-Agent", "")
     device_token = req.headers.get("X-Device-Token", "")
     tokens = await login(db, request, ip, user_agent, device_token)
+    return UnifiedResponse(data=tokens)
+
+
+@router.post("/verify-2fa", response_model=UnifiedResponse[LoginResponse])
+async def verify_2fa_endpoint(
+    request: Verify2FARequest, req: Request, db: AsyncSession = Depends(get_db)
+):
+    """登录第二步：用动态码或恢复码完成二次验证并签发正式令牌。"""
+    ip = req.client.host if req.client else None
+    user_agent = req.headers.get("User-Agent", "")
+    device_token = req.headers.get("X-Device-Token", "")
+    tokens = await verify_2fa(db, request, ip, user_agent, device_token)
     return UnifiedResponse(data=tokens)
 
 
@@ -137,7 +149,8 @@ async def initial_setup_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """初始化系统：创建首个管理员账号并标记设置完成（公开接口）"""
-    from sqlalchemy import select, text
+    from sqlalchemy import text
+
     from app.core.security import hash_password, validate_password_strength
     from app.models.user import User, UserRole, UserStatus
 

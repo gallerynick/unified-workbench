@@ -30,6 +30,31 @@ export interface TokenResponse {
   token_type: string;
 }
 
+/** 登录响应：未启用 2FA 直接返回令牌；已启用则 pending_2fa=true 并返回 pending_token。 */
+export interface LoginResponse {
+  access_token: string | null;
+  refresh_token: string | null;
+  token_type: string;
+  pending_2fa: boolean;
+  pending_token: string | null;
+}
+
+/** 当前用户 2FA 状态。 */
+export interface TwoFAStatus {
+  enabled: boolean;
+  device_count: number;
+  recovery_codes_remaining: number;
+}
+
+/** 已绑定的 TOTP 认证器设备。 */
+export interface TwoFADevice {
+  id: string;
+  label: string;
+  is_active: boolean;
+  created_at: string;
+  last_used_at: string | null;
+}
+
 export interface UserCreateRequest {
   username: string;
   password: string;

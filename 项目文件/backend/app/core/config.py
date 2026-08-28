@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-jwt-secret-key-change-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # 二次验证（2FA）pending 令牌有效期（分钟）
+    PENDING_2FA_EXPIRE_MINUTES: int = 5
 
     # CORS 配置
     CORS_ORIGINS: str = "http://localhost,http://localhost:3000"

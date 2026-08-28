@@ -39,12 +39,20 @@ async def engine():
 
 @pytest.fixture
 async def db(engine):
-    """每个测试一个独立事务，测试结束后回滚，保证测试隔离。"""
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with session_factory() as session:
-        async with session.begin():
+    """每个测试一个独立连接级事务，测试结束后整体回滚，保证测试隔离。
+
+    使用连接级事务（而非 session.begin()），使接口内部调用的 db.commit()
+    不会破坏外层事务——所有改动最终随连接级事务回滚，从而支持多请求、
+    含 commit 的测试（如登录后刷新、2FA 绑定流程等）。
+    """
+    async with engine.connect() as connection:
+        trans = await connection.begin()
+        session_factory = async_sessionmaker(
+            bind=connection, class_=AsyncSession, expire_on_commit=False
+        )
+        async with session_factory() as session:
             yield session
-        # session.begin() 上下文退出时自动 rollback
+        await trans.rollback()
 
 
 @pytest.fixture

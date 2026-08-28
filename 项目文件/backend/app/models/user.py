@@ -16,6 +16,8 @@ from app.core.database import Base
 if TYPE_CHECKING:
     from app.models.tag import Tag
     from app.models.user_notification_config import UserNotificationConfig
+    from app.models.user_recovery_code import UserRecoveryCode
+    from app.models.user_totp import UserTotp
 
 
 class UserRole(enum.StrEnum):
@@ -71,4 +73,14 @@ class User(Base):
     # 一对一关系：用户 <-> 通知配置
     notification_config: Mapped[UserNotificationConfig | None] = relationship(
         "UserNotificationConfig", back_populates="user", uselist=False
+    )
+
+    # 一对多关系：用户 <-> TOTP 认证器设备（多设备绑定）
+    totp_devices: Mapped[list[UserTotp]] = relationship(
+        "UserTotp", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    # 一对多关系：用户 <-> 一次性恢复码
+    recovery_codes: Mapped[list[UserRecoveryCode]] = relationship(
+        "UserRecoveryCode", back_populates="user", cascade="all, delete-orphan"
     )
