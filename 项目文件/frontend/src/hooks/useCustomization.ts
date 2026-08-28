@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { CustomizationConfig, DisplayMode } from '../types/customization';
 import { DEFAULT_CONFIG } from '../types/customization';
+import { request } from '../utils/request';
 
 const CONFIG_URL = '/custom/config.json';
 const STORAGE_KEY = 'custom_app_settings';
@@ -119,12 +120,11 @@ export async function saveAppSettings(settings: {
   const merged = { ...existing, ...settings };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
 
-  // 同步后端（全站统一）
+  // 同步后端（全站统一，管理员 PUT 需带 Bearer token）
   try {
-    const resp = await fetch(CUSTOM_CONFIG_API, {
+    const res = await request<null>('/system/custom-config', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: {
         app_name: settings.name,
         app_short_name: settings.shortName,
         app_description: settings.description,
@@ -132,11 +132,10 @@ export async function saveAppSettings(settings: {
         logo_expanded: settings.logoExpanded,
         logo_collapsed: settings.logoCollapsed,
         display_mode: settings.displayMode,
-      }),
+      },
     });
-    const json = await resp.json();
-    return json;
-  } catch {
-    return { code: 1, msg: '网络错误' };
+    return { code: res.code, msg: res.msg };
+  } catch (e) {
+    return { code: 1, msg: e instanceof Error ? e.message : '网络错误' };
   }
 }

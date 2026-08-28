@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { Card, Form, Switch, Button, Typography, message, Alert, Space, Result } from 'antd';
 import { SaveOutlined, SafetyOutlined, LockOutlined } from '@ant-design/icons';
 import { isAdmin } from '../../utils/auth';
+import { request } from '../../utils/request';
 import styles from './SiteSettings.module.css';
 
 const { Title } = Typography;
 
-const SITE_CONFIG_API = '/api/v1/system/site-config';
+const SITE_CONFIG_API = '/system/site-config';
 
 interface SiteConfig {
   debug_mode: boolean;
@@ -21,12 +22,11 @@ const DEFAULT_CONFIG: SiteConfig = {
 /** 从后端读取站点开关（全站统一） */
 async function fetchSiteConfig(): Promise<SiteConfig> {
   try {
-    const resp = await fetch(SITE_CONFIG_API);
-    const json = await resp.json();
-    if (json?.code === 0 && json.data) {
+    const res = await request<SiteConfig>(SITE_CONFIG_API);
+    if (res.code === 0 && res.data) {
       return {
-        debug_mode: Boolean(json.data.debug_mode),
-        maintenance_mode: Boolean(json.data.maintenance_mode),
+        debug_mode: Boolean(res.data.debug_mode),
+        maintenance_mode: Boolean(res.data.maintenance_mode),
       };
     }
   } catch { /* 后端不可用时回退默认 */ }
@@ -36,14 +36,10 @@ async function fetchSiteConfig(): Promise<SiteConfig> {
 /** 保存站点开关到后端（管理员，全站统一生效） */
 async function saveSiteConfig(config: SiteConfig): Promise<{ code: number; msg?: string }> {
   try {
-    const resp = await fetch(SITE_CONFIG_API, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
-    });
-    return await resp.json();
-  } catch {
-    return { code: 1, msg: '网络错误' };
+    const res = await request<null>(SITE_CONFIG_API, { method: 'PUT', body: config });
+    return { code: res.code, msg: res.msg };
+  } catch (e) {
+    return { code: 1, msg: e instanceof Error ? e.message : '保存失败' };
   }
 }
 
