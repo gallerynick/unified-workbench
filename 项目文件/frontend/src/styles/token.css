@@ -317,6 +317,7 @@
   --sider-menu-item-hover-bg: var(--bg-tertiary);
   --header-bg: var(--canvas);
   --header-border: 1px solid var(--border-secondary);
+  --input-focus-shadow: 0 0 0 2px rgba(0, 113, 227, 0.3);
   --tag-bg: var(--bg-tertiary);
 
   /* === 扩展强调色（深色适配 → 提亮以保持深底辨识度） === */
