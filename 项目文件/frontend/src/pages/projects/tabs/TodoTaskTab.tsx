@@ -2,12 +2,8 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
-  DatePicker,
   Empty,
-  Form,
   Input,
-  Modal,
-  Select,
   Space,
   Spin,
   Tag,
@@ -23,54 +19,28 @@ import {
   CheckSquareOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import type { Project } from '../../../types/project';
-import type { ProjectTodo, ProjectTodoCreate, ProjectTodoUpdate } from '../../../types/project-todo';
+import type { ProjectTodo } from '../../../types/project-todo';
 import type { User } from '../../../types/user';
 import type { ProjectProposal } from '../../../types/project-proposal';
-import {
-  listProjectTodos,
-  createProjectTodo,
-  updateProjectTodo,
-} from '../../../api/project-todos';
+import { listProjectTodos } from '../../../api/project-todos';
 import { listProjectProposals } from '../../../api/project-proposals';
 import { listUsers } from '../../../api/users';
-import { TODO_PRIORITY_OPTIONS, TODO_STATUS_OPTIONS, PROJECT_NUMBER_PREFIX } from '../../../constants/project';
+import { TODO_STATUS_OPTIONS, PRIORITY_COLOR } from '../../../constants/project';
 import { getUserId, isAdmin } from '../../../utils/auth';
 import { useUser } from '../../../contexts/UserContext';
+import TodoModal from '../components/TodoModal';
 import styles from './TodoTaskTab.module.css';
 
 const { Text } = Typography;
-const { TextArea } = Input;
 
 /** 看板三列状态 */
 const BOARD_COLUMNS = ['pending', 'in_progress', 'completed'] as const;
 type TodoStatus = (typeof BOARD_COLUMNS)[number];
 
-const PRIORITY_COLOR: Record<string, string> = {
-  P0: 'red',
-  P1: 'volcano',
-  P2: 'gold',
-  P3: 'default',
-  P4: 'default',
-};
-
 const statusLabel = (status: string): string =>
   TODO_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
-
-/** 生成待办编号：TOD-{项目编号}-{序号} */
-function buildTodoNumber(project: Project, existing: ProjectTodo[]): string {
-  const projectNum = project.number || 'PRJ';
-  const prefix = `${PROJECT_NUMBER_PREFIX.todo}${projectNum}-`;
-  let maxSeq = 0;
-  for (const t of existing) {
-    if (t.number.startsWith(prefix)) {
-      const seq = parseInt(t.number.slice(prefix.length), 10);
-      if (!Number.isNaN(seq)) maxSeq = Math.max(maxSeq, seq);
-    }
-  }
-  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
-}
 
 export default function TodoTaskTab({ project }: { project: Project }) {
   const { user } = useUser();
@@ -85,8 +55,6 @@ export default function TodoTaskTab({ project }: { project: Project }) {
   const [searchText, setSearchText] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTodo, setEditingTodo] = useState<ProjectTodo | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm();
 
   // ── 权限 ──
   const currentUserId = getUserId();
@@ -168,79 +136,20 @@ export default function TodoTaskTab({ project }: { project: Project }) {
     return u.username ? `${u.nickname} (${u.username})` : u.nickname;
   };
 
-  // ── 新建/编辑 Modal ──
+  // ── 新建/编辑 Modal（由共用组件 TodoModal 承载） ──
   const handleOpenCreate = useCallback(() => {
     setEditingTodo(null);
-    form.resetFields();
-    form.setFieldsValue({ priority: 'P2' });
     setModalVisible(true);
-  }, [form]);
+  }, []);
 
   const handleCloseModal = useCallback(() => {
     setModalVisible(false);
     setEditingTodo(null);
   }, []);
 
-  const handleSubmit = useCallback(async () => {
-    let values: {
-      title: string;
-      description?: string;
-      priority?: string;
-      assignee_id?: string;
-      proposal_id?: string;
-      due_date?: Dayjs;
-    };
-    try {
-      values = await form.validateFields();
-    } catch {
-      return; // 校验未通过，Modal 会显示错误
-    }
-    setSubmitting(true);
-    try {
-      if (editingTodo) {
-        const payload: ProjectTodoUpdate = {
-          title: values.title,
-          ...(values.description?.trim() ? { description: values.description.trim() } : {}),
-          ...(values.priority ? { priority: values.priority } : {}),
-          ...(values.assignee_id ? { assignee_id: values.assignee_id } : {}),
-          ...(values.proposal_id ? { proposal_id: values.proposal_id } : {}),
-          ...(values.due_date ? { due_date: values.due_date.format('YYYY-MM-DD') } : {}),
-        };
-        const res = await updateProjectTodo(editingTodo.id, payload);
-        if (res.code === 0) {
-          message.success('待办已更新');
-          setModalVisible(false);
-          void fetchTodos();
-        } else {
-          message.error(res.msg || '更新待办失败');
-        }
-      } else {
-        const payload: ProjectTodoCreate = {
-          project_id: project.id,
-          number: buildTodoNumber(project, todos),
-          title: values.title,
-          priority: values.priority ?? 'P2',
-          status: 'pending',
-          ...(values.description?.trim() ? { description: values.description.trim() } : {}),
-          ...(values.assignee_id ? { assignee_id: values.assignee_id } : {}),
-          ...(values.proposal_id ? { proposal_id: values.proposal_id } : {}),
-          ...(values.due_date ? { due_date: values.due_date.format('YYYY-MM-DD') } : {}),
-        };
-        const res = await createProjectTodo(payload);
-        if (res.code === 0) {
-          message.success('待办已创建');
-          setModalVisible(false);
-          void fetchTodos();
-        } else {
-          message.error(res.msg || '创建待办失败');
-        }
-      }
-    } catch (err: unknown) {
-      message.error(err instanceof Error ? err.message : '保存待办失败');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [form, editingTodo, project, todos, fetchTodos]);
+  const handleSaved = useCallback(() => {
+    void fetchTodos();
+  }, [fetchTodos]);
 
   // ── 删除 ──
   // ── 卡片渲染 ──
@@ -381,63 +290,15 @@ export default function TodoTaskTab({ project }: { project: Project }) {
         </div>
       )}
 
-      {/* 新建/编辑 Modal */}
-      <Modal
-        title={editingTodo ? '编辑待办' : '新建待办'}
+      {/* 新建待办（共用组件 TodoModal） */}
+      <TodoModal
+        project={project}
         open={modalVisible}
-        onOk={handleSubmit}
-        onCancel={handleCloseModal}
-        confirmLoading={submitting}
-        okText="保存"
-        cancelText="取消"
-        destroyOnClose
-        width={560}
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入待办标题' }]}
-          >
-            <Input placeholder="请输入待办标题" maxLength={200} showCount />
-          </Form.Item>
-          <Form.Item name="description" label="描述">
-            <TextArea
-              placeholder="请输入描述（可选）"
-              rows={3}
-              maxLength={2000}
-              showCount
-            />
-          </Form.Item>
-          <Form.Item name="priority" label="优先级">
-            <Select options={[...TODO_PRIORITY_OPTIONS]} />
-          </Form.Item>
-          <Form.Item name="assignee_id" label="执行人">
-            <Select
-              placeholder="选择执行人（可选）"
-              allowClear
-              options={users.map((u) => ({
-                value: u.id,
-                label: u.username ? `${u.nickname} (${u.username})` : u.nickname,
-              }))}
-            />
-          </Form.Item>
-          <Form.Item name="due_date" label="截止日期">
-            <DatePicker style={{ width: '100%' }} placeholder="选择截止日期（可选）" />
-          </Form.Item>
-          <Form.Item name="proposal_id" label="关联提案">
-            <Select
-              placeholder="选择关联提案（可选）"
-              allowClear
-              options={proposals.map((p) => ({
-                value: p.id,
-                label: `${p.number} ${p.title}`,
-              }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+        editingTodo={editingTodo}
+        existingTodos={todos}
+        onClose={handleCloseModal}
+        onSaved={handleSaved}
+      />
     </>
   );
 }

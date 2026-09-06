@@ -1,72 +1,36 @@
 import { useState } from 'react';
-import { Table, Button, Input, Typography, Modal, message, Space, Tag, Tooltip, Result, Form } from 'antd';
+import { Table, Button, Typography, Modal, message, Space, Tag, Tooltip, Result } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useTagContext } from '../../contexts/TagContext';
 import { isAdmin } from '../../utils/auth';
-import { createTag, updateTag, deleteTag } from '../../api/tags';
+import { deleteTag } from '../../api/tags';
 import type { Tag as TagType } from '../../api/tags';
+import TagModal from './TagModal';
 import styles from './TagManagement.module.css';
 
 const { Title } = Typography;
 
-const COLOR_OPTIONS = [
-  { value: 'blue', label: '蓝色' },
-  { value: 'purple', label: '紫色' },
-  { value: 'green', label: '绿色' },
-  { value: 'gold', label: '金色' },
-  { value: 'red', label: '红色' },
-  { value: 'orange', label: '橙色' },
-  { value: 'cyan', label: '青色' },
-  { value: 'magenta', label: '品红' },
-];
-
 export default function TagManagement() {
   const { tags, refresh } = useTagContext();
-  const [modalVisible, setModalVisible] = useState(false);
+
+  // ── 弹窗状态（共用组件 TagModal） ──
+  const [tagModalOpen, setTagModalOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagType | null>(null);
-  const [form] = Form.useForm();
-  const [formColor, setFormColor] = useState('blue');
 
   if (!isAdmin()) {
     return <Result status="403" title="权限不足" subTitle="只有管理员可以管理标签" icon={<LockOutlined />} />;
   }
 
+  // ── 打开新建/编辑（弹窗共用 TagModal） ──
   const handleCreate = () => {
     setEditingTag(null);
-    form.resetFields();
-    setFormColor('blue');
-    setModalVisible(true);
+    setTagModalOpen(true);
   };
 
   const handleEdit = (tag: TagType) => {
     setEditingTag(tag);
-    form.setFieldsValue({ name: tag.name });
-    setFormColor(tag.color || 'blue');
-    setModalVisible(true);
-  };
-
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingTag) {
-        const res = await updateTag(editingTag.id, { name: values.name, color: formColor });
-        if (res.code === 0) {
-          message.success('标签已更新');
-          setModalVisible(false);
-          refresh();
-        }
-      } else {
-        const res = await createTag({ name: values.name, color: formColor });
-        if (res.code === 0) {
-          message.success('标签已创建');
-          setModalVisible(false);
-          refresh();
-        }
-      }
-    } catch {
-      message.error('操作失败');
-    }
+    setTagModalOpen(true);
   };
 
   const handleDelete = (tag: TagType) => {
@@ -145,37 +109,13 @@ export default function TagManagement() {
         pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条` }}
       />
 
-      <Modal
-        title={editingTag ? '编辑标签' : '新建标签'}
-        open={modalVisible}
-        onOk={handleSave}
-        onCancel={() => { setModalVisible(false); form.resetFields(); }}
-        okText="保存"
-        cancelText="取消"
-        width={560}
-        destroyOnClose
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="标签名称" rules={[{ required: true, message: '请输入标签名称' }]}>
-            <Input placeholder="请输入标签名称" />
-          </Form.Item>
-          <Form.Item label="选择颜色">
-            <Space wrap>
-              {COLOR_OPTIONS.map((opt) => (
-                <Tag
-                  key={opt.value}
-                  color={opt.value}
-                  style={{ cursor: 'pointer', opacity: formColor === opt.value ? 1 : 0.5 }}
-                  onClick={() => setFormColor(opt.value)}
-                >
-                  {opt.label}
-                </Tag>
-              ))}
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 新建/编辑 标签（共用组件 TagModal） */}
+      <TagModal
+        open={tagModalOpen}
+        editingTag={editingTag}
+        onClose={() => setTagModalOpen(false)}
+        onSaved={() => void refresh()}
+      />
     </div>
   );
 }

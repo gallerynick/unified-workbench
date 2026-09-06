@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Tabs, Table, Button, Input, Typography, Space, Tag, Modal, Form, InputNumber, Select, message, Tooltip } from 'antd';
+import { Tabs, Table, Button, Typography, Space, Tag, Modal, message, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { listBudgets, createBudget, updateBudget, deleteBudget } from '../../api/budgets';
-import { listSubscriptions, createSubscription, updateSubscription, deleteSubscription } from '../../api/subscriptions';
+import { listBudgets, deleteBudget } from '../../api/budgets';
+import { listSubscriptions, deleteSubscription } from '../../api/subscriptions';
 import type { Budget } from '../../types/budget';
 import type { Subscription } from '../../types/subscription';
-import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
-import type { Visibility } from '../../utils/visibility';
+import BudgetModal from './BudgetModal';
+import SubscriptionModal from './SubscriptionModal';
 import styles from './FinanceManagement.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -38,31 +38,36 @@ const SUB_STATUS_MAP: Record<string, { color: string; text: string }> = {
 export default function FinanceManagement() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
-  const [subModalVisible, setSubModalVisible] = useState(false);
+
+  // ── 弹窗状态（共用组件 BudgetModal / SubscriptionModal） ──
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [subModalOpen, setSubModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [editingSub, setEditingSub] = useState<Subscription | null>(null);
-  const [budgetForm] = Form.useForm();
-  const [subForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [budgetVisibility, setBudgetVisibility] = useState<Visibility>('private');
   const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchBudgets = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await listBudgets();
       if (res.code === 0) setBudgets(res.data.items);
     } catch {
       message.error('获取预算列表失败');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   const fetchSubscriptions = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await listSubscriptions();
       if (res.code === 0) setSubscriptions(res.data.items);
     } catch {
       message.error('获取订阅列表失败');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -71,38 +76,25 @@ export default function FinanceManagement() {
     fetchSubscriptions();
   }, [fetchBudgets, fetchSubscriptions]);
 
+  // ── 打开新建/编辑（弹窗共用 BudgetModal / SubscriptionModal） ──
   const handleAddBudget = () => {
     setEditingBudget(null);
-    budgetForm.resetFields();
-    setBudgetVisibility('private');
-    setBudgetModalVisible(true);
+    setBudgetModalOpen(true);
   };
 
   const handleEditBudget = (item: Budget) => {
     setEditingBudget(item);
-    budgetForm.setFieldsValue(item);
-    setBudgetVisibility((item.visibility as Visibility) || 'private');
-    setBudgetModalVisible(true);
+    setBudgetModalOpen(true);
   };
 
-  const handleSaveBudget = async () => {
-    try {
-      const values = await budgetForm.validateFields();
-      setLoading(true);
-      if (editingBudget) {
-        await updateBudget(editingBudget.id, { ...values, visibility: budgetVisibility });
-        message.success('预算已更新');
-      } else {
-        await createBudget({ ...values, visibility: budgetVisibility });
-        message.success('预算已添加');
-      }
-      setBudgetModalVisible(false);
-      fetchBudgets();
-    } catch {
-      message.error('操作失败');
-    } finally {
-      setLoading(false);
-    }
+  const handleAddSubscription = () => {
+    setEditingSub(null);
+    setSubModalOpen(true);
+  };
+
+  const handleEditSubscription = (item: Subscription) => {
+    setEditingSub(item);
+    setSubModalOpen(true);
   };
 
   const handleDeleteBudget = (item: Budget) => {
@@ -123,41 +115,6 @@ export default function FinanceManagement() {
         }
       },
     });
-  };
-
-  const handleAddSubscription = () => {
-    setEditingSub(null);
-    subForm.resetFields();
-    setSubModalVisible(true);
-  };
-
-  const handleEditSubscription = (item: Subscription) => {
-    setEditingSub(item);
-    subForm.setFieldsValue({
-      ...item,
-      next_billing: item.next_billing ? item.next_billing.split('T')[0] : '',
-    });
-    setSubModalVisible(true);
-  };
-
-  const handleSaveSubscription = async () => {
-    try {
-      const values = await subForm.validateFields();
-      setLoading(true);
-      if (editingSub) {
-        await updateSubscription(editingSub.id, values);
-        message.success('订阅已更新');
-      } else {
-        await createSubscription(values);
-        message.success('订阅已添加');
-      }
-      setSubModalVisible(false);
-      fetchSubscriptions();
-    } catch {
-      message.error('操作失败');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleDeleteSubscription = (item: Subscription) => {
@@ -269,7 +226,7 @@ export default function FinanceManagement() {
                     新增预算
                   </Button>
                 </div>
-                <Table className={styles.table ?? ''} columns={budgetColumns} dataSource={budgets} rowKey="id" pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条` }} />
+                <Table className={styles.table ?? ''} columns={budgetColumns} dataSource={budgets} rowKey="id" loading={loading} pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条` }} />
               </>
             ),
           },
@@ -283,58 +240,28 @@ export default function FinanceManagement() {
                     新增订阅
                   </Button>
                 </div>
-                <Table className={styles.table ?? ''} columns={subColumns} dataSource={subscriptions} rowKey="id" pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条` }} />
+                <Table className={styles.table ?? ''} columns={subColumns} dataSource={subscriptions} rowKey="id" loading={loading} pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条` }} />
               </>
             ),
           },
         ]}
       />
 
-        <Modal title={editingBudget ? '编辑预算' : '新增预算'} open={budgetModalVisible} onOk={handleSaveBudget} onCancel={() => setBudgetModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading} width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
-        <Form form={budgetForm} layout="vertical">
-          <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
-            <Input placeholder="预算名称" />
-          </Form.Item>
-          <Form.Item name="category" label="分类" rules={[{ required: true, message: '请输入分类' }]}>
-            <Input placeholder="如：运营、开发、市场" />
-          </Form.Item>
-          <Form.Item name="amount" label="预算金额" rules={[{ required: true, message: '请输入金额' }]}>
-            <InputNumber min={0} style={{ width: '100%' }} prefix="¥" />
-          </Form.Item>
-          <Form.Item name="period" label="周期" initialValue="monthly">
-            <Select options={[{ value: 'monthly', label: '月度' }, { value: 'quarterly', label: '季度' }, { value: 'yearly', label: '年度' }]} />
-          </Form.Item>
-          <Form.Item label="可见性">
-            <VisibilitySetting
-              value={budgetVisibility}
-              onChange={setBudgetVisibility}
-              hideRestricted
-              showRestrictedTags={false}
-              label=""
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 预算 新增/编辑（共用组件 BudgetModal） */}
+      <BudgetModal
+        open={budgetModalOpen}
+        editingBudget={editingBudget}
+        onClose={() => setBudgetModalOpen(false)}
+        onSaved={() => void fetchBudgets()}
+      />
 
-        <Modal title={editingSub ? '编辑订阅' : '新增订阅'} open={subModalVisible} onOk={handleSaveSubscription} onCancel={() => setSubModalVisible(false)} okText="保存" cancelText="取消" confirmLoading={loading} width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
-        <Form form={subForm} layout="vertical">
-          <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
-            <Input placeholder="订阅名称" />
-          </Form.Item>
-          <Form.Item name="provider" label="提供商" rules={[{ required: true, message: '请输入提供商' }]}>
-            <Input placeholder="如：AWS、阿里云、GitHub" />
-          </Form.Item>
-          <Form.Item name="amount" label="费用" rules={[{ required: true, message: '请输入费用' }]}>
-            <InputNumber min={0} style={{ width: '100%' }} prefix="¥" />
-          </Form.Item>
-          <Form.Item name="billing_cycle" label="计费周期" initialValue="monthly">
-            <Select options={[{ value: 'monthly', label: '月付' }, { value: 'yearly', label: '年付' }]} />
-          </Form.Item>
-          <Form.Item name="next_billing" label="下次扣费日期">
-            <Input type="date" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 订阅 新增/编辑（共用组件 SubscriptionModal） */}
+      <SubscriptionModal
+        open={subModalOpen}
+        editingSub={editingSub}
+        onClose={() => setSubModalOpen(false)}
+        onSaved={() => void fetchSubscriptions()}
+      />
 
       <Modal
         title="权限说明"

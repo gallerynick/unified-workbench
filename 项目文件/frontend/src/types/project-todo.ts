@@ -11,6 +11,7 @@ export interface ProjectTodo {
   assignee_id: string | null;
   creator_id: string;
   proposal_id: string | null;
+  meeting_id: string | null;
   due_date: string | null;
   created_at: string;
   updated_at: string;
@@ -25,6 +26,7 @@ export interface ProjectTodoCreate {
   status?: string;
   assignee_id?: string;
   proposal_id?: string | null;
+  meeting_id?: string | null;
   due_date?: string;
 }
 
@@ -36,6 +38,7 @@ export interface ProjectTodoUpdate {
   status?: string;
   assignee_id?: string;
   proposal_id?: string | null;
+  meeting_id?: string | null;
   due_date?: string;
 }
 

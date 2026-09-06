@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, message, Segmented } from 'antd';
 import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
@@ -13,6 +13,8 @@ import styles from './Login.module.css';
 
 const { Title, Text } = Typography;
 
+const OTP_LENGTH = 6;
+
 export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,59 @@ export default function Login() {
   const [code, setCode] = useState('');
   const customization = useCustomization();
   const { refreshUser } = useUser();
+
+  // ── OTP 输入框 refs ──
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+
+  // ── 二次验证时同步 otpDigits → code ──
+  const handleOtpChange = (index: number, value: string) => {
+    // 只允许数字
+    const clean = value.replace(/[^0-9]/g, '');
+    if (!clean) return;
+
+    const next = [...otpDigits];
+    next[index] = clean.charAt(0); // 每格只取1位
+    setOtpDigits(next);
+    setCode(next.join(''));
+
+    // 输入后跳到下一格
+    if (clean.length > 0 && index < OTP_LENGTH - 1) {
+      otpRefs.current[index + 1]?.focus();
+    }
+
+    // 6 位填满后自动提交
+    if (next.every((d) => d !== '')) {
+      void handleVerify2fa();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Backspace 空输入时跳回上一格
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, OTP_LENGTH);
+    if (!pasted) return;
+
+    const next = Array(OTP_LENGTH).fill('');
+    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
+    setOtpDigits(next);
+    setCode(next.join(''));
+
+    // 聚焦到最后一位输入的下一格
+    const focusIndex = Math.min(pasted.length, OTP_LENGTH - 1);
+    otpRefs.current[focusIndex]?.focus();
+
+    // 填满自动提交
+    if (next.every((d) => d !== '')) {
+      void handleVerify2fa();
+    }
+  };
 
   useEffect(() => {
     // 检查系统初始化状态
@@ -55,6 +110,7 @@ export default function Login() {
           // 进入二次验证步骤
           setPendingToken(response.data.pending_token);
           setCode('');
+          setOtpDigits(Array(OTP_LENGTH).fill(''));
           setCodeMode('totp');
         } else if (response.data.access_token && response.data.refresh_token) {
           await finishLogin(response.data);
@@ -110,9 +166,16 @@ export default function Login() {
     }
   };
 
+  const handleBackToLogin = () => {
+    setPendingToken(null);
+    setCode('');
+    setOtpDigits(Array(OTP_LENGTH).fill(''));
+    setCodeMode('totp');
+  };
+
   return (
-    <div className={`login-page ${styles.container ?? ''} ${transitioning ? styles.containerLeaving : ''}`}>
-      <Card className={`${styles.card ?? ''} ${transitioning ? styles.cardLeaving : ''}`} bordered={false}>
+    <div className={'login-page ' + (styles.container ?? '') + (transitioning ? ' ' + (styles.containerLeaving ?? '') : '')}>
+      <Card className={(styles.card ?? '') + (transitioning ? ' ' + (styles.cardLeaving ?? '') : '')} bordered={false}>
         <div className={styles.header ?? ''}>
           <Title level={2} className={styles.title ?? ''}>
             {customization.app.name}
@@ -162,47 +225,75 @@ export default function Login() {
             </Form.Item>
           </Form>
         ) : (
-          <div className={styles.form ?? ''}>
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <SafetyOutlined style={{ fontSize: 40, color: 'var(--color-primary)' }} />
-              <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-                请输入认证器中的 6 位动态码
-              </Text>
+          <div className={styles.form2fa ?? ''}>
+            <div className={styles.otpIconWrap ?? ''}>
+              <SafetyOutlined className={styles.otpIcon ?? ''} />
             </div>
+            <Text className={styles.otpLabel ?? ''} type="secondary">
+              请输入认证器中的 6 位动态码
+            </Text>
+
             <Segmented
+              className={styles.otpSegmented ?? ''}
               block
-              style={{ marginBottom: 12 }}
               value={codeMode}
-              onChange={(v) => setCodeMode(v as 'totp' | 'recovery')}
+              onChange={(v) => {
+                setCodeMode(v as 'totp' | 'recovery');
+                setCode('');
+                setOtpDigits(Array(OTP_LENGTH).fill(''));
+              }}
               options={[
                 { label: '动态码', value: 'totp' },
                 { label: '恢复码', value: 'recovery' },
               ]}
             />
-            <Input
-              size="large"
-              autoFocus
-              maxLength={codeMode === 'totp' ? 6 : 20}
-              placeholder={codeMode === 'totp' ? '6 位动态码' : '恢复码（如 XXXX-XXXX-XXXX）'}
-              value={code}
-              onChange={(e) => {
-                const v = e.target.value;
-                setCode(codeMode === 'totp' ? v.replace(/[^0-9]/g, '') : v);
-              }}
-              onPressEnter={handleVerify2fa}
-            />
+
+            {codeMode === 'totp' ? (
+              <div className={styles.otpRow ?? ''}>
+                {otpDigits.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={(el) => { otpRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(i, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                    onPaste={handleOtpPaste}
+                    className={styles.otpBox ?? ''}
+                    aria-label={'验证码第 ' + (i + 1) + ' 位'}
+                    autoFocus={i === 0}
+                    disabled={loading}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Input
+                size="large"
+                autoFocus
+                maxLength={20}
+                placeholder="恢复码（如 XXXX-XXXX-XXXX）"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                onPressEnter={handleVerify2fa}
+                className={styles.recoveryInput ?? ''}
+              />
+            )}
+
             <Button
               type="primary"
               block
-              style={{ marginTop: 12 }}
+              className={styles.verifyBtn ?? ''}
               loading={loading}
               onClick={handleVerify2fa}
             >验证</Button>
+
             <Button
               type="link"
               block
-              style={{ marginTop: 8 }}
-              onClick={() => setPendingToken(null)}
+              className={styles.backLink ?? ''}
+              onClick={handleBackToLogin}
             >返回上一步</Button>
           </div>
         )}

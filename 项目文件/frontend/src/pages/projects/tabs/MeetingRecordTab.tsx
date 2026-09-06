@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AutoComplete,
   Button,
-  DatePicker,
   Empty,
-  Form,
   Input,
   message,
   Modal,
@@ -28,20 +25,18 @@ import {
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
 import type { Project } from '../../../types/project';
 import type { ProjectMeeting } from '../../../types/project-meeting';
 import {
-  createProjectMeeting,
   deleteProjectMeeting,
   listProjectMeetings,
-  updateProjectMeeting,
 } from '../../../api/project-meetings';
 import type { ProjectMeetingListParams } from '../../../api/project-meetings';
 import { listUsers } from '../../../api/users';
-import { MEETING_TYPE_OPTIONS, PROJECT_NUMBER_PREFIX } from '../../../constants/project';
+import { MEETING_TYPE_OPTIONS } from '../../../constants/project';
 import { getUserId, isAdmin } from '../../../utils/auth';
 import { useUser } from '../../../contexts/UserContext';
+import MeetingModal from '../components/MeetingModal';
 import type { User } from '../../../types/user';
 import styles from './MeetingRecordTab.module.css';
 
@@ -108,11 +103,9 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
   const [filterType, setFilterType] = useState<string>('all');
   const [searchText, setSearchText] = useState('');
 
-  // ── 表单状态 ──
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editing, setEditing] = useState<ProjectMeeting | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm();
+  // ── 弹窗状态（共用组件 MeetingModal） ──
+  const [meetingModalOpen, setMeetingModalOpen] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState<ProjectMeeting | null>(null);
 
   // ── 用户选项 ──
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
@@ -199,81 +192,18 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
     });
   }, [meetings, searchText]);
 
-  // ── 打开新建 ──
+  // ── 打开新建/编辑（弹窗共用 MeetingModal） ──
   const openCreate = useCallback(() => {
-    setEditing(null);
-    setModalVisible(true);
+    setEditingMeeting(null);
+    setMeetingModalOpen(true);
   }, []);
 
-  // ── 打开编辑 ──
   const openEdit = useCallback((m: ProjectMeeting) => {
-    setEditing(m);
-    setModalVisible(true);
+    setEditingMeeting(m);
+    setMeetingModalOpen(true);
   }, []);
 
-  // ── 弹窗打开时填充/重置表单 ──
-  useEffect(() => {
-    if (!modalVisible) return;
-    if (editing) {
-      const { title } = splitTitleContent(editing.content);
-      form.setFieldsValue({
-        type: editing.type,
-        title,
-        started_at: editing.started_at ? dayjs(editing.started_at) : dayjs(),
-      });
-    } else {
-      form.setFieldsValue({ started_at: dayjs() });
-    }
-  }, [modalVisible, editing, form]);
-
-  // ── 提交新建/编辑 ──
-  const handleSubmit = useCallback(async () => {
-    try {
-      const values = await form.validateFields();
-      setSubmitting(true);
-
-      const content = values.title ?? '';
-      const common = {
-        type: values.type as string,
-        started_at: (values.started_at as dayjs.Dayjs).toISOString(),
-        speaker: '',
-        participants: [],
-        content,
-      };
-
-      if (editing) {
-        const res = await updateProjectMeeting(editing.id, common);
-        if (res.code === 0) {
-          void message.success('交流记录已更新');
-          setModalVisible(false);
-          void fetchMeetings();
-        } else {
-          void message.error(res.msg || '更新失败');
-        }
-      } else {
-        // 编号：MTG-{项目编号}-{项目内序号}，序号 = 当前总数 + 1
-        const numRes = await listProjectMeetings({ project_id: project.id, page: 1, page_size: 1 });
-        const seq = (numRes.code === 0 ? numRes.data.total : 0) + 1;
-        const projTag = project.number ?? project.id.slice(0, 8).toUpperCase();
-        const number = `${PROJECT_NUMBER_PREFIX.meeting}${projTag}-${String(seq).padStart(3, '0')}`;
-
-        const res = await createProjectMeeting({ project_id: project.id, number, ...common });
-        if (res.code === 0) {
-          void message.success('交流记录已创建');
-          setModalVisible(false);
-          void fetchMeetings();
-        } else {
-          void message.error(res.msg || '创建失败');
-        }
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        void message.error(err.message);
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }, [form, editing, project.id, project.number, fetchMeetings]);
+  // ── 新建/编辑统一由共用组件 MeetingModal 处理，见组件底部渲染 ──
 
   // ── 删除记录 ──
   const handleDelete = useCallback(
@@ -499,58 +429,15 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
         </div>
       )}
 
-      {/* 新建/编辑 Modal */}
-      <Modal
-        title={editing ? '编辑交流记录' : '新建交流记录'}
-        open={modalVisible}
-        onOk={() => void handleSubmit()}
-        onCancel={() => setModalVisible(false)}
-        confirmLoading={submitting}
-        destroyOnClose
-        width={600}
-        styles={{
-          body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' },
-        }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="type"
-            label="类型"
-            rules={[{ required: true, message: '请选择或输入类型' }]}
-          >
-            <AutoComplete
-              options={MEETING_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-              placeholder="选择或输入类型"
-              allowClear
-            />
-          </Form.Item>
-          <Form.Item
-            name="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入标题' }]}
-          >
-            <Input placeholder="请输入标题" maxLength={200} showCount />
-          </Form.Item>
-          <Form.Item
-            name="started_at"
-            label="时间"
-            rules={[{ required: true, message: '请选择时间' }]}
-          >
-            <DatePicker
-              showTime
-              format="YYYY-MM-DD HH:mm"
-              placeholder="请选择时间"
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-        </Form>
-        <Text
-          type="secondary"
-          style={{ fontSize: 'var(--text-caption-size)', display: 'block', marginTop: 12 }}
-        >
-          发言人、参与人、交流内容请在详情页编辑
-        </Text>
-      </Modal>
+      {/* 新建/编辑 交流记录（共用组件） */}
+      <MeetingModal
+        project={project}
+        open={meetingModalOpen}
+        editingMeeting={editingMeeting}
+        existingMeetings={meetings}
+        onClose={() => setMeetingModalOpen(false)}
+        onSaved={() => void fetchMeetings()}
+      />
     </div>
   );
 }

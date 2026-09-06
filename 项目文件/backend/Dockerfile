@@ -42,5 +42,5 @@ USER workbench
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
-# 启动命令（先运行迁移再启动）
-CMD ["sh", "-c", "cd /app && PYTHONPATH=/app python -c \"from sqlalchemy import create_engine; from app.core.config import get_settings; from app.core.database import Base; from app.models import *; settings = get_settings(); url = settings.DATABASE_URL.replace('+asyncpg', '+psycopg2'); engine = create_engine(url); Base.metadata.create_all(engine)\" && PYTHONPATH=/app uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# 启动命令：create_all 建表 + inline SQL 增量迁移（meeting_id）+ uvicorn 启动
+CMD ["sh", "-c", "cd /app && PYTHONPATH=/app python -c \"from sqlalchemy import create_engine; from app.core.config import get_settings; from app.core.database import Base; from app.models import *; settings = get_settings(); url = settings.DATABASE_URL.replace('+asyncpg', '+psycopg2'); engine = create_engine(url); Base.metadata.create_all(engine); import sqlalchemy as sa; c = sa.engine.base.Connection(engine); c.execute(sa.text('ALTER TABLE project_todo ADD COLUMN IF NOT EXISTS meeting_id UUID REFERENCES project_meeting(id) ON DELETE SET NULL')); c.execute(sa.text('ALTER TABLE project_proposal ADD COLUMN IF NOT EXISTS meeting_id UUID REFERENCES project_meeting(id) ON DELETE SET NULL')); c.commit()\" && PYTHONPATH=/app uvicorn app.main:app --host 0.0.0.0 --port 8000"]

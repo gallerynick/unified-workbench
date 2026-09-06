@@ -67,6 +67,8 @@ class ProjectMeeting(Base):
     # 关系
     project: Mapped[Project] = relationship("Project", lazy="selectin")
     proposal: Mapped["ProjectProposal | None"] = relationship(
-        "ProjectProposal", lazy="selectin"
+        "ProjectProposal", foreign_keys=[proposal_id], lazy="selectin"
     )
-    todo: Mapped["ProjectTodo | None"] = relationship("ProjectTodo", lazy="selectin")
+    todo: Mapped["ProjectTodo | None"] = relationship(
+        "ProjectTodo", foreign_keys=[todo_id], lazy="selectin"
+    )

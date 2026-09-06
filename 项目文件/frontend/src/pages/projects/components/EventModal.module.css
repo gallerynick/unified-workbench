@@ -1,0 +1,40 @@
+/* 项目事件新建/编辑共用弹窗 — 使用全局 Design Token（见 src/styles/token.css） */
+
+/* 移交表单面板（event_type = handover 时展示） */
+.handoverPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-md);
+  background: var(--bg-secondary);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--text-body-sm-size);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* 键值对行（details 扩展字段） */
+.kvRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+.signRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}

@@ -32,6 +32,38 @@ export const PROPOSAL_STATUS_LABEL: Record<string, string> = {
   rejected: '已废弃',
 };
 
+/** 提案状态对应的 Tag 颜色 */
+export const PROPOSAL_STATUS_COLOR: Record<string, string> = {
+  pending: 'processing',
+  approved: 'success',
+  in_progress: 'processing',
+  rejected: 'error',
+  completed: 'default',
+};
+
+/** 优先级对应的 Tag 颜色（提案与待办共用） */
+export const PRIORITY_COLOR: Record<string, string> = {
+  P0: 'red',
+  P1: 'volcano',
+  P2: 'orange',
+  P3: 'gold',
+  P4: 'default',
+};
+
+/** 待办状态对应的 Tag 颜色 */
+export const TODO_STATUS_COLOR: Record<string, string> = {
+  pending: 'default',
+  in_progress: 'processing',
+  completed: 'success',
+};
+
+/** 待办状态中文标签 */
+export const TODO_STATUS_LABEL: Record<string, string> = {
+  pending: '待处理',
+  in_progress: '进行中',
+  completed: '已完成',
+};
+
 export const CHANGE_CATEGORY_MAJOR = [
   { value: 'code', label: '代码' },
   { value: 'doc', label: '文档' },

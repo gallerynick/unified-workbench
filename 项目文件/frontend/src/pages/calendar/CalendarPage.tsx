@@ -1,33 +1,19 @@
 import { useState, useRef, useCallback } from 'react';
-import { Button, Typography, Modal, message, Space, Input, Switch, Select, Form, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, EnvironmentOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { Button, Typography, Modal, message, Space, Tooltip } from 'antd';
+import { PlusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import zhLocale from '@fullcalendar/core/locales/zh-cn';
 import type { DateSelectArg, EventClickArg, EventDropArg, EventInput } from '@fullcalendar/core';
-import { listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '../../api/calendar';
-import type { CalendarEvent, EventRepeat } from '../../types/calendar';
-import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
-import type { Visibility } from '../../utils/visibility';
+import { listCalendarEvents, updateCalendarEvent, deleteCalendarEvent } from '../../api/calendar';
+import type { CalendarEvent } from '../../types/calendar';
+import CalendarEventModal from './CalendarEventModal';
 import styles from './CalendarPage.module.css';
 import './CalendarPage.global.css';
 
 const { Title, Paragraph, Text } = Typography;
-const { Option } = Select;
-
-const REPEAT_OPTIONS: { label: string; value: EventRepeat }[] = [
-  { label: '不重复', value: 'none' },
-  { label: '每天', value: 'daily' },
-  { label: '每周', value: 'weekly' },
-  { label: '每月', value: 'monthly' },
-  { label: '每年', value: 'yearly' },
-];
-
-const PRESET_COLORS = ['var(--color-info)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-error)', 'var(--color-purple)', 'var(--color-cyan)', 'var(--color-magenta)', 'var(--color-orange-bright)'];
-
-const REMINDER_OPTIONS = [5, 10, 15, 30, 60];
 
 function formatDateTimeLocal(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -38,98 +24,39 @@ export default function CalendarPage() {
   const calendarRef = useRef<FullCalendar>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
-  const [form] = Form.useForm();
-  const [formTitle, setFormTitle] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formStartTime, setFormStartTime] = useState('');
-  const [formEndTime, setFormEndTime] = useState('');
-  const [formAllDay, setFormAllDay] = useState(false);
-  const [formLocation, setFormLocation] = useState('');
-  const [formColor, setFormColor] = useState(PRESET_COLORS[0]);
-   const [formRepeat, setFormRepeat] = useState<EventRepeat>('none');
-   const [formReminderEnabled, setFormReminderEnabled] = useState(false);
-   const [formReminderMinutes, setFormReminderMinutes] = useState(15);
-   const [visibility, setVisibility] = useState<Visibility>('private');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
+  // 新建事件时的默认起止时间（由打开方计算，交给弹窗初始化表单）
+  const [createDefaultStart, setCreateDefaultStart] = useState('');
+  const [createDefaultEnd, setCreateDefaultEnd] = useState('');
   const [permissionVisible, setPermissionVisible] = useState(false);
 
-  const resetForm = useCallback(() => {
-    setFormTitle('');
-    setFormDescription('');
-    setFormStartTime('');
-    setFormEndTime('');
-    setFormAllDay(false);
-    setFormLocation('');
-    setFormColor(PRESET_COLORS[0]);
-     setFormRepeat('none');
-     setFormReminderEnabled(false);
-     setFormReminderMinutes(15);
-     setVisibility('private');
-    setRestrictedUsers([]);
-    setEditingEvent(null);
-  }, []);
-
   const openCreateModal = useCallback((startStr?: string) => {
-    resetForm();
+    setEditingEvent(null);
     const start = startStr ? new Date(startStr) : new Date();
     start.setMinutes(0, 0, 0);
     start.setHours(start.getHours() + 1);
     const end = new Date(start.getTime() + 60 * 60 * 1000);
-    setFormStartTime(formatDateTimeLocal(start));
-    setFormEndTime(formatDateTimeLocal(end));
-    setModalVisible(true);
-  }, [resetForm]);
-
-  const openEditModal = useCallback((event: CalendarEvent) => {
-    setEditingEvent(event);
-    setFormTitle(event.title);
-    setFormDescription(event.description || '');
-    setFormStartTime(event.start_time ? event.start_time.slice(0, 16) : '');
-    setFormEndTime(event.end_time ? event.end_time.slice(0, 16) : '');
-    setFormAllDay(event.all_day);
-    setFormLocation(event.location || '');
-    setFormColor(event.color || PRESET_COLORS[0]);
-    setFormRepeat(event.repeat || 'none');
-    setFormReminderEnabled(event.reminder_enabled || false);
-    setFormReminderMinutes(event.reminder_minutes || 15);
-    setVisibility((event.visibility as Visibility) || 'private');
-    setRestrictedUsers(event.restricted_users || []);
+    setCreateDefaultStart(formatDateTimeLocal(start));
+    setCreateDefaultEnd(formatDateTimeLocal(end));
     setModalVisible(true);
   }, []);
 
-  const handleSave = async () => {
-    if (!formTitle.trim()) { message.warning('请输入事件标题'); return; }
-    if (!formStartTime) { message.warning('请选择开始时间'); return; }
-    setSaving(true);
-    try {
-      const payload = {
-        title: formTitle,
-        description: formDescription || undefined,
-        start_time: new Date(formStartTime).toISOString(),
-        end_time: formEndTime ? new Date(formEndTime).toISOString() : undefined,
-        all_day: formAllDay,
-        location: formLocation || undefined,
-        color: formColor,
-         repeat: formRepeat,
-         reminder_enabled: formReminderEnabled,
-         reminder_minutes: formReminderMinutes,
-         visibility,
-        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-      };
-      if (editingEvent) {
-        const res = await updateCalendarEvent(editingEvent.id, payload);
-        if (res.code === 0) { message.success('事件已更新'); setModalVisible(false); resetForm(); }
-      } else {
-        const res = await createCalendarEvent(payload);
-        if (res.code === 0) { message.success('事件已创建'); setModalVisible(false); resetForm(); }
-      }
-      // Refresh calendar events
-      const api = calendarRef.current?.getApi();
-      if (api) api.refetchEvents();
-    } catch { message.error('操作失败'); }
-    finally { setSaving(false); }
-  };
+  const openEditModal = useCallback((event: CalendarEvent) => {
+    setEditingEvent(event);
+    setModalVisible(true);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setModalVisible(false);
+    setEditingEvent(null);
+    setCreateDefaultStart('');
+    setCreateDefaultEnd('');
+  }, []);
+
+  const handleSaved = useCallback(() => {
+    // 保存成功后刷新日历事件
+    const api = calendarRef.current?.getApi();
+    if (api) api.refetchEvents();
+  }, []);
 
   const handleDelete = (event: CalendarEvent) => {
     Modal.confirm({
@@ -258,93 +185,14 @@ export default function CalendarPage() {
         eventDrop={handleEventDrop}
       />
 
-      <Modal title={editingEvent ? '编辑事件' : '新建事件'} open={modalVisible} onOk={handleSave}
-        onCancel={() => { setModalVisible(false); resetForm(); }} okText="保存" cancelText="取消"
-        okButtonProps={{ loading: saving }} confirmLoading={saving} width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
-        <Form form={form} layout="vertical">
-          <Form.Item label="事件标题" required>
-            <Input placeholder="请输入事件标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
-          </Form.Item>
-          <Form.Item label="事件描述">
-            <Input.TextArea placeholder="请输入事件描述（可选）" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} rows={2} />
-          </Form.Item>
-          <Space style={{ width: '100%' }}>
-            <Form.Item label="开始时间">
-              <Input type="datetime-local" value={formStartTime} onChange={(e) => setFormStartTime(e.target.value)} style={{ width: 200 }} />
-            </Form.Item>
-            <span style={{ marginTop: 'var(--spacing-xl)' }}>至</span>
-            <Form.Item label="结束时间">
-              <Input type="datetime-local" value={formEndTime} onChange={(e) => setFormEndTime(e.target.value)} style={{ width: 200 }} />
-            </Form.Item>
-          </Space>
-          <Space style={{ width: '100%' }}>
-            <Form.Item label="全天事件">
-              <Switch checked={formAllDay} onChange={setFormAllDay} checkedChildren="全天" unCheckedChildren="非全天" />
-            </Form.Item>
-            <Form.Item label="地点">
-              <Input placeholder="请输入地点（可选）" prefix={<EnvironmentOutlined />} value={formLocation} onChange={(e) => setFormLocation(e.target.value)} style={{ width: 220 }} />
-            </Form.Item>
-          </Space>
-          <Form.Item label="颜色">
-            <Space align="center">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setFormColor(c)}
-                  style={{
-                    width: 24, height: 24, borderRadius: '50%', border: formColor === c ? '2px solid var(--ink)' : '2px solid transparent',
-                    backgroundColor: c, cursor: 'pointer', padding: 0,
-                  }}
-                />
-              ))}
-            </Space>
-          </Form.Item>
-          <Form.Item label="重复">
-            <Select value={formRepeat} onChange={(v) => setFormRepeat(v as EventRepeat)} style={{ width: 160 }}>
-              {REPEAT_OPTIONS.map((o) => <Option key={o.value} value={o.value}>{o.label}</Option>)}
-            </Select>
-          </Form.Item>
-          <Form.Item label="提醒">
-            <Space>
-              <Switch
-                checked={formReminderEnabled}
-                onChange={setFormReminderEnabled}
-                checkedChildren="开启提醒"
-                unCheckedChildren="关闭"
-              />
-              {formReminderEnabled && (
-                <Space>
-                  <span>提前</span>
-                  <Select
-                    value={formReminderMinutes}
-                    onChange={setFormReminderMinutes}
-                    style={{ width: 100 }}
-                    suffixIcon={<span>分钟</span>}
-                  >
-                    {REMINDER_OPTIONS.map((m) => <Option key={m} value={m}>{m}</Option>)}
-                  </Select>
-                </Space>
-              )}
-            </Space>
-          </Form.Item>
-          <Form.Item label="可见性">
-            <VisibilitySetting
-              value={visibility}
-              restrictedUsers={restrictedUsers}
-              onChange={setVisibility}
-              onRestrictedUsersChange={setRestrictedUsers}
-              showRestrictedTags={false}
-              label=""
-            />
-          </Form.Item>
-          {editingEvent && (
-            <Button danger onClick={() => { setModalVisible(false); handleDelete(editingEvent); }} icon={<DeleteOutlined />}>
-              删除此事件
-            </Button>
-          )}
-        </Form>
-      </Modal>
+      <CalendarEventModal
+        open={modalVisible}
+        editingEvent={editingEvent}
+        {...(editingEvent ? {} : { defaultStart: createDefaultStart, defaultEnd: createDefaultEnd })}
+        onClose={handleModalClose}
+        onSaved={handleSaved}
+        onDelete={handleDelete}
+      />
 
       <Modal
         title="权限说明"

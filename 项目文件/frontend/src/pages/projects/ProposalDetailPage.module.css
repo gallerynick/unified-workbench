@@ -1,3 +1,6 @@
+/* 提案详情页样式 */
+/* 全部引用全局 Design Token（token.css / typography.css），深浅色自动适配 */
+
 .container {
   display: flex;
   flex-direction: column;
@@ -24,4 +27,73 @@
 
 .linkedItem:hover {
   background-color: var(--table-row-hover-bg) !important;
+}
+
+/* 关联项内容（编号+标题 与 元信息上下分层） */
+.linkedContent {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ── 提案信息 Tab：定义列表 + 段落区块 ─────────────────── */
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.definitionList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--spacing-lg);
+  row-gap: var(--spacing-sm);
+}
+
+.defItem {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.defLabel {
+  flex-shrink: 0;
+  width: 96px;
+  color: var(--text-secondary);
+  font-size: var(--text-body-sm-size);
+}
+
+.defValue {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--text-body-sm-size);
+  word-break: break-all;
+}
+
+.textBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.textLabel {
+  color: var(--text-secondary);
+  font-size: var(--text-body-sm-size);
+  font-weight: 600;
+}
+
+.textBody {
+  color: var(--text-primary);
+  font-size: var(--text-body-sm-size);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 767px) {
+  .definitionList {
+    grid-template-columns: 1fr;
+  }
 }

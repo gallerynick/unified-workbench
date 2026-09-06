@@ -1,4 +1,5 @@
 import { request } from '../utils/request';
+import { getToken } from '../utils/auth';
 import type {
   Project,
   ProjectCreate,
@@ -6,6 +7,49 @@ import type {
   ProjectListResponse,
 } from '../types/project';
 import type { UnifiedResponse } from '../types/user';
+
+/** 项目导出支持的文件格式 */
+export type ProjectExportFormat = 'docx' | 'xlsx';
+
+/**
+ * 导出项目为 Word / Excel 文件（触发浏览器下载）。
+ * 文件流不走 request 的 JSON 解析，单独用 fetch + blob 处理。
+ */
+export async function exportProjectFile(
+  id: string,
+  fmt: ProjectExportFormat,
+): Promise<void> {
+  const token = getToken();
+  const resp = await fetch(`/api/v1/projects/${id}/export?format=${fmt}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!resp.ok) {
+    const json = await resp.json().catch(() => null);
+    const detail = json && (json.detail || json.msg);
+    throw new Error(typeof detail === 'string' ? detail : `HTTP ${resp.status}`);
+  }
+  const blob = await resp.blob();
+  // 从 Content-Disposition 解析文件名（优先 RFC 5987 filename*，回退 ASCII filename）
+  const cd = resp.headers.get('Content-Disposition') || '';
+  let fileName = `project-${id}.${fmt}`;
+  const star = cd.match(/filename\*=UTF-8''([^;]+)/);
+  if (star && star[1]) {
+    try {
+      fileName = decodeURIComponent(star[1]);
+    } catch {
+      fileName = star[1];
+    }
+  } else {
+    const plain = cd.match(/filename="?([^";]+)"?/);
+    if (plain && plain[1]) fileName = plain[1];
+  }
+  const url = window.URL.createObjectURL(blob);
+  const a = window.document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
 
 export async function listProjects(params?: {
   page?: number;

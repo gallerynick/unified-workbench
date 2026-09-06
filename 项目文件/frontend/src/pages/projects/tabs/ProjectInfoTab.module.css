@@ -1,0 +1,101 @@
+/* 项目信息 Tab — 自定义定义列表 + 长文本段落区块 */
+/* 全部引用全局 Design Token（token.css / typography.css），深浅色自动适配 */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--text-caption-strong-size);
+  font-weight: var(--text-caption-strong-weight);
+  color: var(--text-primary);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+/* 短键值定义列表：左标签右内容，桌面 2 列，窄屏 1 列 */
+.definitionList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--spacing-lg);
+  row-gap: var(--spacing-sm);
+}
+
+.defItem {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.defLabel {
+  flex-shrink: 0;
+  width: 96px;
+  color: var(--text-secondary);
+  font-size: var(--text-body-sm-size);
+}
+
+.defValue {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--text-body-sm-size);
+  word-break: break-all;
+}
+
+/* 长文本独立段落区块 */
+.textBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.textLabel {
+  color: var(--text-secondary);
+  font-size: var(--text-body-sm-size);
+  font-weight: 600;
+}
+
+.textBody {
+  color: var(--text-primary);
+  font-size: var(--text-body-sm-size);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 关联项目可点击列表 */
+.relatedList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.relatedLink {
+  color: var(--color-primary);
+}
+
+.relatedLink:hover {
+  color: var(--color-primary-focus);
+}
+
+/* 编辑按钮区 */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 767px) {
+  .definitionList {
+    grid-template-columns: 1fr;
+  }
+}

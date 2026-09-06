@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Input, Tag, Progress, Tooltip, Form, Checkbox, Radio } from 'antd';
+import { Table, Button, Typography, Modal, message, Space, Tag, Progress, Tooltip, Checkbox, Radio } from 'antd';
 import { PlusOutlined, DeleteOutlined, BarChartOutlined, CheckCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { listVotes, createVote, deleteVote, getVoteResults, submitVote } from '../../api/votes';
+import { listVotes, deleteVote, getVoteResults, submitVote } from '../../api/votes';
 import type { Vote, VoteResult } from '../../types/vote';
-import type { Visibility } from '../../utils/visibility';
-import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import { useUser } from '../../contexts/UserContext';
+import VoteModal from './VoteModal';
 import styles from './VoteManagement.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -21,11 +20,6 @@ export default function VoteManagement() {
   const [modalVisible, setModalVisible] = useState(false);
   const [resultsVisible, setResultsVisible] = useState(false);
   const [results, setResults] = useState<VoteResult[]>([]);
-  const [form] = Form.useForm();
-  const [formOptions, setFormOptions] = useState(['', '']);
-  const [visibility, setVisibility] = useState<Visibility>('private');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
-  const [restrictedTags, setRestrictedTags] = useState<string[]>([]);
   const [voteModalVisible, setVoteModalVisible] = useState(false);
   const [currentVote, setCurrentVote] = useState<Vote | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -42,23 +36,6 @@ export default function VoteManagement() {
   }, [page, pageSize]);
 
   useEffect(() => { fetchVotes(); }, [fetchVotes]);
-
-  const handleCreate = async () => {
-    try {
-      const values = await form.validateFields();
-      const opts = formOptions.filter((o) => o.trim());
-      if (opts.length < 2) { message.warning('至少需要2个选项'); return; }
-      const res = await createVote({
-        title: values.title,
-        description: values.description ?? '',
-        options: opts,
-        visibility,
-        restricted_users: visibility === 'restricted' ? restrictedUsers : undefined,
-        restricted_tags: visibility === 'restricted' ? restrictedTags : undefined,
-      });
-      if (res.code === 0) { message.success('投票已创建'); handleCloseModal(); fetchVotes(); }
-    } catch { message.error('创建失败'); }
-  };
 
   const handleDelete = (vote: Vote) => {
     Modal.confirm({
@@ -106,15 +83,6 @@ export default function VoteManagement() {
     }
   };
 
-  const handleCloseModal = () => {
-    setModalVisible(false);
-    form.resetFields();
-    setFormOptions(['', '']);
-    setVisibility('private');
-    setRestrictedUsers([]);
-    setRestrictedTags([]);
-  };
-
   const columns: ColumnsType<Vote> = [
     { title: '标题', dataIndex: 'title', key: 'title' },
     { title: '选项数', key: 'options', render: (_, r) => r.options.length },
@@ -160,32 +128,11 @@ export default function VoteManagement() {
       </div>
       <Table<Vote> className={styles.table ?? ''} columns={columns} dataSource={votes} rowKey="id" loading={loading}
         pagination={{ current: page, pageSize, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`, onChange: (p, ps) => { setPage(p); setPageSize(ps); } }} />
-      <Modal title="新建投票" open={modalVisible} onOk={handleCreate} onCancel={handleCloseModal} okText="创建" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
-        <Form form={form} layout="vertical">
-          <Form.Item name="title" label="投票标题" rules={[{ required: true, message: '请输入投票标题' }]}>
-            <Input placeholder="请输入投票标题" />
-          </Form.Item>
-          <Form.Item name="description" label="描述">
-            <Input.TextArea placeholder="请输入描述（可选）" rows={2} />
-          </Form.Item>
-          {formOptions.map((opt, i) => (
-            <Form.Item key={i} label={`选项 ${i + 1}`}>
-              <Input placeholder={`请输入选项 ${i + 1}`} value={opt} onChange={(e) => { const n = [...formOptions]; n[i] = e.target.value; setFormOptions(n); }} />
-            </Form.Item>
-          ))}
-          <Button type="dashed" onClick={() => setFormOptions([...formOptions, ''])} block>添加选项</Button>
-          <div style={{ marginTop: 'var(--spacing-card-gap)' }}>
-            <VisibilitySetting
-              value={visibility}
-              restrictedUsers={restrictedUsers}
-              restrictedTags={restrictedTags}
-              onChange={setVisibility}
-              onRestrictedUsersChange={setRestrictedUsers}
-              onRestrictedTagsChange={setRestrictedTags}
-            />
-          </div>
-        </Form>
-      </Modal>
+      <VoteModal
+        open={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSaved={fetchVotes}
+      />
       <Modal title="投票结果" open={resultsVisible} onCancel={() => setResultsVisible(false)} footer={null} width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
         {results.map((r) => (
           <div key={r.option} style={{ marginBottom: 'var(--spacing-xs)' }}>

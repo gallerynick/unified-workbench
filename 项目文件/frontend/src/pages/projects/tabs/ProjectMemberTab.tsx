@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AutoComplete,
   Avatar,
   Button,
   Checkbox,
   Col,
-  Form,
   Input,
   Modal,
   Radio,
   Row,
   Segmented,
-  Select,
   Space,
   Table,
   Tag,
@@ -32,7 +29,6 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
-  createProjectMember,
   listProjectMembers,
   updateProjectMember,
 } from '../../../api/project-members';
@@ -43,12 +39,10 @@ import type { Project } from '../../../types/project';
 import type { ProjectMember } from '../../../types/project-member';
 import type { User } from '../../../types/user';
 import { useUser } from '../../../contexts/UserContext';
+import MemberModal from '../components/MemberModal';
 import styles from './ProjectMemberTab.module.css';
 
 const { Text, Title, Paragraph } = Typography;
-
-/** 职务预设（下拉可选 + 自由填写） */
-const ROLE_PRESETS = ['开发', '设计', '测试', '运维', '文档', '顾问', '其他'];
 
 interface ProjectMemberTabProps {
   project: Project;
@@ -81,17 +75,12 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
   // ── UI 状态 ──
   const [viewMode, setViewMode] = useState<'active' | 'history'>('active');
   const [searchText, setSearchText] = useState('');
-  const [addModalVisible, setAddModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<ProjectMember | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
   const [permissionMember, setPermissionMember] = useState<ProjectMember | null>(null);
   const [permissionValues, setPermissionValues] = useState<Record<string, string>>({});
   const [permissionRoles, setPermissionRoles] = useState<Record<string, boolean>>({});
-
-  const [addForm] = Form.useForm();
-  const [editForm] = Form.useForm();
 
   const isOwner = !!user && user.id === project.owner_id;
 
@@ -172,120 +161,17 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
     [userMap],
   );
 
-  const existingMemberIds = useMemo(
-    () => new Set(activeMembers.map((m) => m.user_id)),
-    [activeMembers],
-  );
 
-  const historyMemberIds = useMemo(
-    () => new Set(historyMembers.map((m) => m.user_id)),
-    [historyMembers],
-  );
-
-  // 可选用户：排除已是当前成员/历史成员的用户与项目负责人
-  const userOptions = useMemo(
-    () =>
-      users
-        .filter((u) => u.id !== project.owner_id && !existingMemberIds.has(u.id) && !historyMemberIds.has(u.id))
-        .map((u) => ({
-          value: u.id,
-          label:
-            u.username && u.username !== u.nickname ? `${u.nickname}（${u.username}）` : u.nickname,
-        })),
-    [users, project.owner_id, existingMemberIds, historyMemberIds],
-  );
-
-  // ── 添加成员 ──
+  // ── 添加/编辑成员（弹窗共用 MemberModal） ──
   const openAddModal = useCallback(() => {
-    addForm.resetFields();
-    setAddModalVisible(true);
-  }, [addForm]);
+    setEditingMember(null);
+    setMemberModalOpen(true);
+  }, []);
 
-  const handleAddMembers = useCallback(async () => {
-    try {
-      const values = await addForm.validateFields();
-      const userIds: string[] = values.user_ids ?? [];
-      if (userIds.length === 0) {
-        message.warning('请选择要添加的用户');
-        return;
-      }
-      const roleTitle = (values.role_title as string | undefined)?.trim();
-      const notes = (values.notes as string | undefined)?.trim();
-      setSubmitting(true);
-
-      const addedIds: string[] = [];
-      for (const uid of userIds) {
-        const res = await createProjectMember({
-          project_id: project.id,
-          user_id: uid,
-          ...(roleTitle ? { role_title: roleTitle } : {}),
-          ...(notes ? { notes } : {}),
-        });
-        if (res.code === 0) addedIds.push(uid);
-      }
-
-      if (addedIds.length > 0) {
-        if (isOwner) {
-          const syncRes = await updateProject(project.id, {
-            member_ids: [...(project.member_ids ?? []), ...addedIds],
-          });
-          if (syncRes.code === 0) {
-            message.success(`已添加 ${addedIds.length} 名成员`);
-          } else {
-            message.warning(syncRes.msg || '成员已添加，但同步项目访问权限失败');
-          }
-        } else {
-          message.success(`已添加 ${addedIds.length} 名成员（如需同步项目访问权限请联系项目负责人）`);
-        }
-        setAddModalVisible(false);
-        await fetchMembers();
-      } else {
-        message.warning('没有成功添加任何成员');
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) message.error(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  }, [addForm, project.id, project.member_ids, isOwner, fetchMembers]);
-
-  // ── 编辑成员 ──
-  const openEditModal = useCallback(
-    (member: ProjectMember) => {
-      setEditingMember(member);
-      editForm.setFieldsValue({
-        role_title: member.role_title ?? '',
-        notes: member.notes ?? '',
-      });
-      setEditModalVisible(true);
-    },
-    [editForm],
-  );
-
-  const handleUpdateMember = useCallback(async () => {
-    if (!editingMember) return;
-    try {
-      const values = await editForm.validateFields();
-      const roleTitle = (values.role_title as string | undefined)?.trim();
-      const notes = (values.notes as string | undefined)?.trim();
-      setSubmitting(true);
-      const res = await updateProjectMember(editingMember.id, {
-        ...(roleTitle ? { role_title: roleTitle } : {}),
-        ...(notes ? { notes } : {}),
-      });
-      if (res.code === 0) {
-        message.success('成员信息已更新');
-        setEditModalVisible(false);
-        await fetchMembers();
-      } else {
-        message.error(res.msg || '更新失败');
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) message.error(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  }, [editingMember, editForm, fetchMembers]);
+  const openEditModal = useCallback((member: ProjectMember) => {
+    setEditingMember(member);
+    setMemberModalOpen(true);
+  }, []);
 
   // ── 移除成员（软删除：is_active=false + left_at） ──
   const handleRemoveMember = useCallback(
@@ -651,72 +537,16 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
         }}
       />
 
-      {/* 添加成员弹窗 */}
-      <Modal
-        title="添加项目成员"
-        open={addModalVisible}
-        onOk={handleAddMembers}
-        onCancel={() => setAddModalVisible(false)}
-        confirmLoading={submitting}
-        destroyOnClose
-        width={560}
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Form form={addForm} layout="vertical">
-          <Form.Item
-            name="user_ids"
-            label="选择用户"
-            rules={[{ required: true, message: '请至少选择一位用户' }]}
-          >
-            <Select
-              mode="multiple"
-              placeholder="请选择要添加的用户"
-              showSearch
-              optionFilterProp="label"
-              maxTagCount="responsive"
-              options={userOptions}
-            />
-          </Form.Item>
-          <Form.Item
-            name="role_title"
-            label="职务"
-            rules={[{ required: true, whitespace: true, message: '请输入职务' }]}
-          >
-            <AutoComplete
-              placeholder="请选择或输入职务"
-              options={ROLE_PRESETS.map((r) => ({ value: r, label: r }))}
-            />
-          </Form.Item>
-          <Form.Item name="notes" label="备注">
-            <Input.TextArea placeholder="选填，成员备注说明" rows={3} maxLength={500} showCount />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* 编辑成员弹窗 */}
-      <Modal
-        title="编辑成员信息"
-        open={editModalVisible}
-        onOk={handleUpdateMember}
-        onCancel={() => setEditModalVisible(false)}
-        confirmLoading={submitting}
-        destroyOnClose
-        width={560}
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Form form={editForm} layout="vertical">
-          <Form.Item
-            name="role_title"
-            label="职务"
-            rules={[{ required: true, whitespace: true, message: '请输入职务' }]}
-          >
-            <Input placeholder="请输入职务" maxLength={50} />
-          </Form.Item>
-          <Form.Item name="notes" label="备注">
-            <Input.TextArea placeholder="选填，成员备注说明" rows={3} maxLength={500} showCount />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 添加/编辑成员（共用组件 MemberModal） */}
+      <MemberModal
+        project={project}
+        open={memberModalOpen}
+        editingMember={editingMember}
+        existingMembers={members}
+        isOwner={isOwner}
+        onClose={() => setMemberModalOpen(false)}
+        onSaved={() => void fetchMembers()}
+      />
 
       {/* 权限设置弹窗 */}
       <Modal

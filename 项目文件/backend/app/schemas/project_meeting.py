@@ -20,6 +20,8 @@ class ProjectMeetingCreate(BaseModel):
     participants: list[str] = []
     content: str | None = None
     notes: list[Any] = []
+    proposal_id: uuid.UUID | None = None
+    todo_id: uuid.UUID | None = None
 
 
 class ProjectMeetingUpdate(BaseModel):

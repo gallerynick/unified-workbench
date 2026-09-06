@@ -19,6 +19,7 @@ class ProjectTodoCreate(BaseModel):
     status: str = "pending"
     assignee_id: uuid.UUID | None = None
     proposal_id: uuid.UUID | None = None
+    meeting_id: uuid.UUID | None = None
     due_date: datetime | None = None
 
 
@@ -32,6 +33,7 @@ class ProjectTodoUpdate(BaseModel):
     status: str | None = None
     assignee_id: uuid.UUID | None = None
     proposal_id: uuid.UUID | None = None
+    meeting_id: uuid.UUID | None = None
     due_date: datetime | None = None
 
 
@@ -50,6 +52,7 @@ class ProjectTodoResponse(BaseModel):
     assignee_id: uuid.UUID | None = None
     creator_id: uuid.UUID
     proposal_id: uuid.UUID | None = None
+    meeting_id: uuid.UUID | None = None
     due_date: datetime | None = None
     created_at: datetime
     updated_at: datetime

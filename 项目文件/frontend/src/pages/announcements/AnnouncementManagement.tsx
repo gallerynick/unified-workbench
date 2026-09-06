@@ -4,11 +4,8 @@ import {
   Typography,
   Modal,
   message,
-  Input,
   Tag,
-  Switch,
   Tooltip,
-  Form,
   Card,
   Tabs,
   Space,
@@ -21,13 +18,12 @@ import {
   DeleteOutlined,
   PushpinOutlined,
   EditOutlined,
-  EyeInvisibleOutlined,
-  EyeOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
-import { listAnnouncements, createAnnouncement, deleteAnnouncement, updateAnnouncement } from '../../api/announcements';
+import { listAnnouncements, deleteAnnouncement } from '../../api/announcements';
 import type { Announcement } from '../../types/announcement';
 import { getUserId, isAdmin } from '../../utils/auth';
+import AnnouncementModal from './AnnouncementModal';
 import styles from './AnnouncementManagement.module.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -41,14 +37,10 @@ export default function AnnouncementManagement() {
   const [pageSize, setPageSize] = useState(12);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
+
+  // ── 弹窗状态（共用组件 AnnouncementModal） ──
+  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
-  const [form] = Form.useForm();
-  const [editForm] = Form.useForm();
-  const [formPinned, setFormPinned] = useState(false);
-  const [editFormPinned, setEditFormPinned] = useState(false);
-  const [editFormPublished, setEditFormPublished] = useState(false);
   const [permissionVisible, setPermissionVisible] = useState(false);
 
   const currentUserId = getUserId();
@@ -85,59 +77,15 @@ export default function AnnouncementManagement() {
     setPage(1);
   };
 
-  const handleCreate = async () => {
-    try {
-      const values = await form.validateFields();
-      const res = await createAnnouncement({
-        title: values.title,
-        content: values.content,
-        is_pinned: formPinned,
-      });
-      if (res.code === 0) {
-        message.success('公告已发布');
-        setModalVisible(false);
-        form.resetFields();
-        setFormPinned(false);
-        fetchAnnouncements();
-      }
-    } catch {
-      message.error('发布失败');
-    }
+  // ── 打开新建/编辑（弹窗共用 AnnouncementModal） ──
+  const handleCreate = () => {
+    setEditingAnnouncement(null);
+    setAnnouncementModalOpen(true);
   };
 
   const handleEdit = (a: Announcement) => {
     setEditingAnnouncement(a);
-    editForm.setFieldsValue({
-      title: a.title,
-      content: a.content,
-    });
-    setEditFormPinned(a.is_pinned);
-    setEditFormPublished(a.is_published);
-    setEditModalVisible(true);
-  };
-
-  const handleUpdate = async () => {
-    if (!editingAnnouncement) return;
-    try {
-      const values = await editForm.validateFields();
-      const res = await updateAnnouncement(editingAnnouncement.id, {
-        title: values.title,
-        content: values.content,
-        is_pinned: editFormPinned,
-        is_published: editFormPublished,
-      });
-      if (res.code === 0) {
-        message.success('公告已更新');
-        setEditModalVisible(false);
-        setEditingAnnouncement(null);
-        editForm.resetFields();
-        setEditFormPinned(false);
-        setEditFormPublished(false);
-        fetchAnnouncements();
-      }
-    } catch {
-      message.error('更新失败');
-    }
+    setAnnouncementModalOpen(true);
   };
 
   const handleDelete = async (a: Announcement) => {
@@ -168,7 +116,7 @@ export default function AnnouncementManagement() {
           公告通知
         </Title>
         <Space>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             发布公告
           </Button>
           <Tooltip title="权限说明">
@@ -268,83 +216,13 @@ export default function AnnouncementManagement() {
         </>
       )}
 
-      {/* 创建公告弹窗 */}
-      <Modal
-        title="发布公告"
-        open={modalVisible}
-        onOk={handleCreate}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-          setFormPinned(false);
-        }}
-        okText="发布"
-        cancelText="取消"
-        width={560}
-        destroyOnClose
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item name="title" label="公告标题" rules={[{ required: true, message: '请输入公告标题' }]}>
-            <Input placeholder="请输入公告标题" />
-          </Form.Item>
-          <Form.Item name="content" label="公告内容" rules={[{ required: true, message: '请输入公告内容' }]}>
-            <Input.TextArea placeholder="请输入公告内容" rows={5} />
-          </Form.Item>
-          <Form.Item label="置顶">
-            <Switch
-              checked={formPinned}
-              onChange={setFormPinned}
-              checkedChildren="置顶"
-              unCheckedChildren="普通"
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* 编辑公告弹窗 */}
-      <Modal
-        title="编辑公告"
-        open={editModalVisible}
-        onOk={handleUpdate}
-        onCancel={() => {
-          setEditModalVisible(false);
-          setEditingAnnouncement(null);
-          editForm.resetFields();
-          setEditFormPinned(false);
-          setEditFormPublished(false);
-        }}
-        okText="保存"
-        cancelText="取消"
-        width={560}
-        destroyOnClose
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Form form={editForm} layout="vertical">
-          <Form.Item name="title" label="公告标题" rules={[{ required: true, message: '请输入公告标题' }]}>
-            <Input placeholder="请输入公告标题" />
-          </Form.Item>
-          <Form.Item name="content" label="公告内容" rules={[{ required: true, message: '请输入公告内容' }]}>
-            <Input.TextArea placeholder="请输入公告内容" rows={5} />
-          </Form.Item>
-          <Form.Item label="置顶">
-            <Switch
-              checked={editFormPinned}
-              onChange={setEditFormPinned}
-              checkedChildren="置顶"
-              unCheckedChildren="普通"
-            />
-          </Form.Item>
-          <Form.Item label="发布状态">
-            <Switch
-              checked={editFormPublished}
-              onChange={setEditFormPublished}
-              checkedChildren={<><EyeOutlined /> 已发布</>}
-              unCheckedChildren={<><EyeInvisibleOutlined /> 草稿</>}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 发布/编辑 公告（共用组件 AnnouncementModal） */}
+      <AnnouncementModal
+        open={announcementModalOpen}
+        editingAnnouncement={editingAnnouncement}
+        onClose={() => setAnnouncementModalOpen(false)}
+        onSaved={() => void fetchAnnouncements()}
+      />
 
       {/* 权限说明弹窗 */}
       <Modal

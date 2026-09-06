@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Button, Typography, Modal, message, Space, Input, Tooltip, Spin, Tag, List, AutoComplete } from 'antd';
+import { Button, Typography, Modal, message, Space, Input, Tooltip, Spin, Tag, List } from 'antd';
 import { SaveOutlined, ZoomInOutlined, ZoomOutOutlined, PlusOutlined, DeleteOutlined, ApartmentOutlined, DragOutlined, LinkOutlined, ExpandOutlined, ShrinkOutlined, AimOutlined, AppstoreOutlined, EditOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { listTopologies, createTopology, updateTopology, deleteTopology } from '../../api/topology';
 import type { Topology, TopologyNode, TopologyEdge, TopologyNodeType, TopologyShape } from '../../types/topology';
+import TopologyCreateModal from './TopologyCreateModal';
 import styles from './TopologyManagement.module.css';
 import routerSvg from '../../assets/topology-icons/router.svg?raw';
 import switchSvg from '../../assets/topology-icons/switch.svg?raw';
@@ -94,8 +95,6 @@ export default function TopologyManagement() {
   const [zoom, setZoom] = useState(1);
   const [isEditing, setIsEditing] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [newTopologyName, setNewTopologyName] = useState('');
-  const [newCategory, setNewCategory] = useState('');
   const [toolMode, setToolMode] = useState<ToolMode>('select');
   const [expandedPanel, setExpandedPanel] = useState<PanelType>('nodes');
   const [sidebarVisible, setSidebarVisible] = useState(true);
@@ -142,29 +141,27 @@ export default function TopologyManagement() {
     setToolMode('select');
   };
 
-  const handleCreate = () => {
-    if (!newTopologyName.trim()) { message.warning('请输入拓扑名称'); return; }
+  // 新建拓扑（弹窗共用 TopologyCreateModal，onCreated 接收名称/分类）
+  const handleCreate = (name: string, category: string) => {
     setCurrentTopology({
       id: '',
-      name: newTopologyName,
+      name,
       description: null,
-      category: newCategory,
+      category,
       nodes: [],
       edges: [],
       owner_id: '',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-    setTopologyName(newTopologyName);
-    setTopologyCategory(newCategory);
+    setTopologyName(name);
+    setTopologyCategory(category);
     setNodes([]);
     setEdges([]);
     setSelectedNode(null);
     setOriginalNodes([]);
     setOriginalEdges([]);
     setCreateModalVisible(false);
-    setNewTopologyName('');
-    setNewCategory('');
     setIsEditing(true);
     message.info('已进入编辑模式，请添加节点后点击保存');
   };
@@ -681,25 +678,13 @@ export default function TopologyManagement() {
         </div>
       </div>
 
-      <Modal title="新建拓扑" open={createModalVisible} onOk={handleCreate} onCancel={() => { setCreateModalVisible(false); setNewTopologyName(''); setNewCategory(''); }} okText="创建" cancelText="取消" width={480} destroyOnClose styles={{ body: { paddingBottom: "var(--spacing-card-gap)" } }}>
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <div>
-            <div style={{ marginBottom: "var(--spacing-xxs)", fontSize: 'var(--text-caption-size)', color: 'var(--text-secondary)' }}>拓扑名称</div>
-            <Input placeholder="输入拓扑名称" value={newTopologyName} onChange={(e) => setNewTopologyName(e.target.value)} />
-          </div>
-          <div>
-            <div style={{ marginBottom: "var(--spacing-xxs)", fontSize: 'var(--text-caption-size)', color: 'var(--text-secondary)' }}>分类标签（可选）</div>
-            <AutoComplete
-              style={{ width: '100%' }}
-              placeholder="输入分类名称或选择已有分类"
-              value={newCategory}
-              onChange={(val) => setNewCategory(val)}
-              options={existingCategories}
-              allowClear
-            />
-          </div>
-        </Space>
-      </Modal>
+      {/* 新建拓扑（共用组件 TopologyCreateModal） */}
+      <TopologyCreateModal
+        open={createModalVisible}
+        existingCategories={existingCategories}
+        onClose={() => setCreateModalVisible(false)}
+        onCreated={(name, category) => handleCreate(name, category)}
+      />
 
       <Modal
         title="权限说明"

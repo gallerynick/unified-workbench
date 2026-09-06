@@ -32,6 +32,93 @@
   margin-bottom: 0;
 }
 
+/* ====== 二次验证（GitHub 风格 OTP 输入） ====== */
+
+.form2fa {
+  margin-top: var(--spacing-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.otpIconWrap {
+  text-align: center;
+}
+
+.otpIcon {
+  font-size: 48px;
+  color: var(--color-primary);
+}
+
+.otpLabel {
+  text-align: center;
+  font-size: var(--text-body-md-size);
+  line-height: 1.5;
+}
+
+.otpSegmented {
+  margin: 0 !important;
+}
+
+/* GitHub 风格：6 个独立数字框 */
+.otpRow {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.otpBox {
+  width: 44px;
+  height: 56px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--rounded-sm);
+  background: var(--fill-tertiary);
+  color: var(--text-color);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  -moz-appearance: textfield;
+}
+
+.otpBox::-webkit-outer-spin-button,
+.otpBox::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.otpBox:hover {
+  border-color: var(--color-primary-border);
+}
+
+.otpBox:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+  background: var(--canvas);
+}
+
+.otpBox:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 恢复码输入 */
+.recoveryInput {
+  font-size: 14px !important;
+}
+
+/* 验证按钮 */
+.verifyBtn {
+  height: 44px;
+  font-size: 15px;
+}
+
+/* 返回链接 */
+.backLink {
+  color: var(--text-color-secondary);
+}
+
 /* ====== Login → app transition ====== */
 .containerLeaving {
   opacity: 0;

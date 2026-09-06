@@ -22,6 +22,7 @@ class ProjectProposalCreate(BaseModel):
     reject_reason: str | None = None
     attachment_links: list[dict[str, Any]] = []
     assignee_id: uuid.UUID | None = None
+    meeting_id: uuid.UUID | None = None
 
 
 class ProjectProposalUpdate(BaseModel):
@@ -36,6 +37,7 @@ class ProjectProposalUpdate(BaseModel):
     reject_reason: str | None = None
     attachment_links: list[dict[str, Any]] | None = None
     assignee_id: uuid.UUID | None = None
+    meeting_id: uuid.UUID | None = None
 
 
 class ProjectProposalResponse(BaseModel):
@@ -55,6 +57,7 @@ class ProjectProposalResponse(BaseModel):
     attachment_links: list[Any] = []
     creator_id: uuid.UUID
     assignee_id: uuid.UUID | None = None
+    meeting_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
 

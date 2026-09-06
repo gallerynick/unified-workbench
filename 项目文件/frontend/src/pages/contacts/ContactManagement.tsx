@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip, Form } from 'antd';
+import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip } from 'antd';
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { listContacts, createContact, updateContact, deleteContact } from '../../api/contacts';
+import { listContacts, deleteContact } from '../../api/contacts';
 import type { Contact, ContactType } from '../../types/contact';
-import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
-import type { Visibility } from '../../utils/visibility';
+import ContactModal from './ContactModal';
 import styles from './ContactManagement.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -25,17 +24,10 @@ export default function ContactManagement() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('');
-  const [modalVisible, setModalVisible] = useState(false);
+
+  // ── 弹窗状态（共用组件 ContactModal） ──
+  const [contactModalOpen, setContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [form] = Form.useForm();
-  const [formName, setFormName] = useState('');
-  const [formCompany, setFormCompany] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formPhone, setFormPhone] = useState('');
-  const [formType, setFormType] = useState<ContactType>('customer');
-  const [customFields, setCustomFields] = useState<{ key: string; value: string }[]>([]);
-  const [visibility, setVisibility] = useState<Visibility>('private');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchContacts = useCallback(async () => {
@@ -61,58 +53,15 @@ export default function ContactManagement() {
 
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
 
+  // ── 打开新建/编辑（弹窗共用 ContactModal） ──
   const handleCreate = () => {
     setEditingContact(null);
-    setFormName('');
-    setFormCompany('');
-    setFormEmail('');
-    setFormPhone('');
-    setFormType('customer');
-    setCustomFields([]);
-    setVisibility('private');
-    setRestrictedUsers([]);
-    setModalVisible(true);
+    setContactModalOpen(true);
   };
 
   const handleEdit = (contact: Contact) => {
     setEditingContact(contact);
-    setFormName(contact.name);
-    setFormCompany(contact.company || '');
-    setFormEmail(contact.email || '');
-    setFormPhone(contact.phone || '');
-    setFormType(contact.contact_type);
-    setVisibility((contact.visibility as Visibility) || 'private');
-    setRestrictedUsers(contact.restricted_users || []);
-    const tags = contact.tags as Record<string, unknown> | null;
-    setCustomFields(
-      tags?.customFields && Array.isArray(tags.customFields)
-        ? tags.customFields as { key: string; value: string }[]
-        : []
-    );
-    setModalVisible(true);
-  };
-
-  const handleSave = async () => {
-    if (!formName.trim()) { message.warning('请输入联系人姓名'); return; }
-    try {
-      if (editingContact) {
-        const res = await updateContact(editingContact.id, {
-          name: formName, company: formCompany, email: formEmail, phone: formPhone, contact_type: formType,
-          tags: formType === 'other' && customFields.length > 0 ? { customFields } : null,
-          visibility,
-          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-        });
-        if (res.code === 0) { message.success('联系人已更新'); setModalVisible(false); fetchContacts(); }
-      } else {
-        const res = await createContact({
-          name: formName, company: formCompany, email: formEmail, phone: formPhone, contact_type: formType,
-          tags: formType === 'other' && customFields.length > 0 ? { customFields } : null,
-          visibility,
-          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-        });
-        if (res.code === 0) { message.success('联系人已创建'); setModalVisible(false); fetchContacts(); }
-      }
-    } catch { message.error('操作失败'); }
+    setContactModalOpen(true);
   };
 
   const handleDelete = (contact: Contact) => {
@@ -192,53 +141,13 @@ export default function ContactManagement() {
         }}
       />
 
-      <Modal title={editingContact ? '编辑联系人' : '新建联系人'} open={modalVisible} onOk={handleSave}
-        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
-        <Form form={form} layout="vertical">
-          <Form.Item label="姓名" required>
-            <Input placeholder="请输入姓名" value={formName} onChange={(e) => setFormName(e.target.value)} />
-          </Form.Item>
-          <Form.Item label="公司">
-            <Input placeholder="请输入公司" value={formCompany} onChange={(e) => setFormCompany(e.target.value)} />
-          </Form.Item>
-          <Form.Item label="邮箱">
-            <Input placeholder="请输入邮箱" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
-          </Form.Item>
-          <Form.Item label="电话">
-            <Input placeholder="请输入电话" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
-          </Form.Item>
-          <Form.Item label="类型">
-            <Select value={formType} onChange={(v) => setFormType(v as ContactType)} options={Object.entries(TYPE_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
-          </Form.Item>
-          <Form.Item label="可见性">
-            <VisibilitySetting
-              value={visibility}
-              restrictedUsers={restrictedUsers}
-              onChange={setVisibility}
-              onRestrictedUsersChange={setRestrictedUsers}
-              showRestrictedTags={false}
-              label=""
-            />
-          </Form.Item>
-          {formType === 'other' && (
-            <div style={{ border: 'var(--border-width-thin) solid var(--border-primary)', borderRadius: 'var(--rounded-chip)', padding: "var(--spacing-sm)" }}>
-              <div style={{ marginBottom: "var(--spacing-xs)", fontWeight: 600 }}>自定义字段</div>
-              {customFields.map((f, i) => (
-                <Space key={i} style={{ marginBottom: "var(--spacing-xs)", display: 'flex' }}>
-                  <Input placeholder="字段名" value={f.key} style={{ width: 120 }}
-                    onChange={(e) => { const n = [...customFields]; n[i]!.key = e.target.value; setCustomFields(n); }} />
-                  <Input placeholder="值" value={f.value} style={{ width: 160 }}
-                    onChange={(e) => { const n = [...customFields]; n[i]!.value = e.target.value; setCustomFields(n); }} />
-                  <Button type="link" danger size="small" onClick={() => setCustomFields(customFields.filter((_, idx) => idx !== i))}>删除</Button>
-                </Space>
-              ))}
-              <Button type="dashed" size="small" onClick={() => setCustomFields([...customFields, { key: '', value: '' }])}>
-                添加字段
-              </Button>
-            </div>
-          )}
-        </Form>
-      </Modal>
+      {/* 新建/编辑 联系人（共用组件 ContactModal） */}
+      <ContactModal
+        open={contactModalOpen}
+        editingContact={editingContact}
+        onClose={() => setContactModalOpen(false)}
+        onSaved={() => void fetchContacts()}
+      />
 
       <Modal
         title="权限说明"

@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip, Form } from 'antd';
+import { Table, Button, Select, Tag, Typography, Modal, message, Space, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { listTasks, createTask, updateTask, deleteTask } from '../../api/tasks';
+import { listTasks, updateTask, deleteTask } from '../../api/tasks';
 import type { Task, TaskStatus, TaskPriority } from '../../types/task';
-import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
-import type { Visibility } from '../../utils/visibility';
+import TaskModal from './TaskModal';
 import styles from './TaskManagement.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -32,11 +31,10 @@ export default function TaskManagement() {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [priorityFilter, setPriorityFilter] = useState<string>('');
-  const [modalVisible, setModalVisible] = useState(false);
+
+  // ── 弹窗状态（共用组件 TaskModal） ──
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [form] = Form.useForm();
-  const [visibility, setVisibility] = useState<Visibility>('private');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchTasks = useCallback(async () => {
@@ -62,41 +60,15 @@ export default function TaskManagement() {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
+  // ── 打开新建/编辑（弹窗共用 TaskModal） ──
   const handleCreate = () => {
     setEditingTask(null);
-    form.resetFields();
-    setVisibility('private');
-    setRestrictedUsers([]);
-    setModalVisible(true);
+    setTaskModalOpen(true);
   };
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
-    form.setFieldsValue({ title: task.title, description: task.description ?? '', priority: task.priority });
-    setVisibility((task.visibility as Visibility) || 'private');
-    setRestrictedUsers(task.restricted_users || []);
-    setModalVisible(true);
-  };
-
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingTask) {
-        const res = await updateTask(editingTask.id, {
-          title: values.title, description: values.description, priority: values.priority,
-          visibility,
-          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-        });
-        if (res.code === 0) { message.success('任务已更新'); setModalVisible(false); fetchTasks(); }
-      } else {
-        const res = await createTask({
-          title: values.title, description: values.description, priority: values.priority,
-          visibility,
-          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-        });
-        if (res.code === 0) { message.success('任务已创建'); setModalVisible(false); fetchTasks(); }
-      }
-    } catch { message.error('操作失败'); }
+    setTaskModalOpen(true);
   };
 
   const handleDelete = (task: Task) => {
@@ -187,30 +159,13 @@ export default function TaskManagement() {
         }}
       />
 
-      <Modal title={editingTask ? '编辑待办' : '新建待办'} open={modalVisible} onOk={handleSave}
-        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
-        <Form form={form} layout="vertical" initialValues={{ priority: 'medium' }}>
-          <Form.Item name="title" label="待办标题" rules={[{ required: true, message: '请输入待办标题' }]}>
-            <Input placeholder="请输入待办标题" />
-          </Form.Item>
-          <Form.Item name="description" label="待办描述">
-            <Input.TextArea placeholder="请输入待办描述（可选）" rows={3} />
-          </Form.Item>
-          <Form.Item name="priority" label="优先级">
-            <Select options={Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
-          </Form.Item>
-          <Form.Item label="可见性">
-            <VisibilitySetting
-              value={visibility}
-              restrictedUsers={restrictedUsers}
-              onChange={setVisibility}
-              onRestrictedUsersChange={setRestrictedUsers}
-              showRestrictedTags={false}
-              label=""
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 新建/编辑 待办（共用组件 TaskModal） */}
+      <TaskModal
+        open={taskModalOpen}
+        editingTask={editingTask}
+        onClose={() => setTaskModalOpen(false)}
+        onSaved={() => void fetchTasks()}
+      />
 
       <Modal
         title="权限说明"

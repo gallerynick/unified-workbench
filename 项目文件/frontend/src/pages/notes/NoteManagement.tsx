@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Tree, Button, Typography, Modal, message, Space, Input, Tag, Tooltip, TreeSelect, Switch, Segmented, Form } from 'antd';
+import { Tree, Button, Typography, Modal, message, Space, Input, Tag, Tooltip, Segmented } from 'antd';
 import { PlusOutlined, DeleteOutlined, PushpinOutlined, SearchOutlined, EditOutlined, FileOutlined, FolderOutlined, ApartmentOutlined, ShareAltOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { DataNode, TreeProps } from 'antd/es/tree';
-import { listAllNotes, createNote, updateNote, deleteNote, moveNote } from '../../api/notes';
+import { listAllNotes, updateNote, deleteNote, moveNote } from '../../api/notes';
 import type { Note } from '../../types/note';
-import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
-import type { Visibility } from '../../utils/visibility';
 import { useTheme } from '../../contexts/ThemeContext';
 import GraphView from './GraphView';
 import styles from './NoteManagement.module.css';
+import NoteModal, { type NoteTreeSelectData } from './NoteModal';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -117,14 +116,6 @@ export default function NoteManagement() {
   const { isDark } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [form] = Form.useForm();
-  const [formTitle, setFormTitle] = useState('');
-  const [formContent, setFormContent] = useState('');
-  const [formCategory, setFormCategory] = useState('');
-  const [formParentId, setFormParentId] = useState<string | null>(null);
-  const [formPinned, setFormPinned] = useState(false);
-  const [visibility, setVisibility] = useState<Visibility>('private');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [permissionVisible, setPermissionVisible] = useState(false);
 
@@ -141,25 +132,11 @@ export default function NoteManagement() {
 
   const openCreateModal = useCallback(() => {
     setEditingNote(null);
-    setFormTitle('');
-    setFormContent('');
-    setFormCategory('');
-    setFormParentId(null);
-    setFormPinned(false);
-    setVisibility('private');
-    setRestrictedUsers([]);
     setModalVisible(true);
   }, []);
 
   const openEditModal = useCallback((note: Note) => {
     setEditingNote(note);
-    setFormTitle(note.title);
-    setFormContent(note.content || '');
-    setFormCategory(note.category || '');
-    setFormParentId(note.parent_id);
-    setFormPinned(note.is_pinned);
-    setVisibility((note.visibility as Visibility) || 'private');
-    setRestrictedUsers(note.restricted_users || []);
     setSelectedKeys([note.id]);
     setModalVisible(true);
   }, []);
@@ -198,12 +175,11 @@ export default function NoteManagement() {
     return search ? filterTree(tree, search) : tree;
   }, [notes, search, handleTogglePin, openEditModal, handleDelete]);
 
-  const treeSelectData = useMemo(() => {
+  const treeSelectData = useMemo((): NoteTreeSelectData[] => {
     const tree = buildTree(notes);
-    type SelectNode = { value: string; title: string; children: SelectNode[]; selectable: boolean };
-    const buildSelectNodes = (nodes: TreeNodeData[]): SelectNode[] =>
+    const buildSelectNodes = (nodes: TreeNodeData[]): NoteTreeSelectData[] =>
       nodes.map((n) => {
-        const node: SelectNode = {
+        const node: NoteTreeSelectData = {
           value: n.key as string,
           title: n.note.title,
           children: [],
@@ -214,41 +190,6 @@ export default function NoteManagement() {
       });
     return buildSelectNodes(tree);
   }, [notes, editingNote]);
-
-  const handleCreate = async () => {
-    if (!formTitle.trim()) { message.warning('请输入笔记标题'); return; }
-    try {
-      const payload = {
-        title: formTitle,
-        content: formContent || undefined,
-        category: formCategory || undefined,
-        parent_id: formParentId,
-        is_pinned: formPinned,
-        visibility,
-        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-      };
-      const res = await createNote(payload);
-      if (res.code === 0) { message.success('笔记已创建'); setModalVisible(false); setSelectedKeys([]); fetchNotes(); }
-    } catch { message.error('创建失败'); }
-  };
-
-  const handleUpdate = async () => {
-    if (!editingNote) return;
-    if (!formTitle.trim()) { message.warning('请输入笔记标题'); return; }
-    try {
-      const payload = {
-        title: formTitle,
-        content: formContent || undefined,
-        category: formCategory || undefined,
-        parent_id: formParentId,
-        is_pinned: formPinned,
-        visibility,
-        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-      };
-      const res = await updateNote(editingNote.id, payload);
-      if (res.code === 0) { message.success('笔记已更新'); setModalVisible(false); setSelectedKeys([]); fetchNotes(); }
-    } catch { message.error('更新失败'); }
-  };
 
   const onDrop: TreeProps['onDrop'] = async (info) => {
     const dragKey = info.dragNode.key as string;
@@ -327,55 +268,13 @@ export default function NoteManagement() {
         </div>
       )}
 
-      <Modal
-        title={editingNote ? '编辑笔记' : '新建笔记'}
+      <NoteModal
         open={modalVisible}
-        onOk={editingNote ? handleUpdate : handleCreate}
-        onCancel={() => { setModalVisible(false); setSelectedKeys([]); form.resetFields(); }}
-        okText={editingNote ? '保存' : '创建'}
-        cancelText="取消"
-        width={560}
-        destroyOnClose
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item label="笔记标题" required>
-            <Input placeholder="请输入笔记标题" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} variant="filled" size="large" />
-          </Form.Item>
-          <Space style={{ width: '100%' }} size="middle">
-            <Form.Item label="分类">
-              <Input placeholder="请输入分类" value={formCategory} onChange={(e) => setFormCategory(e.target.value)} variant="filled" style={{ width: 200 }} />
-            </Form.Item>
-            <Form.Item label="父笔记">
-              <TreeSelect
-                placeholder="选择父笔记（可选）"
-                style={{ width: 200 }}
-                value={formParentId}
-                onChange={setFormParentId}
-                treeData={treeSelectData}
-                allowClear
-                treeDefaultExpandAll
-              />
-            </Form.Item>
-          </Space>
-          <Form.Item label="置顶">
-            <Switch checked={formPinned} onChange={setFormPinned} checkedChildren="置顶" unCheckedChildren="普通" size="small" />
-          </Form.Item>
-          <Form.Item label="笔记内容">
-            <Input.TextArea placeholder="请输入笔记内容" value={formContent} onChange={(e) => setFormContent(e.target.value)} rows={8} variant="filled" style={{ fontSize: 'var(--text-caption-size)', lineHeight: 1.6 }} />
-          </Form.Item>
-          <Form.Item label="可见性">
-            <VisibilitySetting
-              value={visibility}
-              restrictedUsers={restrictedUsers}
-              onChange={setVisibility}
-              onRestrictedUsersChange={setRestrictedUsers}
-              showRestrictedTags={false}
-              label=""
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+        editingNote={editingNote}
+        treeData={treeSelectData}
+        onClose={() => { setModalVisible(false); setSelectedKeys([]); }}
+        onSaved={fetchNotes}
+      />
 
       <Modal
         title="权限说明"

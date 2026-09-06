@@ -85,6 +85,7 @@ async def create_project_proposal(
         reject_reason=data.get("reject_reason"),
         attachment_links=data.get("attachment_links", []),
         assignee_id=data.get("assignee_id"),
+        meeting_id=data.get("meeting_id"),
         creator_id=current_user.id,
     )
     db.add(item)
@@ -113,6 +114,7 @@ async def update_project_proposal(
         "reject_reason",
         "attachment_links",
         "assignee_id",
+        "meeting_id",
     ):
         if field in data and data[field] is not None:
             setattr(item, field, data[field])

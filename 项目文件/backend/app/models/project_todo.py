@@ -14,6 +14,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.project import Project
+    from app.models.project_meeting import ProjectMeeting
     from app.models.project_proposal import ProjectProposal
     from app.models.user import User
 
@@ -59,6 +60,12 @@ class ProjectTodo(Base):
         nullable=True,
         comment="关联提案ID",
     )
+    meeting_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("project_meeting.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="关联交流记录ID",
+    )
     due_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="截止时间"
     )
@@ -79,4 +86,7 @@ class ProjectTodo(Base):
     )
     proposal: Mapped[ProjectProposal | None] = relationship(
         "ProjectProposal", lazy="selectin"
+    )
+    meeting: Mapped["ProjectMeeting | None"] = relationship(
+        "ProjectMeeting", foreign_keys=[meeting_id], lazy="selectin"
     )

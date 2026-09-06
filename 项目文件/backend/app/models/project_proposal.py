@@ -14,6 +14,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.project import Project
+    from app.models.project_meeting import ProjectMeeting
     from app.models.user import User
 
 
@@ -61,6 +62,12 @@ class ProjectProposal(Base):
         nullable=True,
         comment="负责人ID",
     )
+    meeting_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("project_meeting.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="关联交流记录ID",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -73,4 +80,7 @@ class ProjectProposal(Base):
     creator: Mapped[User] = relationship("User", foreign_keys=[creator_id], lazy="selectin")
     assignee: Mapped[User | None] = relationship(
         "User", foreign_keys=[assignee_id], lazy="selectin"
+    )
+    meeting: Mapped["ProjectMeeting | None"] = relationship(
+        "ProjectMeeting", foreign_keys=[meeting_id], lazy="selectin"
     )

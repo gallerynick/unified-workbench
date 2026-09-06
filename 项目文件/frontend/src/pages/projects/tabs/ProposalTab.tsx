@@ -8,8 +8,6 @@ import {
   Space,
   Tag,
   Typography,
-  Modal,
-  Form,
   message,
   Tooltip,
   Empty,
@@ -17,29 +15,27 @@ import {
 import {
   PlusOutlined,
   SearchOutlined,
-  DeleteOutlined,
   RightOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Project } from '../../../types/project';
-import type { AttachmentLink, ProjectProposal } from '../../../types/project-proposal';
+import type { ProjectProposal } from '../../../types/project-proposal';
 import type { User } from '../../../types/user';
-import {
-  listProjectProposals,
-  createProjectProposal,
-} from '../../../api/project-proposals';
+import { listProjectProposals } from '../../../api/project-proposals';
 import { listUsers } from '../../../api/users';
 import { useUser } from '../../../contexts/UserContext';
 import styles from './ProposalTab.module.css';
 import {
+  PRIORITY_COLOR,
   PROPOSAL_TYPE_OPTIONS,
   PROPOSAL_PRIORITY_OPTIONS,
+  PROPOSAL_STATUS_COLOR,
   PROPOSAL_STATUS_OPTIONS,
-  PROJECT_NUMBER_PREFIX,
 } from '../../../constants/project';
+import ProposalModal from '../components/ProposalModal';
 
 const { Text } = Typography;
-const { TextArea } = Input;
+
 
 // ─── 标签颜色映射（与深浅色模式无关，由 antd Tag 语义色自适应） ─────────
 
@@ -49,22 +45,6 @@ const TYPE_COLOR: Record<string, string> = {
   improvement: 'green',
   removal: 'orange',
   other: 'default',
-};
-
-const PRIORITY_COLOR: Record<string, string> = {
-  P0: 'red',
-  P1: 'volcano',
-  P2: 'orange',
-  P3: 'gold',
-  P4: 'default',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  pending: 'processing',
-  approved: 'success',
-  in_progress: 'processing',
-  rejected: 'error',
-  completed: 'default',
 };
 
 // ─── 工具函数 ────────────────────────────────────────────────────────
@@ -102,31 +82,6 @@ function formatDate(iso: string): string {
   });
 }
 
-/**
- * 生成提案编号：PRP-{项目编号}-{项目内序号}
- * 序号 = 当前列表中该前缀下最大序号 + 1
- */
-function buildProposalNumber(project: Project, proposals: ProjectProposal[]): string {
-  const projTag = project.number ?? project.id.slice(0, 8).toUpperCase();
-  const prefix = `${PROJECT_NUMBER_PREFIX.proposal}${projTag}-`;
-  let maxSeq = 0;
-  for (const p of proposals) {
-    if (p.number?.startsWith(prefix)) {
-      const seq = parseInt(p.number.slice(prefix.length), 10);
-      if (!Number.isNaN(seq) && seq > maxSeq) maxSeq = seq;
-    }
-  }
-  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
-}
-
-interface ProposalFormValues {
-  title: string;
-  type: string;
-  priority: string;
-  description?: string;
-  attachment_links?: AttachmentLink[];
-  assignee_id?: string;
-}
 
 export default function ProposalTab({ project }: { project: Project }) {
   const { user } = useUser();
@@ -145,10 +100,8 @@ export default function ProposalTab({ project }: { project: Project }) {
   });
   const [search, setSearch] = useState('');
 
-  // ── 新建 ──
-  const [modalVisible, setModalVisible] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm<ProposalFormValues>();
+  // ── 新建（弹窗共用 ProposalModal） ──
+  const [proposalModalOpen, setProposalModalOpen] = useState(false);
 
   // ── 权限：负责人+管理员始终可操作；普通成员按 member_permissions.proposals 分区 ──
   const isOwner = !!user && project.owner_id === user.id;
@@ -217,47 +170,7 @@ export default function ProposalTab({ project }: { project: Project }) {
     return list;
   }, [proposals, filters, search]);
 
-  // ── 新建 ──
-  const handleCreate = useCallback(() => {
-    form.resetFields();
-    form.setFieldsValue({ type: 'feature', priority: 'P2', attachment_links: [] });
-    setModalVisible(true);
-  }, [form]);
-
-  const handleSubmit = useCallback(async () => {
-    try {
-      const values = await form.validateFields();
-      setSubmitting(true);
-      const payload = {
-        title: values.title.trim(),
-        type: values.type,
-        priority: values.priority,
-        ...(values.description?.trim() ? { description: values.description.trim() } : {}),
-        attachment_links: (values.attachment_links ?? [])
-          .map((l) => ({ url: (l.url ?? '').trim(), description: (l.description ?? '').trim() }))
-          .filter((l) => l.url.length > 0),
-        ...(values.assignee_id ? { assignee_id: values.assignee_id } : {}),
-      };
-      const res = await createProjectProposal({
-        project_id: project.id,
-        number: buildProposalNumber(project, proposals),
-        ...payload,
-      });
-      if (res.code === 0) {
-        message.success('提案已创建');
-        setModalVisible(false);
-        void fetchData();
-      } else {
-        message.error(res.msg || '创建失败');
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        message.error(err.message);
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }, [form, project, proposals, fetchData]);
+  // ── 新建由共用组件 ProposalModal 处理，见组件底部渲染 ──
 
   // ── 列定义 ──
   const columns = useMemo<ColumnsType<ProjectProposal>>(
@@ -323,7 +236,7 @@ export default function ProposalTab({ project }: { project: Project }) {
                 : undefined
             }
           >
-            <Tag color={STATUS_COLOR[status] ?? 'default'}>{getLabel(statusOptions, status)}</Tag>
+            <Tag color={PROPOSAL_STATUS_COLOR[status] ?? 'default'}>{getLabel(statusOptions, status)}</Tag>
           </Tooltip>
         ),
       },
@@ -412,7 +325,7 @@ export default function ProposalTab({ project }: { project: Project }) {
             type="primary"
             icon={<PlusOutlined />}
             disabled={!canCreateProposal}
-            onClick={handleCreate}
+            onClick={() => setProposalModalOpen(true)}
           >
             新建提案
           </Button>
@@ -440,99 +353,14 @@ export default function ProposalTab({ project }: { project: Project }) {
         }}
       />
 
-      {/* 新建提案 Modal */}
-      <Modal
-        title="新建提案"
-        open={modalVisible}
-        onOk={() => void handleSubmit()}
-        onCancel={() => setModalVisible(false)}
-        confirmLoading={submitting}
-        destroyOnClose
-        width={640}
-        styles={{
-          body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' },
-        }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入提案标题' }]}
-          >
-            <Input placeholder="请输入提案标题" maxLength={200} showCount />
-          </Form.Item>
-          <Form.Item
-            name="type"
-            label="类型"
-            rules={[{ required: true, message: '请选择提案类型' }]}
-          >
-            <Select options={typeOptions} />
-          </Form.Item>
-          <Form.Item
-            name="priority"
-            label="优先级"
-            rules={[{ required: true, message: '请选择优先级' }]}
-          >
-            <Select options={priorityOptions} />
-          </Form.Item>
-          <Form.Item name="description" label="描述">
-            <TextArea rows={4} placeholder="请输入提案描述" maxLength={2000} showCount />
-          </Form.Item>
-          <Form.Item name="assignee_id" label="执行人" tooltip="从工作台用户中选择（可选）">
-            <Select
-              allowClear
-              showSearch
-              placeholder="选择执行人（可选）"
-              optionFilterProp="label"
-              options={users.map((u) => ({ value: u.id, label: u.nickname || u.username }))}
-            />
-          </Form.Item>
-          <Form.List name="attachment_links">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map((field, index) => (
-                  <Form.Item
-                    key={field.key}
-                    label={index === 0 ? '附件' : ' '}
-                    required={false}
-                    style={{ marginBottom: 'var(--spacing-xs)' }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xxs)' }}>
-                      <Space style={{ display: 'flex', width: '100%' }}>
-                        <Form.Item
-                          name={[field.name, 'url']}
-                          noStyle
-                          rules={[{ type: 'url', message: '请输入合法的 URL' }]}
-                        >
-                          <Input placeholder="附件地址 https://..." style={{ flex: 1 }} />
-                        </Form.Item>
-                        <Button
-                          type="text"
-                          danger
-                          icon={<DeleteOutlined />}
-                          aria-label="删除附件"
-                          onClick={() => remove(field.name)}
-                        />
-                      </Space>
-                      <Form.Item name={[field.name, 'description']} noStyle>
-                        <Input placeholder="附件说明（可选）" />
-                      </Form.Item>
-                    </div>
-                  </Form.Item>
-                ))}
-                <Button
-                  type="dashed"
-                  icon={<PlusOutlined />}
-                  onClick={() => add({ url: '', description: '' })}
-                  block
-                >
-                  添加附件
-                </Button>
-              </>
-            )}
-          </Form.List>
-        </Form>
-      </Modal>
+      {/* 新建提案（共用组件 ProposalModal） */}
+      <ProposalModal
+        project={project}
+        open={proposalModalOpen}
+        existingProposals={proposals}
+        onClose={() => setProposalModalOpen(false)}
+        onSaved={() => void fetchData()}
+      />
     </div>
   );
 }

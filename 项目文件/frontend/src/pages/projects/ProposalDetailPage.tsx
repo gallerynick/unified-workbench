@@ -3,10 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
   Card,
-  Descriptions,
   Divider,
   Empty,
-  Form,
   Input,
   List,
   message,
@@ -14,6 +12,7 @@ import {
   Select,
   Space,
   Spin,
+  Steps,
   Tag,
   Tabs,
   Tooltip,
@@ -21,7 +20,6 @@ import {
 } from 'antd';
 import {
   ArrowLeftOutlined,
-  DeleteOutlined,
   ExclamationCircleOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
@@ -35,13 +33,22 @@ import { listProjectTodos, updateProjectTodo } from '../../api/project-todos';
 import { listProjectMeetings, updateProjectMeeting } from '../../api/project-meetings';
 import { listUsers } from '../../api/users';
 import { useUser } from '../../contexts/UserContext';
+import ContentEditor from '../content/ContentEditor';
+import TodoModal from './components/TodoModal';
+import MeetingModal from './components/MeetingModal';
+import ProposalModal from './components/ProposalModal';
+import { parseDescription } from './components/proposalDescription';
 import {
+  PRIORITY_COLOR,
   PROPOSAL_PRIORITY_OPTIONS,
+  PROPOSAL_STATUS_COLOR,
   PROPOSAL_STATUS_LABEL,
   PROPOSAL_STATUS_OPTIONS,
   PROPOSAL_TYPE_OPTIONS,
+  TODO_STATUS_COLOR,
+  TODO_STATUS_LABEL,
 } from '../../constants/project';
-import type { AttachmentLink, ProjectProposal } from '../../types/project-proposal';
+import type { ProjectProposal } from '../../types/project-proposal';
 import type { Project } from '../../types/project';
 import type { ProjectTodo } from '../../types/project-todo';
 import type { ProjectMeeting } from '../../types/project-meeting';
@@ -50,22 +57,6 @@ import styles from './ProposalDetailPage.module.css';
 
 const { Text, Title, Paragraph } = Typography;
 const { TextArea } = Input;
-
-const PRIORITY_COLOR: Record<string, string> = {
-  P0: 'red',
-  P1: 'volcano',
-  P2: 'orange',
-  P3: 'gold',
-  P4: 'default',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  pending: 'processing',
-  approved: 'success',
-  in_progress: 'processing',
-  rejected: 'error',
-  completed: 'default',
-};
 
 function getLabel(
   options: { value: string; label: string }[],
@@ -95,14 +86,6 @@ function formatDate(iso: string): string {
   });
 }
 
-interface ProposalFormValues {
-  title: string;
-  type: string;
-  priority: string;
-  description?: string;
-  attachment_links?: AttachmentLink[];
-  assignee_id?: string;
-}
 
 export default function ProposalDetailPage() {
   const { id: projectId, proposalId } = useParams<{ id: string; proposalId: string }>();
@@ -117,8 +100,6 @@ export default function ProposalDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
 
   const [editVisible, setEditVisible] = useState(false);
-  const [submittingEdit, setSubmittingEdit] = useState(false);
-  const [editForm] = Form.useForm<ProposalFormValues>();
 
   const [rejectVisible, setRejectVisible] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -129,6 +110,10 @@ export default function ProposalDetailPage() {
   const [showAddMeetingModal, setShowAddMeetingModal] = useState(false);
   const [pendingTodoIds, setPendingTodoIds] = useState<string[]>([]);
   const [pendingMeetingIds, setPendingMeetingIds] = useState<string[]>([]);
+
+  // ── 一键新建并关联 ──
+  const [createTodoVisible, setCreateTodoVisible] = useState(false);
+  const [createMeetingVisible, setCreateMeetingVisible] = useState(false);
 
   const isAdmin = user?.role === 'admin';
   const proposalsApprover = !!user && project?.member_permissions?.[user?.id ?? '']?.proposals_approver === true;
@@ -245,20 +230,31 @@ export default function ProposalDetailPage() {
   }, [pendingTodoIds, linkedTodoIds, proposal]);
 
   const handleDisconnectTodo = useCallback(
-    async (todoId: string) => {
-      try {
-        const res = await updateProjectTodo(todoId, { proposal_id: null });
-        if (res.code === 0) {
-          message.success('已断开关联');
-          setLinkedTodoIds(linkedTodoIds.filter((id) => id !== todoId));
-        } else {
-          message.error(res.msg || '断开关联失败');
-        }
-      } catch (err: unknown) {
-        message.error(err instanceof Error ? err.message : '断开关联失败');
-      }
+    (todoId: string) => {
+      const todo = todos.find((t) => t.id === todoId);
+      Modal.confirm({
+        title: '确认断开关联',
+        icon: <ExclamationCircleOutlined />,
+        content: `确定要断开待办「${todo ? todo.number : ''} ${todo ? todo.title : ''}」与当前提案的关联吗？`,
+        okText: '断开',
+        okButtonProps: { danger: true },
+        cancelText: '取消',
+        onOk: async () => {
+          try {
+            const res = await updateProjectTodo(todoId, { proposal_id: null });
+            if (res.code === 0) {
+              message.success('已断开关联');
+              setLinkedTodoIds(linkedTodoIds.filter((id) => id !== todoId));
+            } else {
+              message.error(res.msg || '断开关联失败');
+            }
+          } catch (err: unknown) {
+            message.error(err instanceof Error ? err.message : '断开关联失败');
+          }
+        },
+      });
     },
-    [linkedTodoIds],
+    [linkedTodoIds, todos],
   );
 
   const handleMeetingSelectChange = useCallback(
@@ -295,21 +291,34 @@ export default function ProposalDetailPage() {
   }, [pendingMeetingIds, linkedMeetingIds, proposal]);
 
   const handleDisconnectMeeting = useCallback(
-    async (meetingId: string) => {
-      try {
-        const res = await updateProjectMeeting(meetingId, { proposal_id: null });
-        if (res.code === 0) {
-          message.success('已断开关联');
-          setLinkedMeetingIds(linkedMeetingIds.filter((id) => id !== meetingId));
-        } else {
-          message.error(res.msg || '断开关联失败');
-        }
-      } catch (err: unknown) {
-        message.error(err instanceof Error ? err.message : '断开关联失败');
-      }
+    (meetingId: string) => {
+      const meeting = meetings.find((m) => m.id === meetingId);
+      Modal.confirm({
+        title: '确认断开关联',
+        icon: <ExclamationCircleOutlined />,
+        content: `确定要断开交流「${meeting ? meeting.number : ''} ${meeting ? meeting.type : ''}」与当前提案的关联吗？`,
+        okText: '断开',
+        okButtonProps: { danger: true },
+        cancelText: '取消',
+        onOk: async () => {
+          try {
+            const res = await updateProjectMeeting(meetingId, { proposal_id: null });
+            if (res.code === 0) {
+              message.success('已断开关联');
+              setLinkedMeetingIds(linkedMeetingIds.filter((id) => id !== meetingId));
+            } else {
+              message.error(res.msg || '断开关联失败');
+            }
+          } catch (err: unknown) {
+            message.error(err instanceof Error ? err.message : '断开关联失败');
+          }
+        },
+      });
     },
-    [linkedMeetingIds],
+    [linkedMeetingIds, meetings],
   );
+
+  // ── 一键新建交流并关联：由共用组件 MeetingModal 处理（见组件底部渲染） ──
 
   const confirmReject = useCallback(async () => {
     if (!proposal) return;
@@ -393,54 +402,11 @@ export default function ProposalDetailPage() {
     [proposal],
   );
 
+  // ── 编辑提案：由共用组件 ProposalModal 处理（见组件底部渲染） ──
   const openEdit = useCallback(() => {
     if (!proposal) return;
-    editForm.resetFields();
-    const initValues: ProposalFormValues = {
-      title: proposal.title,
-      type: proposal.type,
-      priority: proposal.priority,
-      attachment_links: (proposal.attachment_links ?? []).map((l) =>
-        typeof l === 'string' ? { url: l, description: '' } : l,
-      ),
-    };
-    if (proposal.description) initValues.description = proposal.description;
-    if (proposal.assignee_id) initValues.assignee_id = proposal.assignee_id;
-    editForm.setFieldsValue(initValues);
     setEditVisible(true);
-  }, [proposal, editForm]);
-
-  const submitEdit = useCallback(async () => {
-    if (!proposal) return;
-    try {
-      const values = await editForm.validateFields();
-      setSubmittingEdit(true);
-      const payload = {
-        title: values.title.trim(),
-        type: values.type,
-        priority: values.priority,
-        ...(values.description?.trim() ? { description: values.description.trim() } : {}),
-        attachment_links: (values.attachment_links ?? [])
-          .map((l) => ({ url: (l.url ?? '').trim(), description: (l.description ?? '').trim() }))
-          .filter((l) => l.url.length > 0),
-        ...(values.assignee_id ? { assignee_id: values.assignee_id } : {}),
-      };
-      const res = await updateProjectProposal(proposal.id, payload);
-      if (res.code === 0) {
-        message.success('提案已更新');
-        setEditVisible(false);
-        setProposal(res.data);
-      } else {
-        message.error(res.msg || '更新失败');
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        message.error(err.message);
-      }
-    } finally {
-      setSubmittingEdit(false);
-    }
-  }, [proposal, editForm]);
+  }, [proposal]);
 
   const handleDeleteProposal = useCallback(() => {
     if (!proposal) return;
@@ -477,11 +443,45 @@ export default function ProposalDetailPage() {
 
   if (!proposal) return null;
 
-const headerStatusColor = STATUS_COLOR[proposal.status] ?? 'default';
+const headerStatusColor = PROPOSAL_STATUS_COLOR[proposal.status] ?? 'default';
 const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.status;
 
   const handleBack = () => {
     if (projectId) navigate(`/projects/${projectId}`);
+  };
+
+  // 状态流程步骤（pending→approved→in_progress→completed）
+  const statusStepIndex: Record<string, number> = { pending: 0, approved: 1, in_progress: 2, completed: 3 };
+  const currentStep = statusStepIndex[proposal.status] ?? 0;
+  const stepStatus = proposal.status === 'rejected' ? 'error' : 'process';
+  const statusSteps = [
+    { title: '待审核' },
+    { title: '待实现' },
+    { title: '实现中' },
+    { title: '已完成' },
+  ];
+
+  // 定义列表项渲染辅助（短键值）
+  const renderDefItem = (label: string, value: React.ReactNode) => (
+    <div className={styles.defItem ?? ''}>
+      <span className={styles.defLabel ?? ''}>{label}</span>
+      <span className={styles.defValue ?? ''}>{value}</span>
+    </div>
+  );
+
+  /** 描述展示区块：富文本用 ContentEditor 只读渲染，纯文本直接显示 */
+  const renderDescriptionBlock = (label: string, value: string) => {
+    const doc = parseDescription(value);
+    return (
+      <div className={styles.textBlock ?? ''}>
+        <div className={styles.textLabel ?? ''}>{label}</div>
+        {doc ? (
+          <ContentEditor value={doc} editable={false} minHeight={80} />
+        ) : (
+          <div className={styles.textBody ?? ''}>{value}</div>
+        )}
+      </div>
+    );
   };
 
   const tabItems = [
@@ -489,65 +489,71 @@ const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.sta
       key: 'detail',
       label: '提案信息',
       children: (
-        <Descriptions bordered column={2} size="small">
-          <Descriptions.Item label="编号">{proposal.number}</Descriptions.Item>
-              <Descriptions.Item label="状态">
-                <Tooltip
-                  title={
-                    proposal.status === 'rejected' && proposal.reject_reason
-                      ? `废弃原因：${proposal.reject_reason}`
-                      : undefined
-                  }
-                >
-                  <Tag color={headerStatusColor}>{headerStatusLabel}</Tag>
-                </Tooltip>
-              </Descriptions.Item>
-          <Descriptions.Item label="标题" span={2}>{proposal.title}</Descriptions.Item>
-          <Descriptions.Item label="类型">
-            {getLabel(typeOptions, proposal.type)}
-          </Descriptions.Item>
-          <Descriptions.Item label="优先级">
-            <Tag color={PRIORITY_COLOR[proposal.priority] ?? 'default'}>
-              {getLabel(priorityOptions, proposal.priority)}
-            </Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="创建人">
-            {displayName(proposal.creator_id)}
-          </Descriptions.Item>
-          <Descriptions.Item label="执行人">
-            {displayName(proposal.assignee_id)}
-          </Descriptions.Item>
-          <Descriptions.Item label="创建时间" span={2}>
-            {formatDate(proposal.created_at)}
-          </Descriptions.Item>
-          {proposal.description && (
-            <Descriptions.Item label="描述" span={2}>
-              <Text>{proposal.description}</Text>
-            </Descriptions.Item>
-          )}
+        <div className={styles.tabContent ?? ''}>
+          {/* 状态流转可视化 */}
+          <Steps
+            size="small"
+            current={currentStep}
+            {...(stepStatus === 'error' ? { status: 'error' as const } : {})}
+            items={statusSteps}
+            style={{ marginBottom: 'var(--spacing-card-gap)' }}
+          />
+
+          {/* 基础信息（定义列表） */}
+          <div className={styles.definitionList ?? ''}>
+            {renderDefItem('编号', proposal.number)}
+            {renderDefItem('标题', proposal.title)}
+            {renderDefItem(
+              '状态',
+              <Tooltip
+                title={
+                  proposal.status === 'rejected' && proposal.reject_reason
+                    ? `废弃原因：${proposal.reject_reason}`
+                    : undefined
+                }
+              >
+                <Tag color={headerStatusColor} style={{ margin: 0 }}>{headerStatusLabel}</Tag>
+              </Tooltip>
+            )}
+            {renderDefItem('类型', getLabel(typeOptions, proposal.type))}
+            {renderDefItem(
+              '优先级',
+              <Tag color={PRIORITY_COLOR[proposal.priority] ?? 'default'} style={{ margin: 0 }}>
+                {getLabel(priorityOptions, proposal.priority)}
+              </Tag>
+            )}
+            {renderDefItem('创建人', displayName(proposal.creator_id))}
+            {renderDefItem('执行人', displayName(proposal.assignee_id))}
+            {renderDefItem('创建时间', formatDate(proposal.created_at))}
+          </div>
+
+          {/* 描述（富文本/纯文本兼容渲染） */}
+          {proposal.description && renderDescriptionBlock('描述', proposal.description)}
+
+          {/* 附件（段落区块） */}
           {proposal.attachment_links && proposal.attachment_links.length > 0 && (
-            <Descriptions.Item label="附件" span={2}>
+            <div className={styles.textBlock ?? ''}>
+              <div className={styles.textLabel ?? ''}>附件</div>
               <Space direction="vertical" size="small">
                 {proposal.attachment_links.map((link, index) => (
-                  <Text key={link.url}>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      附件 {index + 1}{link.description ? `：${link.description}` : ''}
-                    </a>
-                  </Text>
+                  <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">
+                    附件 {index + 1}{link.description ? `：${link.description}` : ''}
+                  </a>
                 ))}
               </Space>
-            </Descriptions.Item>
+            </div>
           )}
+
+          {/* 废弃原因 */}
           {proposal.status === 'rejected' && proposal.reject_reason && (
-            <Descriptions.Item label="废弃原因" span={2}>
-              <Text type="danger">{proposal.reject_reason}</Text>
-            </Descriptions.Item>
+            <div className={styles.textBlock ?? ''}>
+              <div className={styles.textLabel ?? ''}>废弃原因</div>
+              <div className={styles.textBody ?? ''} style={{ color: 'var(--color-error)' }}>
+                {proposal.reject_reason}
+              </div>
+            </div>
           )}
-        </Descriptions>
+        </div>
       ),
     },
     {
@@ -566,16 +572,25 @@ const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.sta
                 )}
               </Title>
               {canManageTodos && (
-                <Button
-                  type="link"
-                  icon={<PlusOutlined />}
-                  onClick={() => {
-                    setPendingTodoIds([]);
-                    setShowAddTodoModal(true);
-                  }}
-                >
-                  添加
-                </Button>
+                <>
+                  <Button
+                    type="link"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      setPendingTodoIds([]);
+                      setShowAddTodoModal(true);
+                    }}
+                  >
+                    添加已有
+                  </Button>
+                  <Button
+                    type="link"
+                    icon={<PlusOutlined />}
+                    onClick={() => setCreateTodoVisible(true)}
+                  >
+                    新建并关联
+                  </Button>
+                </>
               )}
             </Space>
             {canManageTodos ? (
@@ -595,17 +610,32 @@ const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.sta
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            void handleDisconnectTodo(todo.id);
+                            handleDisconnectTodo(todo.id);
                           }}
                         >
                           断开关联
                         </Button>,
                       ]}
                     >
-                      <Space className={styles.linkedLink ?? ''}>
-                        <Text strong>{todo.number}</Text>
-                        <Text>{todo.title}</Text>
-                      </Space>
+                      <div className={styles.linkedContent ?? ''}>
+                        <Space className={styles.linkedLink ?? ''}>
+                          <Text strong>{todo.number}</Text>
+                          <Text>{todo.title}</Text>
+                        </Space>
+                        <Space size={4} style={{ marginTop: 'var(--spacing-xxs)' }}>
+                          <Tag color={PRIORITY_COLOR[todo.priority] ?? 'default'} style={{ marginRight: 0 }}>
+                            {getLabel(priorityOptions, todo.priority)}
+                          </Tag>
+                          <Tag color={TODO_STATUS_COLOR[todo.status] ?? 'default'} style={{ marginRight: 0 }}>
+                            {TODO_STATUS_LABEL[todo.status] ?? todo.status}
+                          </Tag>
+                          {todo.due_date && (
+                            <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                              截止 {formatDate(todo.due_date)}
+                            </Text>
+                          )}
+                        </Space>
+                      </div>
                     </List.Item>
                   )}
                 />
@@ -628,16 +658,25 @@ const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.sta
                 )}
               </Title>
               {canManageMeetings && (
-                <Button
-                  type="link"
-                  icon={<PlusOutlined />}
-                  onClick={() => {
-                    setPendingMeetingIds([]);
-                    setShowAddMeetingModal(true);
-                  }}
-                >
-                  添加
-                </Button>
+                <>
+                  <Button
+                    type="link"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      setPendingMeetingIds([]);
+                      setShowAddMeetingModal(true);
+                    }}
+                  >
+                    添加已有
+                  </Button>
+                  <Button
+                    type="link"
+                    icon={<PlusOutlined />}
+                    onClick={() => setCreateMeetingVisible(true)}
+                  >
+                    新建并关联
+                  </Button>
+                </>
               )}
             </Space>
             {canManageMeetings ? (
@@ -657,17 +696,37 @@ const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.sta
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            void handleDisconnectMeeting(meeting.id);
+                            handleDisconnectMeeting(meeting.id);
                           }}
                         >
                           断开关联
                         </Button>,
                       ]}
                     >
-                      <Space className={styles.linkedLink ?? ''}>
-                        <Text strong>{meeting.number}</Text>
-                        <Text>{meeting.type} {formatDate(meeting.started_at)}</Text>
-                      </Space>
+                      <div className={styles.linkedContent ?? ''}>
+                        <Space className={styles.linkedLink ?? ''}>
+                          <Text strong>{meeting.number}</Text>
+                          <Text>{meeting.type} {formatDate(meeting.started_at)}</Text>
+                        </Space>
+                        {(meeting.speaker || meeting.content) && (
+                          <div style={{ marginTop: 'var(--spacing-xxs)' }}>
+                            {meeting.speaker && (
+                              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', marginRight: 'var(--spacing-sm)' }}>
+                                发言人：{meeting.speaker}
+                              </Text>
+                            )}
+                            {meeting.content && (
+                              <Text
+                                type="secondary"
+                                style={{ fontSize: 'var(--text-body-xs-size)' }}
+                                ellipsis
+                              >
+                                {meeting.content.length > 60 ? `${meeting.content.slice(0, 60)}...` : meeting.content}
+                              </Text>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </List.Item>
                   )}
                 />
@@ -835,96 +894,35 @@ const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.sta
         <Tabs items={tabItems} />
       </Card>
 
-      <Modal
-        title="编辑提案"
+      {/* 一键新建待办并关联（共用组件 TodoModal，预关联当前提案） */}
+      <TodoModal
+        project={project ?? ({} as Project)}
+        open={createTodoVisible}
+        existingTodos={todos}
+        initialProposalId={proposal?.id ?? null}
+        onClose={() => setCreateTodoVisible(false)}
+        onSaved={() => void fetchProposal()}
+      />
+
+      {/* 一键新建交流并关联（共用组件 MeetingModal，预关联当前提案） */}
+      <MeetingModal
+        project={project ?? ({} as Project)}
+        open={createMeetingVisible}
+        existingMeetings={meetings}
+        initialProposalId={proposal?.id ?? null}
+        onClose={() => setCreateMeetingVisible(false)}
+        onSaved={() => void fetchProposal()}
+      />
+
+      {/* 编辑提案（共用组件 ProposalModal，预填充当前提案） */}
+      <ProposalModal
+        project={project ?? ({} as Project)}
         open={editVisible}
-        onOk={() => void submitEdit()}
-        onCancel={() => setEditVisible(false)}
-        confirmLoading={submittingEdit}
-        destroyOnClose
-        width={640}
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Form form={editForm} layout="vertical">
-          <Form.Item
-            name="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入提案标题' }]}
-          >
-            <Input placeholder="请输入提案标题" maxLength={200} showCount />
-          </Form.Item>
-          <Form.Item
-            name="type"
-            label="类型"
-            rules={[{ required: true, message: '请选择提案类型' }]}
-          >
-            <Select options={typeOptions} />
-          </Form.Item>
-          <Form.Item
-            name="priority"
-            label="优先级"
-            rules={[{ required: true, message: '请选择优先级' }]}
-          >
-            <Select options={priorityOptions} />
-          </Form.Item>
-          <Form.Item name="description" label="描述">
-            <TextArea rows={4} placeholder="请输入提案描述" maxLength={2000} showCount />
-          </Form.Item>
-          <Form.Item name="assignee_id" label="执行人" tooltip="从工作台用户中选择（可选）">
-            <Select
-              allowClear
-              showSearch
-              placeholder="选择执行人（可选）"
-              optionFilterProp="label"
-              options={users.map((u) => ({ value: u.id, label: u.nickname || u.username }))}
-            />
-          </Form.Item>
-          <Form.List name="attachment_links">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map((field, index) => (
-                  <Form.Item
-                    key={field.key}
-                    label={index === 0 ? '附件' : ' '}
-                    required={false}
-                    style={{ marginBottom: 'var(--spacing-xs)' }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xxs)' }}>
-                      <Space style={{ display: 'flex', width: '100%' }}>
-                        <Form.Item
-                          name={[field.name, 'url']}
-                          noStyle
-                          rules={[{ type: 'url', message: '请输入合法的 URL' }]}
-                        >
-                          <Input placeholder="附件地址 https://..." style={{ flex: 1 }} />
-                        </Form.Item>
-                        <Button
-                          type="text"
-                          danger
-                          icon={<DeleteOutlined />}
-                          aria-label="删除附件"
-                          onClick={() => remove(field.name)}
-                        />
-                      </Space>
-                      <Form.Item name={[field.name, 'description']} noStyle>
-                        <Input placeholder="附件说明（可选）" />
-                      </Form.Item>
-                    </div>
-                  </Form.Item>
-                ))}
-                <Button
-                  type="dashed"
-                  icon={<PlusOutlined />}
-                  onClick={() => add({ url: '', description: '' })}
-                  block
-                >
-                  添加附件
-                </Button>
-              </>
-            )}
-          </Form.List>
-        </Form>
-      </Modal>
+        editingProposal={proposal}
+        existingProposals={proposal ? [proposal] : []}
+        onClose={() => setEditVisible(false)}
+        onSaved={() => void fetchProposal()}
+      />
 
       <Modal
         title="废弃提案"

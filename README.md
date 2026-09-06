@@ -115,8 +115,15 @@ docker compose -p unified-workbench down
 ├── nginx/                  # Nginx 反向代理
 ├── mediamtx/               # 流媒体服务器配置
 ├── docker-compose.yml      # 容器编排
+├── scripts/                # 共享脚本（docker 自动探测）
+│   ├── docker-detect.sh    # macOS/Linux docker 自动探测库
+│   └── docker-detect.bat   # Windows docker 自动探测
 ├── start.sh                # macOS/Linux 启动脚本
-└── start.bat               # Windows 启动脚本
+├── stop.sh                 # macOS/Linux 停止脚本
+├── reset.sh                # macOS/Linux 重置脚本
+├── start.bat               # Windows 启动脚本
+├── stop.bat                # Windows 停止脚本
+└── reset.bat               # Windows 重置脚本
 ```
 
 工作区目录：

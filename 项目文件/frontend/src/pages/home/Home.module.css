@@ -48,10 +48,35 @@
   padding: var(--spacing-xs) var(--spacing-sm) 0;
 }
 
+.dragHandle {
+  cursor: grab;
+  color: var(--text-secondary);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.removeBtn {
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.widgetWrapper:hover .removeBtn {
+  opacity: 1;
+}
+
 .widgetBody {
   padding: 0 var(--spacing-sm) var(--spacing-sm);
 }
 
+
+@media (max-width: 767px) {
+  .removeBtn {
+    opacity: 1;
+  }
+}
 
 /* ====== Home widget stagger animation ====== */
 .widgetGrid > * {

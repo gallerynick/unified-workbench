@@ -76,6 +76,8 @@ async def create_project_meeting(
         participants=data.get("participants", []),
         content=data.get("content"),
         notes=data.get("notes", []),
+        proposal_id=data.get("proposal_id"),
+        todo_id=data.get("todo_id"),
     )
     db.add(item)
     await db.flush()

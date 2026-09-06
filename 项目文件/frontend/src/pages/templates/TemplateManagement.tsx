@@ -10,7 +10,6 @@ import {
   Space,
   Result,
   Tabs,
-  Form,
   Tooltip,
 } from 'antd';
 import {
@@ -25,14 +24,10 @@ import type { ColumnsType } from 'antd/es/table';
 import {
   listTemplates,
   deleteTemplate,
-  createTemplate,
-  updateTemplate,
 } from '../../api/templates';
 import { isAdmin } from '../../utils/auth';
-import type { Template, TemplateField } from '../../types/template';
-import ContentEditor from '../content/ContentEditor';
-import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
-import type { Visibility } from '../../utils/visibility';
+import type { Template } from '../../types/template';
+import TemplateDocModal from './TemplateDocModal';
 import styles from './TemplateManagement.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -46,18 +41,6 @@ const CATEGORY_FILTER_OPTIONS = [
   { value: '其他', label: '其他' },
 ] as const;
 
-function buildContentField(content: Record<string, unknown> | null): TemplateField {
-  return {
-    key: 'content',
-    type: 'richtext',
-    label: '内容',
-    required: false,
-    default_value: null,
-    sort_order: 0,
-    config: content ?? {},
-  };
-}
-
 // ==================== 项目文档 Tab ====================
 
 function ProjectDocsTab() {
@@ -70,13 +53,7 @@ function ProjectDocsTab() {
   const [loading, setLoading] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [docName, setDocName] = useState('');
-  const [docCategory, setDocCategory] = useState('');
-  const [docContent, setDocContent] = useState<Record<string, unknown> | null>(null);
-  const [visibility, setVisibility] = useState<Visibility>('private');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
+  const [editingDoc, setEditingDoc] = useState<Template | null>(null);
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -120,25 +97,12 @@ function ProjectDocsTab() {
   };
 
   const openCreateModal = () => {
-    setModalMode('create');
-    setEditingId(null);
-    setDocName('');
-    setDocCategory('');
-    setDocContent(null);
-    setVisibility('private');
-    setRestrictedUsers([]);
+    setEditingDoc(null);
     setModalVisible(true);
   };
 
   const openEditModal = (tpl: Template) => {
-    setModalMode('edit');
-    setEditingId(tpl.id);
-    setDocName(tpl.name);
-    setDocCategory(tpl.category);
-    setVisibility((tpl.visibility as Visibility) || 'private');
-    setRestrictedUsers(tpl.restricted_users || []);
-    const richtextField = tpl.schema.find((f) => f.type === 'richtext');
-    setDocContent(richtextField?.config ?? null);
+    setEditingDoc(tpl);
     setModalVisible(true);
   };
 
@@ -164,54 +128,6 @@ function ProjectDocsTab() {
         }
       },
     });
-  };
-
-  const handleModalOk = async () => {
-    if (!docName.trim()) {
-      message.error('请输入文档名称');
-      return;
-    }
-
-    const schema = [buildContentField(docContent)];
-
-    try {
-      if (modalMode === 'create') {
-        const res = await createTemplate({
-          name: docName.trim(),
-          category: docCategory.trim() || '未分类',
-          location: 'global',
-          schema,
-          visibility,
-          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-        });
-        if (res.code === 0) {
-          message.success('文档创建成功');
-          setModalVisible(false);
-          fetchTemplates();
-        } else {
-          message.error(res.msg || '创建失败');
-        }
-      } else if (editingId) {
-        const res = await updateTemplate(editingId, {
-          name: docName.trim(),
-          category: docCategory.trim() || '未分类',
-          location: 'global',
-          schema,
-          visibility,
-          ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-        });
-        if (res.code === 0) {
-          message.success('文档更新成功');
-          setModalVisible(false);
-          fetchTemplates();
-        } else {
-          message.error(res.msg || '更新失败');
-        }
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '操作失败';
-      message.error(msg);
-    }
   };
 
   const columns: ColumnsType<Template> = [
@@ -314,69 +230,12 @@ function ProjectDocsTab() {
         }}
       />
 
-      <Modal
-        title={modalMode === 'create' ? '新建文档' : '编辑文档'}
+      <TemplateDocModal
         open={modalVisible}
-        onOk={handleModalOk}
-        onCancel={() => setModalVisible(false)}
-        destroyOnClose
-        width={800}
-        okText="保存"
-        cancelText="取消"
-        styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}
-      >
-        <Form layout="vertical">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-card-gap)" }}>
-          <div style={{ display: 'flex', gap: "var(--spacing-card-gap)" }}>
-            <div style={{ flex: 1 }}>
-              <label htmlFor="doc-name" style={{ display: 'block', marginBottom: "var(--spacing-xxs)", fontWeight: 600 }}>
-                文档名称                 <span style={{ color: 'var(--color-error)' }}>*</span>
-              </label>
-              <Input
-                id="doc-name"
-                value={docName}
-                onChange={(e) => setDocName(e.target.value)}
-                placeholder="请输入文档名称"
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label htmlFor="doc-category" style={{ display: 'block', marginBottom: "var(--spacing-xxs)", fontWeight: 600 }}>
-                分类
-              </label>
-              <Input
-                id="doc-category"
-                value={docCategory}
-                onChange={(e) => setDocCategory(e.target.value)}
-                placeholder="请输入分类（可选）"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div style={{ display: 'block', marginBottom: "var(--spacing-xxs)", fontWeight: 600 }}>
-              内容
-            </div>
-            <ContentEditor
-              value={docContent}
-              onChange={(val) => setDocContent(val)}
-              placeholder="请输入文档内容..."
-              minHeight={300}
-            />
-          </div>
-
-          <Form.Item label="可见性" style={{ marginBottom: 0 }}>
-            <VisibilitySetting
-              value={visibility}
-              restrictedUsers={restrictedUsers}
-              onChange={setVisibility}
-              onRestrictedUsersChange={setRestrictedUsers}
-              showRestrictedTags={false}
-              label=""
-            />
-          </Form.Item>
-        </div>
-        </Form>
-      </Modal>
+        editingDoc={editingDoc}
+        onClose={() => setModalVisible(false)}
+        onSaved={fetchTemplates}
+      />
     </div>
   );
 }

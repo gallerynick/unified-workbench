@@ -5,6 +5,9 @@ set -e
 
 cd "$(dirname "$0")"
 
+# 自动探测 docker（见 scripts/docker-detect.sh）
+source "$(dirname "$0")/scripts/docker-detect.sh"
+
 # ============================================================
 # 0. 警告与确认
 # ============================================================
@@ -32,32 +35,39 @@ fi
 echo ""
 echo "开始重置..."
 
+# docker 必须在场
+if ! find_docker; then
+    echo "[错误] 未检测到 docker。重置需要 Docker 环境，请先安装并启动 Docker Desktop。"
+    exit 1
+fi
+echo "✔ 使用 docker: $DOCKER_BIN"
+
 # ============================================================
 # 1. 停止并删除所有工作台容器（含 Mediamtx）
 # ============================================================
 echo "→ 停止所有容器..."
-docker compose -p unified-workbench down --remove-orphans 2>/dev/null || true
+dw_compose -p unified-workbench down --remove-orphans 2>/dev/null || true
 
 # Mediamtx 可能不在此 compose 中，单独处理
-MEDIA_CONTAINER=$(docker ps -a --filter "name=mediamtx" --format "{{.ID}}" 2>/dev/null || true)
+MEDIA_CONTAINER=$(dw ps -a --filter "name=mediamtx" --format "{{.ID}}" 2>/dev/null || true)
 if [ -n "$MEDIA_CONTAINER" ]; then
     echo "→ 停止 Mediamtx 容器..."
-    docker stop "$MEDIA_CONTAINER" 2>/dev/null || true
-    docker rm "$MEDIA_CONTAINER" 2>/dev/null || true
+    dw stop "$MEDIA_CONTAINER" 2>/dev/null || true
+    dw rm "$MEDIA_CONTAINER" 2>/dev/null || true
 fi
 
 # ============================================================
 # 2. 删除 Docker 数据卷
 # ============================================================
 echo "→ 删除数据库卷..."
-docker volume rm unified-workbench_pg_data 2>/dev/null || true
+dw volume rm unified-workbench_pg_data 2>/dev/null || true
 
 echo "→ 删除 Redis 卷..."
-docker volume rm unified-workbench_redis_data 2>/dev/null || true
+dw volume rm unified-workbench_redis_data 2>/dev/null || true
 
 # 删除孤立卷（名称前缀匹配 unified-workbench）
 echo "→ 清理遗留卷..."
-docker volume ls --filter "name=unified-workbench" -q 2>/dev/null | xargs -r docker volume rm 2>/dev/null || true
+dw volume ls --filter "name=unified-workbench" -q 2>/dev/null | xargs -r "$DOCKER_BIN" volume rm 2>/dev/null || true
 
 # ============================================================
 # 3. 删除持久化文件数据

@@ -3,17 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
   Card,
-  Descriptions,
   Divider,
   Empty,
-  Form,
-  Input,
   List,
   message,
   Modal,
   Select,
   Space,
   Spin,
+  Tag,
   Tabs,
   Tooltip,
   Typography,
@@ -34,8 +32,19 @@ import { listProjectProposals } from '../../api/project-proposals';
 import { listProjectTodos } from '../../api/project-todos';
 import { getProject } from '../../api/projects';
 import { listUsers } from '../../api/users';
-import { MEETING_TYPE_OPTIONS } from '../../constants/project';
+import {
+  MEETING_TYPE_OPTIONS,
+  PRIORITY_COLOR,
+  PROPOSAL_STATUS_COLOR,
+  PROPOSAL_STATUS_LABEL,
+  TODO_STATUS_COLOR,
+  TODO_STATUS_LABEL,
+  TODO_PRIORITY_OPTIONS,
+} from '../../constants/project';
 import { useUser } from '../../contexts/UserContext';
+import TodoModal from './components/TodoModal';
+import ProposalModal from './components/ProposalModal';
+import MeetingModal, { splitTitleContent } from './components/MeetingModal';
 import type { Project } from '../../types/project';
 import type { ProjectMeeting } from '../../types/project-meeting';
 import type { ProjectProposal } from '../../types/project-proposal';
@@ -45,6 +54,15 @@ import styles from './MeetingDetailPage.module.css';
 
 const { Text, Title } = Typography;
 
+const typeOptions: { value: string; label: string }[] = MEETING_TYPE_OPTIONS.map((o) => ({
+  value: o.value,
+  label: o.label,
+}));
+const priorityOptions: { value: string; label: string }[] = TODO_PRIORITY_OPTIONS.map((o) => ({
+  value: o.value,
+  label: o.label,
+}));
+
 function getLabel(
   options: { value: string; label: string }[],
   value: string | null | undefined,
@@ -52,11 +70,6 @@ function getLabel(
   if (!value) return '-';
   return options.find((o) => o.value === value)?.label ?? value;
 }
-
-const typeOptions: { value: string; label: string }[] = MEETING_TYPE_OPTIONS.map((o) => ({
-  value: o.value,
-  label: o.label,
-}));
 
 /** 格式化时间 */
 function formatDate(iso: string): string {
@@ -88,6 +101,12 @@ function parseNote(note: unknown): MeetingNote {
   return { content: String(note ?? ''), author: '', created_at: '' };
 }
 
+/**
+ * 项目交流记录详情页
+ *
+ * 展示范式沿用提案详情页：定义列表 + 段落区块 + 关联内容元信息行。
+ * 交流无状态字段，故不做状态流转 Steps；内容保持「标题+正文」纯文本结构。
+ */
 export default function MeetingDetailPage() {
   const { id: projectId, meetingId } = useParams<{ id: string; meetingId: string }>();
   const navigate = useNavigate();
@@ -100,15 +119,15 @@ export default function MeetingDetailPage() {
   const [todos, setTodos] = useState<ProjectTodo[]>([]);
   const [project, setProject] = useState<Project | null>(null);
 
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editForm] = Form.useForm();
-  const [editSubmitting, setEditSubmitting] = useState(false);
-  const [editUsers, setEditUsers] = useState<User[]>([]);
-
   const [addProposalVisible, setAddProposalVisible] = useState(false);
   const [pendingProposalId, setPendingProposalId] = useState<string | null>(null);
   const [addTodoVisible, setAddTodoVisible] = useState(false);
   const [pendingTodoId, setPendingTodoId] = useState<string | null>(null);
+  // 编辑交流（共用组件 MeetingModal）
+  const [editVisible, setEditVisible] = useState(false);
+  // 新建并关联
+  const [createTodoVisible, setCreateTodoVisible] = useState(false);
+  const [createProposalVisible, setCreateProposalVisible] = useState(false);
 
   const fetchMeeting = useCallback(async () => {
     if (!projectId || !meetingId) return;
@@ -179,8 +198,16 @@ export default function MeetingDetailPage() {
       : [];
   }, [meeting, todos]);
 
+  // 未关联的提案（排除已关联的）
+  const unlinkedProposals = useMemo(() => {
+    if (!meeting) return [];
+    return meeting.proposal_id
+      ? proposals.filter((p) => p.id !== meeting.proposal_id)
+      : proposals;
+  }, [proposals, meeting]);
+
   const unlinkedTodos = useMemo(() => {
-    if (!meeting) return todos;
+    if (!meeting) return [];
     return meeting.todo_id ? todos.filter((t) => t.id !== meeting.todo_id) : todos;
   }, [todos, meeting]);
 
@@ -216,25 +243,41 @@ export default function MeetingDetailPage() {
     });
   }, [meeting, projectId, navigate]);
 
-  const handleDisconnectProposal = useCallback(async () => {
+  // 断开关联提案（二次确认）
+  const handleDisconnectProposal = useCallback(() => {
     if (!meeting) return;
-    try {
-      const res = await updateProjectMeeting(meeting.id, { proposal_id: null });
-      if (res.code === 0) {
-        message.success('已断开关联提案');
-        setMeeting(res.data);
-      } else {
-        message.error(res.msg || '更新失败');
-      }
-    } catch (err: unknown) {
-      message.error(err instanceof Error ? err.message : '更新失败');
-    }
-  }, [meeting]);
+    const proposal = proposals.find((p) => p.id === meeting.proposal_id);
+    Modal.confirm({
+      title: '确认断开关联',
+      icon: <ExclamationCircleOutlined />,
+      content: `确定要断开交流「${meeting.number}」与提案「${proposal ? proposal.number : ''}」的关联吗？`,
+      okText: '断开',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await updateProjectMeeting(meeting.id, { proposal_id: null });
+          if (res.code === 0) {
+            message.success('已断开关联提案');
+            setMeeting(res.data);
+          } else {
+            message.error(res.msg || '更新失败');
+          }
+        } catch (err: unknown) {
+          message.error(err instanceof Error ? err.message : '更新失败');
+        }
+      },
+    });
+  }, [meeting, proposals]);
 
   const handleConfirmAddProposal = useCallback(async () => {
     if (!meeting) return;
+    if (!pendingProposalId) {
+      message.warning('请选择要关联的提案');
+      return;
+    }
     try {
-      const res = await updateProjectMeeting(meeting.id, { proposal_id: pendingProposalId ?? null });
+      const res = await updateProjectMeeting(meeting.id, { proposal_id: pendingProposalId });
       if (res.code === 0) {
         message.success('关联提案已更新');
         setAddProposalVisible(false);
@@ -248,25 +291,41 @@ export default function MeetingDetailPage() {
     }
   }, [meeting, pendingProposalId]);
 
-  const handleDisconnectTodo = useCallback(async () => {
+  // 断开关联待办（二次确认）
+  const handleDisconnectTodo = useCallback(() => {
     if (!meeting) return;
-    try {
-      const res = await updateProjectMeeting(meeting.id, { todo_id: null });
-      if (res.code === 0) {
-        message.success('已断开关联待办');
-        setMeeting(res.data);
-      } else {
-        message.error(res.msg || '更新失败');
-      }
-    } catch (err: unknown) {
-      message.error(err instanceof Error ? err.message : '更新失败');
-    }
-  }, [meeting]);
+    const todo = todos.find((t) => t.id === meeting.todo_id);
+    Modal.confirm({
+      title: '确认断开关联',
+      icon: <ExclamationCircleOutlined />,
+      content: `确定要断开交流「${meeting.number}」与待办「${todo ? todo.number : ''} ${todo ? todo.title : ''}」的关联吗？`,
+      okText: '断开',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await updateProjectMeeting(meeting.id, { todo_id: null });
+          if (res.code === 0) {
+            message.success('已断开关联待办');
+            setMeeting(res.data);
+          } else {
+            message.error(res.msg || '更新失败');
+          }
+        } catch (err: unknown) {
+          message.error(err instanceof Error ? err.message : '更新失败');
+        }
+      },
+    });
+  }, [meeting, todos]);
 
   const handleConfirmAddTodo = useCallback(async () => {
     if (!meeting) return;
+    if (!pendingTodoId) {
+      message.warning('请选择要关联的待办');
+      return;
+    }
     try {
-      const res = await updateProjectMeeting(meeting.id, { todo_id: pendingTodoId ?? null });
+      const res = await updateProjectMeeting(meeting.id, { todo_id: pendingTodoId });
       if (res.code === 0) {
         message.success('关联待办已更新');
         setAddTodoVisible(false);
@@ -282,53 +341,8 @@ export default function MeetingDetailPage() {
 
   const openEdit = useCallback(() => {
     if (!meeting) return;
-    setEditModalVisible(true);
+    setEditVisible(true);
   }, [meeting]);
-
-  useEffect(() => {
-    if (!editModalVisible) return;
-    listUsers({ page_size: 100 })
-      .then((res) => {
-        if (res.code === 0) setEditUsers(res.data.items);
-      })
-      .catch(() => {});
-  }, [editModalVisible]);
-
-  useEffect(() => {
-    if (!editModalVisible || !meeting) return;
-    const body = meeting.content?.split('\n\n', 2)[1] || '';
-    editForm.setFieldsValue({
-      speaker: meeting.speaker ?? '',
-      participants: meeting.participants ?? [],
-      content: body,
-    });
-  }, [editModalVisible, meeting, editForm]);
-
-  const handleEditSubmit = useCallback(async () => {
-    if (!meeting) return;
-    try {
-      const values = await editForm.validateFields();
-      setEditSubmitting(true);
-      const title = meeting.content?.split('\n\n')[0] || '';
-      const newContent = title ? `${title}\n\n${values.content || ''}` : (values.content || '');
-      const res = await updateProjectMeeting(meeting.id, {
-        speaker: values.speaker || null,
-        participants: values.participants || [],
-        content: newContent,
-      });
-      if (res.code === 0) {
-        message.success('交流记录已更新');
-        setEditModalVisible(false);
-        await fetchMeeting();
-      } else {
-        message.error(res.msg || '更新失败');
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) message.error(err.message);
-    } finally {
-      setEditSubmitting(false);
-    }
-  }, [meeting, editForm, fetchMeeting]);
 
   if (loading) {
     return (
@@ -341,68 +355,98 @@ export default function MeetingDetailPage() {
   if (!meeting) return null;
 
   const typeLabel = getLabel(typeOptions, meeting.type);
-  const participantNames = (meeting.participants ?? []).map((id) => displayName(id));
+  const { title: contentTitle, body: contentBody } = splitTitleContent(meeting.content);
+  const participantNames = (meeting.participants ?? [])
+    .map((id) => displayName(id))
+    .join('、');
   const notes = (Array.isArray(meeting.notes) ? meeting.notes : []).map(parseNote);
+  const linkedProposal = linkedProposals[0];
+  const linkedTodo = linkedTodos[0];
+
+  // 定义列表项渲染辅助（短键值）
+  const renderDefItem = (label: string, value: React.ReactNode) => (
+    <div className={styles.defItem ?? ''}>
+      <span className={styles.defLabel ?? ''}>{label}</span>
+      <span className={styles.defValue ?? ''}>{value}</span>
+    </div>
+  );
 
   const tabItems = [
     {
       key: 'detail',
       label: '交流详情',
       children: (
-        <Descriptions bordered column={2} size="small">
-          <Descriptions.Item label="编号">{meeting.number}</Descriptions.Item>
-          <Descriptions.Item label="类型">{typeLabel}</Descriptions.Item>
-          <Descriptions.Item label="会议主题" span={2}>
-            <Text>{meeting.content ? meeting.content.split('\n\n')[0] || meeting.content : '-'}</Text>
-          </Descriptions.Item>
-          <Descriptions.Item label="开始时间">
-            {formatDate(meeting.started_at)}
-          </Descriptions.Item>
-          <Descriptions.Item label="发言人">
-            {meeting.speaker || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="参与人">
-            {participantNames.length > 0 ? (
+        <div className={styles.tabContent ?? ''}>
+          {/* 基础信息（定义列表） */}
+          <div className={styles.definitionList ?? ''}>
+            {renderDefItem('编号', meeting.number)}
+            {renderDefItem('类型', typeLabel)}
+            {renderDefItem('会议主题', contentTitle || '-')}
+            {renderDefItem('开始时间', formatDate(meeting.started_at))}
+            {renderDefItem('发言人', meeting.speaker || '-')}
+            {renderDefItem('参与人', participantNames || '-')}
+            {renderDefItem(
+              '关联提案',
+              linkedProposal ? (
+                <a
+                  onClick={() => {
+                    if (projectId) navigate(`/projects/${projectId}/proposal/${linkedProposal.id}`);
+                  }}
+                >
+                  {linkedProposal.number}
+                </a>
+              ) : (
+                '-'
+              ),
+            )}
+            {renderDefItem(
+              '关联待办',
+              linkedTodo ? (
+                <a
+                  onClick={() => {
+                    if (projectId) navigate(`/projects/${projectId}/todo/${linkedTodo.id}`);
+                  }}
+                >
+                  {linkedTodo.number}
+                </a>
+              ) : (
+                '-'
+              ),
+            )}
+            {renderDefItem('创建时间', formatDate(meeting.created_at))}
+            {renderDefItem('更新时间', formatDate(meeting.updated_at))}
+          </div>
+
+          {/* 交流正文（段落区块） */}
+          {contentBody && (
+            <div className={styles.textBlock ?? ''}>
+              <div className={styles.textLabel ?? ''}>交流正文</div>
+              <div className={styles.textBody ?? ''}>{contentBody}</div>
+            </div>
+          )}
+
+          {/* 备注（段落区块） */}
+          {notes.length > 0 && (
+            <div className={styles.textBlock ?? ''}>
+              <div className={styles.textLabel ?? ''}>备注（{notes.length}）</div>
               <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                {(meeting.participants ?? []).map((id) => (
-                  <Text key={id || `p-${id}`}>{displayName(id)}</Text>
+                {notes.map((note, index) => (
+                  <div key={`${note.author}-${note.created_at}-${index}`}>
+                    <Text style={{ fontSize: 'var(--text-body-sm-size)' }}>
+                      {note.content || '-'}
+                    </Text>
+                    {(note.author || note.created_at) && (
+                      <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                        {note.author ? `— ${note.author}` : ''}
+                        {note.created_at ? ` · ${formatDate(note.created_at)}` : ''}
+                      </Text>
+                    )}
+                  </div>
                 ))}
               </Space>
-            ) : (
-              <Text>-</Text>
-            )}
-          </Descriptions.Item>
-          <Descriptions.Item label="交流内容" span={2}>
-            <Text>{meeting.content || '-'}</Text>
-          </Descriptions.Item>
-          <Descriptions.Item label="备注">
-            <Space direction="vertical" size="small" style={{ width: '100%' }}>
-              {notes.length > 0 ? (
-                 notes.map((note) => (
-                  <Text key={`${note.author}-${note.created_at}-${note.content}`} style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                    {note.content || '-'}
-                    {note.author ? (
-                      <Text type="secondary" style={{ marginLeft: 'var(--spacing-xs)' }}>
-                        （{note.author}{note.created_at ? ` · ${formatDate(note.created_at)}` : ''}）
-                      </Text>
-                    ) : null}
-                  </Text>
-                ))
-              ) : (
-                <Text>-</Text>
-              )}
-            </Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="关联提案 ID">
-            {meeting.proposal_id || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="创建时间">
-            {formatDate(meeting.created_at)}
-          </Descriptions.Item>
-          <Descriptions.Item label="更新时间">
-            {formatDate(meeting.updated_at)}
-          </Descriptions.Item>
-        </Descriptions>
+            </div>
+          )}
+        </div>
       ),
     },
     {
@@ -414,23 +458,32 @@ export default function MeetingDetailPage() {
             <Space size="small" style={{ marginBottom: 'var(--spacing-sm)' }}>
               <Title level={5} style={{ margin: 0 }}>
                 关联提案
-                {meeting.proposal_id && (
+                {linkedProposals.length > 0 && (
                   <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                    （1）
+                    （{linkedProposals.length}）
                   </Text>
                 )}
               </Title>
               {canManageMeetings && (
-                <Button
-                  type="link"
-                  icon={<PlusOutlined />}
-                  onClick={() => {
-                    setPendingProposalId(null);
-                    setAddProposalVisible(true);
-                  }}
-                >
-                  添加
-                </Button>
+                <>
+                  <Button
+                    type="link"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      setPendingProposalId(null);
+                      setAddProposalVisible(true);
+                    }}
+                  >
+                    添加已有
+                  </Button>
+                  <Button
+                    type="link"
+                    icon={<PlusOutlined />}
+                    onClick={() => setCreateProposalVisible(true)}
+                  >
+                    新建并关联
+                  </Button>
+                </>
               )}
             </Space>
             {canManageMeetings ? (
@@ -452,17 +505,38 @@ export default function MeetingDetailPage() {
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            void handleDisconnectProposal();
+                            handleDisconnectProposal();
                           }}
                         >
                           断开关联
                         </Button>,
                       ]}
                     >
-                      <Space className={styles.linkedLink ?? ''}>
-                        <Text strong>{proposal.number}</Text>
-                        <Text>{proposal.title}</Text>
-                      </Space>
+                      <div className={styles.linkedContent ?? ''}>
+                        <Space className={styles.linkedLink ?? ''} wrap>
+                          <Text strong>{proposal.number}</Text>
+                          <Text>{proposal.title}</Text>
+                        </Space>
+                        <Space size={4} style={{ marginTop: 'var(--spacing-xxs)' }} wrap>
+                          <Tag
+                            color={PROPOSAL_STATUS_COLOR[proposal.status] ?? 'default'}
+                            style={{ marginRight: 0 }}
+                          >
+                            {PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.status}
+                          </Tag>
+                          <Tag
+                            color={PRIORITY_COLOR[proposal.priority] ?? 'default'}
+                            style={{ marginRight: 0 }}
+                          >
+                            {getLabel(priorityOptions, proposal.priority)}
+                          </Tag>
+                          {proposal.assignee_id && (
+                            <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                              执行人：{displayName(proposal.assignee_id)}
+                            </Text>
+                          )}
+                        </Space>
+                      </div>
                     </List.Item>
                   )}
                 />
@@ -478,23 +552,32 @@ export default function MeetingDetailPage() {
             <Space size="small" style={{ marginBottom: 'var(--spacing-sm)' }}>
               <Title level={5} style={{ margin: 0 }}>
                 关联待办
-                {meeting.todo_id && (
+                {linkedTodos.length > 0 && (
                   <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                    （1）
+                    （{linkedTodos.length}）
                   </Text>
                 )}
               </Title>
               {canManageMeetings && (
-                <Button
-                  type="link"
-                  icon={<PlusOutlined />}
-                  onClick={() => {
-                    setPendingTodoId(null);
-                    setAddTodoVisible(true);
-                  }}
-                >
-                  添加
-                </Button>
+                <>
+                  <Button
+                    type="link"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      setPendingTodoId(null);
+                      setAddTodoVisible(true);
+                    }}
+                  >
+                    添加已有
+                  </Button>
+                  <Button
+                    type="link"
+                    icon={<PlusOutlined />}
+                    onClick={() => setCreateTodoVisible(true)}
+                  >
+                    新建并关联
+                  </Button>
+                </>
               )}
             </Space>
             {canManageMeetings ? (
@@ -516,17 +599,38 @@ export default function MeetingDetailPage() {
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            void handleDisconnectTodo();
+                            handleDisconnectTodo();
                           }}
                         >
                           断开关联
                         </Button>,
                       ]}
                     >
-                      <Space className={styles.linkedLink ?? ''}>
-                        <Text strong>{todo.number}</Text>
-                        <Text>{todo.title}</Text>
-                      </Space>
+                      <div className={styles.linkedContent ?? ''}>
+                        <Space className={styles.linkedLink ?? ''} wrap>
+                          <Text strong>{todo.number}</Text>
+                          <Text>{todo.title}</Text>
+                        </Space>
+                        <Space size={4} style={{ marginTop: 'var(--spacing-xxs)' }} wrap>
+                          <Tag
+                            color={PRIORITY_COLOR[todo.priority] ?? 'default'}
+                            style={{ marginRight: 0 }}
+                          >
+                            {getLabel(priorityOptions, todo.priority)}
+                          </Tag>
+                          <Tag
+                            color={TODO_STATUS_COLOR[todo.status] ?? 'default'}
+                            style={{ marginRight: 0 }}
+                          >
+                            {TODO_STATUS_LABEL[todo.status] ?? todo.status}
+                          </Tag>
+                          {todo.due_date && (
+                            <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                              截止 {formatDate(todo.due_date)}
+                            </Text>
+                          )}
+                        </Space>
+                      </div>
                     </List.Item>
                   )}
                 />
@@ -549,9 +653,11 @@ export default function MeetingDetailPage() {
           <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
             返回
           </Button>
-          <Title level={4} className={styles.title ?? ''}>
-            {meeting.number} {typeLabel}（{formatDate(meeting.started_at)}）
-          </Title>
+          <Tooltip title={meeting.number + ' ' + (contentTitle || typeLabel)}>
+            <Title level={4} className={styles.title ?? ''}>
+              {meeting.number} {typeLabel}（{formatDate(meeting.started_at)}）
+            </Title>
+          </Tooltip>
         </Space>
         <Space>
           <Tooltip title="编辑">
@@ -577,44 +683,15 @@ export default function MeetingDetailPage() {
         <Tabs items={tabItems} />
       </Card>
 
-      <Modal
-        title="编辑交流内容"
-        open={editModalVisible}
-        onOk={() => void handleEditSubmit()}
-        onCancel={() => setEditModalVisible(false)}
-        confirmLoading={editSubmitting}
-        destroyOnClose
-        width={600}
-      >
-        <Form form={editForm} layout="vertical">
-          <Form.Item
-            name="speaker"
-            label="发言人"
-            rules={[{ required: true, message: '请输入发言人' }]}
-          >
-            <Input placeholder="请输入发言人" />
-          </Form.Item>
-          <Form.Item name="participants" label="参与人">
-            <Select
-              mode="multiple"
-              options={editUsers.map((u) => ({
-                value: u.id,
-                label: `${u.nickname} (${u.username})`,
-              }))}
-              placeholder="选择参与人（可选）"
-              allowClear
-              maxTagCount="responsive"
-            />
-          </Form.Item>
-          <Form.Item
-            name="content"
-            label="交流内容"
-            rules={[{ required: true, message: '请输入交流内容' }]}
-          >
-            <Input.TextArea rows={8} placeholder="请输入交流内容" maxLength={5000} showCount />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 编辑交流（共用组件 MeetingModal） */}
+      <MeetingModal
+        project={project ?? ({} as Project)}
+        open={editVisible}
+        editingMeeting={meeting}
+        existingMeetings={meeting ? [meeting] : []}
+        onClose={() => setEditVisible(false)}
+        onSaved={() => void fetchMeeting()}
+      />
 
       <Modal
         title="添加关联提案"
@@ -626,13 +703,22 @@ export default function MeetingDetailPage() {
         }}
         okText="确认关联"
         cancelText="取消"
+        destroyOnClose
+        width={560}
+        okButtonProps={{ disabled: !pendingProposalId }}
       >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>
+          交流仅能关联一个提案，确认关联将替换原有提案：
+        </Text>
         <Select
+          showSearch
+          allowClear
           style={{ width: '100%' }}
           placeholder="选择要关联的提案"
+          optionFilterProp="label"
           value={pendingProposalId}
-          onChange={setPendingProposalId}
-          options={proposals.map((p) => ({
+          onChange={(value) => setPendingProposalId(value ?? null)}
+          options={unlinkedProposals.map((p) => ({
             value: p.id,
             label: `${p.number} ${p.title}`,
           }))}
@@ -649,18 +735,47 @@ export default function MeetingDetailPage() {
         }}
         okText="确认关联"
         cancelText="取消"
+        destroyOnClose
+        width={560}
+        okButtonProps={{ disabled: !pendingTodoId }}
       >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>
+          交流仅能关联一个待办，确认关联将替换原有待办：
+        </Text>
         <Select
+          showSearch
+          allowClear
           style={{ width: '100%' }}
           placeholder="选择要关联的待办"
+          optionFilterProp="label"
           value={pendingTodoId}
-          onChange={setPendingTodoId}
+          onChange={(value) => setPendingTodoId(value ?? null)}
           options={unlinkedTodos.map((t) => ({
             value: t.id,
             label: `${t.number} ${t.title}`,
           }))}
         />
       </Modal>
+
+      {/* 新建并关联待办（共用组件 TodoModal，预关联当前交流） */}
+      <TodoModal
+        project={project ?? ({} as Project)}
+        open={createTodoVisible}
+        existingTodos={todos}
+        initialMeetingId={meeting?.id ?? null}
+        onClose={() => setCreateTodoVisible(false)}
+        onSaved={() => void fetchMeeting()}
+      />
+
+      {/* 新建并关联提案（共用组件 ProposalModal，预关联当前交流） */}
+      <ProposalModal
+        project={project ?? ({} as Project)}
+        open={createProposalVisible}
+        existingProposals={proposals}
+        initialMeetingId={meeting?.id ?? null}
+        onClose={() => setCreateProposalVisible(false)}
+        onSaved={() => void fetchMeeting()}
+      />
     </div>
   );
 }

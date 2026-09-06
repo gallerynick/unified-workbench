@@ -11,8 +11,8 @@
 
 .avatar {
   margin-bottom: 0;
-  background: var(--color-info-bg);
-  color: var(--color-info);
+  /* 不覆盖背景/颜色：沿用 antd 默认头像底色（colorTextPlaceholder 灰底），与成员目录等全站头像一致，
+     避免浅色模式下与页面底色（canvas-parchment）同色而不可见 */
 }
 
 .title {

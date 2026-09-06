@@ -7,6 +7,27 @@ echo   一站式工作台 - 一键启动脚本
 echo ========================================
 echo.
 
+:: 自动探测 docker（PATH → Docker Desktop 常见安装路径）
+call "%~dp0scriptsdocker-detect.bat"
+if errorlevel 1 (
+    echo [错误] 未找到可用的 docker！
+    echo 请安装并启动 Docker Desktop，然后重试。
+    echo.
+    pause
+    exit /b 1
+)
+echo 使用 docker: %DOCKER_BIN%
+
+:: 检查 Docker daemon 是否运行
+"%DOCKER_BIN%" info >nul 2>&1
+if errorlevel 1 (
+    echo [错误] Docker Desktop 未运行！
+    echo 请先启动 Docker Desktop，然后重试。
+    echo.
+    pause
+    exit /b 1
+)
+
 :: 检测本机局域网 IP（用于 WebRTC ICE + 启动后的地址提示）
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4"') do (
   set "LAN_IP=%%a"
@@ -20,16 +41,6 @@ echo 本机 IP: !LAN_IP!
 :: 设置 HOST_IP 给 docker-compose
 set "HOST_IP=!LAN_IP!,host.docker.internal"
 
-:: 检查 Docker Desktop 是否运行
-docker info >nul 2>&1
-if errorlevel 1 (
-    echo [错误] Docker Desktop 未运行！
-    echo 请先启动 Docker Desktop，然后重试。
-    echo.
-    pause
-    exit /b 1
-)
-
 :: 检查 .env 文件是否存在
 if not exist ".env" (
     echo [信息] 正在从 .env.example 创建 .env ...
@@ -40,7 +51,7 @@ if not exist ".env" (
 echo [信息] 正在启动所有服务...
 echo.
 
-docker compose -p unified-workbench up -d --build
+"%DOCKER_BIN%" compose -p unified-workbench up -d --build
 
 if errorlevel 1 (
     echo.
@@ -61,4 +72,4 @@ echo   局域网 HTTPS: https://!LAN_IP!
 echo   API 文档: http://localhost/api/v1/docs
 echo.
 
-docker compose -p unified-workbench ps
+"%DOCKER_BIN%" compose -p unified-workbench ps

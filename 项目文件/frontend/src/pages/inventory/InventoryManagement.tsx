@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Input, Select, Typography, Modal, message, Space, Tooltip, InputNumber, Form } from 'antd';
+import { Table, Button, Input, Select, Typography, Modal, message, Space, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { listInventories, createInventory, updateInventory, deleteInventory } from '../../api/inventory';
+import { listInventories, updateInventory, deleteInventory } from '../../api/inventory';
 import type { Inventory, InventoryStatus } from '../../types/inventory';
-import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
-import type { Visibility } from '../../utils/visibility';
+import InventoryItemModal from './InventoryItemModal';
 import styles from './InventoryManagement.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -25,13 +24,10 @@ export default function InventoryManagement() {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [search, setSearch] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
+
+  // ── 弹窗状态（共用组件 InventoryItemModal） ──
+  const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Inventory | null>(null);
-  const [form] = Form.useForm();
-  const [formQuantity, setFormQuantity] = useState<number>(1);
-  const [formStatus, setFormStatus] = useState<InventoryStatus>('available');
-  const [visibility, setVisibility] = useState<Visibility>('private');
-  const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
   const [permissionVisible, setPermissionVisible] = useState(false);
 
   const fetchInventories = useCallback(async () => {
@@ -57,56 +53,15 @@ export default function InventoryManagement() {
 
   useEffect(() => { fetchInventories(); }, [fetchInventories]);
 
+  // ── 打开新建/编辑（弹窗共用 InventoryItemModal） ──
   const handleCreate = () => {
     setEditingItem(null);
-    form.resetFields();
-    setFormQuantity(1);
-    setFormStatus('available');
-    setVisibility('private');
-    setRestrictedUsers([]);
-    setModalVisible(true);
+    setItemModalOpen(true);
   };
 
   const handleEdit = (item: Inventory) => {
     setEditingItem(item);
-    form.setFieldsValue({ name: item.name, category: item.category ?? '', location: item.location ?? '', description: item.description ?? '' });
-    setFormQuantity(item.quantity);
-    setFormStatus(item.status);
-    setVisibility((item.visibility as Visibility) || 'private');
-    setRestrictedUsers(item.restricted_users || []);
-    setModalVisible(true);
-  };
-
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      const data: {
-        name: string;
-        category?: string;
-        quantity: number;
-        location?: string;
-        description?: string;
-        status: InventoryStatus;
-        visibility: Visibility;
-        restricted_users?: string[];
-      } = {
-        name: values.name,
-        quantity: formQuantity,
-        status: formStatus,
-        visibility,
-        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
-      };
-      if (values.category) data.category = values.category;
-      if (values.location) data.location = values.location;
-      if (values.description) data.description = values.description;
-      if (editingItem) {
-        const res = await updateInventory(editingItem.id, data);
-        if (res.code === 0) { message.success('物品已更新'); setModalVisible(false); fetchInventories(); }
-      } else {
-        const res = await createInventory(data);
-        if (res.code === 0) { message.success('物品已创建'); setModalVisible(false); fetchInventories(); }
-      }
-    } catch { message.error('操作失败'); }
+    setItemModalOpen(true);
   };
 
   const handleDelete = (item: Inventory) => {
@@ -200,39 +155,13 @@ export default function InventoryManagement() {
         }}
       />
 
-      <Modal title={editingItem ? '编辑物品' : '新增物品'} open={modalVisible} onOk={handleSave}
-        onCancel={() => { setModalVisible(false); form.resetFields(); }} okText="保存" cancelText="取消" width={560} destroyOnClose styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden' } }}>
-        <Form form={form} layout="vertical" initialValues={{ quantity: 1, status: 'available' }}>
-          <Form.Item name="name" label="物品名称" rules={[{ required: true, message: '请输入物品名称' }]}>
-            <Input placeholder="请输入物品名称" />
-          </Form.Item>
-          <Form.Item name="category" label="分类">
-            <Input placeholder="请输入分类（可选）" />
-          </Form.Item>
-          <Form.Item label="数量">
-            <InputNumber min={0} value={formQuantity} onChange={(v) => setFormQuantity(v ?? 1)} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="location" label="存放位置">
-            <Input placeholder="请输入存放位置（可选）" />
-          </Form.Item>
-          <Form.Item name="description" label="描述">
-            <Input.TextArea placeholder="请输入描述（可选）" rows={3} />
-          </Form.Item>
-          <Form.Item label="状态">
-            <Select value={formStatus} onChange={(v) => setFormStatus(v as InventoryStatus)} options={Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
-          </Form.Item>
-          <Form.Item label="可见性">
-            <VisibilitySetting
-              value={visibility}
-              restrictedUsers={restrictedUsers}
-              onChange={setVisibility}
-              onRestrictedUsersChange={setRestrictedUsers}
-              showRestrictedTags={false}
-              label=""
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 新增/编辑 物品（共用组件 InventoryItemModal） */}
+      <InventoryItemModal
+        open={itemModalOpen}
+        editingItem={editingItem}
+        onClose={() => setItemModalOpen(false)}
+        onSaved={() => void fetchInventories()}
+      />
 
       <Modal
         title="权限说明"

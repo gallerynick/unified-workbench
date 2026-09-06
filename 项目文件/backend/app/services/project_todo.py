@@ -82,6 +82,7 @@ async def create_project_todo(
         status=data.get("status", "pending"),
         assignee_id=data.get("assignee_id"),
         proposal_id=data.get("proposal_id"),
+        meeting_id=data.get("meeting_id"),
         due_date=data.get("due_date"),
         creator_id=current_user.id,
     )
@@ -109,6 +110,7 @@ async def update_project_todo(
         "status",
         "assignee_id",
         "proposal_id",
+        "meeting_id",
         "due_date",
     ):
         if field in data:

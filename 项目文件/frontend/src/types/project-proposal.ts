@@ -19,6 +19,7 @@ export interface ProjectProposal {
   attachment_links: AttachmentLink[];
   creator_id: string;
   assignee_id: string | null;
+  meeting_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +35,7 @@ export interface ProjectProposalCreate {
   reject_reason?: string;
   attachment_links?: AttachmentLink[];
   assignee_id?: string;
+  meeting_id?: string | null;
 }
 
 export interface ProjectProposalUpdate {
@@ -46,6 +48,7 @@ export interface ProjectProposalUpdate {
   reject_reason?: string;
   attachment_links?: AttachmentLink[];
   assignee_id?: string;
+  meeting_id?: string | null;
 }
 
 export interface ProjectProposalListResponse {

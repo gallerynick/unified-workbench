@@ -9,12 +9,15 @@ import {
   Button,
   Space,
   Tag,
+  Dropdown,
 } from 'antd';
 import {
   ArrowLeftOutlined,
   ExportOutlined,
+  FileExcelOutlined,
+  FileWordOutlined,
 } from '@ant-design/icons';
-import { getProject, updateProject } from '../../api/projects';
+import { getProject, updateProject, exportProjectFile } from '../../api/projects';
 import type { Project } from '../../types/project';
 import { getVisibilityConfig } from '../../utils/visibility';
 import ProjectInfoTab from './tabs/ProjectInfoTab';
@@ -84,6 +87,17 @@ export default function ProjectDetailPage() {
     navigate('/projects');
   };
 
+  const handleExport = async (fmt: 'docx' | 'xlsx') => {
+    if (!id) return;
+    try {
+      await exportProjectFile(id, fmt);
+      message.success(fmt === 'docx' ? 'Word 导出成功' : 'Excel 导出成功');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '导出失败';
+      message.error(msg);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
@@ -103,7 +117,7 @@ export default function ProjectDetailPage() {
       children: (
         <ProjectInfoTab
           project={project}
-          onUpdate={handleUpdate}
+          onRefresh={fetchProject}
         />
       ),
     },
@@ -191,14 +205,26 @@ export default function ProjectDetailPage() {
             {getVisibilityConfig(project.visibility).text}
           </Tag>
         </Space>
-        <Button
-          icon={<ExportOutlined />}
-          onClick={() => {
-            message.info('导出功能开发中');
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'docx',
+                label: '导出 Word 文档',
+                icon: <FileWordOutlined />,
+                onClick: () => handleExport('docx'),
+              },
+              {
+                key: 'xlsx',
+                label: '导出 Excel 表格',
+                icon: <FileExcelOutlined />,
+                onClick: () => handleExport('xlsx'),
+              },
+            ],
           }}
         >
-          导出项目
-        </Button>
+          <Button icon={<ExportOutlined />}>导出项目</Button>
+        </Dropdown>
       </div>
 
       <Card>

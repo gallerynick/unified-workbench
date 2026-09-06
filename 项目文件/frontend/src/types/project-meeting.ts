@@ -21,17 +21,19 @@ export interface ProjectMeetingCreate {
   number: string;
   type: string;
   started_at: string;
-  speaker?: string;
+  speaker?: string | null;
   participants?: string[];
   content?: string;
   notes?: unknown[];
+  proposal_id?: string | null;
+  todo_id?: string | null;
 }
 
 export interface ProjectMeetingUpdate {
   number?: string;
   type?: string;
   started_at?: string;
-  speaker?: string;
+  speaker?: string | null;
   participants?: string[];
   content?: string;
   notes?: unknown[];
