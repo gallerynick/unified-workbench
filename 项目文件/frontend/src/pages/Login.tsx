@@ -230,7 +230,7 @@ export default function Login() {
               <SafetyOutlined className={styles.otpIcon ?? ''} />
             </div>
             <Text className={styles.otpLabel ?? ''} type="secondary">
-              请输入认证器中的 6 位动态码
+              {codeMode === 'totp' ? '请输入认证器中的 6 位动态码' : '请输入您的恢复码'}
             </Text>
 
             <Segmented
