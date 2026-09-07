@@ -291,7 +291,7 @@ export default function SecuritySettings() {
       )}
 
       {/* WebAuthn 凭据 */}
-      <Card title={<span><SafetyOutlined /> 指纹/面容认证</span>} className={styles.card ?? ''}>
+      <Card title="指纹/面容认证" className={styles.card ?? ''}>
         {waCredentials.length === 0 ? (
           <Paragraph type="secondary">尚未注册任何指纹/面容认证凭据。</Paragraph>
         ) : (
