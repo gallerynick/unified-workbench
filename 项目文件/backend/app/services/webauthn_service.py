@@ -1,12 +1,12 @@
 """WebAuthn 服务：指纹/面容/安全钥匙注册与验证。"""
 
 import base64
-import json
-import os
+import hashlib
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete as sql_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -19,6 +19,7 @@ from app.schemas.auth import (
 )
 
 import webauthn.helpers
+from webauthn.helpers.parse_attestation_statement import parse_attestation_statement
 from webauthn.helpers.structs import (
     AttestationConveyancePreference,
     AuthenticatorAttachment,
@@ -49,14 +50,9 @@ def _b64url_decode(data: str) -> bytes:
     return base64.urlsafe_b64decode(data)
 
 
-def _b64_encode(data: bytes) -> str:
-    """将字节编码为标准 base64 字符串。"""
-    return base64.b64encode(data).decode("utf-8")
-
-
-def _b64_decode(data: str) -> bytes:
-    """将标准 base64 字符串解码为字节。"""
-    return base64.b64decode(data)
+def _sha256(data: bytes) -> bytes:
+    """计算 SHA-256 哈希。"""
+    return hashlib.sha256(data).digest()
 
 
 async def generate_registration_options(
@@ -150,32 +146,32 @@ async def verify_registration_and_store(
             f"Origin mismatch: expected {expected_origin}, got {client_data.origin}"
         )
 
-    # 验证 challenge（从 clientDataJSON 中获取）
-    expected_challenge = client_data.challenge
+    # 计算 clientDataJSON 的 SHA-256 哈希
+    client_data_hash = _sha256(parsed.response.client_data_json)
 
     # 解析 attestationObject
     attestation = webauthn.helpers.parse_attestation_object(
         parsed.response.attestation_object
     )
 
-    # 解析 authenticatorData
-    authenticator_data = webauthn.helpers.parse_authenticator_data(
-        attestation.auth_data,
-        rp_id=rp_id,
-    )
+    authenticator_data = attestation.auth_data
+
+    # 验证 RP ID（SHA-256 哈希比对）
+    expected_rp_id_hash = _sha256(rp_id.encode("utf-8"))
+    if authenticator_data.rp_id_hash != expected_rp_id_hash:
+        raise ValueError(
+            f"RP ID hash mismatch: expected hash of '{rp_id}', "
+            f"got {authenticator_data.rp_id_hash.hex()}, "
+            f"expected {expected_rp_id_hash.hex()}"
+        )
 
     # 验证 attestation statement
-    webauthn.helpers.parse_attestation_statement(
-        attestation.fmt,
-        attestation.attStmt,
-        x509_certs=[],
-        authenticator_data=attestation.auth_data,
-        client_data_hash=client_data._hash,
-        credential=webauthn.helpers.structs.RegistrationCredential(
-            id=authenticator_data.cred_id,
-            public_key=authenticator_data.cred.public_key,
-        ),
-    )
+    parse_attestation_statement(attestation.att_stmt)
+
+    # 获取 attested credential data
+    acd = authenticator_data.attested_credential_data
+    if not acd:
+        raise ValueError("Missing attested credential data")
 
     # 存储凭据
     transports_str = ",".join(
@@ -184,9 +180,9 @@ async def verify_registration_and_store(
 
     credential = UserWebAuthnCredential(
         user_id=user.id,
-        credential_id=_b64url_encode(authenticator_data.cred_id),
-        public_key=_b64url_encode(authenticator_data.cred.public_key),
-        counter=authenticator_data.counter,
+        credential_id=_b64url_encode(acd.credential_id),
+        public_key=_b64url_encode(acd.credential_public_key),
+        counter=authenticator_data.sign_count,
         label=label or "认证器",
         transports=transports_str,
     )
@@ -294,33 +290,41 @@ async def verify_authentication(
             f"Origin mismatch: expected {expected_origin}, got {client_data.origin}"
         )
 
-    # 验证 challenge
-    expected_challenge = client_data.challenge
+    # 计算 clientDataJSON 的 SHA-256 哈希
+    client_data_hash = _sha256(parsed.response.client_data_json)
 
     # 解析 authenticatorData
     authenticator_data = webauthn.helpers.parse_authenticator_data(
-        parsed.response.authenticator_data,
-        rp_id=rp_id,
+        parsed.response.authenticator_data
     )
 
-    # 验证签名
+    # 验证 RP ID（SHA-256 哈希比对）
+    expected_rp_id_hash = _sha256(rp_id.encode("utf-8"))
+    if authenticator_data.rp_id_hash != expected_rp_id_hash:
+        raise ValueError(
+            f"RP ID hash mismatch: expected hash of '{rp_id}', "
+            f"got {authenticator_data.rp_id_hash.hex()}"
+        )
+
+    # 解码公钥并获取算法标识
+    decoded_key = webauthn.helpers.decode_credential_public_key(
+        _b64url_decode(credential.public_key)
+    )
+
+    # 验证签名（data = authenticator_data + client_data_hash）
     webauthn.helpers.verify_signature(
-        authenticator_data=authenticator_data,
+        public_key=decoded_key.public_key,
+        signature_alg=decoded_key.alg,
         signature=parsed.response.signature,
-        client_data_hash=client_data._hash,
-        public_key=webauthn.helpers.decode_credential_public_key(
-            _b64url_decode(credential.public_key)
-        ),
+        data=parsed.response.authenticator_data + client_data_hash,
     )
 
     # 验证计数器（防止克隆设备）
-    if authenticator_data.counter < credential.counter:
+    if authenticator_data.sign_count < credential.counter:
         raise ValueError("Counter mismatch: possible cloned authenticator")
 
     # 更新计数器
-    credential.counter = authenticator_data.counter
-
-    from datetime import datetime, timezone
+    credential.counter = authenticator_data.sign_count
     credential.last_used_at = datetime.now(timezone.utc)
 
     return credential
@@ -340,8 +344,6 @@ async def remove_credentials(
     db: AsyncSession, user_id: uuid.UUID, credential_id: str | None = None
 ) -> None:
     """删除用户的所有或指定 WebAuthn 凭据。"""
-    from sqlalchemy import delete as sql_delete
-
     query = sql_delete(UserWebAuthnCredential).where(
         UserWebAuthnCredential.user_id == user_id
     )
