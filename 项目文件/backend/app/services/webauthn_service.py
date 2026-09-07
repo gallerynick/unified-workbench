@@ -121,14 +121,6 @@ async def verify_registration_and_store(
     label: str,
     request_origin: str | None = None,
 ) -> UserWebAuthnCredential:
-    db: AsyncSession,
-    user: User,
-    credential_id: str,
-    raw_id: str,
-    response: dict[str, Any],
-    client_json: str,
-    label: str,
-) -> UserWebAuthnCredential:
     """验证 WebAuthn 注册并存储凭据。"""
     settings = get_settings()
     rp_id = settings.WEBAUTHN_RP_ID or "localhost"
@@ -260,12 +252,6 @@ async def verify_authentication(
     response: dict[str, Any],
     client_json: str,
     request_origin: str | None = None,
-) -> UserWebAuthnCredential | None:
-    db: AsyncSession,
-    credential_id: str,
-    raw_id: str,
-    response: dict[str, Any],
-    client_json: str,
 ) -> UserWebAuthnCredential | None:
     """验证 WebAuthn 认证并更新计数器。"""
     settings = get_settings()
