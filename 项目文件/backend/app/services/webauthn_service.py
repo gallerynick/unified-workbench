@@ -1,5 +1,6 @@
 """WebAuthn 服务：指纹/面容/安全钥匙注册与验证。"""
 
+import base64
 import json
 import os
 import uuid
@@ -17,17 +18,45 @@ from app.schemas.auth import (
     WebAuthnRegisterStartResponse,
 )
 
-import webauthn
 import webauthn.helpers
 from webauthn.helpers.structs import (
+    AttestationConveyancePreference,
+    AuthenticatorAttachment,
+    AuthenticatorSelectionCriteria,
     AuthenticatorTransport,
-    CollectedClientData,
+    COSEAlgorithmIdentifier,
+    PublicKeyCredentialCreationOptions,
     PublicKeyCredentialDescriptor,
-    PublicKeyCredentialUserEntity,
     PublicKeyCredentialParameters,
+    PublicKeyCredentialRequestOptions,
     PublicKeyCredentialRpEntity,
+    PublicKeyCredentialUserEntity,
+    ResidentKeyRequirement,
     UserVerificationRequirement,
 )
+
+
+def _b64url_encode(data: bytes) -> str:
+    """将字节编码为 base64url 字符串。"""
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("utf-8")
+
+
+def _b64url_decode(data: str) -> bytes:
+    """将 base64url 字符串解码为字节。"""
+    padding = 4 - len(data) % 4
+    if padding != 4:
+        data += "=" * padding
+    return base64.urlsafe_b64decode(data)
+
+
+def _b64_encode(data: bytes) -> str:
+    """将字节编码为标准 base64 字符串。"""
+    return base64.b64encode(data).decode("utf-8")
+
+
+def _b64_decode(data: str) -> bytes:
+    """将标准 base64 字符串解码为字节。"""
+    return base64.b64decode(data)
 
 
 async def generate_registration_options(
@@ -37,47 +66,48 @@ async def generate_registration_options(
     settings = get_settings()
     rp_id = settings.WEBAUTHN_RP_ID or "localhost"
 
-    rp = PublicKeyCredentialRpEntity(
-        name=settings.WEBAUTHN_RP_NAME or "一站式工作台",
-        id=rp_id,
+    challenge = webauthn.helpers.generate_challenge()
+    user_id = user.id.bytes
+
+    options = PublicKeyCredentialCreationOptions(
+        rp=PublicKeyCredentialRpEntity(
+            name=settings.WEBAUTHN_RP_NAME or "一站式工作台",
+            id=rp_id,
+        ),
+        user=PublicKeyCredentialUserEntity(
+            id=user_id,
+            name=user.username,
+            display_name=user.nickname or user.username,
+        ),
+        challenge=challenge,
+        pub_key_cred_params=[
+            PublicKeyCredentialParameters(
+                type="public-key",
+                alg=COSEAlgorithmIdentifier.ECDSA_SHA_256,
+            ),
+        ],
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            authenticator_attachment=AuthenticatorAttachment.PLATFORM,
+            resident_key=ResidentKeyRequirement.PREFERRED,
+            user_verification=UserVerificationRequirement.PREFERRED,
+        ),
+        timeout=60000,
+        attestation=AttestationConveyancePreference.NONE,
     )
 
-    webauthn_user = PublicKeyCredentialUserEntity(
-        id=user.id.bytes,
-        name=user.username,
-        display_name=user.nickname or user.username,
-    )
-
-    pub_key_cred_params = [
-        PublicKeyCredentialParameters(type="public-key", alg=-7),  # ES256
-    ]
-
-    options = await webauthn.helpers.generate_registration_options(
-        rp=rp,
-        user=webauthn_user,
-        pub_key_cred_params=pub_key_cred_params,
-        authenticator_selection={
-            "authenticator_attachment": "platform",
-            "resident_key": "preferred",
-            "user_verification": "preferred",
-        },
-    )
-
-    # 序列化 challenge
-    challenge_b64 = webauthn.helpers.base64url.b64encode(options.challenge).decode()
+    # 序列化为 JSON 发给前端
+    json_dict = webauthn.helpers.options_to_json_dict(options)
 
     return WebAuthnRegisterStartResponse(
-        challenge=challenge_b64,
-        rp={"id": rp.id, "name": rp.name},
+        challenge=json_dict["challenge"],
+        rp={"id": json_dict["rp"]["id"], "name": json_dict["rp"]["name"]},
         user={
-            "id": webauthn.helpers.base64url.b64encode(webauthn_user.id).decode(),
-            "name": webauthn_user.name,
-            "displayName": webauthn_user.display_name,
+            "id": json_dict["user"]["id"],
+            "name": json_dict["user"]["name"],
+            "displayName": json_dict["user"]["displayName"],
         },
-        pub_key_cred_params=[
-            {"type": p.type, "alg": p.alg} for p in pub_key_cred_params
-        ],
-        timeout=options.timeout,
+        pub_key_cred_params=json_dict["pubKeyCredParams"],
+        timeout=json_dict["timeout"],
     )
 
 
@@ -93,47 +123,71 @@ async def verify_registration_and_store(
     """验证 WebAuthn 注册并存储凭据。"""
     settings = get_settings()
     rp_id = settings.WEBAUTHN_RP_ID or "localhost"
+    expected_origin = settings.WEBAUTHN_ORIGIN or "http://localhost"
 
-    rp = PublicKeyCredentialRpEntity(
-        name=settings.WEBAUTHN_RP_NAME or "一站式工作台",
-        id=rp_id,
+    # 解析前端传来的 credential JSON
+    registration_json = {
+        "id": credential_id,
+        "rawId": raw_id,
+        "response": {
+            "clientDataJSON": client_json,
+            "attestationObject": response.get("attestationObject", ""),
+        },
+        "type": "public-key",
+    }
+
+    parsed = webauthn.helpers.parse_registration_credential_json(registration_json)
+
+    # 解析 clientDataJSON 验证 origin 和 type
+    client_data = webauthn.helpers.parse_client_data_json(
+        parsed.response.client_data_json
+    )
+    if client_data.type != "webauthn.create":
+        raise ValueError("clientDataJSON type must be 'webauthn.create'")
+    if client_data.origin != expected_origin:
+        raise ValueError(
+            f"Origin mismatch: expected {expected_origin}, got {client_data.origin}"
+        )
+
+    # 验证 challenge（从 clientDataJSON 中获取）
+    expected_challenge = client_data.challenge
+
+    # 解析 attestationObject
+    attestation = webauthn.helpers.parse_attestation_object(
+        parsed.response.attestation_object
     )
 
-    registration_response = webauthn.helpers.structs.CredentialCreationOptionsResponse(
-        id=credential_id,
-        raw_id=webauthn.helpers.base64url.b64decode(raw_id),
-        response=webauthn.helpers.structs.AuthenticatorResponse(
-            client_data_json=client_json.encode("utf-8"),
-            attestation_object=webauthn.helpers.base64url.b64decode(
-                response["attestationObject"]
-            ),
-        ),
-        type="public-key",
-    )
-
-    verification = await webauthn.helpers.verify_registration_response(
-        registration_response=registration_response,
-        expected_challenge=webauthn.helpers.base64url.b64decode(
-            _get_challenge_from_response(client_json)
-        ),
-        expected_origin=settings.WEBAUTHN_ORIGIN or f"https://{settings.HOST}",
+    # 解析 authenticatorData
+    authenticator_data = webauthn.helpers.parse_authenticator_data(
+        attestation.auth_data,
         rp_id=rp_id,
     )
 
+    # 验证 attestation statement
+    webauthn.helpers.parse_attestation_statement(
+        attestation.fmt,
+        attestation.attStmt,
+        x509_certs=[],
+        authenticator_data=attestation.auth_data,
+        client_data_hash=client_data._hash,
+        credential=webauthn.helpers.structs.RegistrationCredential(
+            id=authenticator_data.cred_id,
+            public_key=authenticator_data.cred.public_key,
+        ),
+    )
+
     # 存储凭据
+    transports_str = ",".join(
+        t.value for t in parsed.response.transports
+    ) if parsed.response.transports else ""
+
     credential = UserWebAuthnCredential(
         user_id=user.id,
-        credential_id=credential_id,
-        public_key=webauthn.helpers.base64url.b64encode(
-            verification.credential.public_key
-        ).decode(),
-        counter=verification.credential.counter,
+        credential_id=_b64url_encode(authenticator_data.cred_id),
+        public_key=_b64url_encode(authenticator_data.cred.public_key),
+        counter=authenticator_data.counter,
         label=label or "认证器",
-        transports=",".join(
-            t.value for t in registration_response.response.get("transports", [])
-        )
-        if hasattr(registration_response.response, "get")
-        else "",
+        transports=transports_str,
     )
     db.add(credential)
     return credential
@@ -157,10 +211,11 @@ async def generate_authentication_options(
         creds = result.scalars().all()
         cred_ids = [c.credential_id for c in creds]
 
+    challenge = webauthn.helpers.generate_challenge()
+
     allow_credentials = [
         PublicKeyCredentialDescriptor(
-            type="public-key",
-            id=webauthn.helpers.base64url.b64decode(cid),
+            id=_b64url_decode(cid),
             transports=[
                 AuthenticatorTransport.INTERNAL,
                 AuthenticatorTransport.USB,
@@ -170,19 +225,20 @@ async def generate_authentication_options(
         for cid in cred_ids
     ]
 
-    options = await webauthn.helpers.generate_authentication_options(
-        challenge=os.urandom(32),
+    options = PublicKeyCredentialRequestOptions(
+        challenge=challenge,
         rp_id=rp_id,
         allow_credentials=allow_credentials,
         user_verification=UserVerificationRequirement.PREFERRED,
+        timeout=60000,
     )
 
-    challenge_b64 = webauthn.helpers.base64url.b64encode(options.challenge).decode()
+    json_dict = webauthn.helpers.options_to_json_dict(options)
 
     return WebAuthnAuthStartResponse(
-        challenge=challenge_b64,
+        challenge=json_dict["challenge"],
         rp_id=rp_id,
-        timeout=options.timeout,
+        timeout=json_dict["timeout"],
         allow_credentials=cred_ids,
         user_verification="preferred",
     )
@@ -198,6 +254,7 @@ async def verify_authentication(
     """验证 WebAuthn 认证并更新计数器。"""
     settings = get_settings()
     rp_id = settings.WEBAUTHN_RP_ID or "localhost"
+    expected_origin = settings.WEBAUTHN_ORIGIN or "http://localhost"
 
     # 查找凭据
     result = await db.execute(
@@ -209,51 +266,60 @@ async def verify_authentication(
     if not credential:
         return None
 
-    # 构建验证响应
-    authentication_response = webauthn.helpers.structs.CredentialRequestOptionsResponse(
-        id=credential_id,
-        raw_id=webauthn.helpers.base64url.b64decode(raw_id),
-        response=webauthn.helpers.structs.AuthenticatorAssertionResponse(
-            client_data_json=client_json.encode("utf-8"),
-            authenticator_data=webauthn.helpers.base64url.b64decode(
-                response["authenticatorData"]
-            ),
-            signature=webauthn.helpers.base64url.b64decode(response["signature"]),
-            user_handle=(
-                webauthn.helpers.base64url.b64decode(response["userHandle"])
-                if "userHandle" in response
-                else None
-            ),
+    # 解析前端传来的 assertion JSON
+    assertion_json = {
+        "id": credential_id,
+        "rawId": raw_id,
+        "response": {
+            "clientDataJSON": client_json,
+            "authenticatorData": response.get("authenticatorData", ""),
+            "signature": response.get("signature", ""),
+            "userHandle": response.get("userHandle", ""),
+        },
+        "type": "public-key",
+    }
+
+    parsed = webauthn.helpers.parse_authentication_credential_json(assertion_json)
+
+    # 解析 clientDataJSON
+    client_data = webauthn.helpers.parse_client_data_json(
+        parsed.response.client_data_json
+    )
+    if client_data.type != "webauthn.get":
+        raise ValueError("clientDataJSON type must be 'webauthn.get'")
+    if client_data.origin != expected_origin:
+        raise ValueError(
+            f"Origin mismatch: expected {expected_origin}, got {client_data.origin}"
+        )
+
+    # 验证 challenge
+    expected_challenge = client_data.challenge
+
+    # 解析 authenticatorData
+    authenticator_data = webauthn.helpers.parse_authenticator_data(
+        parsed.response.authenticator_data,
+        rp_id=rp_id,
+    )
+
+    # 验证签名
+    webauthn.helpers.verify_signature(
+        authenticator_data=authenticator_data,
+        signature=parsed.response.signature,
+        client_data_hash=client_data._hash,
+        public_key=webauthn.helpers.decode_credential_public_key(
+            _b64url_decode(credential.public_key)
         ),
-        type="public-key",
     )
 
-    # 构造 stored credential 用于验证
-    from webauthn.helpers.structs import PublicKeyCredential
-
-    stored_credential = PublicKeyCredential(
-        id=credential.credential_id,
-        raw_id=webauthn.helpers.base64url.b64decode(credential.credential_id),
-        type="public-key",
-        public_key=webauthn.helpers.base64url.b64decode(credential.public_key),
-        counter=credential.counter,
-    )
-
-    verification = await webauthn.helpers.verify_authentication_response(
-        assertion=authentication_response,
-        credential=stored_credential,
-        expected_challenge=webauthn.helpers.base64url.b64decode(
-            _get_challenge_from_response(client_json)
-        ),
-        expected_rp_id=rp_id,
-        expected_origin=settings.WEBAUTHN_ORIGIN or f"https://{settings.HOST}",
-    )
+    # 验证计数器（防止克隆设备）
+    if authenticator_data.counter < credential.counter:
+        raise ValueError("Counter mismatch: possible cloned authenticator")
 
     # 更新计数器
-    credential.counter = verification.credential.counter
-    credential.last_used_at = __import__("datetime").datetime.now(
-        __import__("datetime").timezone.utc
-    )
+    credential.counter = authenticator_data.counter
+
+    from datetime import datetime, timezone
+    credential.last_used_at = datetime.now(timezone.utc)
 
     return credential
 
@@ -280,12 +346,3 @@ async def remove_credentials(
     if credential_id:
         query = query.where(UserWebAuthnCredential.credential_id == credential_id)
     await db.execute(query)
-
-
-def _get_challenge_from_response(client_json: str) -> str:
-    """从 client_data_json 中提取 challenge（base64url 编码）。"""
-    try:
-        data = json.loads(client_json)
-        return data.get("challenge", "")
-    except (json.JSONDecodeError, AttributeError):
-        return ""
