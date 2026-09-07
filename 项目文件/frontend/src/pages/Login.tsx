@@ -214,7 +214,15 @@ export default function Login() {
         ) : (
           <div className={styles.form2fa ?? ''}>
             <div className={styles.otpIconWrap ?? ''}>
-              <SafetyOutlined className={styles.otpIcon ?? ''} />
+              {customization.branding.logoCollapsed || customization.branding.logoExpanded ? (
+                <img
+                  src={customization.branding.logoCollapsed || customization.branding.logoExpanded}
+                  alt={customization.app.name}
+                  className={styles.otpLogo ?? ''}
+                />
+              ) : (
+                <SafetyOutlined className={styles.otpIcon ?? ''} />
+              )}
             </div>
             <Text className={styles.otpLabel ?? ''} type="secondary">
               {codeMode === 'totp'

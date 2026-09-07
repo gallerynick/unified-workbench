@@ -50,6 +50,13 @@
   color: var(--color-primary);
 }
 
+.otpLogo {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+  max-width: 200px;
+}
+
 .otpLabel {
   text-align: center;
   font-size: var(--text-body-md-size);
