@@ -25,27 +25,48 @@ export default function Login() {
   const customization = useCustomization();
   const { refreshUser } = useUser();
 
-  // ── OTP 单输入框（隐藏 input + 6 个视觉槽位） ──
-  const otpInputRef = useRef<HTMLInputElement>(null);
+  // ── OTP 6 输入框 ──
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
 
-  const handleOtpInput = (value: string) => {
-    const clean = value.replace(/[^0-9]/g, '').slice(0, OTP_LENGTH);
-    setOtpDigits(clean.padEnd(OTP_LENGTH, '').split(''));
-    setCode(clean);
+  const setDigit = (index: number, val: string) => {
+    const next = [...otpDigits];
+    next[index] = val;
+    setOtpDigits(next);
+    setCode(next.join(''));
+    if (next.every((d) => d !== '')) void handleVerify2fa(next.join(''));
+  };
 
-    if (clean.length >= OTP_LENGTH) {
-      void handleVerify2fa(clean);
+  const handleOtpChange = (index: number, value: string) => {
+    const clean = value.replace(/[^0-9]/g, '').slice(0, 1);
+    setDigit(index, clean);
+    if (clean && index < OTP_LENGTH - 1) otpRefs.current[index + 1]?.focus();
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+      setDigit(index - 1, '');
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      void handleVerify2fa(otpDigits.join('').trim());
     }
   };
 
   const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    handleOtpInput(e.clipboardData.getData('text'));
+    const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, OTP_LENGTH);
+    if (!pasted) return;
+    const next = Array(OTP_LENGTH).fill('');
+    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
+    setOtpDigits(next);
+    setCode(next.join(''));
+    otpRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
+    if (next.every((d) => d !== '')) void handleVerify2fa(next.join(''));
   };
 
   useEffect(() => {
-    // 检查系统初始化状态
     fetch('/api/v1/auth/setup-status')
       .then((r) => r.json())
       .then((json) => {
@@ -73,7 +94,6 @@ export default function Login() {
       const response = await login(values);
       if (response.code === 0) {
         if (response.data.pending_2fa && response.data.pending_token) {
-          // 进入二次验证步骤
           setPendingToken(response.data.pending_token);
           setCode('');
           setOtpDigits(Array(OTP_LENGTH).fill(''));
@@ -218,34 +238,22 @@ export default function Login() {
             />
 
             {codeMode === 'totp' ? (
-              <div className={styles.otpRow ?? ''} onClick={() => otpInputRef.current?.focus()}>
-                {/* 透明输入框覆盖整个区域，点击即聚焦 */}
-                <input
-                  ref={otpInputRef}
-                  type="text"
-                  inputMode="numeric"
-                  value={otpDigits.join('')}
-                  onChange={(e) => handleOtpInput(e.target.value)}
-                  onPaste={handleOtpPaste}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      void handleVerify2fa(otpDigits.join('').trim());
-                    }
-                  }}
-                  style={{ position: 'absolute', inset: 0, opacity: 0, zIndex: 1, cursor: 'text' }}
-                  autoFocus
-                  disabled={loading}
-                />
-                {/* 6 个视觉槽位：只展示 */}
+              <div className={styles.otpRow ?? ''}>
                 {otpDigits.map((digit, i) => (
-                  <div
+                  <input
                     key={i}
+                    ref={(el) => { otpRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(i, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                    onPaste={handleOtpPaste}
                     className={styles.otpBox ?? ''}
-                    aria-hidden
-                  >
-                    {digit || ' '}
-                  </div>
+                    autoFocus={i === 0}
+                    disabled={loading}
+                  />
                 ))}
               </div>
             ) : (
