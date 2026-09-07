@@ -38,6 +38,7 @@ from app.models.user_recovery_code import UserRecoveryCode
 from app.models.user_session import UserSession
 from app.models.user_tag import UserTag
 from app.models.user_totp import UserTotp
+from app.models.user_webauthn import UserWebAuthnCredential
 from app.models.vote import Vote, VoteRecord, VoteStatus
 
 __all__ = [
@@ -92,6 +93,7 @@ __all__ = [
     "UserSession",
     "UserStatus",
     "UserTotp",
+    "UserWebAuthnCredential",
     "UserTag",
     "Vote",
     "VoteRecord",

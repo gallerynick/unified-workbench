@@ -42,6 +42,7 @@ from app.api.tasks import router as tasks_router
 from app.api.templates import router as templates_router
 from app.api.topology import router as topology_router
 from app.api.two_factor import router as two_factor_router
+from app.api.webauthn import router as webauthn_router
 from app.api.user_notification_config import router as notification_config_router
 from app.api.user_sessions import router as user_sessions_router
 from app.api.users import router as users_router
@@ -92,4 +93,5 @@ api_router.include_router(systems_router, prefix="/systems", tags=["系统管理
 api_router.include_router(services_router, prefix="/services", tags=["服务管理"])
 api_router.include_router(notification_config_router, prefix="/auth", tags=["个人通知配置"])
 api_router.include_router(two_factor_router, prefix="/auth/2fa", tags=["双因素认证"])
+api_router.include_router(webauthn_router, prefix="/auth/webauthn", tags=["WebAuthn"])
 api_router.include_router(user_sessions_router, tags=["设备终端"])

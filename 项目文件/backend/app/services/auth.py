@@ -209,6 +209,59 @@ async def verify_2fa(
     return await _issue_tokens(db, user, ip, user_agent, device_token)
 
 
+
+
+async def verify_2fa_webauthn(
+    db: AsyncSession,
+    request: dict,
+    ip: str | None = None,
+    user_agent: str | None = None,
+    device_token: str | None = None,
+) -> LoginResponse:
+    """登录第二步：用 WebAuthn（指纹/面容）完成二次验证，签发正式令牌。"""
+    from app.services import webauthn_service
+
+    # 验证 pending token
+    try:
+        payload = decode_token(request.get("pending_token", ""))
+        if payload.get("type") != "pending_2fa":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="无效的二次验证令牌"
+            )
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="无效的二次验证令牌"
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="二次验证已过期，请重新登录"
+        )
+
+    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+    user = result.scalar_one_or_none()
+    if not user or user.status == UserStatus.DISABLED:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在或已禁用"
+        )
+
+    # 验证 WebAuthn 签名
+    credential = await webauthn_service.verify_authentication(
+        db,
+        request["credential_id"],
+        request["raw_id"],
+        request["response"],
+        request["client_json"],
+    )
+    if not credential or credential.user_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="WebAuthn 验证失败"
+        )
+
+    return await _issue_tokens(db, user, ip, user_agent, device_token)
+
 def _parse_user_agent(ua: str) -> tuple[str, str]:
     """从 User-Agent 解析设备名称和类型。"""
     ua_lower = ua.lower()

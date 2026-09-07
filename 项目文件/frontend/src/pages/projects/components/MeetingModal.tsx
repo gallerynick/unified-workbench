@@ -67,7 +67,8 @@ function buildMeetingNumber(project: Project, existing: ProjectMeeting[]): strin
 
 /**
  * 内容字段约定：后端无独立 title 字段，按「标题\n\n正文」存储于 content。
- * 表单「内容」字段编辑标题部分，「正文」字段编辑正文部分，正文为空时不写入分隔符。
+ * 表单「主题」字段编辑标题部分，「正文」字段编辑正文部分，正文为空时不写入分隔符。
+ * 新建模式仅填元数据（类型/主题/时间/发言人/参与人），正文留待详情页编辑时填写。
  */
 export function splitTitleContent(content: string | null): { title: string; body: string } {
   const raw = content ?? '';
@@ -204,19 +205,21 @@ export default function MeetingModal({
         </Form.Item>
         <Form.Item
           name="title"
-          label="内容"
-          rules={[{ required: true, message: '请输入交流内容' }]}
+          label="主题"
+          rules={[{ required: true, message: '请输入交流主题' }]}
         >
-          <TextArea rows={3} placeholder="请输入交流内容（标题）" maxLength={500} showCount />
+          <TextArea rows={3} placeholder="请输入交流主题（如：产品评审、客户需求沟通）" maxLength={500} showCount />
         </Form.Item>
-        <Form.Item name="body" label="正文">
-          <TextArea
-            rows={6}
-            placeholder="请输入交流正文（可选，换行保留）"
-            maxLength={5000}
-            showCount
-          />
-        </Form.Item>
+        {editingMeeting && (
+          <Form.Item name="body" label="正文">
+            <TextArea
+              rows={6}
+              placeholder="请输入交流正文（可选，换行保留）"
+              maxLength={5000}
+              showCount
+            />
+          </Form.Item>
+        )}
         <Form.Item name="started_at" label="时间">
           <DatePicker showTime style={{ width: '100%' }} />
         </Form.Item>

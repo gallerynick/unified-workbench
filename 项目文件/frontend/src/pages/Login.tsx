@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, message, Segmented } from 'antd';
 import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { login } from '../api/auth';
-import { verify2fa } from '../api/security';
+import { verify2fa, webauthnVerifyLogin } from '../api/security';
 import { setTokens, isAuthenticated } from '../utils/auth';
 import { HttpError } from '../utils/request';
 import { useCustomization } from '../hooks/useCustomization';
@@ -20,7 +20,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [pendingToken, setPendingToken] = useState<string | null>(null);
-  const [codeMode, setCodeMode] = useState<'totp' | 'recovery'>('totp');
+  const [codeMode, setCodeMode] = useState<'totp' | 'recovery' | 'webauthn'>('totp');
   const [code, setCode] = useState('');
   const customization = useCustomization();
   const { refreshUser } = useUser();
@@ -153,6 +153,88 @@ export default function Login() {
     }
   };
 
+  // WebAuthn 验证
+  const handleWebAuthnVerify = async () => {
+    if (!pendingToken) return;
+    setLoading(true);
+    try {
+      // 调用浏览器 WebAuthn API
+      // 先获取认证配置
+      const authStartRes = await fetch('/api/v1/auth/webauthn/authenticate/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const authStart = await authStartRes.json();
+      
+      if (authStart.code !== 0 || !authStart.data) {
+        message.error(authStart.msg || '获取验证配置失败');
+        return;
+      }
+      
+      const opts = authStart.data;
+      const challenge = Uint8Array.from(
+        atob(opts.challenge.replace(/-/g, '+').replace(/_/g, '/')),
+        c => c.charCodeAt(0)
+      );
+      
+      const allowCredentials = opts.allow_credentials.map((cid: string) => ({
+        type: 'public-key',
+        id: Uint8Array.from(atob(cid.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+        transports: ['internal', 'usb', 'nfc'],
+      }));
+      
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          rpId: opts.rp_id,
+          timeout: opts.timeout,
+          allowCredentials,
+          userVerification: opts.user_verification,
+        },
+      }) as any;
+      
+      if (!assertion) {
+        message.warning('用户取消了验证');
+        return;
+      }
+      
+      // 发送验证结果到后端
+      const finishRes = await webauthnVerifyLogin({
+        pending_token: pendingToken,
+        credential_id: assertion.id,
+        raw_id: btoa(String.fromCharCode(...new Uint8Array(assertion.rawId))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+        response: {
+          authenticatorData: btoa(String.fromCharCode(...new Uint8Array(assertion.response.authenticatorData))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+          clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(assertion.response.clientDataJSON))),
+          signature: btoa(String.fromCharCode(...new Uint8Array(assertion.response.signature))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+          userHandle: assertion.response.userHandle 
+            ? btoa(String.fromCharCode(...new Uint8Array(assertion.response.userHandle))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+            : undefined,
+        },
+        client_json: JSON.stringify(JSON.parse(btoa(String.fromCharCode(...new Uint8Array(assertion.response.clientDataJSON))))),
+      });
+      
+      if (finishRes.code === 0 && finishRes.data && (finishRes.data as any).access_token && (finishRes.data as any).refresh_token) {
+        await finishLogin(finishRes.data as any);
+      } else {
+        message.error(finishRes.msg || 'WebAuthn 验证失败');
+      }
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError') {
+        message.warning('用户取消了验证或浏览器不支持');
+      } else if (err.name === 'NotSupportedError') {
+        message.warning('当前浏览器不支持 WebAuthn');
+      } else if (err.name === 'NoInteractiveUserError') {
+        message.warning('无法检测到用户交互，请重试');
+      } else {
+        message.error('验证失败: ' + (err.message || '未知错误'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleBackToLogin = () => {
     setPendingToken(null);
     setCode('');
@@ -227,7 +309,9 @@ export default function Login() {
             <Text className={styles.otpLabel ?? ''} type="secondary">
               {codeMode === 'totp'
                 ? '请输入认证器 App 中显示的 6 位动态码'
-                : '请输入您在开启双因素认证时生成并保存的恢复码'}
+                : codeMode === 'recovery'
+                ? '请输入您在开启双因素认证时生成并保存的恢复码'
+                : '点击按钮使用指纹/面容快速验证'}
             </Text>
 
             <Segmented
@@ -235,13 +319,14 @@ export default function Login() {
               block
               value={codeMode}
               onChange={(v) => {
-                setCodeMode(v as 'totp' | 'recovery');
+                setCodeMode(v as 'totp' | 'recovery' | 'webauthn');
                 setCode('');
                 setOtpDigits(Array(OTP_LENGTH).fill(''));
               }}
               options={[
                 { label: '动态码', value: 'totp' },
                 { label: '恢复码', value: 'recovery' },
+                { label: '指纹', value: 'webauthn', icon: <SafetyOutlined /> },
               ]}
             />
 
@@ -264,7 +349,7 @@ export default function Login() {
                   />
                 ))}
               </div>
-            ) : (
+            ) : codeMode === 'recovery' ? (
               <Input
                 size="large"
                 autoFocus
@@ -275,6 +360,13 @@ export default function Login() {
                 onPressEnter={() => void handleVerify2fa()}
                 className={styles.recoveryInput ?? ''}
               />
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <SafetyOutlined style={{ fontSize: 48, color: 'var(--color-primary)' }} />
+                <p style={{ marginTop: 12, color: 'var(--text-secondary)' }}>
+                  点击下方按钮，浏览器将弹出系统验证窗口
+                </p>
+              </div>
             )}
 
             <Button
@@ -282,8 +374,14 @@ export default function Login() {
               block
               className={styles.verifyBtn ?? ''}
               loading={loading}
-              onClick={() => void handleVerify2fa()}
-            >验证</Button>
+              onClick={() => {
+                if (codeMode === 'webauthn') {
+                  void handleWebAuthnVerify();
+                } else {
+                  void handleVerify2fa();
+                }
+              }}
+            >{codeMode === 'webauthn' ? '使用指纹/面容验证' : '验证'}</Button>
 
             <Button
               type="link"

@@ -144,3 +144,78 @@ class TwoFAStatusResponse(BaseModel):
     enabled: bool
     device_count: int
     recovery_codes_remaining: int
+
+
+# ── WebAuthn 相关 Schema ──
+
+class WebAuthnRegisterStartRequest(BaseModel):
+    """发起 WebAuthn 注册：返回 challenge 和 rp 配置。"""
+
+    label: str = "认证器"
+
+
+class WebAuthnRegisterStartResponse(BaseModel):
+    """WebAuthn 注册配置（发给浏览器）。"""
+
+    challenge: str
+    rp: dict
+    user: dict
+    pub_key_cred_params: list[dict]
+    timeout: int = 60000
+
+
+class WebAuthnRegisterFinishRequest(BaseModel):
+    """完成 WebAuthn 注册：浏览器返回凭据数据。"""
+
+    credential_id: str
+    raw_id: str
+    response: dict
+    client_json: str
+    label: str = "认证器"
+
+
+class WebAuthnAuthStartRequest(BaseModel):
+    """发起 WebAuthn 认证：返回 challenge。"""
+
+    # 可选：指定凭据 ID 范围
+    credential_ids: list[str] | None = None
+
+
+class WebAuthnAuthStartResponse(BaseModel):
+    """WebAuthn 认证配置。"""
+
+    challenge: str
+    rp_id: str | None = None
+    timeout: int = 60000
+    allow_credentials: list[str] = []
+    user_verification: str = "preferred"
+
+
+class WebAuthnAuthFinishRequest(BaseModel):
+    """完成 WebAuthn 认证：浏览器返回签名数据。"""
+
+    credential_id: str
+    raw_id: str
+    response: dict
+    client_json: str
+
+
+class WebAuthnCredentialResponse(BaseModel):
+    """WebAuthn 凭据信息。"""
+
+    id: str
+    credential_id: str
+    label: str
+    transports: str | None
+    created_at: datetime
+    last_used_at: datetime | None
+
+
+class WebAuthnVerifyLoginRequest(BaseModel):
+    """WebAuthn 登录验证请求。"""
+
+    pending_token: str
+    credential_id: str
+    raw_id: str
+    response: dict
+    client_json: str

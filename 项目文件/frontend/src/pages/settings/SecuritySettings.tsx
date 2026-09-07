@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, Input, List, Modal, Space, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Input, List, Modal, Space, Tag, Typography, message, Spin } from 'antd';
 import {
   MobileOutlined,
   SafetyOutlined,
@@ -16,6 +16,10 @@ import {
   removeTwoFADevice,
   disableTwoFA,
   generateRecoveryCodes,
+  webauthnRegisterStart,
+  webauthnRegisterFinish,
+  listWebAuthnCredentials,
+  removeWebAuthnCredential,
 } from '../../api/security';
 import type { TwoFAStatus, TwoFADevice } from '../../types/user';
 import { useCustomization } from '../../hooks/useCustomization';
@@ -29,8 +33,12 @@ export default function SecuritySettings() {
   const [status, setStatus] = useState<TwoFAStatus | null>(null);
   const [devices, setDevices] = useState<TwoFADevice[]>([]);
 
+  // WebAuthn 凭据
+  const [waCredentials, setWaCredentials] = useState<any[]>([]);
+  const [waLoading, setWaLoading] = useState(false);
+
   // 密码确认弹窗（用于绑定/解绑/恢复码/关闭）
-  const [pwdAction, setPwdAction] = useState<'setup' | 'disable' | 'recovery' | null>(null);
+  const [pwdAction, setPwdAction] = useState<'setup' | 'disable' | 'recovery' | 'webauthn' | null>(null);
   const [pwdValue, setPwdValue] = useState('');
   const [pwdLoading, setPwdLoading] = useState(false);
 
@@ -42,14 +50,18 @@ export default function SecuritySettings() {
   // 恢复码展示弹窗
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
 
+  // WebAuthn 注册弹窗
+  const [waModalOpen, setWaModalOpen] = useState(false);
+
   const customization = useCustomization();
   const appLogo = customization.branding.logoCollapsed || customization.branding.logoExpanded || '/favicon.svg';
 
   const refresh = useCallback(async () => {
     try {
-      const [s, d] = await Promise.all([getTwoFAStatus(), listTwoFADevices()]);
+      const [s, d, w] = await Promise.all([getTwoFAStatus(), listTwoFADevices(), listWebAuthnCredentials()]);
       if (s.code === 0) setStatus(s.data);
       if (d.code === 0) setDevices(d.data);
+      if (w.code === 0) setWaCredentials(w.data as any[]);
     } catch {
       /* ignore */
     }
@@ -96,6 +108,9 @@ export default function SecuritySettings() {
         } else {
           message.error(res.msg || '生成失败');
         }
+      } else if (pwdAction === 'webauthn') {
+        closePwd();
+        await startWebAuthnRegistration();
       }
     } catch {
       message.error('操作失败，请检查密码');
@@ -164,7 +179,92 @@ export default function SecuritySettings() {
     }).catch(() => undefined);
   };
 
-  const enabled = status ? status.device_count > 0 : false;
+  // WebAuthn 注册流程
+  const startWebAuthnRegistration = async () => {
+    setWaLoading(true);
+    setWaModalOpen(true);
+    try {
+      const res = await webauthnRegisterStart('指纹/面容认证');
+      if (res.code !== 0 || !res.data) {
+        message.error(res.msg || '获取注册配置失败');
+        return;
+      }
+      const opts: any = res.data;
+      const challengeBytes = Uint8Array.from(atob(opts.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+
+      // 调用浏览器 WebAuthn API
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          challenge: challengeBytes,
+          rp: opts.rp,
+          user: {
+            id: Uint8Array.from(atob(opts.user.id.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+            name: opts.user.name,
+            displayName: opts.user.displayName,
+          },
+          pubKeyCredParams: opts.pub_key_cred_params,
+          timeout: opts.timeout,
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            residentKey: 'preferred',
+            userVerification: 'preferred',
+          },
+        },
+      }) as any;
+
+      if (!cred) {
+        message.warning('用户取消了注册');
+        return;
+      }
+
+      // 发送注册结果到后端
+      const finishRes = await webauthnRegisterFinish({
+        credential_id: cred.id,
+        raw_id: btoa(String.fromCharCode(...new Uint8Array(cred.rawId))).split('+').join('-').split('/').join('_').split('=').join(''),
+        response: {
+          attestationObject: btoa(String.fromCharCode(...new Uint8Array(cred.response.attestationObject))).split('+').join('-').split('/').join('_').split('=').join(''),
+          clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON))),
+        },
+        client_json: JSON.stringify(JSON.parse(btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON))))),
+        label: '指纹/面容认证',
+      });
+
+      if (finishRes.code === 0) {
+        message.success('指纹/面容认证注册成功');
+        await refresh();
+      } else {
+        message.error(finishRes.msg || '注册验证失败');
+      }
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError') {
+        message.warning('用户取消了认证或浏览器不支持');
+      } else if (err.name === 'NotSupportedError') {
+        message.warning('当前浏览器不支持 WebAuthn');
+      } else {
+        message.error('注册失败: ' + (err.message || '未知错误'));
+      }
+    } finally {
+      setWaLoading(false);
+      setWaModalOpen(false);
+    }
+  };
+
+  // WebAuthn 凭据删除
+  const confirmRemoveWa = async (credentialId: string) => {
+    try {
+      const res = await removeWebAuthnCredential(credentialId);
+      if (res.code === 0) {
+        message.success('已删除该凭据');
+        await refresh();
+      } else {
+        message.error(res.msg || '删除失败');
+      }
+    } catch {
+      message.error('删除失败');
+    }
+  };
+
+  const enabled = status ? status.device_count > 0 || waCredentials.length > 0 : false;
 
   return (
     <div className={styles.container ?? ''}>
@@ -190,6 +290,46 @@ export default function SecuritySettings() {
         />
       )}
 
+      {/* WebAuthn 凭据 */}
+      <Card title={<span><SafetyOutlined /> 指纹/面容认证</span>} className={styles.card ?? ''}>
+        {waCredentials.length === 0 ? (
+          <Paragraph type="secondary">尚未注册任何指纹/面容认证凭据。</Paragraph>
+        ) : (
+          <List
+            dataSource={waCredentials}
+            renderItem={(d: any) => (
+              <List.Item
+                actions={[
+                  <Button
+                    key="rm"
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => confirmRemoveWa(d.credential_id)}
+                  >删除</Button>,
+                ]}
+              >
+                <List.Item.Meta
+                  avatar={<SafetyOutlined style={{ fontSize: 18 }} />}
+                  title={d.label}
+                  description={'注册于 ' + fmtDate(d.created_at) + ' · 最后使用 ' + fmtDate(d.last_used_at)}
+                />
+                <Tag color="green">已注册</Tag>
+              </List.Item>
+            )}
+          />
+        )}
+        <div style={{ marginTop: 'var(--spacing-card-gap)' }}>
+          <Button
+            icon={<SafetyOutlined />}
+            loading={waLoading}
+            onClick={() => setPwdAction('webauthn')}
+          >注册指纹/面容</Button>
+        </div>
+      </Card>
+
+      {/* TOTP 认证器设备 */}
       <Card title="认证器设备" className={styles.card ?? ''}>
         {devices.length === 0 ? (
           <Paragraph type="secondary">尚未绑定任何认证器。</Paragraph>
@@ -244,7 +384,7 @@ export default function SecuritySettings() {
 
       {/* 密码确认弹窗 */}
       <Modal
-        title={pwdAction === 'setup' ? '验证登录密码' : pwdAction === 'disable' ? '关闭双因素认证' : '生成恢复码'}
+        title={pwdAction === 'setup' ? '验证登录密码' : pwdAction === 'disable' ? '关闭双因素认证' : pwdAction === 'recovery' ? '生成恢复码' : '注册指纹/面容'}
         open={pwdAction !== null}
         onOk={confirmPwd}
         onCancel={closePwd}
@@ -272,7 +412,6 @@ export default function SecuritySettings() {
       >
         {bindInfo ? (
           <div className={styles.bindWrap ?? ''}>
-            {/* 应用 Logo（类似 GitHub 2FA 设置显示自身图标） */}
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               {appLogo ? (
                 <img src={appLogo} alt={customization.app.name} style={{ height: 56, width: 'auto', objectFit: 'contain', maxWidth: 200 }} />
@@ -303,6 +442,30 @@ export default function SecuritySettings() {
             >确认绑定</Button>
           </div>
         ) : null}
+      </Modal>
+
+      {/* WebAuthn 注册弹窗 */}
+      <Modal
+        title="注册指纹/面容认证"
+        open={waModalOpen}
+        onCancel={() => { setWaModalOpen(false); setWaLoading(false); }}
+        footer={null}
+        maskClosable={false}
+      >
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <Spin spinning={waLoading} tip="请等待浏览器弹出验证窗口..." />
+          <div style={{ marginTop: 16 }}>
+            {waLoading ? (
+              <Paragraph>
+                浏览器即将弹出系统验证窗口（指纹/面容/PIN），请完成验证。
+              </Paragraph>
+            ) : (
+              <Paragraph type="secondary">
+                <SafetyOutlined /> 正在准备注册...
+              </Paragraph>
+            )}
+          </div>
+        </div>
       </Modal>
 
       {/* 恢复码展示弹窗 */}

@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     # 加密配置
     ENCRYPTION_MASTER_KEY: str = "7433947cd794fc1c74ca1a2063baf5defd908128356ac1f6e36b6861a1d283eb"
 
+    # WebAuthn 配置
+    WEBAUTHN_RP_ID: str = "localhost"
+    WEBAUTHN_RP_NAME: str = "一站式工作台"
+    WEBAUTHN_ORIGIN: str = "http://localhost"
+
     @field_validator("DATABASE_URL")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

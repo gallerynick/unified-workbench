@@ -65,3 +65,33 @@ export async function generateRecoveryCodes(password: string): Promise<UnifiedRe
     body: { password },
   });
 }
+
+// WebAuthn
+
+export async function webauthnRegisterStart(label: string | undefined = undefined) {
+  return request('/auth/webauthn/register/start', { method: 'POST', body: { label: label || 'auth' } });
+}
+
+export async function webauthnRegisterFinish(data: object) {
+  return request('/auth/webauthn/register/finish', { method: 'POST', body: data });
+}
+
+export async function webauthnAuthStart(credentialIds: string[] | undefined = undefined) {
+  return request('/auth/webauthn/authenticate/start', { method: 'POST', body: { credential_ids: credentialIds } });
+}
+
+export async function webauthnAuthFinish(data: object) {
+  return request('/auth/webauthn/authenticate/finish', { method: 'POST', body: data });
+}
+
+export async function listWebAuthnCredentials() {
+  return request('/auth/webauthn/credentials');
+}
+
+export async function removeWebAuthnCredential(credentialId: string) {
+  return request('/auth/webauthn/credentials/' + credentialId + '/remove', { method: 'POST' });
+}
+
+export async function webauthnVerifyLogin(data: object) {
+  return request('/auth/webauthn/verify-login', { method: 'POST', body: data, headers: { 'X-Device-Token': getDeviceToken() } });
+}
