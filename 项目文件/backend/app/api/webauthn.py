@@ -26,9 +26,25 @@ router = APIRouter()
 
 
 
-from fastapi import Request
+
 
 def get_request_origin(request: Request) -> str:
+    """从 HTTP 请求中提取 origin（用于 WebAuthn 校验）。
+    
+    处理反向代理场景：X-Forwarded-Proto 和 X-Forwarded-Host
+    """
+    # 优先使用 Origin 头（浏览器自动设置，不可伪造）
+    origin = request.headers.get("origin")
+    if origin:
+        return origin
+    
+    # 处理反向代理：从 X-Forwarded-Proto 获取实际协议
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    
+    # 处理反向代理：从 X-Forwarded-Host 获取实际 host
+    host = request.headers.get("x-forwarded-host", request.headers.get("host", "localhost"))
+    
+    return f"{proto}://{host}"
     """从 HTTP 请求中提取 origin（用于 WebAuthn 校验）。"""
     # 优先使用 Origin 头
     origin = request.headers.get("origin")
