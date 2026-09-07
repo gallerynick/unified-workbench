@@ -16,8 +16,16 @@ from app.models.user import User
 from app.models.user_recovery_code import UserRecoveryCode
 from app.models.user_totp import UserTotp
 
-# 认证器显示名称（otpauth URI 的 issuer）
-ISSUER = "一站式工作台"
+# 认证器显示名称（otpauth URI 的 issuer）—— 默认值，未配置 custom_config 时使用
+DEFAULT_ISSUER = "一站式工作台"
+
+
+async def get_app_name(db: AsyncSession) -> str:
+    """从站点自定义配置读取应用名称，未设置则返回默认值。"""
+    from app.services.system_config import get_config
+
+    cfg = await get_config(db, "custom_config") or {}
+    return cfg.get("app_name") or DEFAULT_ISSUER
 # 每批生成的恢复码数量
 RECOVERY_CODE_COUNT = 10
 # 恢复码分组长度（如 XXXX-XXXX-XXXX 共 3 组 4 位）
@@ -47,9 +55,11 @@ def generate_secret() -> str:
     return pyotp.random_base32()
 
 
-def build_otpauth_uri(secret: str, account: str) -> str:
-    """构建 otpauth:// 链接（供认证器扫码）。"""
-    return pyotp.totp.TOTP(secret).provisioning_uri(name=account, issuer_name=ISSUER)
+def build_otpauth_uri(secret: str, account: str, issuer_name: str | None = None) -> str:
+    """构建 otpauth:// 链接（供认证器扫码）。issuer_name 为空时使用默认值。"""
+    return pyotp.totp.TOTP(secret).provisioning_uri(
+        name=account, issuer_name=issuer_name or DEFAULT_ISSUER
+    )
 
 
 def verify_totp(secret: str, code: str) -> bool:

@@ -25,66 +25,23 @@ export default function Login() {
   const customization = useCustomization();
   const { refreshUser } = useUser();
 
-  // ── OTP 输入框 refs ──
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // ── OTP 单输入框（隐藏 input + 6 个视觉槽位） ──
+  const otpInputRef = useRef<HTMLInputElement>(null);
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
 
-  // ── 二次验证时同步 otpDigits → code ──
-  const handleOtpChange = (index: number, value: string) => {
-    const clean = value.replace(/[^0-9]/g, '');
+  const handleOtpInput = (value: string) => {
+    const clean = value.replace(/[^0-9]/g, '').slice(0, OTP_LENGTH);
+    setOtpDigits(clean.padEnd(OTP_LENGTH, '').split(''));
+    setCode(clean);
 
-    setOtpDigits((prev) => {
-      const next = [...prev];
-
-      if (!clean) {
-        if (prev[index]) {
-          next[index] = '';
-          setCode(next.join(''));
-          if (index > 0) otpRefs.current[index - 1]?.focus();
-        }
-        return next;
-      }
-
-      next[index] = clean.charAt(0);
-      const codeStr = next.join('');
-      setCode(codeStr);
-
-      if (index < OTP_LENGTH - 1) {
-        otpRefs.current[index + 1]?.focus();
-      }
-
-      if (next.every((d) => d !== '')) {
-        void handleVerify2fa(codeStr);
-      }
-
-      return next;
-    });
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Backspace 空输入时跳回上一格
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
+    if (clean.length >= OTP_LENGTH) {
+      void handleVerify2fa(clean);
     }
   };
 
   const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, OTP_LENGTH);
-    if (!pasted) return;
-
-    const next = Array(OTP_LENGTH).fill('');
-    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
-    setOtpDigits(next);
-    const codeStr = next.join('');
-    setCode(codeStr);
-
-    const focusIndex = Math.min(pasted.length, OTP_LENGTH - 1);
-    otpRefs.current[focusIndex]?.focus();
-
-    if (next.every((d) => d !== '')) {
-      void handleVerify2fa(codeStr);
-    }
+    handleOtpInput(e.clipboardData.getData('text'));
   };
 
   useEffect(() => {
@@ -262,22 +219,33 @@ export default function Login() {
 
             {codeMode === 'totp' ? (
               <div className={styles.otpRow ?? ''}>
+                {/* 隐藏输入框：接收所有键盘事件 */}
+                <input
+                  ref={otpInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  value={otpDigits.join('')}
+                  onChange={(e) => handleOtpInput(e.target.value)}
+                  onPaste={handleOtpPaste}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleVerify2fa(otpDigits.join('').trim());
+                    }
+                  }}
+                  style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+                  autoFocus
+                  disabled={loading}
+                />
+                {/* 6 个视觉槽位：只展示 */}
                 {otpDigits.map((digit, i) => (
-                  <input
+                  <div
                     key={i}
-                    ref={(el) => { otpRefs.current[i] = el; }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(i, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                    onPaste={handleOtpPaste}
-                    className={styles.otpBox ?? ''}
-                    aria-label={'验证码第 ' + (i + 1) + ' 位'}
-                    autoFocus={i === 0}
-                    disabled={loading}
-                  />
+                    className={(styles.otpBox ?? '') + (digit ? ' ' + (styles.otpBoxFilled ?? '') : '')}
+                    aria-hidden
+                  >
+                    {digit || ' '}
+                  </div>
                 ))}
               </div>
             ) : (
@@ -288,7 +256,7 @@ export default function Login() {
                 placeholder="恢复码（如 XXXX-XXXX-XXXX）"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                onPressEnter={handleVerify2fa}
+                onPressEnter={() => void handleVerify2fa()}
                 className={styles.recoveryInput ?? ''}
               />
             )}
@@ -298,7 +266,7 @@ export default function Login() {
               block
               className={styles.verifyBtn ?? ''}
               loading={loading}
-              onClick={handleVerify2fa}
+              onClick={() => void handleVerify2fa()}
             >验证</Button>
 
             <Button

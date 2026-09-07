@@ -70,36 +70,19 @@
 .otpBox {
   width: 36px;
   height: 48px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 28px;
   font-weight: 600;
-  border: none;
   border-bottom: 2px solid var(--border-primary);
-  border-radius: 0;
-  background: transparent;
   color: var(--ink);
-  outline: none;
   transition: border-color 0.2s;
-  -moz-appearance: textfield;
+  line-height: 1;
 }
 
-.otpBox::-webkit-outer-spin-button,
-.otpBox::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.otpBox:hover {
-  border-bottom-color: var(--ink-muted-48);
-}
-
-.otpBox:focus {
-  border-bottom-color: var(--color-info);
-}
-
-.otpBox:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.otpBoxFilled {
+  border-bottom-color: var(--ink-muted-80);
 }
 
 /* 恢复码输入 */
