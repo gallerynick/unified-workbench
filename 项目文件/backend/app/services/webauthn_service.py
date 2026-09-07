@@ -130,7 +130,7 @@ async def verify_registration_and_store(
         "id": credential_id,
         "rawId": raw_id,
         "response": {
-            "clientDataJSON": client_json,
+            "clientDataJSON": _b64url_encode(client_json.encode("utf-8")),
             "attestationObject": response.get("attestationObject", ""),
         },
         "type": "public-key",
@@ -271,7 +271,7 @@ async def verify_authentication(
         "id": credential_id,
         "rawId": raw_id,
         "response": {
-            "clientDataJSON": client_json,
+            "clientDataJSON": _b64url_encode(client_json.encode("utf-8")),
             "authenticatorData": response.get("authenticatorData", ""),
             "signature": response.get("signature", ""),
             "userHandle": response.get("userHandle", ""),
