@@ -144,7 +144,7 @@ async def verify_registration_and_store(
     )
     if client_data.type != "webauthn.create":
         raise ValueError("clientDataJSON type must be 'webauthn.create'")
-    if client_data.origin != expected_origin:
+    if client_data.origin not in [o.strip() for o in expected_origin.split(',')]:
         raise ValueError(
             f"Origin mismatch: expected {expected_origin}, got {client_data.origin}"
         )
@@ -287,7 +287,7 @@ async def verify_authentication(
     )
     if client_data.type != "webauthn.get":
         raise ValueError("clientDataJSON type must be 'webauthn.get'")
-    if client_data.origin != expected_origin:
+    if client_data.origin not in [o.strip() for o in expected_origin.split(',')]:
         raise ValueError(
             f"Origin mismatch: expected {expected_origin}, got {client_data.origin}"
         )

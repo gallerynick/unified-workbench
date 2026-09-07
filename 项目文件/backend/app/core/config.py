@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     # WebAuthn 配置
     WEBAUTHN_RP_ID: str = "localhost"
     WEBAUTHN_RP_NAME: str = "一站式工作台"
-    WEBAUTHN_ORIGIN: str = "http://localhost"
+    WEBAUTHN_ORIGIN: str = "http://localhost,https://localhost"
 
     @field_validator("DATABASE_URL")
     @classmethod
