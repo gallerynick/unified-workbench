@@ -14,11 +14,17 @@ from app.version import __version__
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """应用生命周期管理"""
     from app.core.database import get_session_factory
+    from app.services.system_config import get_config
     from app.utils.seed import create_initial_admin
 
     factory = get_session_factory()
     async with factory() as db:
         await create_initial_admin(db)
+        # 从站点自定义配置读取应用名称，动态设置 Swagger/OpenAPI 标题
+        cfg = await get_config(db, "custom_config") or {}
+        app_name = cfg.get("app_name")
+        if app_name:
+            app.title = app_name
 
     yield
 

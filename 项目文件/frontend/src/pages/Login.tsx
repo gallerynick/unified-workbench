@@ -218,8 +218,8 @@ export default function Login() {
             />
 
             {codeMode === 'totp' ? (
-              <div className={styles.otpRow ?? ''}>
-                {/* 隐藏输入框：接收所有键盘事件 */}
+              <div className={styles.otpRow ?? ''} onClick={() => otpInputRef.current?.focus()}>
+                {/* 透明输入框覆盖整个区域，点击即聚焦 */}
                 <input
                   ref={otpInputRef}
                   type="text"
@@ -233,7 +233,7 @@ export default function Login() {
                       void handleVerify2fa(otpDigits.join('').trim());
                     }
                   }}
-                  style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, zIndex: 1, cursor: 'text' }}
                   autoFocus
                   disabled={loading}
                 />

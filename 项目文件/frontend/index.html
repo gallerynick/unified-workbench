@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" />
     <title>一站式工作台</title>
+    <script>
+      /* 在 React 挂载前从本地缓存读取应用名称，避免页面标题闪烁 */
+      try {
+        var s = JSON.parse(localStorage.getItem('custom_app_settings') || '{}');
+        if (s && s.name) document.title = s.name;
+      } catch (e) { /* 忽略 */ }
+    </script>
   </head>
   <body>
     <!-- build:1782988753 --><div id="root"></div>

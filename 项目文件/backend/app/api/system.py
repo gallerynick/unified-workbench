@@ -199,9 +199,12 @@ async def test_notification(
         else:
             raise HTTPException(status_code=400, detail=f"未知通知渠道: {request.channel}")
 
+    custom_cfg = await get_config(db, "custom_config") or {}
+    app_name = custom_cfg.get("app_name", "一站式工作台")
+
     success = await channel.send(
         user_ids=["test"],
-        title="一站式工作台 - 测试通知",
+        title=f"{app_name} - 测试通知",
         content=f"这是一条来自 {request.channel} 渠道的测试通知。如果您收到此消息，说明通知配置正确。",
     )
 

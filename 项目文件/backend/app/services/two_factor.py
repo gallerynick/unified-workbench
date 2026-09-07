@@ -26,6 +26,8 @@ async def get_app_name(db: AsyncSession) -> str:
 
     cfg = await get_config(db, "custom_config") or {}
     return cfg.get("app_name") or DEFAULT_ISSUER
+
+
 # 每批生成的恢复码数量
 RECOVERY_CODE_COUNT = 10
 # 恢复码分组长度（如 XXXX-XXXX-XXXX 共 3 组 4 位）
@@ -109,7 +111,8 @@ async def create_pending_device(
     )
     db.add(device)
     await db.flush()
-    uri = build_otpauth_uri(secret, user.username)
+    issuer_name = await get_app_name(db)
+    uri = build_otpauth_uri(secret, user.username, issuer_name)
     return device, secret, uri
 
 
