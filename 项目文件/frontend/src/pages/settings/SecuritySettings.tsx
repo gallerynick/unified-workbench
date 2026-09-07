@@ -321,11 +321,20 @@ export default function SecuritySettings() {
           />
         )}
         <div style={{ marginTop: 'var(--spacing-card-gap)' }}>
-          <Button
-            icon={<SafetyOutlined />}
-            loading={waLoading}
-            onClick={() => setPwdAction('webauthn')}
-          >注册指纹/面容</Button>
+          {enabled ? (
+            <Button
+              icon={<SafetyOutlined />}
+              loading={waLoading}
+              onClick={() => setPwdAction('webauthn')}
+            >添加指纹/面容</Button>
+          ) : (
+            <Button
+              type="primary"
+              icon={<SafetyOutlined />}
+              loading={waLoading}
+              onClick={() => setPwdAction('webauthn')}
+            >开启指纹/面容认证</Button>
+          )}
         </div>
       </Card>
 
