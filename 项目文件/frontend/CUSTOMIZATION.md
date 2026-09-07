@@ -97,6 +97,36 @@ frontend/public/custom/
 }
 ```
 
+## 应用名称同步说明
+
+应用名称（`app.name`）修改后会同步到以下位置：
+
+| 位置 | 同步方式 | 说明 |
+|------|----------|------|
+| 登录页大标题 | 实时（React 挂载时读取） | `useCustomization` Hook |
+| 浏览器标签页标题 | 实时（React 挂载时覆盖） | `document.title` + `index.html` 内联脚本预加载 |
+| 首页欢迎文案 | 实时 | `useCustomization` Hook |
+| 主布局（Logo 文字/版权） | 实时 | `useCustomization` Hook |
+| TOTP 验证器（微软/谷歌 Authenticator） | 绑定后固定 | issuer 在生成二维码时写入 `otpauth://` URI，已绑定的设备**不会自动更新**，需删除后重新扫码 |
+| Swagger/OpenAPI 文档标题 | 服务启动时读取 | 修改后需重启后端服务 |
+| 测试通知标题 | 发送时读取 | 即时生效 |
+
+### 配置优先级
+
+应用名称的读取优先级（从高到低）：
+
+1. **后端数据库** `system_config.custom_config.app_name`（管理员在设置页修改）
+2. **静态文件** `public/custom/config.json` 中的 `app.name`
+3. **本地缓存** `localStorage.custom_app_settings.name`（离线兜底）
+4. **默认值** `一站式工作台`（代码中硬编码的 fallback）
+
+### TOTP 验证器特别说明
+
+- 绑定验证器时，后端从 `custom_config.app_name` 读取当前应用名称，写入 `otpauth://totp/{app_name}:{username}?secret=...&issuer={app_name}`
+- **已绑定的设备**：显示名称固定为扫码时的值，修改应用名称不影响已有设备
+- **新绑定的设备**：使用修改后的应用名称
+- 如需更新已有设备名称：在验证器中删除旧条目 → 在系统设置中重新绑定认证器
+
 ## 注意事项
 
 1. **配置文件格式**：必须是有效的 JSON 格式

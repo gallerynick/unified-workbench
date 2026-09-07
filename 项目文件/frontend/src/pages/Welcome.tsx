@@ -74,7 +74,7 @@ export default function Welcome() {
       icon: <RocketOutlined />,
       content: (
         <div className={styles.stepContent}>
-          <Title level={3}>欢迎使用{appName}</Title>
+          <Title level={3}>欢迎使用一站式工作台</Title>
           <Paragraph>系统尚未初始化，请完成以下设置开始使用。</Paragraph>
         </div>
       ),

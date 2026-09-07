@@ -241,7 +241,7 @@ export default function Login() {
                 {otpDigits.map((digit, i) => (
                   <div
                     key={i}
-                    className={(styles.otpBox ?? '') + (digit ? ' ' + (styles.otpBoxFilled ?? '') : '')}
+                    className={styles.otpBox ?? ''}
                     aria-hidden
                   >
                     {digit || ' '}

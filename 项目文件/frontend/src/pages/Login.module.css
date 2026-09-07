@@ -82,9 +82,7 @@
   line-height: 1;
 }
 
-.otpBoxFilled {
-  border-bottom-color: var(--ink-muted-80);
-}
+
 
 /* 恢复码输入 */
 .recoveryInput {
