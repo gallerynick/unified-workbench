@@ -25,6 +25,20 @@ from app.services.auth import verify_2fa_webauthn
 router = APIRouter()
 
 
+
+from fastapi import Request
+
+def get_request_origin(request: Request) -> str:
+    """从 HTTP 请求中提取 origin（用于 WebAuthn 校验）。"""
+    # 优先使用 Origin 头
+    origin = request.headers.get("origin")
+    if origin:
+        return origin
+    # 回退到 Host 头 + 协议
+    host = request.headers.get("host", "localhost")
+    scheme = request.url.scheme
+    return f"{scheme}://{host}"
+
 def _verify_login_password(user: User, password: str) -> None:
     """校验当前用户登录密码（敏感操作二次确认）。"""
     if not verify_password(password, user.password_hash):

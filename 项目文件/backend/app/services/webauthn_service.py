@@ -119,11 +119,20 @@ async def verify_registration_and_store(
     response: dict[str, Any],
     client_json: str,
     label: str,
+    request_origin: str | None = None,
+) -> UserWebAuthnCredential:
+    db: AsyncSession,
+    user: User,
+    credential_id: str,
+    raw_id: str,
+    response: dict[str, Any],
+    client_json: str,
+    label: str,
 ) -> UserWebAuthnCredential:
     """验证 WebAuthn 注册并存储凭据。"""
     settings = get_settings()
     rp_id = settings.WEBAUTHN_RP_ID or "localhost"
-    expected_origin = settings.WEBAUTHN_ORIGIN or "http://localhost"
+    expected_origin = request_origin or settings.WEBAUTHN_ORIGIN or "http://localhost"
 
     # 解析前端传来的 credential JSON
     registration_json = {
@@ -250,11 +259,18 @@ async def verify_authentication(
     raw_id: str,
     response: dict[str, Any],
     client_json: str,
+    request_origin: str | None = None,
+) -> UserWebAuthnCredential | None:
+    db: AsyncSession,
+    credential_id: str,
+    raw_id: str,
+    response: dict[str, Any],
+    client_json: str,
 ) -> UserWebAuthnCredential | None:
     """验证 WebAuthn 认证并更新计数器。"""
     settings = get_settings()
     rp_id = settings.WEBAUTHN_RP_ID or "localhost"
-    expected_origin = settings.WEBAUTHN_ORIGIN or "http://localhost"
+    expected_origin = request_origin or settings.WEBAUTHN_ORIGIN or "http://localhost"
 
     # 查找凭据
     result = await db.execute(
