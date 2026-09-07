@@ -349,3 +349,96 @@ async def remove_credentials(
     if credential_id:
         query = query.where(UserWebAuthnCredential.credential_id == credential_id)
     await db.execute(query)
+
+async def generate_login_authentication_options(
+    db: AsyncSession, request_origin: str | None = None
+) -> WebAuthnAuthStartResponse:
+    """生成登录用 WebAuthn 认证选项（无需用户上下文，用于 discoverable credentials 直接登录）。"""
+    from app.models.user_webauthn import UserWebAuthnCredential
+
+    settings = get_settings()
+    rp_id = settings.WEBAUTHN_RP_ID or "localhost"
+
+    # 获取所有已注册的凭据 ID（discoverable credentials）
+    result = await db.execute(select(UserWebAuthnCredential.credential_id))
+    cred_ids = [row[0] for row in result.all()]
+
+    challenge = webauthn.helpers.generate_challenge()
+
+    allow_credentials = [
+        PublicKeyCredentialDescriptor(
+            id=_b64url_decode(cid),
+            transports=[
+                AuthenticatorTransport.INTERNAL,
+                AuthenticatorTransport.USB,
+                AuthenticatorTransport.NFC,
+            ],
+        )
+        for cid in cred_ids
+    ]
+
+    options = PublicKeyCredentialRequestOptions(
+        challenge=challenge,
+        rp_id=rp_id,
+        allow_credentials=allow_credentials,
+        user_verification=UserVerificationRequirement.PREFERRED,
+        timeout=60000,
+    )
+
+    json_dict = webauthn.helpers.options_to_json_dict(options)
+
+    return WebAuthnAuthStartResponse(
+        challenge=json_dict["challenge"],
+        rp_id=rp_id,
+        timeout=json_dict["timeout"],
+        allow_credentials=cred_ids,
+        user_verification="preferred",
+    )
+
+
+async def verify_login_by_credential(
+    db: AsyncSession,
+    credential_id: str,
+    raw_id: str,
+    response: dict[str, Any],
+    client_json: str,
+    request_origin: str | None = None,
+) -> User:
+    """通过 WebAuthn 凭据验证登录并返回用户。"""
+    from app.models.user_webauthn import UserWebAuthnCredential
+    from app.models.user import User
+
+    settings = get_settings()
+    rp_id = settings.WEBAUTHN_RP_ID or "localhost"
+    expected_origin = request_origin or settings.WEBAUTHN_ORIGIN or "http://localhost"
+
+    # 查找凭据
+    result = await db.execute(
+        select(UserWebAuthnCredential).where(
+            UserWebAuthnCredential.credential_id == credential_id
+        )
+    )
+    credential = result.scalar_one_or_none()
+    if not credential:
+        raise ValueError("凭据未找到")
+
+    # 查找用户
+    user_result = await db.execute(select(User).where(User.id == credential.user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise ValueError("用户未找到")
+
+    # 验证 WebAuthn 签名
+    verified_credential = await verify_authentication(
+        db,
+        credential_id,
+        raw_id,
+        response,
+        client_json,
+        request_origin,
+    )
+    if not verified_credential:
+        raise ValueError("WebAuthn 验证失败")
+
+    await db.commit()
+    return user

@@ -188,6 +188,85 @@ async def remove_credential_endpoint(
     await db.commit()
     return UnifiedResponse(msg="已删除该凭据")
 
+
+
+@router.post(
+    "/login/start",
+    response_model=UnifiedResponse[WebAuthnAuthStartResponse],
+)
+async def login_start_endpoint(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """发起 WebAuthn 直接登录（无需用户名，discoverable credentials）。"""
+    origin = get_request_origin(request)
+    options = await webauthn_service.generate_login_authentication_options(db, origin)
+    return UnifiedResponse(data=options)
+
+
+@router.post(
+    "/login/finish",
+    response_model=UnifiedResponse[dict],
+)
+async def login_finish_endpoint(
+    request: dict,
+    req: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """完成 WebAuthn 直接登录：验证签名并签发令牌。"""
+    from app.services.auth import _issue_tokens
+
+    origin = get_request_origin(req)
+    ip = req.client.host if req.client else None
+    user_agent = req.headers.get("User-Agent", "")
+    device_token = req.headers.get("X-Device-Token", "")
+
+    try:
+        user = await webauthn_service.verify_login_by_credential(
+            db,
+            request["credential_id"],
+            request["raw_id"],
+            request["response"],
+            request["client_json"],
+            origin,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+    tokens = await _issue_tokens(db, user, ip, user_agent, device_token)
+    return UnifiedResponse(data=tokens)
+
+
+@router.post(
+    "/verify-lock",
+    response_model=UnifiedResponse[dict],
+)
+async def verify_lock_endpoint(
+    request: dict,
+    req: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """WebAuthn 锁屏解锁验证。"""
+    origin = get_request_origin(req)
+    try:
+        credential = await webauthn_service.verify_authentication(
+            db,
+            request["credential_id"],
+            request["raw_id"],
+            request["response"],
+            request["client_json"],
+            origin,
+        )
+        if not credential or credential.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="WebAuthn 验证失败"
+            )
+        await db.commit()
+        return UnifiedResponse(data={"valid": True})
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
 @router.post(
     "/verify-login",
     response_model=UnifiedResponse[dict],

@@ -3,13 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, message, Segmented } from 'antd';
 import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { login } from '../api/auth';
-import { verify2fa, webauthnVerifyLogin } from '../api/security';
+import { verify2fa, webauthnVerifyLogin, webauthnLoginStart, webauthnLoginFinish } from '../api/security';
 import { setTokens, isAuthenticated } from '../utils/auth';
 import { HttpError } from '../utils/request';
 import { useCustomization } from '../hooks/useCustomization';
 import { useUser } from '../contexts/UserContext';
 import type { LoginRequest, LoginResponse, TokenResponse } from '../types/user';
 import styles from './Login.module.css';
+
+/** Base64url 编码辅助函数 */
+const b64url = (bytes: Uint8Array) =>
+  btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
 const { Title, Text } = Typography;
 
@@ -179,9 +183,9 @@ export default function Login() {
       );
       
       const allowCredentials = opts.allow_credentials.map((cid: string) => ({
-        type: 'public-key',
+        type: 'public-key' as const,
         id: Uint8Array.from(atob(cid.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
-        transports: ['internal', 'usb', 'nfc'],
+        transports: ['internal', 'usb', 'nfc'] as any,
       }));
       
       const assertion = await navigator.credentials.get({
@@ -190,7 +194,7 @@ export default function Login() {
           rpId: opts.rp_id,
           timeout: opts.timeout,
           allowCredentials,
-          userVerification: opts.user_verification,
+          userVerification: opts.user_verification as any,
         },
       }) as any;
       
@@ -212,7 +216,7 @@ export default function Login() {
             ? btoa(String.fromCharCode(...new Uint8Array(assertion.response.userHandle))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
             : undefined,
         },
-        client_json: JSON.stringify(JSON.parse(btoa(String.fromCharCode(...new Uint8Array(assertion.response.clientDataJSON))))),
+        client_json: new TextDecoder().decode(assertion.response.clientDataJSON),
       });
       
       if (finishRes.code === 0 && finishRes.data && (finishRes.data as any).access_token && (finishRes.data as any).refresh_token) {
@@ -235,7 +239,80 @@ export default function Login() {
     }
   };
 
-  const handleBackToLogin = () => {
+  
+  // WebAuthn 直接登录（无需用户名密码）
+  const handleWebAuthnDirectLogin = async () => {
+    setLoading(true);
+    try {
+      // 获取认证配置
+      const startRes = await webauthnLoginStart();
+      if (startRes.code !== 0 || !startRes.data) {
+        message.error(startRes.msg || '获取验证配置失败');
+        return;
+      }
+
+      const opts = startRes.data;
+      const challenge = Uint8Array.from(
+        atob(opts.challenge.replace(/-/g, '+').replace(/_/g, '/')),
+        c => c.charCodeAt(0)
+      );
+
+      const allowCredentials = opts.allow_credentials?.map((cid: string) => ({
+        type: 'public-key' as const,
+        id: Uint8Array.from(atob(cid.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+        transports: ['internal', 'usb', 'nfc'] as any,
+      }));
+
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          rpId: opts.rp_id,
+          timeout: opts.timeout,
+          allowCredentials,
+          userVerification: opts.user_verification as any,
+        },
+      }) as any;
+
+      if (!assertion) {
+        message.warning('用户取消了验证');
+        return;
+      }
+
+      const finishRes = await webauthnLoginFinish({
+        credential_id: assertion.id,
+        raw_id: b64url(new Uint8Array(assertion.rawId)),
+        response: {
+          authenticatorData: b64url(new Uint8Array(assertion.response.authenticatorData)),
+          clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(assertion.response.clientDataJSON))),
+          signature: b64url(new Uint8Array(assertion.response.signature)),
+          userHandle: assertion.response.userHandle
+            ? b64url(new Uint8Array(assertion.response.userHandle))
+            : undefined,
+        },
+        client_json: new TextDecoder().decode(assertion.response.clientDataJSON),
+      });
+
+      if (finishRes.code === 0 && finishRes.data && (finishRes.data as any).access_token && (finishRes.data as any).refresh_token) {
+        await finishLogin(finishRes.data as any);
+      } else {
+        message.error(finishRes.msg || 'WebAuthn 登录失败');
+      }
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError') {
+        message.warning('用户取消了验证或浏览器不支持');
+      } else if (err.name === 'NotSupportedError') {
+        message.warning('当前浏览器不支持 WebAuthn');
+      } else if (err.name === 'NoInteractiveUserError') {
+        message.warning('无法检测到用户交互，请重试');
+      } else {
+        message.error('验证失败: ' + (err.message || '未知错误'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+const handleBackToLogin = () => {
     setPendingToken(null);
     setCode('');
     setOtpDigits(Array(OTP_LENGTH).fill(''));
@@ -292,6 +369,20 @@ export default function Login() {
                 登录
               </Button>
             </Form.Item>
+
+            <Form.Item className={styles.submitItem ?? ''}>
+              <Button
+                block
+                icon={<SafetyOutlined />}
+                loading={loading}
+                onClick={() => void handleWebAuthnDirectLogin()}
+              >
+                使用指纹/面容登录
+              </Button>
+            </Form.Item>
+            <div style={{ textAlign: 'center', margin: '8px 0', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: 12 }}>或使用账号密码登录</span>
+            </div>
           </Form>
         ) : (
           <div className={styles.form2fa ?? ''}>

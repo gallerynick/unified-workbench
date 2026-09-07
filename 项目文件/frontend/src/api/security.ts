@@ -68,30 +68,65 @@ export async function generateRecoveryCodes(password: string): Promise<UnifiedRe
 
 // WebAuthn
 
+export interface WebAuthnAuthOptions {
+  challenge: string;
+  rp_id: string;
+  timeout: number;
+  allow_credentials: string[];
+  user_verification: string;
+}
+
+export interface WebAuthnCredential {
+  id: string;
+  credential_id: string;
+  label: string;
+  transports: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+export interface WebAuthnLoginResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}
+
 export async function webauthnRegisterStart(label: string | undefined = undefined) {
-  return request('/auth/webauthn/register/start', { method: 'POST', body: { label: label || 'auth' } });
+  return request<Record<string, any>>('/auth/webauthn/register/start', { method: 'POST', body: { label: label || 'auth' } });
 }
 
 export async function webauthnRegisterFinish(data: object) {
-  return request('/auth/webauthn/register/finish', { method: 'POST', body: data });
+  return request<Record<string, any>>('/auth/webauthn/register/finish', { method: 'POST', body: data });
 }
 
 export async function webauthnAuthStart(credentialIds: string[] | undefined = undefined) {
-  return request('/auth/webauthn/authenticate/start', { method: 'POST', body: { credential_ids: credentialIds } });
+  return request<WebAuthnAuthOptions>('/auth/webauthn/authenticate/start', { method: 'POST', body: { credential_ids: credentialIds } });
 }
 
 export async function webauthnAuthFinish(data: object) {
-  return request('/auth/webauthn/authenticate/finish', { method: 'POST', body: data });
+  return request<Record<string, any>>('/auth/webauthn/authenticate/finish', { method: 'POST', body: data });
 }
 
 export async function listWebAuthnCredentials() {
-  return request('/auth/webauthn/credentials');
+  return request<WebAuthnCredential[]>('/auth/webauthn/credentials');
 }
 
 export async function removeWebAuthnCredential(credentialId: string) {
-  return request('/auth/webauthn/credentials/' + credentialId + '/remove', { method: 'POST' });
+  return request<null>('/auth/webauthn/credentials/' + credentialId + '/remove', { method: 'POST' });
 }
 
 export async function webauthnVerifyLogin(data: object) {
-  return request('/auth/webauthn/verify-login', { method: 'POST', body: data, headers: { 'X-Device-Token': getDeviceToken() } });
+  return request<WebAuthnLoginResponse>('/auth/webauthn/verify-login', { method: 'POST', body: data, headers: { 'X-Device-Token': getDeviceToken() } });
+}
+
+export async function webauthnLoginStart() {
+  return request<WebAuthnAuthOptions>('/auth/webauthn/login/start', { method: 'POST' });
+}
+
+export async function webauthnLoginFinish(data: object) {
+  return request<WebAuthnLoginResponse>('/auth/webauthn/login/finish', { method: 'POST', body: data, headers: { 'X-Device-Token': getDeviceToken() } });
+}
+
+export async function webauthnVerifyLock(data: object) {
+  return request<{ valid: boolean }>('/auth/webauthn/verify-lock', { method: 'POST', body: data });
 }
