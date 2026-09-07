@@ -33,10 +33,20 @@ export default function Login() {
   const handleOtpChange = (index: number, value: string) => {
     // 只允许数字
     const clean = value.replace(/[^0-9]/g, '');
-    if (!clean) return;
 
     const next = [...otpDigits];
-    next[index] = clean.charAt(0); // 每格只取1位
+
+    // 删除操作：清空当前位，跳回上一格
+    if (!clean && otpDigits[index]) {
+      next[index] = '';
+      setOtpDigits(next);
+      setCode(next.join(''));
+      if (index > 0) otpRefs.current[index - 1]?.focus();
+      return;
+    }
+    if (!clean) return;
+
+    next[index] = clean.charAt(0);
     setOtpDigits(next);
     setCode(next.join(''));
 
