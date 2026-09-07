@@ -166,7 +166,6 @@ async def verify_registration_and_store(
         )
 
     # 验证 attestation statement
-    parse_attestation_statement(attestation.att_stmt)
 
     # 获取 attested credential data
     acd = authenticator_data.attested_credential_data
