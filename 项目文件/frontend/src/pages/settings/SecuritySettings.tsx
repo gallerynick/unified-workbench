@@ -43,7 +43,7 @@ export default function SecuritySettings() {
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
 
   const customization = useCustomization();
-  const appLogo = customization.branding.logoCollapsed || customization.branding.logoExpanded;
+  const appLogo = customization.branding.logoCollapsed || customization.branding.logoExpanded || '/favicon.svg';
 
   const refresh = useCallback(async () => {
     try {

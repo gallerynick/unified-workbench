@@ -214,9 +214,9 @@ export default function Login() {
         ) : (
           <div className={styles.form2fa ?? ''}>
             <div className={styles.otpIconWrap ?? ''}>
-              {customization.branding.logoCollapsed || customization.branding.logoExpanded ? (
+              {(customization.branding.logoCollapsed || customization.branding.logoExpanded || '/favicon.svg') ? (
                 <img
-                  src={customization.branding.logoCollapsed || customization.branding.logoExpanded}
+                  src={customization.branding.logoCollapsed || customization.branding.logoExpanded || '/favicon.svg'}
                   alt={customization.app.name}
                   className={styles.otpLogo ?? ''}
                 />
