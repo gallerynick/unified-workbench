@@ -31,34 +31,34 @@ export default function Login() {
 
   // ── 二次验证时同步 otpDigits → code ──
   const handleOtpChange = (index: number, value: string) => {
-    // 只允许数字
     const clean = value.replace(/[^0-9]/g, '');
 
-    const next = [...otpDigits];
+    setOtpDigits((prev) => {
+      const next = [...prev];
 
-    // 删除操作：清空当前位，跳回上一格
-    if (!clean && otpDigits[index]) {
-      next[index] = '';
-      setOtpDigits(next);
-      setCode(next.join(''));
-      if (index > 0) otpRefs.current[index - 1]?.focus();
-      return;
-    }
-    if (!clean) return;
+      if (!clean) {
+        if (prev[index]) {
+          next[index] = '';
+          setCode(next.join(''));
+          if (index > 0) otpRefs.current[index - 1]?.focus();
+        }
+        return next;
+      }
 
-    next[index] = clean.charAt(0);
-    setOtpDigits(next);
-    setCode(next.join(''));
+      next[index] = clean.charAt(0);
+      const codeStr = next.join('');
+      setCode(codeStr);
 
-    // 输入后跳到下一格
-    if (clean.length > 0 && index < OTP_LENGTH - 1) {
-      otpRefs.current[index + 1]?.focus();
-    }
+      if (index < OTP_LENGTH - 1) {
+        otpRefs.current[index + 1]?.focus();
+      }
 
-    // 6 位填满后自动提交
-    if (next.every((d) => d !== '')) {
-      void handleVerify2fa();
-    }
+      if (next.every((d) => d !== '')) {
+        void handleVerify2fa(codeStr);
+      }
+
+      return next;
+    });
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -76,15 +76,14 @@ export default function Login() {
     const next = Array(OTP_LENGTH).fill('');
     for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
     setOtpDigits(next);
-    setCode(next.join(''));
+    const codeStr = next.join('');
+    setCode(codeStr);
 
-    // 聚焦到最后一位输入的下一格
     const focusIndex = Math.min(pasted.length, OTP_LENGTH - 1);
     otpRefs.current[focusIndex]?.focus();
 
-    // 填满自动提交
     if (next.every((d) => d !== '')) {
-      void handleVerify2fa();
+      void handleVerify2fa(codeStr);
     }
   };
 
@@ -147,15 +146,16 @@ export default function Login() {
     }
   };
 
-  const handleVerify2fa = async () => {
+  const handleVerify2fa = async (codeValue?: string) => {
+    const codeToUse = codeValue ?? code;
     if (!pendingToken) return;
-    if (code.trim().length < 6) {
+    if (codeToUse.trim().length < 6) {
       message.warning(codeMode === 'totp' ? '请输入 6 位动态码' : '请输入恢复码');
       return;
     }
     setLoading(true);
     try {
-      const response = await verify2fa(pendingToken, code.trim());
+      const response = await verify2fa(pendingToken, codeToUse.trim());
       if (response.code === 0 && response.data.access_token && response.data.refresh_token) {
         await finishLogin(response.data);
       } else {
