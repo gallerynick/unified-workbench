@@ -18,6 +18,7 @@ import {
   generateRecoveryCodes,
 } from '../../api/security';
 import type { TwoFAStatus, TwoFADevice } from '../../types/user';
+import { useCustomization } from '../../hooks/useCustomization';
 import styles from './SecuritySettings.module.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -40,6 +41,9 @@ export default function SecuritySettings() {
 
   // 恢复码展示弹窗
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+
+  const customization = useCustomization();
+  const appLogo = customization.branding.logoCollapsed || customization.branding.logoExpanded;
 
   const refresh = useCallback(async () => {
     try {
@@ -268,6 +272,14 @@ export default function SecuritySettings() {
       >
         {bindInfo ? (
           <div className={styles.bindWrap ?? ''}>
+            {/* 应用 Logo（类似 GitHub 2FA 设置显示自身图标） */}
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              {appLogo ? (
+                <img src={appLogo} alt={customization.app.name} style={{ height: 56, width: 'auto', objectFit: 'contain', maxWidth: 200 }} />
+              ) : (
+                <SafetyOutlined style={{ fontSize: 56, color: 'var(--color-primary)' }} />
+              )}
+            </div>
             <Text>使用 Google Authenticator、微软 Authenticator 等应用扫描以下二维码，或手动输入密钥。</Text>
             <div style={{ marginTop: 16 }} className={styles.qrWrap ?? ''}>
               <QRCodeSVG value={bindInfo.uri} size={180} />
