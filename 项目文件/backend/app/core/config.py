@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     PENDING_2FA_EXPIRE_MINUTES: int = 5
 
     # CORS 配置
-    CORS_ORIGINS: str = "http://localhost,http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost,http://localhost:3000,https://localhost"
 
     # 初始管理员配置
     INITIAL_ADMIN_USERNAME: str = "admin"
