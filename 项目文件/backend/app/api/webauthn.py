@@ -101,12 +101,12 @@ async def register_start_endpoint(
     
     前置条件：必须已开启 TOTP 双因素认证。
     """
-    # 检查是否已开启 TOTP 双因素认证
+    # 检查是否已激活 TOTP 认证器设备
     from app.services import two_factor
-    if not await two_factor.is_2fa_enabled(db, current_user):
+    if not await two_factor.has_active_devices(db, current_user.id):
         raise HTTPException(
             status_code=400,
-            detail="请先开启认证器（TOTP）双因素认证，再绑定指纹/面容。"
+            detail="请先激活认证器（TOTP）设备，再绑定指纹/面容。"
         )
     
     options = await webauthn_service.generate_registration_options(
