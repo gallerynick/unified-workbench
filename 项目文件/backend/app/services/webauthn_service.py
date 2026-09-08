@@ -323,18 +323,18 @@ async def verify_authentication(
     from webauthn.helpers.cose import COSEKTY, COSECRV
     if decoded_key.kty == COSEKTY.EC2:
         # EC2 密钥
-        if decoded_key.crv == COSECRV.SECP256R1:
+        if decoded_key.crv == COSECRV.P256:
             curve = SECP256R1()
-        elif decoded_key.crv == COSECRV.SECP384R1:
+        elif decoded_key.crv == COSECRV.P384:
             curve = SECP384R1()
-        elif decoded_key.crv == COSECRV.SECP521R1:
+        elif decoded_key.crv == COSECRV.P521:
             curve = SECP521R1()
         else:
             raise ValueError(f"Unsupported curve: {decoded_key.crv}")
         public_key = EllipticCurvePublicKey.from_encoded_point(curve, decoded_key.x, decoded_key.y)
     elif decoded_key.kty == COSEKTY.OKP:
         # OKP 密钥 (Ed25519)
-        if decoded_key.crv == COSECRV.EdDSA:
+        if decoded_key.crv == COSECRV.ED25519:
             public_key = Ed25519PublicKey.from_public_bytes(decoded_key.x)
         else:
             raise ValueError(f"Unsupported OKP curve: {decoded_key.crv}")
