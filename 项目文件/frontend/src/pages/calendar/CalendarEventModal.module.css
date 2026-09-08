@@ -1,0 +1,328 @@
+/* ============================================================
+ * 日程日历 — 事件弹窗样式
+ * 视觉依据：项目基定/UI设计规范.md
+ *   容器：canvas 底 + rounded-sm + shadow-md + padding 24
+ *   标题 heading-3；标签 caption-strong
+ *   输入：高 36 / rounded-sm / border-primary；焦点 color-info 边框 + 光晕
+ *   footer：保存 = button-primary 胶囊；取消 = 次级胶囊（canvas 底 + primary 字）
+ * ============================================================ */
+
+.modal {
+  border-radius: var(--modal-rounded);
+}
+
+.modal .ant-modal-content {
+  border-radius: var(--modal-rounded);
+  box-shadow: var(--modal-shadow);
+  padding: 0;
+}
+
+.modal .ant-modal-header {
+  padding: 20px 24px 16px;
+  margin-bottom: 0;
+  background: transparent;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-3-size);
+  font-weight: var(--text-heading-3-weight);
+  line-height: var(--text-heading-3-line);
+  letter-spacing: var(--text-heading-3-spacing);
+  color: var(--ink);
+}
+
+/* ── 表单 ─────────────────────────────────────────────── */
+
+.form .ant-form-item {
+  margin-bottom: var(--spacing-sm);
+}
+
+.form .ant-form-item-label > label {
+  color: var(--ink-muted-80);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-strong-size);
+  font-weight: var(--text-caption-strong-weight);
+  line-height: var(--text-caption-line);
+  letter-spacing: var(--text-caption-spacing);
+}
+
+.field {
+  margin-bottom: var(--spacing-sm);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+.row > .field:first-child {
+  padding-right: var(--spacing-xxs);
+}
+
+/* 输入框：规格 input（rounded-sm / border-primary / 焦点 color-info + 光晕） */
+.input,
+.input.ant-input,
+.input.ant-input-affix-wrapper,
+.input.ant-input-textarea {
+  height: 36px;
+  border-radius: var(--rounded-sm);
+  border: var(--input-border);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm-size);
+  box-shadow: none;
+}
+
+.input.ant-input-affix-wrapper {
+  padding: 4px 11px;
+}
+
+.input.ant-input-affix-wrapper .ant-input {
+  height: auto;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.input.ant-input-textarea,
+.input.ant-input-textarea textarea {
+  height: auto;
+  resize: vertical;
+  padding: 8px 11px;
+}
+
+.input:focus,
+.input.ant-input:focus,
+.input.ant-input-affix-wrapper-focused {
+  border: var(--input-focus-border);
+  box-shadow: var(--input-focus-shadow);
+}
+
+.input::placeholder,
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.inputWide {
+  width: 100%;
+}
+
+.picker.ant-picker {
+  width: 100%;
+  height: 36px;
+  border-radius: var(--rounded-sm);
+  border: var(--input-border);
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.picker.ant-picker .ant-picker-input > input {
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm-size);
+}
+
+.picker.ant-picker .ant-picker-input > input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.picker.ant-picker-focused {
+  border: var(--input-focus-border);
+  box-shadow: var(--input-focus-shadow);
+}
+
+.select.ant-select,
+.selectSmall.ant-select {
+  width: 100%;
+}
+
+.selectSmall.ant-select {
+  width: 96px;
+}
+
+.select.ant-select .ant-select-selector,
+.selectSmall.ant-select .ant-select-selector {
+  height: 36px !important;
+  border-radius: var(--rounded-sm) !important;
+  border: var(--input-border) !important;
+  background: var(--input-bg) !important;
+  box-shadow: none !important;
+}
+
+.select.ant-select .ant-select-selection-item,
+.selectSmall.ant-select .ant-select-selection-item {
+  line-height: 34px !important;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm-size);
+}
+
+.select.ant-select-focused .ant-select-selector,
+.selectSmall.ant-select-focused .ant-select-selector {
+  border: var(--input-focus-border) !important;
+  box-shadow: var(--input-focus-shadow) !important;
+}
+
+.reminderText {
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+  white-space: nowrap;
+}
+
+/* ── 颜色选择器：28px 圆点 + 选中双层环 ─────────────────── */
+
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  flex-wrap: wrap;
+}
+
+.colorDot,
+.colorDotActive {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--rounded-circular);
+  cursor: pointer;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    border-color var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.colorDot:hover {
+  background: var(--bg-tertiary);
+}
+
+.colorDot:active,
+.colorDotActive:active {
+  transform: var(--btn-active-scale);
+}
+
+.colorDot:focus-visible,
+.colorDotActive:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.colorInner {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--rounded-circular);
+  transition:
+    width var(--anim-fast) var(--anim-ease),
+    height var(--anim-fast) var(--anim-ease);
+}
+
+.colorDotActive {
+  border-color: var(--ink);
+}
+
+.colorDotActive .colorInner {
+  width: 14px;
+  height: 14px;
+}
+
+.colorName {
+  margin-left: var(--spacing-xxs);
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+  letter-spacing: var(--text-caption-spacing);
+}
+
+/* ── footer：删除（左）+ 取消/保存（右） ────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.footerSpacer {
+  flex: 1;
+}
+
+.deleteBtn {
+  height: 34px;
+  border-radius: var(--rounded-sm);
+  font-size: var(--text-caption-size);
+  font-weight: 400;
+  box-shadow: none;
+  transition: var(--anim-fast) var(--anim-ease);
+}
+
+.deleteBtn:hover {
+  box-shadow: none;
+}
+
+.cancelBtn {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: var(--rounded-pill);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: 400;
+  letter-spacing: var(--text-caption-spacing);
+  box-shadow: none;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.cancelBtn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--hairline);
+  color: var(--color-primary);
+}
+
+.cancelBtn:active {
+  transform: var(--btn-active-scale);
+}
+
+.submitBtn {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: var(--rounded-pill);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: 400;
+  letter-spacing: var(--text-caption-spacing);
+  box-shadow: none;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.submitBtn:hover {
+  background: var(--color-primary-focus);
+  color: var(--btn-primary-text);
+}
+
+.submitBtn:active {
+  transform: var(--btn-active-scale);
+}
+
+/* ── 深色模式 ─────────────────────────────────────────── */
+
+[data-theme='dark'] .cancelBtn {
+  color: var(--color-primary-on-dark);
+}
+
+[data-theme='dark'] .cancelBtn:hover {
+  color: var(--color-primary-on-dark);
+}

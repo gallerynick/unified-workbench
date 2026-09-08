@@ -1,58 +1,233 @@
+/* ============================================================
+ * 日程日历 — 页面结构样式
+ * 视觉依据：项目基定/UI设计规范.md
+ *   工具条：hairline 描边圆角导航组 + heading-1 大标题 + segmented 分段切换
+ *   按钮：button-primary 胶囊形；按下态用 scale(0.95) 而非变色
+ *   焦点：outline 2px solid color-primary-focus
+ * ============================================================ */
+
 .container {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-card-gap);
+  gap: var(--spacing-sm);
+  height: 100%;
 }
 
-.header {
+/* ── 工具条 ───────────────────────────────────────────── */
+
+.toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--spacing-md);
   flex-wrap: wrap;
-  gap: var(--spacing-card-gap);
-  min-height: var(--spacing-xxl);
+  min-height: var(--spacing-xl);
 }
 
-.title {
-  margin: 0 !important;
-  font-weight: 600;
+.navGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-xxs);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-sm);
+  flex-shrink: 0;
+}
+
+.navBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--rounded-circular);
+  color: var(--ink-muted-80);
+  font-size: var(--text-body-xs-size);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    color var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.navBtn:hover {
+  background: var(--bg-tertiary);
+  color: var(--ink);
+}
+
+.navBtn:active {
+  transform: var(--btn-active-scale);
+}
+
+.navBtn:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+.todayBtn {
+  padding: 0 14px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--rounded-sm);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-strong-weight);
+  line-height: var(--text-caption-line);
+  letter-spacing: var(--text-caption-spacing);
+  cursor: pointer;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.todayBtn:hover {
+  background: var(--bg-tertiary);
+}
+
+.todayBtn:active {
+  transform: var(--btn-active-scale);
+}
+
+.todayBtn:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+.toolbarTitle {
+  flex: 1;
+  margin: 0;
+  padding-left: var(--spacing-sm);
+  font-family: var(--font-display);
+  font-size: var(--text-heading-1-size);
+  font-weight: var(--text-heading-1-weight);
+  line-height: var(--text-heading-1-line);
+  letter-spacing: var(--text-heading-1-spacing);
+  color: var(--ink);
   white-space: nowrap;
 }
 
-/* Event list below calendar */
-.eventList {
-  margin-top: var(--spacing-lg);
-  border-radius: var(--rounded-sm);
-  overflow: hidden;
-}
-
-.eventItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-sm) 0;
-  border-bottom: 1px solid var(--border-secondary);
-  transition: background var(--anim-fast) var(--anim-ease);
-}
-
-.eventItem:hover {
-  background: var(--bg-tertiary);
-  margin: 0 -16px;
-  padding: var(--spacing-sm) var(--spacing-card-gap);
-  border-radius: var(--rounded-sm);
-}
-
-.eventItem:last-child {
-  border-bottom: none;
-}
-
-.eventInfo {
-  display: flex;
+.rightGroup {
+  display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
 }
+
+/* ── 分段视图切换（规格 segmented：底 bg-tertiary / 选中字 color-info + 底 canvas） ── */
+
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-tertiary);
+  border-radius: var(--rounded-sm);
+}
+
+.segmented button {
+  padding: 5px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--rounded-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-line);
+  letter-spacing: var(--text-caption-spacing);
+  cursor: pointer;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    color var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.segmented button:hover {
+  color: var(--ink);
+}
+
+.segmented button:active {
+  transform: var(--btn-active-scale);
+}
+
+.segmented button:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+.segmentActive {
+  background: var(--canvas) !important;
+  color: var(--color-info) !important;
+  font-weight: var(--text-caption-strong-weight) !important;
+}
+
+/* ── 新建事件按钮（规格 button-primary：胶囊形 + 行动蓝） ── */
+
+.createBtn {
+  height: 38px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--rounded-pill);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: 400;
+  letter-spacing: var(--text-caption-spacing);
+  box-shadow: none;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.createBtn:hover {
+  background: var(--color-primary-focus);
+}
+
+.createBtn:active {
+  transform: var(--btn-active-scale);
+}
+
+.createBtn:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.infoBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--rounded-circular);
+  color: var(--ink-muted-48);
+  font-size: var(--text-body-sm-size);
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    color var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.infoBtn:hover {
+  background: var(--bg-tertiary);
+  color: var(--ink-muted-80);
+}
+
+.infoBtn:active {
+  transform: var(--btn-active-scale);
+}
+
+/* ── 日历主体 ─────────────────────────────────────────── */
+
+.calendar {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── 权限说明弹窗 ─────────────────────────────────────── */
 
 .permissionList {
   margin: var(--spacing-xxs) 0 var(--spacing-xs) 0;
@@ -79,4 +254,3 @@
 .permissionContent > :last-child {
   margin-bottom: 0 !important;
 }
-

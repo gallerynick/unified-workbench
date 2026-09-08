@@ -1,0 +1,119 @@
+/* ============================================================
+ * 日程日历 — 颜色筛选条
+ * 视觉依据：项目基定/UI设计规范.md
+ *   容器 canvas-parchment + rounded-sm + hairline
+ *   芯片 option-chip 压缩版；选中态 tag-primary（color-info-bg + color-info）
+ *   按下态以 scale(0.95) 表达（规格要求不用变色表达按压）
+ * ============================================================ */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-xxs);
+  background: var(--canvas-parchment);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-sm);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  padding: 5px 12px;
+  background: var(--canvas);
+  border: 1px solid transparent;
+  border-radius: var(--rounded-pill);
+  color: var(--ink-muted-80);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    color var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.chip:hover {
+  background: var(--bg-tertiary);
+}
+
+.chip:active {
+  transform: var(--btn-active-scale);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+.chipActive {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.chipEmpty {
+  opacity: 0.5;
+}
+
+.icon {
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--rounded-circular);
+}
+
+.chipLabel {
+  font-weight: var(--text-caption-weight);
+}
+
+.chipCount {
+  min-width: 1.2em;
+  text-align: right;
+  font-size: var(--text-body-xs-size);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.chipActive .chipCount {
+  color: var(--color-info);
+  opacity: 0.75;
+}
+
+.divider {
+  width: 1px;
+  height: 18px;
+  flex-shrink: 0;
+  background: var(--divider-soft);
+  margin: 0 var(--spacing-xxs);
+}
+
+.noneHint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  padding: 5px 8px;
+  font-size: var(--text-caption-size);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.summary {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

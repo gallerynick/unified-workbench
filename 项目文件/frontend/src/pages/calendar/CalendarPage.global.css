@@ -1,52 +1,347 @@
+/* ============================================================
+ * 日程日历 — FullCalendar 全局覆写（Apple Calendar 视觉）
+ * 视觉依据：项目基定/UI设计规范.md
+ *
+ * 分工：CalendarPage.module.css 负责页面结构（工具条/筛选条），
+ *       本文件只覆写 .fc 内部，不外溢到其他页面。
+ *
+ * 事件颜色约定：CalendarPage.toEventInput 通过 eventDidMount 把事件颜色
+ * 写入 DOM 自定义属性 --cal-event-color，本文件用 color-mix() 派生：
+ *   周/日视图事件 = 浅彩底 + 左侧实色条 + 深色文字
+ *   月视图全天事件 = 实色底 + 白色文字
+ * 因 FullCalendar 以行内样式写入颜色，故使用 !important 覆盖。
+ * ============================================================ */
+
+/* ── 1. 基础变量：把 FC 的默认色板换成项目 token ─────────────── */
+
 .fc {
-  --fc-border-color: var(--border-tertiary);
+  --fc-border-color: var(--border-secondary);
   --fc-page-bg-color: var(--canvas);
-  --fc-neutral-bg-color: var(--bg-secondary);
-  --fc-list-event-hover-bg-color: var(--bg-tertiary);
+  --fc-neutral-bg-color: var(--bg-tertiary);
+  --fc-neutral-text-color: var(--text-secondary);
   --fc-today-bg-color: var(--color-info-bg);
+  --fc-highlight-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  --fc-non-business-color: transparent;
+  --fc-more-link-bg-color: transparent;
+  --fc-more-link-text-color: var(--color-info);
+  --fc-now-indicator-color: var(--color-error);
+  --fc-list-event-hover-bg-color: var(--bg-secondary);
+
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm-size);
+  color: var(--ink);
 }
 
-.fc .fc-toolbar-title {
-  font-size: var(--text-heading-4-size);
-  font-weight: 600;
+/* ── 2. 整体网格：hairline 描边 + 圆角 ────────────────────── */
+
+.fc .fc-scrollgrid {
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-md);
+  overflow: hidden;
+  overflow: clip;
 }
 
-.fc .fc-button-primary {
-  background-color: var(--color-info);
-  border-color: var(--color-info);
+/* 表头：bg-secondary 底 + 发丝下边框 */
+.fc .fc-col-header-cell {
+  padding: 0;
+  border-bottom: 1px solid var(--hairline);
+  border-left: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
 }
 
-.fc .fc-button-primary:hover {
-  background-color: var(--color-primary-focus);
-  border-color: var(--color-primary-focus);
+.fc .fc-col-header-cell:first-child {
+  border-left: none;
 }
 
-.fc .fc-button-primary:not(:disabled).fc-button-active,
-.fc .fc-button-primary:not(:disabled):active {
-  background-color: var(--color-info-dark);
-  border-color: var(--color-info-dark);
+.fc .fc-col-header-cell-cushion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-strong-weight);
+  letter-spacing: var(--text-caption-spacing);
+}
+
+/* ── 3. 月视图 ───────────────────────────────────────────── */
+
+.fc .fc-daygrid-day {
+  border-left: 1px solid var(--border-secondary);
+}
+
+.fc .fc-daygrid-day:first-child {
+  border-left: none;
+}
+
+.fc .fc-daygrid-day-frame {
+  padding: 4px 6px 8px;
 }
 
 .fc .fc-daygrid-day.fc-day-today {
-  background-color: var(--color-info-bg);
+  background: var(--color-info-bg);
 }
 
-.fc .fc-event {
+/* 日期数字：普通日灰色；今天为行动蓝实心圆 */
+.fc .fc-daygrid-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  color: var(--text-secondary);
+  font-size: var(--text-body-sm-size);
+  font-weight: 400;
+  line-height: 1;
+  border-radius: var(--rounded-circular);
   cursor: pointer;
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  background: var(--color-primary);
+  color: var(--body-on-dark);
+  font-weight: var(--text-caption-strong-weight);
+}
+
+/* 非本月日期：弱化 */
+.fc .fc-day-other .fc-daygrid-day-number {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+/* ── 4. 事件 ─────────────────────────────────────────────── */
+
+.fc .fc-event {
+  border: 0;
+  border-radius: var(--rounded-xs);
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs-size);
+  line-height: 1.25;
+  cursor: pointer;
+  transition:
+    box-shadow var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+/* 周/日视图 + 月视图非全天事件：浅彩底 + 左侧实色条 + 深字 */
+.fc .cal-event-timed {
+  background: color-mix(
+    in srgb,
+    var(--cal-event-color, var(--color-info)) 16%,
+    transparent
+  ) !important;
+  color: var(--ink) !important;
+  border-left: 3px solid var(--cal-event-color, var(--color-info)) !important;
+}
+
+/* 月视图全天事件：实色底 + 白字 */
+.fc .cal-event-all-day {
+  background: var(--cal-event-color, var(--color-info)) !important;
+  color: var(--body-on-dark) !important;
+}
+
+.fc .fc-event:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.fc .fc-event:focus {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+/* 事件标题：紧凑内边距 + 单行省略 */
+.fc .fc-event-title {
+  padding: 2px 6px 2px 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc .cal-event-all-day .fc-event-title {
+  padding-left: 8px;
+  font-weight: var(--text-caption-strong-weight);
+}
+
+/* 周视图事件内的时间文本 */
+.fc .fc-timegrid-event .fc-event-time {
+  padding-right: 4px;
+  color: var(--ink-muted-80);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* 「+N 更多」改为文字链接 */
+.fc .fc-more-link {
+  background: transparent;
+  color: var(--color-info);
+  padding: 1px 6px;
   border-radius: var(--rounded-chip);
   font-size: var(--text-body-xs-size);
 }
 
-.fc .fc-event:hover {
+.fc .fc-more-link:hover {
+  text-decoration: underline;
+}
+
+/* ── 5. 周/日时间轴 ─────────────────────────────────────── */
+
+.fc .fc-timegrid-slot {
+  height: 44px;
+  border-top: 1px solid var(--border-secondary);
+}
+
+.fc .fc-timegrid-slot-line-frame {
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-timegrid-slot-label-cushion {
+  padding: 0 8px;
+  color: var(--text-tertiary);
+  font-size: var(--text-body-xs-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.fc .fc-timegrid-col.fc-day-today {
+  background: var(--color-info-bg);
+}
+
+.fc .fc-timegrid-axis {
+  border-right: 1px solid var(--border-secondary);
+}
+
+/* 全天行 */
+.fc .fc-timegrid-divider-outer {
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ── 6. 选区与拖拽高亮 ──────────────────────────────────── */
+
+.fc .fc-highlight {
+  background: var(--fc-highlight-color);
+  border-radius: var(--rounded-xs);
+}
+
+.fc .fc-event-dragging {
+  box-shadow: var(--shadow-md);
+}
+
+/* ── 7. 列表视图 ────────────────────────────────────────── */
+
+.fc .fc-list {
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-md);
+  background: var(--canvas);
+  overflow: hidden;
+  overflow: clip;
+}
+
+.fc .fc-list-header-cushion,
+.fc .fc-list-day-cushion {
+  padding: 10px 16px;
+}
+
+.fc .fc-list-day-cushion {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.fc .fc-list-day-text {
+  color: var(--ink);
+  font-size: var(--text-caption-strong-size);
+  font-weight: var(--text-caption-strong-weight);
+  letter-spacing: var(--text-caption-spacing);
+}
+
+.fc .fc-list-day-side {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+}
+
+.fc .fc-list-day-number {
+  font-size: var(--text-body-xs-size);
+  color: var(--text-tertiary);
+}
+
+.fc .fc-list-day.fc-day-today .fc-list-day-text {
+  color: var(--color-info);
+}
+
+.fc .fc-list-event {
+  cursor: pointer;
+  transition: background var(--anim-fast) var(--anim-ease);
+}
+
+.fc .fc-list-event:hover {
+  background: var(--bg-secondary);
+}
+
+/* 列表事件的色点 */
+.fc .fc-list-event-graphic {
+  width: 6px;
+  height: 6px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: var(--rounded-circular);
+  background: var(--cal-event-color, var(--color-info)) !important;
+}
+
+.fc .fc-list-event-title {
+  color: var(--ink);
+  font-size: var(--text-body-sm-size);
+  padding: 0 12px;
+}
+
+.fc .fc-list-event-time {
+  color: var(--text-secondary);
+  font-size: var(--text-body-xs-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 8. 隐藏残留的内置工具条（防御性；headerToolbar 已置 false） ── */
+
+.fc .fc-toolbar {
+  display: none;
+}
+
+/* ── 9. 深色模式 ───────────────────────────────────────── */
+/* token 已随 [data-theme="dark"] 切换（--border-secondary #303030 等），
+   此处只补深色下事件浅彩底的对比度。 */
+
+[data-theme='dark'] .fc {
+  --fc-neutral-bg-color: #1f1f1f;
+}
+
+[data-theme='dark'] .fc .cal-event-timed {
+  background: color-mix(
+    in srgb,
+    var(--cal-event-color, var(--color-info)) 28%,
+    transparent
+  ) !important;
+  color: var(--ink) !important;
+}
+
+[data-theme='dark'] .fc .cal-event-all-day {
+  color: #ffffff !important;
+}
+
+[data-theme='dark'] .fc .fc-timegrid-event .fc-event-time {
+  color: var(--text-secondary);
   opacity: 0.9;
 }
 
-.fc .fc-timegrid-slot {
-  height: 40px;
+[data-theme='dark'] .fc .fc-col-header-cell-cushion {
+  color: var(--text-secondary);
 }
 
-.fc .fc-col-header-cell {
-  padding: var(--spacing-sm) var(--spacing-xxs);
-  font-weight: 600;
-  font-size: var(--text-caption-size);
+[data-theme='dark'] .fc .fc-daygrid-day-number {
+  color: var(--text-tertiary);
+}
+
+[data-theme='dark'] .fc .fc-scrollgrid {
+  border-color: var(--hairline);
 }
