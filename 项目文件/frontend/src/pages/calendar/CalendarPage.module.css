@@ -13,14 +13,48 @@
   height: 100%;
 }
 
-/* ── 工具条 ───────────────────────────────────────────── */
+/* ── 页面标题 + 工具条（标准表头：标题居左 + 操作居右） ── */
 
-.toolbar {
+.header {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   flex-wrap: wrap;
-  min-height: var(--spacing-xl);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  flex: 1;
+}
+
+/* 页级标题：与任务中心等页面一致，antd Title level=4（20px / 600） */
+.pageTitle {
+  margin: 0 !important;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* 当前周期标题：小号 secondary 色，不再用超大 h1 */
+.monthLabel {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-3-size);
+  font-weight: var(--text-heading-3-weight);
+  line-height: var(--text-heading-3-line);
+  letter-spacing: var(--text-heading-3-spacing);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.headerRight {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
 }
 
 .navGroup {
@@ -99,29 +133,10 @@
   outline-offset: 1px;
 }
 
-.toolbarTitle {
-  flex: 1;
-  margin: 0;
-  padding-left: var(--spacing-sm);
-  font-family: var(--font-display);
-  font-size: var(--text-heading-1-size);
-  font-weight: var(--text-heading-1-weight);
-  line-height: var(--text-heading-1-line);
-  letter-spacing: var(--text-heading-1-spacing);
-  color: var(--ink);
-  white-space: nowrap;
-}
-
-.rightGroup {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-shrink: 0;
-}
-
 /* ── 分段视图切换（规格 segmented：底 bg-tertiary / 选中字 color-info + 底 canvas） ── */
 
 .segmented {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -130,7 +145,25 @@
   border-radius: var(--rounded-sm);
 }
 
+/* 选中滑块：canvas 底 + 细投影，跟随选中项平滑滑动 */
+.segThumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  z-index: 0;
+  background: var(--canvas);
+  border-radius: var(--rounded-sm);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  transition:
+    transform var(--anim-normal) var(--anim-ease-in-out),
+    width var(--anim-normal) var(--anim-ease-in-out);
+}
+
 .segmented button {
+  position: relative;
+  z-index: 1;
   padding: 5px 14px;
   background: transparent;
   border: none;
@@ -143,7 +176,6 @@
   letter-spacing: var(--text-caption-spacing);
   cursor: pointer;
   transition:
-    background var(--anim-fast) var(--anim-ease),
     color var(--anim-fast) var(--anim-ease),
     transform var(--anim-fast) var(--anim-ease);
 }
@@ -162,7 +194,6 @@
 }
 
 .segmentActive {
-  background: var(--canvas) !important;
   color: var(--color-info) !important;
   font-weight: var(--text-caption-strong-weight) !important;
 }

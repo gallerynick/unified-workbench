@@ -40,10 +40,8 @@ export default function ColorFilterBar({
     ? total
     : activeColors.reduce((sum, c) => sum + (counts.get(c) ?? 0), 0);
 
-  const chipClass = (active: boolean, empty: boolean) =>
-    [styles.chip, active ? styles.chipActive : '', empty ? styles.chipEmpty : '']
-      .filter(Boolean)
-      .join(' ');
+  const chipClass = (active: boolean) =>
+    [styles.chip, active ? styles.chipActive : ''].filter(Boolean).join(' ');
 
   const summaryText = allSelected ? '显示全部' : ['显示 ', shownCount, ' / ', total].join('');
 
@@ -51,7 +49,7 @@ export default function ColorFilterBar({
     <div className={styles.bar}>
       <button
         type="button"
-        className={chipClass(allSelected, false)}
+        className={chipClass(allSelected)}
         onClick={onShowAll}
         aria-pressed={allSelected}
       >
@@ -69,7 +67,7 @@ export default function ColorFilterBar({
           <button
             key={c.value}
             type="button"
-            className={chipClass(active, count === 0)}
+            className={chipClass(active)}
             onClick={() => onToggleColor(c.value)}
             aria-pressed={active}
           >

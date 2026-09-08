@@ -14,6 +14,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import zhLocale from '@fullcalendar/core/locales/zh-cn';
 import type {
   DateSelectArg,
+  DayCellContentArg,
   EventClickArg,
   EventDropArg,
   EventInput,
@@ -164,6 +165,8 @@ export default function CalendarPage() {
   // ── 自绘工具条状态 ──────────────────────────────────────────────
   const [titleText, setTitleText] = useState<string>(() => dayjs().format('YYYY年M月'));
   const [activeView, setActiveView] = useState<CalViewKey>('dayGridMonth');
+  const segRef = useRef<HTMLDivElement>(null);
+  const [segThumb, setSegThumb] = useState<{ left: number; width: number } | null>(null);
 
   // ── 颜色筛选状态（偏好持久化到 localStorage） ─────────────────────
   const [activeColors, setActiveColors] = useState<string[]>(() => loadActiveColors());
@@ -197,6 +200,20 @@ export default function CalendarPage() {
     const api = getApi();
     if (api) syncView(api.view);
   }, [getApi, syncView]);
+
+  // ── 分段切换滑块（跟随选中项平滑滑动） ───────────────────────────
+  useEffect(() => {
+    const seg = segRef.current;
+    if (!seg) return;
+    const active = seg.querySelector<HTMLButtonElement>('[aria-selected="true"]');
+    if (!active) {
+      setSegThumb(null);
+      return;
+    }
+    const segRect = seg.getBoundingClientRect();
+    const btnRect = active.getBoundingClientRect();
+    setSegThumb({ left: btnRect.left - segRect.left, width: btnRect.width });
+  }, [activeView]);
 
   // ── 事件弹窗 ────────────────────────────────────────────────────
   const openCreateModal = useCallback(
@@ -321,24 +338,39 @@ export default function CalendarPage() {
 
   return (
     <div className={styles.container}>
-      {/* ── 自绘工具条（Apple Calendar 风格：圆形导航 + 大标题 + 分段切换） ── */}
-      <div className={styles.toolbar}>
-        <div className={styles.navGroup}>
-          <button type="button" className={styles.navBtn} onClick={goPrev} aria-label="上一周期">
-            <LeftOutlined />
-          </button>
-          <button type="button" className={styles.todayBtn} onClick={goToday}>
-            今天
-          </button>
-          <button type="button" className={styles.navBtn} onClick={goNext} aria-label="下一周期">
-            <RightOutlined />
-          </button>
+      {/* ── 页面标题 + 工具条（标准表头：标题居左 + 操作居右） ── */}
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <Title level={4} className={cx(styles.pageTitle)}>
+            日程
+          </Title>
+          <span className={styles.monthLabel}>{titleText}</span>
         </div>
 
-        <h1 className={styles.toolbarTitle}>{titleText}</h1>
+        <div className={styles.headerRight}>
+          <div className={styles.navGroup}>
+            <button type="button" className={styles.navBtn} onClick={goPrev} aria-label="上一周期">
+              <LeftOutlined />
+            </button>
+            <button type="button" className={styles.todayBtn} onClick={goToday}>
+              今天
+            </button>
+            <button type="button" className={styles.navBtn} onClick={goNext} aria-label="下一周期">
+              <RightOutlined />
+            </button>
+          </div>
 
-        <div className={styles.rightGroup}>
-          <div className={styles.segmented} role="tablist" aria-label="视图切换">
+          <div className={styles.segmented} ref={segRef} role="tablist" aria-label="视图切换">
+            {segThumb && (
+              <span
+                className={styles.segThumb}
+                style={{
+                  transform: `translateX(${segThumb.left}px)`,
+                  width: `${segThumb.width}px`,
+                }}
+                aria-hidden
+              />
+            )}
             {VIEW_OPTIONS.map((v) => (
               <button
                 key={v.key}
@@ -391,6 +423,7 @@ export default function CalendarPage() {
           firstDay={1}
           locale={zhLocale}
           headerToolbar={false}
+          dayCellContent={(arg: DayCellContentArg) => String(arg.date.getDate())}
           height="auto"
           selectable
           selectMirror

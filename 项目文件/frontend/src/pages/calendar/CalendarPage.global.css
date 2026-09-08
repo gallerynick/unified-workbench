@@ -82,17 +82,22 @@
   background: var(--color-info-bg);
 }
 
-/* 日期数字：普通日灰色；今天为行动蓝实心圆 */
+/* 日期数字：普通日灰色；今天为行动蓝实心圆
+   注意 box-sizing + padding:0，避免数字被多余内边距挤出导致错位 */
 .fc .fc-daygrid-day-number {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  margin: 0;
   color: var(--text-secondary);
   font-size: var(--text-body-sm-size);
   font-weight: 400;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
   border-radius: var(--rounded-circular);
   cursor: pointer;
 }
@@ -103,10 +108,13 @@
   font-weight: var(--text-caption-strong-weight);
 }
 
-/* 非本月日期：弱化 */
+/* 非本月日期：弱化（只降色，不再叠加透明度，保证文字清晰不错位） */
+.fc .fc-day-other .fc-daygrid-day-top {
+  opacity: 0.55;
+}
+
 .fc .fc-day-other .fc-daygrid-day-number {
   color: var(--text-tertiary);
-  opacity: 0.6;
 }
 
 /* ── 4. 事件 ─────────────────────────────────────────────── */
