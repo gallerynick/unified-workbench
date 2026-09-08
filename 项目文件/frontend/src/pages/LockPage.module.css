@@ -133,6 +133,36 @@
   100% { opacity: 1; }
 }
 
+
+/* ====== WebAuthn 快速解锁按钮 ====== */
+.waMethod {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-primary);
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 20px;
+  transition: all 200ms ease;
+}
+
+.waMethod:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.waMethod:hover:not(:disabled) {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--bg-tertiary);
+}
+
 /* ====== Unlock — reverse stagger exit ====== */
 .container.exiting .enterElement {
   opacity: 1;

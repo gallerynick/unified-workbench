@@ -232,6 +232,19 @@ const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
               <ArrowRightOutlined />
             </button>
           </div>
+          {hasWaCredentials && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 16 }}>
+              <button
+                type="button"
+                aria-label="使用指纹解锁"
+                disabled={waLoading}
+                onClick={() => void handleWebAuthnUnlock()}
+                className={styles.waMethod ?? ''}
+              >
+                <SafetyOutlined />
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className={styles.interactive ?? ''}>
@@ -243,18 +256,7 @@ const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
           >
             <LockOutlined />
           </button>
-          {hasWaCredentials && (
-            <button
-              type="button"
-              aria-label="使用指纹解锁"
-              disabled={waLoading}
-              onClick={() => void handleWebAuthnUnlock()}
-              className={`${styles.lockIcon ?? ''} ${styles.enterElement ?? ''}`}
-              style={{ marginLeft: 16 }}
-            >
-              <SafetyOutlined />
-            </button>
-          )}
+          
           <Text type="secondary" className={`${styles.subtitle ?? ''} ${styles.enterElement ?? ''}`}>
             已锁定
           </Text>

@@ -370,19 +370,7 @@ const handleBackToLogin = () => {
               </Button>
             </Form.Item>
 
-            <Form.Item className={styles.submitItem ?? ''}>
-              <Button
-                block
-                icon={<SafetyOutlined />}
-                loading={loading}
-                onClick={() => void handleWebAuthnDirectLogin()}
-              >
-                使用指纹/面容登录
-              </Button>
-            </Form.Item>
-            <div style={{ textAlign: 'center', margin: '8px 0', color: 'var(--text-secondary)' }}>
-              <span style={{ fontSize: 12 }}>或使用账号密码登录</span>
-            </div>
+
           </Form>
         ) : (
           <div className={styles.form2fa ?? ''}>
