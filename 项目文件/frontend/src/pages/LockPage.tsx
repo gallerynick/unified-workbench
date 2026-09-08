@@ -179,7 +179,7 @@ const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
           const returnPath = sessionStorage.getItem('workbench_lock_return') || '/';
           sessionStorage.setItem('workbench_just_unlocked', '1');
           navigate(returnPath, { replace: true });
-        }, 800);
+        }, 500);
       } else {
         message.error(finishRes.msg || 'WebAuthn 验证失败');
       }
