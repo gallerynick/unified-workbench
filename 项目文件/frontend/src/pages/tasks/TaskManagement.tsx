@@ -141,7 +141,7 @@ export default function TaskManagement() {
           <Select value={priorityFilter} onChange={(v) => { setPriorityFilter(v); setPage(1); }} placeholder="优先级筛选" allowClear style={{ width: 120 }}
             options={[{ value: '', label: '全部' }, ...Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建待办</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建任务</Button>
           <Tooltip title="权限说明">
             <Button
               type="text"
@@ -159,7 +159,7 @@ export default function TaskManagement() {
         }}
       />
 
-      {/* 新建/编辑 待办（共用组件 TaskModal） */}
+      {/* 新建/编辑 任务（共用组件 TaskModal） */}
       <TaskModal
         open={taskModalOpen}
         editingTask={editingTask}
@@ -176,14 +176,14 @@ export default function TaskManagement() {
       >
         <div className={styles.permissionContent ?? ''}>
           <Title level={5}>创建者权限</Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有待办的完整管理权限，可以编辑内容、调整状态、删除待办和设置可见范围。</Paragraph>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有任务的完整管理权限，可以编辑内容、调整状态、删除任务和设置可见范围。</Paragraph>
           <Title level={5}>成员/指定用户权限</Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以查看和处理待办；被指定的用户只能查看被授权给自己的待办。</Paragraph>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以查看和处理任务；被指定的用户只能查看被授权给自己的任务。</Paragraph>
           <Title level={5}>可见范围</Title>
           <ul className={styles.permissionList ?? ''}>
             <li>
               <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                公开：所有成员都可以查看该待办
+                公开：所有成员都可以查看该任务
               </Text>
             </li>
             <li>
@@ -193,14 +193,14 @@ export default function TaskManagement() {
             </li>
             <li>
               <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                指定用户：仅被指定的用户可以看到该待办
+                指定用户：仅被指定的用户可以看到该任务
               </Text>
             </li>
           </ul>
           <Title level={5}>管理员</Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理自己创建以及被指定给自己的待办。</Paragraph>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理自己创建以及被指定给自己的任务。</Paragraph>
           <Title level={5}>创建权限</Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建待办，创建时需设定可见范围。</Paragraph>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建任务，创建时需设定可见范围。</Paragraph>
         </div>
       </Modal>
     </div>

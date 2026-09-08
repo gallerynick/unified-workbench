@@ -17,7 +17,7 @@ const links = [
   { label: '项目管理', icon: <ProjectOutlined />, path: '/projects' },
   { label: '团队成员', icon: <UserOutlined />, path: '/members' },
   { label: '日程日历', icon: <CalendarOutlined />, path: '/calendar' },
-  { label: '任务管理', icon: <CheckSquareOutlined />, path: '/tasks' },
+  { label: '任务中心', icon: <CheckSquareOutlined />, path: '/tasks' },
   { label: '提醒管理', icon: <BellOutlined />, path: '/reminders' },
   { label: '系统设置', icon: <SettingOutlined />, path: '/settings/site' },
 ];

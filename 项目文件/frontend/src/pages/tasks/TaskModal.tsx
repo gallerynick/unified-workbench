@@ -30,7 +30,7 @@ interface TaskFormValues {
 }
 
 /**
- * 任务/待办 新建/编辑 共用弹窗
+ * 任务 新建/编辑 共用弹窗
  *
  * 供「任务中心」页（TaskManagement）复用，表单与提交逻辑内聚于此，
  * 页面只负责打开/关闭/刷新，一处修改、多处以一。
@@ -108,7 +108,7 @@ export default function TaskModal({
 
   return (
     <Modal
-      title={editingTask ? '编辑待办' : '新建待办'}
+      title={editingTask ? '编辑任务' : '新建任务'}
       open={open}
       onOk={() => void handleSubmit()}
       onCancel={onClose}
@@ -122,13 +122,13 @@ export default function TaskModal({
       <Form form={form} layout="vertical">
         <Form.Item
           name="title"
-          label="待办标题"
-          rules={[{ required: true, message: '请输入待办标题' }]}
+          label="任务标题"
+          rules={[{ required: true, message: '请输入任务标题' }]}
         >
-          <Input placeholder="请输入待办标题" />
+          <Input placeholder="请输入任务标题" />
         </Form.Item>
-        <Form.Item name="description" label="待办描述">
-          <TextArea placeholder="请输入待办描述（可选）" rows={3} />
+        <Form.Item name="description" label="任务描述">
+          <TextArea placeholder="请输入任务描述（可选）" rows={3} />
         </Form.Item>
         <Form.Item name="priority" label="优先级">
           <Select options={Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
