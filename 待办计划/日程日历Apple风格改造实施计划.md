@@ -3,6 +3,7 @@
 > 关联规格：`待办计划/日程日历Apple风格改造设计规格.md`
 > 执行方式：inline（同一 session，文件间存在样式耦合，不拆分 subagent）
 > TDD Route：off / skipped / post-change regression
+> 状态：**已完成**（2026-09-08，提交 cedea61 / 124f339；tsc / eslint / build / 部署均通过，见开发日志 091）
 
 ## Goal
 
