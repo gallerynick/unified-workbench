@@ -11,12 +11,12 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-xxs);
-  padding: 5px;
+  padding: 3px;
   background: var(--canvas);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-sm);
   box-shadow: var(--shadow-sm);
-  min-height: 42px;
+  min-height: 38px;
   overflow-x: auto;
   scrollbar-width: thin;
 }
@@ -29,7 +29,7 @@
   padding: 0 12px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-sm);
   color: var(--text-secondary);
   font-family: var(--font-body);
   font-size: var(--text-caption-size);
@@ -117,7 +117,7 @@
 }
 
 .summary {
-  font-size: var(--text-caption-size);
+  font-size: var(--text-body-xs-size);
   color: var(--text-secondary);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
