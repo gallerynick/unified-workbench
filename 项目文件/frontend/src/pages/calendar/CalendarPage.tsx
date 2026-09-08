@@ -289,14 +289,53 @@ export default function CalendarPage() {
     requestAnimationFrame(apply);
   }, [selectedDay, activeView]);
 
-  // ── 页面缩放变化时重算网格尺寸（transform: scale 不触发 window resize） ──
+  // ── 实测网格可用尺寸，下发为 --cal-grid-h / --cal-grid-w（见 module.css） ─
+  // MainLayout 的页面缩放用 transform: scale 实现。FullCalendar 量 scroller 尺寸
+  // 用的是 getBoundingClientRect().width/height（SimpleScrollGrid.computeScrollerDims）
+  // ——那受 transform 影响，取到的是视觉尺寸——却被当作布局尺寸写进 sync-table 的
+  // width/height。缩放 ≠ 1 时两个单位混用：表格比滚动区窄 1/k、矮 1/k，
+  // 右下留出一片空白。这里改用不受 transform 影响的 clientWidth/clientHeight 自行测量。
+  // 缩放不触发 window.resize，故另监听 zoom-changed。
   useEffect(() => {
-    const onZoom = () => {
-      requestAnimationFrame(() => getApi()?.updateSize());
+    const el = calRootRef.current;
+    if (!el) return;
+    let raf = 0;
+    let tries = 0;
+    const tick = () => {
+      raf = 0;
+      // 月网格滚动区；FC 出网格是异步的，可能还没渲染出来
+      const scroller = el
+        .querySelector<HTMLElement>('.fc-daygrid-body')
+        ?.closest<HTMLElement>('.fc-scroller');
+      if (!scroller || scroller.clientHeight <= 0) {
+        if (tries < 40) {
+          tries += 1;
+          raf = requestAnimationFrame(tick);
+        }
+        return;
+      }
+      tries = 0;
+      el.style.setProperty('--cal-grid-h', scroller.clientHeight + 'px');
+      el.style.setProperty('--cal-grid-w', scroller.clientWidth + 'px');
     };
+    const measure = () => {
+      if (raf) cancelAnimationFrame(raf);
+      tries = 0;
+      raf = requestAnimationFrame(tick);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    const onZoom = () => measure();
     window.addEventListener('zoom-changed', onZoom);
-    return () => window.removeEventListener('zoom-changed', onZoom);
-  }, [getApi]);
+    window.addEventListener('resize', measure);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener('zoom-changed', onZoom);
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
 
   // ── 事件弹窗 ────────────────────────────────────────────────────
   /** 打开新建弹窗；dayStr 为长按命中的那天（YYYY-MM-DD），默认 09:00 起一小时 */

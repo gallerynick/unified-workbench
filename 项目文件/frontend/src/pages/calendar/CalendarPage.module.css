@@ -259,6 +259,21 @@
   overflow: hidden;
 }
 
+/* sync-table 宽高覆盖：FullCalendar 用 getBoundingClientRect().width/height 量
+   scroller（受 MainLayout 的 transform: scale 缩放影响，取到的是视觉尺寸），却把它
+   当作布局尺寸写进表格的 width/height。缩放 ≠ 100% 时表格比滚动区窄 1/k、矮 1/k，
+   右下留白。改由 --cal-grid-w / --cal-grid-h 下发——见 CalendarPage.tsx 的测量 effect，
+   用不受 transform 影响的 clientWidth/clientHeight 实测。 */
+.calendar :global(.fc-daygrid) :global(.fc-daygrid-body),
+.calendar :global(.fc-daygrid) :global(.fc-scrollgrid-sync-table) {
+  /* 二者都会被 FC 写入同样的内联 width，需同时覆盖 */
+  width: var(--cal-grid-w, auto) !important;
+}
+
+.calendar :global(.fc-daygrid) :global(.fc-scrollgrid-sync-table) {
+  height: var(--cal-grid-h, auto) !important;
+}
+
 /* 选中日期后：日历压到固定高度，让出空间给底部详情面板 */
 .calendarCollapsed {
   flex: 0 0 300px;
