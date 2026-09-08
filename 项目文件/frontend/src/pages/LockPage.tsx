@@ -239,7 +239,7 @@ const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
                 aria-label="使用指纹解锁"
                 disabled={waLoading}
                 onClick={() => void handleWebAuthnUnlock()}
-                className={styles.waMethod ?? ''}
+                className={`${styles.waMethod ?? ''} ${styles.enterElement ?? ''}`}
               >
                 <SafetyOutlined />
               </button>

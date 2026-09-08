@@ -97,7 +97,18 @@ async def register_start_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """发起 WebAuthn 注册：返回浏览器注册配置。"""
+    """发起 WebAuthn 注册：返回浏览器注册配置。
+    
+    前置条件：必须已开启 TOTP 双因素认证。
+    """
+    # 检查是否已开启 TOTP 双因素认证
+    from app.services import two_factor
+    if not await two_factor.is_2fa_enabled(db, current_user):
+        raise HTTPException(
+            status_code=400,
+            detail="请先开启认证器（TOTP）双因素认证，再绑定指纹/面容。"
+        )
+    
     options = await webauthn_service.generate_registration_options(
         db, current_user, request.label
     )

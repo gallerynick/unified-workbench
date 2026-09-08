@@ -290,54 +290,6 @@ export default function SecuritySettings() {
         />
       )}
 
-      {/* WebAuthn 凭据 */}
-      <Card title="指纹/面容认证" className={styles.card ?? ''}>
-        {waCredentials.length === 0 ? (
-          <Paragraph type="secondary">尚未注册任何指纹/面容认证凭据。</Paragraph>
-        ) : (
-          <List
-            dataSource={waCredentials}
-            renderItem={(d: any) => (
-              <List.Item
-                actions={[
-                  <Button
-                    key="rm"
-                    type="text"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={() => confirmRemoveWa(d.credential_id)}
-                  >删除</Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={<SafetyOutlined style={{ fontSize: 18 }} />}
-                  title={d.label}
-                  description={'注册于 ' + fmtDate(d.created_at) + ' · 最后使用 ' + fmtDate(d.last_used_at)}
-                />
-                <Tag color="green">已注册</Tag>
-              </List.Item>
-            )}
-          />
-        )}
-        <div style={{ marginTop: 'var(--spacing-card-gap)' }}>
-          {enabled ? (
-            <Button
-              icon={<SafetyOutlined />}
-              loading={waLoading}
-              onClick={() => setPwdAction('webauthn')}
-            >添加指纹/面容</Button>
-          ) : (
-            <Button
-              type="primary"
-              icon={<SafetyOutlined />}
-              loading={waLoading}
-              onClick={() => setPwdAction('webauthn')}
-            >开启指纹/面容认证</Button>
-          )}
-        </div>
-      </Card>
-
       {/* TOTP 认证器设备 */}
       <Card title="认证器设备" className={styles.card ?? ''}>
         {devices.length === 0 ? (
@@ -373,6 +325,58 @@ export default function SecuritySettings() {
             <Button icon={<PlusOutlined />} onClick={() => setPwdAction('setup')}>添加认证器</Button>
           ) : (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setPwdAction('setup')}>开启双因素认证</Button>
+          )}
+        </div>
+      </Card>
+      {/* WebAuthn 凭据 */}
+      <Card title="指纹/面容认证" className={styles.card ?? ''}>
+        {waCredentials.length === 0 ? (
+          <Paragraph type="secondary">尚未注册任何指纹/面容认证凭据。</Paragraph>
+        ) : (
+          <List
+            dataSource={waCredentials}
+            renderItem={(d: any) => (
+              <List.Item
+                actions={[
+                  <Button
+                    key="rm"
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => confirmRemoveWa(d.credential_id)}
+                  >删除</Button>,
+                ]}
+              >
+                <List.Item.Meta
+                  avatar={<SafetyOutlined style={{ fontSize: 18 }} />}
+                  title={d.label}
+                  description={'注册于 ' + fmtDate(d.created_at) + ' · 最后使用 ' + fmtDate(d.last_used_at)}
+                />
+                <Tag color="green">已注册</Tag>
+              </List.Item>
+            )}
+          />
+        )}
+        <div style={{ marginTop: 'var(--spacing-card-gap)' }}>
+          {!enabled ? (
+            <Paragraph type="warning" style={{ marginBottom: 8 }}>
+              请先开启认证器（TOTP）双因素认证，再绑定指纹/面容。
+            </Paragraph>
+          ) : null}
+          {enabled ? (
+            <Button
+              icon={<SafetyOutlined />}
+              loading={waLoading}
+              onClick={() => setPwdAction('webauthn')}
+            >添加指纹/面容</Button>
+          ) : (
+            <Button
+              type="primary"
+              icon={<SafetyOutlined />}
+              loading={waLoading}
+              disabled
+            >开启指纹/面容认证</Button>
           )}
         </div>
       </Card>
