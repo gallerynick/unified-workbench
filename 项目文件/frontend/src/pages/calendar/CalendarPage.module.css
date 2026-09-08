@@ -364,12 +364,8 @@
 }
 
 .panelEmpty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
   padding: var(--spacing-lg) var(--spacing-sm);
+  text-align: center;
 }
 
 .eventList {

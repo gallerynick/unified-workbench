@@ -646,14 +646,6 @@ export default function CalendarPage() {
             {dayEvents.length === 0 ? (
               <div className={styles.panelEmpty}>
                 <Text type="secondary">这一天还没有日程</Text>
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={() => openCreateModal(selectedDay)}
-                >
-                  新建日程
-                </Button>
               </div>
             ) : (
               <ul className={styles.eventList}>
