@@ -387,4 +387,9 @@ async def verify_login_endpoint(
     user_agent = req.headers.get("User-Agent", "")
     device_token = req.headers.get("X-Device-Token", "")
     tokens = await verify_2fa_webauthn(db, request, ip, user_agent, device_token)
-    return UnifiedResponse(data=tokens)
+    # Convert LoginResponse to dict for UnifiedResponse[dict] response model
+    if hasattr(tokens, 'dict'):
+        data = tokens.dict()
+    else:
+        data = dict(tokens)
+    return UnifiedResponse(data=data)

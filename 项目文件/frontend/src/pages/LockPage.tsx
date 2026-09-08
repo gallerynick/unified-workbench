@@ -172,13 +172,14 @@ const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
       });
 
       if (finishRes.code === 0 && finishRes.data?.valid === true) {
+        message.success('验证成功');
         setExiting(true);
         setTimeout(() => {
           unlock();
           const returnPath = sessionStorage.getItem('workbench_lock_return') || '/';
           sessionStorage.setItem('workbench_just_unlocked', '1');
           navigate(returnPath, { replace: true });
-        }, 500);
+        }, 800);
       } else {
         message.error(finishRes.msg || 'WebAuthn 验证失败');
       }
