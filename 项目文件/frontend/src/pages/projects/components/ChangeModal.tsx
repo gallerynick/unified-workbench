@@ -45,7 +45,8 @@ interface ChangeFormValues {
   category_major: string;
   category_minor?: string;
   category_detail?: string;
-  content: string;
+  /** 正文（可选）；新建时不展示，留待编辑模式填写 */
+  content?: string;
   status?: string;
 }
 
@@ -166,9 +167,9 @@ export default function ChangeModal({
           title,
           date,
           category_major,
-          content,
           status,
         };
+        if (content) payload.content = content;
         if (category_minor) payload.category_minor = category_minor;
         if (category_detail) payload.category_detail = category_detail;
         const res = await updateProjectChange(editingChange.id, payload);
@@ -186,9 +187,9 @@ export default function ChangeModal({
           title,
           date,
           category_major,
-          content,
           status,
         };
+        if (content) payload.content = content;
         if (category_minor) payload.category_minor = category_minor;
         if (category_detail) payload.category_detail = category_detail;
         const res = await createProjectChange(payload);
@@ -285,13 +286,15 @@ export default function ChangeModal({
             showCount
           />
         </Form.Item>
-        <Form.Item
-          name="content"
-          label="内容"
-          rules={[{ required: true, message: '请输入内容' }]}
-        >
-          <TextArea rows={4} placeholder="请输入变更内容" maxLength={2000} showCount />
-        </Form.Item>
+        {editingChange && (
+          <Form.Item
+            name="content"
+            label="内容"
+            rules={[{ required: true, message: '请输入内容' }]}
+          >
+            <TextArea rows={4} placeholder="请输入变更内容" maxLength={2000} showCount />
+          </Form.Item>
+        )}
         <Form.Item name="status" label="状态">
           <Select
             placeholder="请选择状态"

@@ -15,6 +15,7 @@ from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.models.user_recovery_code import UserRecoveryCode
 from app.models.user_totp import UserTotp
+from app.models.user_webauthn import UserWebAuthnCredential
 
 # 认证器显示名称（otpauth URI 的 issuer）—— 默认值，未配置 custom_config 时使用
 DEFAULT_ISSUER = "一站式工作台"
@@ -152,9 +153,16 @@ async def list_active_devices(db: AsyncSession, user_id: uuid.UUID) -> list[User
 
 
 async def remove_device(db: AsyncSession, user_id: uuid.UUID, device_id: uuid.UUID) -> None:
-    """删除用户的某个 TOTP 设备（含未激活的待绑定设备）。"""
+    """删除用户的某个 TOTP 设备（含未激活的待绑定设备）。
+    
+    同步删除该用户的所有 WebAuthn 凭据，因为 WebAuthn 绑定以 TOTP 为基础。
+    """
     device = await get_owned_device(db, user_id, device_id)
     await db.delete(device)
+    # 同步删除 WebAuthn 凭据
+    await db.execute(
+        delete(UserWebAuthnCredential).where(UserWebAuthnCredential.user_id == user_id)
+    )
 
 
 async def delete_recovery_codes(db: AsyncSession, user_id: uuid.UUID) -> None:
@@ -165,11 +173,18 @@ async def delete_recovery_codes(db: AsyncSession, user_id: uuid.UUID) -> None:
 
 
 async def remove_all_active_devices(db: AsyncSession, user_id: uuid.UUID) -> None:
-    """删除用户全部已激活 TOTP 设备（用于关闭 2FA）。"""
+    """删除用户全部已激活 TOTP 设备（用于关闭 2FA）。
+    
+    同步删除该用户的所有 WebAuthn 凭据。
+    """
     await db.execute(
         delete(UserTotp).where(
             UserTotp.user_id == user_id, UserTotp.is_active.is_(True)
         )
+    )
+    # 同步删除 WebAuthn 凭据
+    await db.execute(
+        delete(UserWebAuthnCredential).where(UserWebAuthnCredential.user_id == user_id)
     )
 
 

@@ -145,17 +145,25 @@ export default function SecuritySettings() {
     let pwd = '';
     await new Promise<void>((resolve, reject) => {
       Modal.confirm({
-        title: '请输入登录密码确认删除',
+        title: '删除认证器',
+        icon: <DeleteOutlined />,
         content: (
-          <Input.Password
-            placeholder="登录密码"
-            autoFocus
-            onChange={(e) => { pwd = e.target.value; }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+              删除后将同步移除已绑定的指纹/面容认证，请输入登录密码确认。
+            </p>
+            <Input.Password
+              placeholder="登录密码"
+              autoFocus
+              onChange={(e) => { pwd = e.target.value; }}
+            />
+          </div>
         ),
         okText: '确认删除',
         okButtonProps: { danger: true },
         cancelText: '取消',
+        centered: true,
+        width: 560,
         onOk: async () => {
           if (!pwd) {
             message.warning('请输入密码');

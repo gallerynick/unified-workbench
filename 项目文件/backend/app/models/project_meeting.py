@@ -34,6 +34,9 @@ class ProjectMeeting(Base):
     )
     number: Mapped[str] = mapped_column(String(50), nullable=False, comment="会议编号")
     type: Mapped[str] = mapped_column(String(50), nullable=False, comment="会议类型")
+    title: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, comment="交流主题"
+    )
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, comment="会议开始时间"
     )
