@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { Button, Modal, Typography, message, Tooltip } from 'antd';
 import {
+  CloseOutlined,
+  EnvironmentOutlined,
   LeftOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
@@ -15,6 +18,7 @@ import zhLocale from '@fullcalendar/core/locales/zh-cn';
 import type {
   DateSelectArg,
   DayCellContentArg,
+  DayCellMountArg,
   EventClickArg,
   EventDropArg,
   EventInput,
@@ -48,19 +52,62 @@ const VIEW_OPTIONS: Array<{ key: CalViewKey; label: string }> = [
 
 const WEEK_DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
 
-function formatDateTimeLocal(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    date.getFullYear() +
-    '-' +
-    pad(date.getMonth() + 1) +
-    '-' +
-    pad(date.getDate()) +
-    'T' +
-    pad(date.getHours()) +
-    ':' +
-    pad(date.getMinutes())
-  );
+/** 长按触发「新建日程」的按住时长（ms） */
+const LONG_PRESS_MS = 500;
+
+/** 长按期间允许的最大位移（px），超出即视为拖动而非长按 */
+const LONG_PRESS_SLOP = 8;
+
+/** 长按新建时套用的默认开始小时 */
+const DEFAULT_NEW_HOUR = 9;
+
+/** 长按新建时套用的默认时长（小时） */
+const DEFAULT_NEW_DURATION_HOURS = 1;
+
+/** 选中日期的标题：9月8日 星期二 */
+function formatDayTitle(dayStr: string): string {
+  const d = dayjs(dayStr);
+  return [d.format('M月D日'), '星期' + WEEK_DAY_NAMES[d.day()]].join(' ');
+}
+
+/** 详情面板里的事件时间标签：全天 / 09:00 – 10:00 / 跨天区间 */
+function formatEventTime(ev: CalendarEvent): string {
+  const s = dayjs(ev.start_time);
+  if (ev.all_day) {
+    const en = ev.end_time ? dayjs(ev.end_time) : null;
+    if (en && !en.isSame(s, 'day')) {
+      return '全天 ' + s.format('M/D') + ' – ' + en.subtract(1, 'day').format('M/D');
+    }
+    return '全天';
+  }
+  if (ev.end_time) {
+    const en = dayjs(ev.end_time);
+    if (en.isSame(s, 'day')) {
+      return s.format('HH:mm') + ' – ' + en.format('HH:mm');
+    }
+    return s.format('M/D HH:mm') + ' – ' + en.format('M/D HH:mm');
+  }
+  return s.format('HH:mm');
+}
+
+/** 取某天的全部日程（跨天事件按区间重叠计入），按开始时间升序 */
+function eventsForDay(events: CalendarEvent[], dayStr: string): CalendarEvent[] {
+  const dayStart = dayjs(dayStr).startOf('day');
+  const dayEnd = dayjs(dayStr).endOf('day');
+  const out: CalendarEvent[] = [];
+  for (const ev of events) {
+    const s = dayjs(ev.start_time);
+    const rawEnd = ev.end_time ? dayjs(ev.end_time) : s;
+    // 全天事件的 end 通常是次日零点（不含该天），补回一天再做区间比较
+    const en =
+      ev.all_day && rawEnd.hour() === 0 && rawEnd.minute() === 0 && rawEnd.isAfter(s)
+        ? rawEnd.add(1, 'day')
+        : rawEnd;
+    if (s.isBefore(dayEnd) && en.isAfter(dayStart)) {
+      out.push(ev);
+    }
+  }
+  return out.sort((a, b) => dayjs(a.start_time).valueOf() - dayjs(b.start_time).valueOf());
 }
 
 /**
@@ -162,6 +209,13 @@ export default function CalendarPage() {
   const [createDefaultColor, setCreateDefaultColor] = useState<string>(DEFAULT_COLOR);
   const [permissionVisible, setPermissionVisible] = useState(false);
 
+  /** 点选中的日期（YYYY-MM-DD）：日历上压，底部展开该天详情 */
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const calRootRef = useRef<HTMLDivElement | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
+  const pressStart = useRef<{ x: number; y: number } | null>(null);
+
   // ── 自绘工具条状态 ──────────────────────────────────────────────
   const [titleText, setTitleText] = useState<string>(() => dayjs().format('YYYY年M月'));
   const [activeView, setActiveView] = useState<CalViewKey>('dayGridMonth');
@@ -170,8 +224,8 @@ export default function CalendarPage() {
 
   // ── 颜色筛选状态（偏好持久化到 localStorage） ─────────────────────
   const [activeColors, setActiveColors] = useState<string[]>(() => loadActiveColors());
-  /** 当前视图范围内的全部事件（未过滤），供筛选条计数 */
-  const [allEvents, setAllEvents] = useState<Array<{ color: string | null | undefined }>>([]);
+  /** 当前视图范围内的全部事件（未过滤），供筛选条计数与选中日详情 */
+  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
 
   const getApi = useCallback(() => calendarRef.current?.getApi(), []);
 
@@ -189,7 +243,14 @@ export default function CalendarPage() {
     );
   }, []);
 
-  const handleDatesSet = useCallback((arg: { view: ViewApi }) => syncView(arg.view), [syncView]);
+  /** 翻页 / 切周期 / 切视图后清掉选中日，避免底部面板与网格错位 */
+  const handleDatesSet = useCallback(
+    (arg: { view: ViewApi }) => {
+      syncView(arg.view);
+      setSelectedDay(null);
+    },
+    [syncView],
+  );
 
   const handleViewDidMount = useCallback(
     (arg: { view: ViewApi }) => syncView(arg.view),
@@ -215,16 +276,39 @@ export default function CalendarPage() {
     setSegThumb({ left: btnRect.left - segRect.left, width: btnRect.width });
   }, [activeView]);
 
+  // ── 选中日期高亮（dayCellClassNames 之外的兜底：网格重建后重新应用） ──
+  useEffect(() => {
+    const apply = () => {
+      const root = calRootRef.current;
+      if (!root) return;
+      root.querySelectorAll<HTMLElement>('[data-day-key]').forEach((el) => {
+        el.classList.toggle('cal-day-selected', el.dataset.dayKey === selectedDay);
+      });
+    };
+    apply();
+    requestAnimationFrame(apply);
+  }, [selectedDay, activeView]);
+
+  // ── 页面缩放变化时重算网格尺寸（transform: scale 不触发 window resize） ──
+  useEffect(() => {
+    const onZoom = () => {
+      requestAnimationFrame(() => getApi()?.updateSize());
+    };
+    window.addEventListener('zoom-changed', onZoom);
+    return () => window.removeEventListener('zoom-changed', onZoom);
+  }, [getApi]);
+
   // ── 事件弹窗 ────────────────────────────────────────────────────
+  /** 打开新建弹窗；dayStr 为长按命中的那天（YYYY-MM-DD），默认 09:00 起一小时 */
   const openCreateModal = useCallback(
-    (startStr?: string) => {
+    (dayStr?: string) => {
       setEditingEvent(null);
-      const start = startStr ? new Date(startStr) : new Date();
-      start.setMinutes(0, 0, 0);
-      start.setHours(start.getHours() + 1);
-      const end = new Date(start.getTime() + 60 * 60 * 1000);
-      setCreateDefaultStart(formatDateTimeLocal(start));
-      setCreateDefaultEnd(formatDateTimeLocal(end));
+      const start = (dayStr ? dayjs(dayStr).startOf('day') : dayjs().startOf('day')).hour(
+        DEFAULT_NEW_HOUR,
+      );
+      const end = start.add(DEFAULT_NEW_DURATION_HOURS, 'hour');
+      setCreateDefaultStart(start.format('YYYY-MM-DDTHH:mm'));
+      setCreateDefaultEnd(end.format('YYYY-MM-DDTHH:mm'));
       setCreateDefaultColor(activeColors.length === 1 ? activeColors[0]! : DEFAULT_COLOR);
       setModalVisible(true);
     },
@@ -287,6 +371,76 @@ export default function CalendarPage() {
     }
   }, []);
 
+  // ── 点选日期 + 长按新建 ──────────────────────────────────────────
+  /** 拖动 / 抬起 / 离开都算取消长按 */
+  const clearLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    pressStart.current = null;
+  }, []);
+
+  const handleDayPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      const target = e.target as HTMLElement;
+      // 事件块交给 eventClick 处理，长按只针对日期格空白处
+      if (target.closest('.fc-event')) return;
+      const cell = target.closest<HTMLElement>('[data-day-key]');
+      const dayKey = cell?.dataset.dayKey;
+      if (!dayKey) return;
+      longPressTriggered.current = false;
+      clearLongPress();
+      pressStart.current = { x: e.clientX, y: e.clientY };
+      longPressTimer.current = setTimeout(() => {
+        longPressTimer.current = null;
+        pressStart.current = null;
+        longPressTriggered.current = true;
+        openCreateModal(dayKey);
+      }, LONG_PRESS_MS);
+    },
+    [clearLongPress, openCreateModal],
+  );
+
+  const handleDayPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      const start = pressStart.current;
+      if (!start) return;
+      if (
+        Math.abs(e.clientX - start.x) > LONG_PRESS_SLOP ||
+        Math.abs(e.clientY - start.y) > LONG_PRESS_SLOP
+      ) {
+        clearLongPress();
+      }
+    },
+    [clearLongPress],
+  );
+
+  /** 点选日期：进入压缩态 + 展开底部详情；长按已触发新建时忽略本次点选 */
+  const handleSelect = useCallback(
+    (selectInfo: DateSelectArg) => {
+      if (longPressTriggered.current) {
+        longPressTriggered.current = false;
+        getApi()?.unselect();
+        return;
+      }
+      getApi()?.unselect();
+      setSelectedDay(dayjs(selectInfo.startStr).startOf('day').format('YYYY-MM-DD'));
+    },
+    [getApi],
+  );
+
+  /** 日期格标记 data-day-key，供长按命中与选中态使用 */
+  const handleDayCellDidMount = useCallback((arg: DayCellMountArg) => {
+    arg.el.dataset.dayKey = dayjs(arg.date).format('YYYY-MM-DD');
+  }, []);
+
+  const handleDayCellClassNames = useCallback(
+    (arg: DayCellContentArg): string[] =>
+      dayjs(arg.date).format('YYYY-MM-DD') === selectedDay ? ['cal-day-selected'] : [],
+    [selectedDay],
+  );
+
   // ── 颜色筛选 ────────────────────────────────────────────────────
   const handleToggleColor = useCallback((value: string) => {
     setActiveColors((prev) => {
@@ -335,6 +489,16 @@ export default function CalendarPage() {
     },
     [activeColors],
   );
+
+  // ── 选中日期的日程列表（遵循颜色筛选，与网格显示口径一致） ──
+  const dayEvents = useMemo(() => {
+    if (!selectedDay) return [] as CalendarEvent[];
+    const visible =
+      activeColors.length === 0
+        ? allEvents
+        : allEvents.filter((ev) => activeColors.includes(ev.color ?? ''));
+    return eventsForDay(visible, selectedDay);
+  }, [selectedDay, allEvents, activeColors]);
 
   return (
     <div className={styles.container}>
@@ -414,8 +578,16 @@ export default function CalendarPage() {
         onShowAll={handleShowAll}
       />
 
-      {/* ── 日历主体（内置工具条已隐藏） ── */}
-      <div className={styles.calendar}>
+      {/* ── 日历主体（内置工具条已隐藏）：点选日期进入压缩态，长按新建 ── */}
+      <div
+        className={cx(styles.calendar, selectedDay ? styles.calendarCollapsed : undefined)}
+        ref={calRootRef}
+        onPointerDown={handleDayPointerDown}
+        onPointerMove={handleDayPointerMove}
+        onPointerUp={clearLongPress}
+        onPointerLeave={clearLongPress}
+        onPointerCancel={clearLongPress}
+      >
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
@@ -424,7 +596,9 @@ export default function CalendarPage() {
           locale={zhLocale}
           headerToolbar={false}
           dayCellContent={(arg: DayCellContentArg) => String(arg.date.getDate())}
-          height="auto"
+          dayCellDidMount={handleDayCellDidMount}
+          dayCellClassNames={handleDayCellClassNames}
+          height="100%"
           selectable
           selectMirror
           editable
@@ -433,13 +607,82 @@ export default function CalendarPage() {
           events={fetchEvents}
           datesSet={handleDatesSet}
           viewDidMount={handleViewDidMount}
-          select={(selectInfo: DateSelectArg) => openCreateModal(selectInfo.startStr)}
+          select={handleSelect}
           eventClick={(clickInfo: EventClickArg) =>
             openEditModal(eventToCalendarEvent(clickInfo.event))
           }
           eventDrop={handleEventDrop}
         />
       </div>
+
+      {/* ── 选中日期的日程详情（日历上压后在底部展开） ── */}
+      {selectedDay && (
+        <section className={styles.dayPanel} aria-label={formatDayTitle(selectedDay)}>
+          <header className={styles.panelHead}>
+            <div className={styles.panelHeadLeft}>
+              <span className={styles.panelTitle}>{formatDayTitle(selectedDay)}</span>
+              <span className={styles.panelCount}>{dayEvents.length} 项</span>
+            </div>
+            <div className={styles.panelHeadRight}>
+              <Button
+                size="small"
+                className={cx(styles.panelCreateBtn)}
+                icon={<PlusOutlined />}
+                onClick={() => openCreateModal(selectedDay)}
+              >
+                新建日程
+              </Button>
+              <button
+                type="button"
+                className={styles.panelClose}
+                aria-label="收起日程详情"
+                onClick={() => setSelectedDay(null)}
+              >
+                <CloseOutlined />
+              </button>
+            </div>
+          </header>
+          <div className={styles.panelBody}>
+            {dayEvents.length === 0 ? (
+              <div className={styles.panelEmpty}>
+                <Text type="secondary">这一天还没有日程</Text>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() => openCreateModal(selectedDay)}
+                >
+                  新建日程
+                </Button>
+              </div>
+            ) : (
+              <ul className={styles.eventList}>
+                {dayEvents.map((ev) => (
+                  <li key={ev.id}>
+                    <button
+                      type="button"
+                      className={styles.eventRow}
+                      style={{ '--cal-event-color': ev.color || DEFAULT_COLOR } as CSSProperties}
+                      onClick={() => openEditModal(ev)}
+                    >
+                      <span className={styles.eventMain}>
+                        <span className={styles.eventTitle}>{ev.title}</span>
+                        <span className={styles.eventMeta}>{formatEventTime(ev)}</span>
+                      </span>
+                      {ev.location && (
+                        <span className={styles.eventLoc}>
+                          <EnvironmentOutlined />
+                          <span>{ev.location}</span>
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      )}
 
       <CalendarEventModal
         open={modalVisible}

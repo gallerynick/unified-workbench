@@ -117,6 +117,27 @@
   color: var(--text-tertiary);
 }
 
+/* 选中日期格：底色 + 内描边，与底部详情面板呼应（区别于「今天」的纯色底） */
+.fc .fc-daygrid-day.cal-day-selected,
+.fc .fc-timegrid-col.cal-day-selected {
+  background: var(--color-info-bg);
+}
+
+.fc .fc-daygrid-day.cal-day-selected {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+.fc .fc-daygrid-day.cal-day-selected .fc-daygrid-day-number {
+  color: var(--color-primary);
+  font-weight: var(--text-caption-strong-weight);
+}
+
+/* 今天被选中时保持实心圆样式 */
+.fc .fc-daygrid-day.fc-day-today.cal-day-selected .fc-daygrid-day-number {
+  background: var(--color-primary);
+  color: var(--body-on-dark);
+}
+
 /* ── 4. 事件 ─────────────────────────────────────────────── */
 
 .fc .fc-event {

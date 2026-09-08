@@ -254,8 +254,198 @@
 /* ── 日历主体 ─────────────────────────────────────────── */
 
 .calendar {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 选中日期后：日历压到固定高度，让出空间给底部详情面板 */
+.calendarCollapsed {
+  flex: 0 0 300px;
+}
+
+/* ── 选中日期的日程详情（日历上压后在底部展开） ── */
+
+.dayPanel {
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-sm);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  animation: panelSlideUp var(--anim-normal) var(--anim-ease-in-out);
+}
+
+@keyframes panelSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-bottom: 1px solid var(--hairline);
+  flex-shrink: 0;
+}
+
+.panelHeadLeft {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.panelTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-caption-strong-weight);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.panelCount {
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.panelHeadRight {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  flex-shrink: 0;
+}
+
+.panelClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--rounded-circular);
+  color: var(--text-secondary);
+  font-size: var(--text-body-xs-size);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    color var(--anim-fast) var(--anim-ease);
+}
+
+.panelClose:hover {
+  background: var(--bg-tertiary);
+  color: var(--ink);
+}
+
+.panelClose:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+.panelBody {
   flex: 1;
   min-height: 0;
+  max-height: 232px;
+  overflow-y: auto;
+  padding: var(--spacing-xxs);
+}
+
+.panelEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg) var(--spacing-sm);
+}
+
+.eventList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.eventRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: color-mix(in srgb, var(--cal-event-color) 10%, transparent);
+  border: 1px solid transparent;
+  border-left: 3px solid var(--cal-event-color);
+  border-radius: var(--rounded-sm);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.eventRow:hover {
+  background: color-mix(in srgb, var(--cal-event-color) 16%, transparent);
+}
+
+.eventRow:active {
+  transform: var(--btn-active-scale);
+}
+
+.eventRow:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+.eventMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.eventTitle {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-caption-strong-weight);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eventMeta {
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.eventLoc {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  flex-shrink: 0;
+  max-width: 42%;
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── 权限说明弹窗 ─────────────────────────────────────── */
