@@ -342,7 +342,7 @@ export default function CalendarPage() {
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <Title level={4} className={cx(styles.pageTitle)}>
-            日程
+            日程日历
           </Title>
           <span className={styles.monthLabel}>{titleText}</span>
         </div>
