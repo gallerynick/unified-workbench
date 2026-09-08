@@ -331,7 +331,8 @@ async def verify_authentication(
             curve = SECP521R1()
         else:
             raise ValueError(f"Unsupported curve: {decoded_key.crv}")
-        public_key = EllipticCurvePublicKey.from_encoded_point(curve, decoded_key.x, decoded_key.y)
+        point = b'\x04' + decoded_key.x + decoded_key.y
+        public_key = EllipticCurvePublicKey.from_encoded_point(curve, point)
     elif decoded_key.kty == COSEKTY.OKP:
         # OKP 密钥 (Ed25519)
         if decoded_key.crv == COSECRV.ED25519:
