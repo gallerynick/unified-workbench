@@ -210,7 +210,7 @@ Your next move: 批准后执行 `$start-work`，或先运行高精度 Momus 审�
     - `curl http://localhost/api/v1/calendar/?start_date=2026-06-01&end_date=2026-06-30 -H "Authorization: Bearer {token}"` 返回日历事件
     - 浏览器访问 /calendar 显示 FullCalendar 多视图日历（截图）
     - 浏览器访问 /notes 显示树形结构笔记知识库（截图）
-    - 开发日志已写入 `项目开发日志/日志编号_20260622009_日历笔记UI重设计.md`
+    - 开发日志已写入 `项目开发日志/日志编号_20260622_009_日历笔记UI重设计.md`
   QA scenarios: happy = 全部构建部署成功 + API 返回正确 + 两个页面功能正常；failure = 构建失败时检查 TypeScript 类型错误。Evidence .omo/evidence/task-6-calendar-notes-ui-redesign.txt
   Commit: Y | chore: 构建部署验证日历和笔记UI重设计
 

@@ -2,7 +2,7 @@
 
 > 状态：待确认
 > 日期：2026-09-01
-> 关联日志：085
+> 关联日志：088
 
 ## 一、背景与用户决策
 
@@ -152,7 +152,7 @@ MeetingDetailPage.module.css 新增：
 
 1. 后端：模型 → schema → service → 迁移 044 → 部署验证
 2. 前端：类型 → MeetingModal 改造 → MeetingDetailPage 3 tab → MeetingRecordTab 清理 → 部署验证
-3. 日志：086 记录
+3. 日志：089 记录
 
 ## 八、验证清单
 

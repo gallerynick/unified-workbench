@@ -1,6 +1,6 @@
 # 项目信息 Tab 展示重构 — 设计规格
 
-> 状态：**已实施**（日志 071，已部署验证通过）
+> 状态：**已实施**（日志 074，已部署验证通过）
 > 关联文件：`项目文件/frontend/src/pages/projects/tabs/ProjectInfoTab.tsx`
 > 版本：v2.0.0（开发中）
 
