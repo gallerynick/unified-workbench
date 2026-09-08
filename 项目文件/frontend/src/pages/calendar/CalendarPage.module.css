@@ -265,8 +265,10 @@
    右下留白。改由 --cal-grid-w / --cal-grid-h 下发——见 CalendarPage.tsx 的测量 effect，
    用不受 transform 影响的 clientWidth/clientHeight 实测。 */
 .calendar :global(.fc-daygrid) :global(.fc-daygrid-body),
-.calendar :global(.fc-daygrid) :global(.fc-scrollgrid-sync-table) {
-  /* 二者都会被 FC 写入同样的内联 width，需同时覆盖 */
+.calendar :global(.fc-daygrid) :global(.fc-scrollgrid-sync-table),
+.calendar :global(.fc-daygrid) :global(.fc-col-header) {
+  /* 三处都会被 FC 写入同样的内联 width，需同时覆盖：漏掉表头节会让星期行
+     与下方日期列宽不一致、列错位（表头表类名是 fc-col-header，不带 sync-table） */
   width: var(--cal-grid-w, auto) !important;
 }
 
