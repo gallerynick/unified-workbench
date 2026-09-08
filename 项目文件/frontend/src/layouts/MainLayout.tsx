@@ -204,6 +204,28 @@ function getMenuItems(): MenuProps['items'] {
   return items;
 }
 
+
+/** 按 DOM 顺序为所有菜单项分配飞入动画延迟（40ms 递增） */
+function assignMenuAnimDelays(container: HTMLElement): void {
+  const items = container.querySelectorAll(
+    '.ant-menu-item, .ant-menu-submenu > .ant-menu-submenu-title'
+  );
+  items.forEach((el, i) => {
+    const delay = i * 40 + 'ms';
+    (el as HTMLElement).style.animationDelay = delay;
+  });
+}
+
+/** 清除内联动画延迟（动画完成后恢复干净状态） */
+function clearMenuAnimDelays(container: HTMLElement): void {
+  const items = container.querySelectorAll(
+    '.ant-menu-item, .ant-menu-submenu > .ant-menu-submenu-title'
+  );
+  items.forEach((el) => {
+    (el as HTMLElement).style.animationDelay = '';
+  });
+}
+
 const userMenuItems: MenuProps['items'] = [
   {
     key: 'profile',
@@ -234,6 +256,16 @@ export default function MainLayout() {
     const timer = setTimeout(() => setSidebarEntered(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // 侧边栏动画：按 DOM 顺序动态分配延迟（新增菜单项自动包含，无需维护 nth-child 规则）
+  useEffect(() => {
+    if (!sidebarEntered || !siderRef.current) return;
+    const container = siderRef.current;
+    assignMenuAnimDelays(container);
+    // 动画完成后清理内联延迟，避免后续残留
+    const cleanup = setTimeout(() => clearMenuAnimDelays(container), 1500);
+    return () => clearTimeout(cleanup);
+  }, [sidebarEntered, collapsed]);
   const navigate = useNavigate();
   const location = useLocation();
   const selectedKey = useMemo(() => {

@@ -27,7 +27,7 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
     SECP521R1,
 )
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicNumber
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicNumbers
 from webauthn.helpers.parse_attestation_statement import parse_attestation_statement
 from webauthn.helpers.structs import (
     AttestationConveyancePreference,
@@ -340,7 +340,7 @@ async def verify_authentication(
             raise ValueError(f"Unsupported OKP curve: {decoded_key.crv}")
     elif decoded_key.kty == COSEKTY.RSA:
         # RSA 密钥
-        rsa_num = RSAPublicNumber(
+        rsa_num = RSAPublicNumbers(
             n=decoded_key.n,
             e=decoded_key.e,
         )

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, message, Segmented } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { login } from '../api/auth';
-import { verify2fa, webauthnVerifyLogin, checkWebAuthnLoginAvailability } from '../api/security';
+import { verify2fa, webauthnVerifyLogin, checkWebAuthnLoginAvailability, webauthnAuthStartLogin } from '../api/security';
 import { setTokens, isAuthenticated } from '../utils/auth';
 import { HttpError } from '../utils/request';
 import { useCustomization } from '../hooks/useCustomization';
@@ -166,12 +166,8 @@ export default function Login() {
     try {
       // 调用浏览器 WebAuthn API
       // 先获取认证配置
-      const authStartRes = await fetch('/api/v1/auth/webauthn/authenticate/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const authStart = await authStartRes.json();
+      const authStartRes = await webauthnAuthStartLogin(pendingToken);
+      const authStart = authStartRes;
       
       if (authStart.code !== 0 || !authStart.data) {
         message.error(authStart.msg || '获取验证配置失败');
