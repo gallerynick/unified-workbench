@@ -117,6 +117,15 @@ export async function removeWebAuthnCredential(credentialId: string) {
 
 
 
+
+
+export async function webauthnAuthStartLogin(pendingToken: string) {
+  return request<WebAuthnAuthOptions>('/auth/webauthn/authenticate/start-login', {
+    method: 'POST',
+    body: { pending_token: pendingToken },
+  });
+}
+
 export async function checkWebAuthnLoginAvailability(pendingToken: string) {
   return request<{ has_credentials: boolean }>('/auth/webauthn/authenticate/check-login', {
     method: 'POST',

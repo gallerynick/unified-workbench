@@ -19,6 +19,15 @@ from app.schemas.auth import (
 )
 
 import webauthn.helpers
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ec import (
+    EllipticCurvePublicKey,
+    SECP256R1,
+    SECP384R1,
+    SECP521R1,
+)
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicNumber
 from webauthn.helpers.parse_attestation_statement import parse_attestation_statement
 from webauthn.helpers.structs import (
     AttestationConveyancePreference,

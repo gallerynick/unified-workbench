@@ -290,6 +290,52 @@ async def verify_lock_endpoint(
 
 
 
+
+
+@router.post(
+    "/authenticate/start-login",
+    response_model=UnifiedResponse[WebAuthnAuthStartResponse],
+)
+async def authenticate_start_login_endpoint(
+    request: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    """发起 WebAuthn 登录认证：使用 pending_token 识别用户。"""
+    from app.core.security import decode_token
+    from app.models.user import User
+    from sqlalchemy import select
+    
+    pending_token = request.get("pending_token")
+    if not pending_token:
+        raise HTTPException(status_code=400, detail="Missing pending_token")
+    
+    try:
+        payload = decode_token(pending_token)
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=400, detail="Invalid pending_token")
+        
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=400, detail="User not found")
+        
+        options = await webauthn_service.generate_authentication_options(db, user)
+        # 如果没有凭据，返回空配置
+        if not options.allow_credentials:
+            return UnifiedResponse(data={
+                "challenge": "",
+                "rp_id": "",
+                "timeout": 0,
+                "allow_credentials": [],
+                "user_verification": "preferred",
+            })
+        return UnifiedResponse(data=options)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.post(
     "/authenticate/check-login",
     response_model=UnifiedResponse[dict],

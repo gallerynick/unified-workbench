@@ -66,6 +66,16 @@
 :global(.sidebar-entered .ant-menu-submenu-title:nth-child(24)) { animation-delay: 920ms; }
 :global(.sidebar-entered .ant-menu-item:nth-child(25)),
 :global(.sidebar-entered .ant-menu-submenu-title:nth-child(25)) { animation-delay: 960ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(26)),
+:global(.sidebar-entered .ant-menu-submenu:nth-child(26) .ant-menu-submenu-title) { animation-delay: 1000ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(27)),
+:global(.sidebar-entered .ant-menu-submenu:nth-child(27) .ant-menu-submenu-title) { animation-delay: 1040ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(28)),
+:global(.sidebar-entered .ant-menu-submenu:nth-child(28) .ant-menu-submenu-title) { animation-delay: 1080ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(29)),
+:global(.sidebar-entered .ant-menu-submenu:nth-child(29) .ant-menu-submenu-title) { animation-delay: 1120ms; }
+:global(.sidebar-entered .ant-menu-item:nth-child(30)),
+:global(.sidebar-entered .ant-menu-submenu:nth-child(30) .ant-menu-submenu-title) { animation-delay: 1160ms; }
 
 @keyframes menuItemFlyIn {
   0% {
