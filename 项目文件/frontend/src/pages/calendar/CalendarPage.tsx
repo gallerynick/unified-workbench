@@ -98,7 +98,8 @@ function formatToolbarTitle(
  *
  * 事件颜色同时写入 DOM 自定义属性 --cal-event-color，
  * 供 CalendarPage.global.css 用 color-mix() 派生浅彩底与左侧色条。
- * extendedProps.color 保存原始存储值（未着色为 'none'），供筛选条计数使用。
+ * extendedProps.color 存「显示色」（未着色回退默认蓝），
+ * 与日历上的呈现口径一致——看到的即筛选所得。
  */
 function toEventInput(e: CalendarEvent): EventInput {
   const displayColor = e.color || DEFAULT_COLOR;
@@ -111,7 +112,7 @@ function toEventInput(e: CalendarEvent): EventInput {
     borderColor: displayColor,
     classNames: [e.all_day ? 'cal-event-all-day' : 'cal-event-timed'],
     extendedProps: {
-      color: e.color || 'none',
+      color: displayColor,
       description: e.description,
       location: e.location,
       repeat: e.repeat,
