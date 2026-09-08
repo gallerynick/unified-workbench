@@ -311,7 +311,7 @@ async def verify_authentication(
     )
 
     # 根据密钥类型构造 cryptography 公钥对象
-    from webauthn.helpers.structs import COSEKTY, COSECRV
+    from webauthn.helpers.cose import COSEKTY, COSECRV
     if decoded_key.kty == COSEKTY.EC2:
         # EC2 密钥
         if decoded_key.crv == COSECRV.SECP256R1:
@@ -325,8 +325,7 @@ async def verify_authentication(
         public_key = EllipticCurvePublicKey.from_encoded_point(curve, decoded_key.x, decoded_key.y)
     elif decoded_key.kty == COSEKTY.OKP:
         # OKP 密钥 (Ed25519)
-        from webauthn.helpers.structs import COSECRV as OKPCRVS
-        if decoded_key.crv == OKPCRVS.EdDSA:
+        if decoded_key.crv == COSECRV.EdDSA:
             public_key = Ed25519PublicKey.from_public_bytes(decoded_key.x)
         else:
             raise ValueError(f"Unsupported OKP curve: {decoded_key.crv}")
