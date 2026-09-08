@@ -147,6 +147,7 @@ async def register_finish_endpoint(
 )
 async def authenticate_start_endpoint(
     request: WebAuthnAuthStartRequest,
+    req: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -154,6 +155,15 @@ async def authenticate_start_endpoint(
     options = await webauthn_service.generate_authentication_options(
         db, current_user, request.credential_ids
     )
+    # 如果没有凭据，返回空配置
+    if not options.allow_credentials:
+        return UnifiedResponse(data={
+            "challenge": "",
+            "rp_id": "",
+            "timeout": 0,
+            "allow_credentials": [],
+            "user_verification": "preferred",
+        })
     return UnifiedResponse(data=options)
 
 
@@ -277,6 +287,42 @@ async def verify_lock_endpoint(
         return UnifiedResponse(data={"valid": True})
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+
+
+@router.post(
+    "/authenticate/check-login",
+    response_model=UnifiedResponse[dict],
+)
+async def authenticate_check_login_endpoint(
+    request: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    """检查用户是否有 WebAuthn 凭据（使用 pending_token 识别用户）。"""
+    from app.services.auth import verify_2fa_webauthn
+    from app.core.security import decode_token
+    
+    pending_token = request.get("pending_token")
+    if not pending_token:
+        return UnifiedResponse(data={"has_credentials": False})
+    
+    try:
+        payload = decode_token(pending_token)
+        user_id = payload.get("sub")
+        if not user_id:
+            return UnifiedResponse(data={"has_credentials": False})
+        
+        from app.models.user import User
+        from sqlalchemy import select
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            return UnifiedResponse(data={"has_credentials": False})
+        
+        credentials = await webauthn_service.list_credentials(db, user)
+        return UnifiedResponse(data={"has_credentials": len(credentials) > 0})
+    except Exception:
+        return UnifiedResponse(data={"has_credentials": False})
 
 @router.post(
     "/verify-login",

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, message, Segmented } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { login } from '../api/auth';
-import { verify2fa, webauthnVerifyLogin } from '../api/security';
+import { verify2fa, webauthnVerifyLogin, checkWebAuthnLoginAvailability } from '../api/security';
 import { setTokens, isAuthenticated } from '../utils/auth';
 import { HttpError } from '../utils/request';
 import { useCustomization } from '../hooks/useCustomization';
@@ -22,6 +22,7 @@ export default function Login() {
   const [transitioning, setTransitioning] = useState(false);
   const [pendingToken, setPendingToken] = useState<string | null>(null);
   const [codeMode, setCodeMode] = useState<'totp' | 'recovery' | 'webauthn'>('totp');
+  const [waAvailable, setWaAvailable] = useState(true);
   const [code, setCode] = useState('');
   const customization = useCustomization();
   const { refreshUser } = useUser();
@@ -99,6 +100,10 @@ export default function Login() {
           setCode('');
           setOtpDigits(Array(OTP_LENGTH).fill(''));
           setCodeMode('totp');
+          // Check WebAuthn availability
+          checkWebAuthnLoginAvailability(response.data.pending_token)
+            .then((res) => setWaAvailable(res.data?.has_credentials ?? true))
+            .catch(() => setWaAvailable(true));
         } else if (response.data.access_token && response.data.refresh_token) {
           await finishLogin(response.data);
         } else {
@@ -330,7 +335,7 @@ const handleBackToLogin = () => {
               options={[
                 { label: '动态码', value: 'totp' },
                 { label: '恢复码', value: 'recovery' },
-                { label: '指纹/面容', value: 'webauthn' },
+                { label: waAvailable ? '指纹/面容' : '未绑定', value: 'webauthn' },
               ]}
             />
 

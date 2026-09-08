@@ -115,6 +115,15 @@ export async function removeWebAuthnCredential(credentialId: string) {
   return request<null>('/auth/webauthn/credentials/' + credentialId + '/remove', { method: 'POST' });
 }
 
+
+
+export async function checkWebAuthnLoginAvailability(pendingToken: string) {
+  return request<{ has_credentials: boolean }>('/auth/webauthn/authenticate/check-login', {
+    method: 'POST',
+    body: { pending_token: pendingToken },
+  });
+}
+
 export async function webauthnVerifyLogin(data: object) {
   return request<WebAuthnLoginResponse>('/auth/webauthn/verify-login', { method: 'POST', body: data, headers: { 'X-Device-Token': getDeviceToken() } });
 }
