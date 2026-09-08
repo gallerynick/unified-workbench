@@ -251,12 +251,40 @@
   transform: var(--btn-active-scale);
 }
 
-/* ── 日历主体 ─────────────────────────────────────────── */
+/* ── 日历主体 + 详情面板的高度分配区 ───────────────────── */
 
-.calendar {
+/* 开合只切换 --cal-h / --panel-h 两个自定义属性，由 flex-basis 承担过渡。
+   任意时刻 日历高 + 间距 + 面板高 恒等于 --avail（两条曲线同 easing、同时长），
+   所以日历下压与面板展开是同一根进度条的两端，既无溢出也无跳变。 */
+.gridArea {
+  --avail: 0px;
+  --cal-collapsed-h: 300px;
+  --cal-h: var(--avail);
+  --panel-h: 0px;
   flex: 1 1 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gridAreaOpen {
+  --cal-h: var(--cal-collapsed-h);
+  --panel-h: max(0px, calc(var(--avail) - var(--cal-collapsed-h) - var(--spacing-sm)));
+}
+
+.calendar {
+  flex: 0 1 var(--cal-h);
+  min-height: 0;
+  margin-bottom: 0;
   overflow: hidden;
+  transition:
+    flex-basis var(--anim-normal) var(--anim-ease-in-out),
+    margin-bottom var(--anim-normal) var(--anim-ease-in-out);
+}
+
+/* 日历下压后让出的间距，随过渡一并交给面板 */
+.gridAreaOpen .calendar {
+  margin-bottom: var(--spacing-sm);
 }
 
 /* sync-table 宽高覆盖：FullCalendar 用 getBoundingClientRect().width/height 量
@@ -276,33 +304,36 @@
   height: var(--cal-grid-h, auto) !important;
 }
 
-/* 选中日期后：日历压到固定高度，让出空间给底部详情面板 */
-.calendarCollapsed {
-  flex: 0 0 300px;
-}
-
 /* ── 选中日期的日程详情（日历上压后在底部展开） ── */
 
+/* 面板常挂载：收起时高度 0 + 透明 + 隐藏。
+   visibility 的延迟写在收起态——收起过程中内容仍然可见（配合 panelDay 保留内容），
+   动画结束后才真正隐藏，届时内部按钮也不再可聚焦。 */
 .dayPanel {
   display: flex;
   flex-direction: column;
+  flex: 0 1 var(--panel-h);
+  min-height: 0;
   background: var(--canvas);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-sm);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  animation: panelSlideUp var(--anim-normal) var(--anim-ease-in-out);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    flex-basis var(--anim-normal) var(--anim-ease-in-out),
+    opacity var(--anim-normal) var(--anim-ease-in-out),
+    visibility 0s linear var(--anim-normal);
 }
 
-@keyframes panelSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.dayPanelOpen {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    flex-basis var(--anim-normal) var(--anim-ease-in-out),
+    opacity var(--anim-normal) var(--anim-ease-in-out),
+    visibility 0s;
 }
 
 .panelHead {
@@ -372,10 +403,10 @@
   outline-offset: 1px;
 }
 
+/* 撑满面板剩余高度，条目多时内部滚动 */
 .panelBody {
   flex: 1;
   min-height: 0;
-  max-height: 232px;
   overflow-y: auto;
   padding: var(--spacing-xxs);
 }

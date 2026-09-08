@@ -211,6 +211,13 @@ export default function CalendarPage() {
 
   /** 点选中的日期（YYYY-MM-DD）：日历上压，底部展开该天详情 */
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  /** 面板展示用日期：收起动画期间保留最后一次选中的日期，避免面板先变空再收缩 */
+  const [panelDay, setPanelDay] = useState<string | null>(null);
+  useEffect(() => {
+    if (selectedDay) setPanelDay(selectedDay);
+  }, [selectedDay]);
+  /** 日历 + 详情面板共享的高度分配区 */
+  const gridAreaRef = useRef<HTMLDivElement | null>(null);
   const calRootRef = useRef<HTMLDivElement | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
@@ -322,6 +329,35 @@ export default function CalendarPage() {
       if (raf) cancelAnimationFrame(raf);
       tries = 0;
       raf = requestAnimationFrame(tick);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    const onZoom = () => measure();
+    window.addEventListener('zoom-changed', onZoom);
+    window.addEventListener('resize', measure);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener('zoom-changed', onZoom);
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  // ── 下发 --avail：日历与详情面板共享的可用高度，开合分配交给 CSS 计算 ──
+  // 该区域自身是 flex: 1 1 0，高度只取决于表头与筛选条，不随开合变化，
+  // 所以 --avail 在过渡期间是稳定的，面板与日历能同步插值。
+  useEffect(() => {
+    const el = gridAreaRef.current;
+    if (!el) return;
+    let raf = 0;
+    const apply = () => {
+      const h = el.offsetHeight; // offsetHeight 不受 transform 缩放影响
+      if (h > 0) el.style.setProperty('--avail', h + 'px');
+    };
+    const measure = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(apply);
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -531,13 +567,13 @@ export default function CalendarPage() {
 
   // ── 选中日期的日程列表（遵循颜色筛选，与网格显示口径一致） ──
   const dayEvents = useMemo(() => {
-    if (!selectedDay) return [] as CalendarEvent[];
+    if (!panelDay) return [] as CalendarEvent[];
     const visible =
       activeColors.length === 0
         ? allEvents
         : allEvents.filter((ev) => activeColors.includes(ev.color ?? ''));
-    return eventsForDay(visible, selectedDay);
-  }, [selectedDay, allEvents, activeColors]);
+    return eventsForDay(visible, panelDay);
+  }, [panelDay, allEvents, activeColors]);
 
   return (
     <div className={styles.container}>
@@ -617,103 +653,113 @@ export default function CalendarPage() {
         onShowAll={handleShowAll}
       />
 
-      {/* ── 日历主体（内置工具条已隐藏）：点选日期进入压缩态，长按新建 ── */}
-      <div
-        className={cx(styles.calendar, selectedDay ? styles.calendarCollapsed : undefined)}
-        ref={calRootRef}
-        onPointerDown={handleDayPointerDown}
-        onPointerMove={handleDayPointerMove}
-        onPointerUp={clearLongPress}
-        onPointerLeave={clearLongPress}
-        onPointerCancel={clearLongPress}
-      >
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          firstDay={1}
-          locale={zhLocale}
-          headerToolbar={false}
-          dayCellContent={(arg: DayCellContentArg) => String(arg.date.getDate())}
-          dayCellDidMount={handleDayCellDidMount}
-          dayCellClassNames={handleDayCellClassNames}
-          height="100%"
-          selectable
-          selectMirror
-          editable
-          dayMaxEvents={3}
-          nowIndicator
-          events={fetchEvents}
-          datesSet={handleDatesSet}
-          viewDidMount={handleViewDidMount}
-          select={handleSelect}
-          eventClick={(clickInfo: EventClickArg) =>
-            openEditModal(eventToCalendarEvent(clickInfo.event))
-          }
-          eventDrop={handleEventDrop}
-        />
-      </div>
+      {/* ── 日历 + 详情面板的高度分配区：开合只切换 CSS 变量，flex-basis 做过渡 ── */}
+      <div ref={gridAreaRef} className={cx(styles.gridArea, !!selectedDay && styles.gridAreaOpen)}>
+        {/* 日历主体（内置工具条已隐藏）：点选日期进入压缩态，长按新建 */}
+        <div
+          className={styles.calendar}
+          ref={calRootRef}
+          onPointerDown={handleDayPointerDown}
+          onPointerMove={handleDayPointerMove}
+          onPointerUp={clearLongPress}
+          onPointerLeave={clearLongPress}
+          onPointerCancel={clearLongPress}
+        >
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            firstDay={1}
+            locale={zhLocale}
+            headerToolbar={false}
+            dayCellContent={(arg: DayCellContentArg) => String(arg.date.getDate())}
+            dayCellDidMount={handleDayCellDidMount}
+            dayCellClassNames={handleDayCellClassNames}
+            height="100%"
+            selectable
+            selectMirror
+            editable
+            dayMaxEvents={3}
+            nowIndicator
+            events={fetchEvents}
+            datesSet={handleDatesSet}
+            viewDidMount={handleViewDidMount}
+            select={handleSelect}
+            eventClick={(clickInfo: EventClickArg) =>
+              openEditModal(eventToCalendarEvent(clickInfo.event))
+            }
+            eventDrop={handleEventDrop}
+          />
+        </div>
 
-      {/* ── 选中日期的日程详情（日历上压后在底部展开） ── */}
-      {selectedDay && (
-        <section className={styles.dayPanel} aria-label={formatDayTitle(selectedDay)}>
-          <header className={styles.panelHead}>
-            <div className={styles.panelHeadLeft}>
-              <span className={styles.panelTitle}>{formatDayTitle(selectedDay)}</span>
-              <span className={styles.panelCount}>{dayEvents.length} 项</span>
-            </div>
-            <div className={styles.panelHeadRight}>
-              <Button
-                size="small"
-                className={cx(styles.panelCreateBtn)}
-                icon={<PlusOutlined />}
-                onClick={() => openCreateModal(selectedDay)}
-              >
-                新建日程
-              </Button>
-              <button
-                type="button"
-                className={styles.panelClose}
-                aria-label="收起日程详情"
-                onClick={() => setSelectedDay(null)}
-              >
-                <CloseOutlined />
-              </button>
-            </div>
-          </header>
-          <div className={styles.panelBody}>
-            {dayEvents.length === 0 ? (
-              <div className={styles.panelEmpty}>
-                <Text type="secondary">这一天还没有日程</Text>
+        {/* 选中日期的日程详情：面板常挂载，开合靠 flex-basis / opacity 过渡 */}
+        <section
+          className={cx(styles.dayPanel, !!selectedDay && styles.dayPanelOpen)}
+          aria-label={panelDay ? formatDayTitle(panelDay) : undefined}
+        >
+          {panelDay ? (
+            <>
+              <header className={styles.panelHead}>
+                <div className={styles.panelHeadLeft}>
+                  <span className={styles.panelTitle}>{formatDayTitle(panelDay)}</span>
+                  <span className={styles.panelCount}>{dayEvents.length} 项</span>
+                </div>
+                <div className={styles.panelHeadRight}>
+                  <Button
+                    size="small"
+                    className={cx(styles.panelCreateBtn)}
+                    icon={<PlusOutlined />}
+                    onClick={() => openCreateModal(panelDay)}
+                  >
+                    新建日程
+                  </Button>
+                  <button
+                    type="button"
+                    className={styles.panelClose}
+                    aria-label="收起日程详情"
+                    onClick={() => setSelectedDay(null)}
+                  >
+                    <CloseOutlined />
+                  </button>
+                </div>
+              </header>
+              <div className={styles.panelBody}>
+                {dayEvents.length === 0 ? (
+                  <div className={styles.panelEmpty}>
+                    <Text type="secondary">这一天还没有日程</Text>
+                  </div>
+                ) : (
+                  <ul className={styles.eventList}>
+                    {dayEvents.map((ev) => (
+                      <li key={ev.id}>
+                        <button
+                          type="button"
+                          className={styles.eventRow}
+                          style={
+                            { '--cal-event-color': ev.color || DEFAULT_COLOR } as CSSProperties
+                          }
+                          onClick={() => openEditModal(ev)}
+                        >
+                          <span className={styles.eventMain}>
+                            <span className={styles.eventTitle}>{ev.title}</span>
+                            <span className={styles.eventMeta}>{formatEventTime(ev)}</span>
+                          </span>
+                          {ev.location && (
+                            <span className={styles.eventLoc}>
+                              <EnvironmentOutlined />
+                              <span>{ev.location}</span>
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-            ) : (
-              <ul className={styles.eventList}>
-                {dayEvents.map((ev) => (
-                  <li key={ev.id}>
-                    <button
-                      type="button"
-                      className={styles.eventRow}
-                      style={{ '--cal-event-color': ev.color || DEFAULT_COLOR } as CSSProperties}
-                      onClick={() => openEditModal(ev)}
-                    >
-                      <span className={styles.eventMain}>
-                        <span className={styles.eventTitle}>{ev.title}</span>
-                        <span className={styles.eventMeta}>{formatEventTime(ev)}</span>
-                      </span>
-                      {ev.location && (
-                        <span className={styles.eventLoc}>
-                          <EnvironmentOutlined />
-                          <span>{ev.location}</span>
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+            </>
+          ) : null}
         </section>
-      )}
+      </div>
 
       <CalendarEventModal
         open={modalVisible}
