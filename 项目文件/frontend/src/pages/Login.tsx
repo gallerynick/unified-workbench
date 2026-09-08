@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, message, Segmented } from 'antd';
-import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { login } from '../api/auth';
 import { verify2fa, webauthnVerifyLogin } from '../api/security';
 import { setTokens, isAuthenticated } from '../utils/auth';
@@ -308,9 +308,7 @@ const handleBackToLogin = () => {
                   alt={customization.app.name}
                   className={styles.otpLogo ?? ''}
                 />
-              ) : (
-                <SafetyOutlined className={styles.otpIcon ?? ''} />
-              )}
+              ) : null}
             </div>
             <Text className={styles.otpLabel ?? ''} type="secondary">
               {codeMode === 'totp'
@@ -332,7 +330,7 @@ const handleBackToLogin = () => {
               options={[
                 { label: '动态码', value: 'totp' },
                 { label: '恢复码', value: 'recovery' },
-                { label: '指纹', value: 'webauthn', icon: <SafetyOutlined /> },
+                { label: '指纹/面容', value: 'webauthn' },
               ]}
             />
 
@@ -368,8 +366,7 @@ const handleBackToLogin = () => {
               />
             ) : (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <SafetyOutlined style={{ fontSize: 48, color: 'var(--color-primary)' }} />
-                <p style={{ marginTop: 12, color: 'var(--text-secondary)' }}>
+                <p style={{ color: 'var(--text-secondary)' }}>
                   点击下方按钮，浏览器将弹出系统验证窗口
                 </p>
               </div>
