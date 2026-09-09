@@ -303,6 +303,11 @@ export default function CalendarPage() {
   // width/height。缩放 ≠ 1 时两个单位混用：表格比滚动区窄 1/k、矮 1/k，
   // 右下留出一片空白。这里改用不受 transform 影响的 clientWidth/clientHeight 自行测量。
   // 缩放不触发 window.resize，故另监听 zoom-changed。
+  // 该 effect 只在挂载时跑一次，RO 观测的是日历容器。切视图时容器尺寸不变、RO 不触发，
+  // 而 FullCalendar 已换掉整套表格（周视图 1 行 / 月视图 6 行），--cal-grid-h 就停在
+  // 上一个视图的旧值上；配合 module.css 里的 !important 覆盖，会把新视图本来正确的
+  // 高度压掉（月视图 6 行被压成 419px，最底一排整排往上缩）。故额外暴露 measure 供切视图补测。
+  const measureRef = useRef<() => void>(() => {});
   useEffect(() => {
     const el = calRootRef.current;
     if (!el) return;
@@ -330,6 +335,7 @@ export default function CalendarPage() {
       tries = 0;
       raf = requestAnimationFrame(tick);
     };
+    measureRef.current = measure;
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -343,6 +349,14 @@ export default function CalendarPage() {
       window.removeEventListener('resize', measure);
     };
   }, []);
+
+  // ── 切换视图后补测一次：日历容器尺寸没变，上面的 RO 不会触发 ──
+  // 新视图的网格是异步出来的，故退两帧再量（与选中高亮的重建兜底同一节奏）。
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => measureRef.current());
+    });
+  }, [activeView]);
 
   // ── 下发 --avail：日历与详情面板共享的可用高度，开合分配交给 CSS 计算 ──
   // 该区域自身是 flex: 1 1 0，高度只取决于表头与筛选条，不随开合变化，
