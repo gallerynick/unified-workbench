@@ -18,14 +18,14 @@ if not errorlevel 1 (
 )
 
 rem 2) Docker Desktop 常见安装路径（Program Files）
-if exist "%ProgramFiles%DockerDockeresourcesindocker.exe" (
-  set "DOCKER_BIN=%ProgramFiles%DockerDockeresourcesindocker.exe"
+if exist "%ProgramFiles%\Docker\Docker\resources\bin\docker.exe" (
+  set "DOCKER_BIN=%ProgramFiles%\Docker\Docker\resources\bin\docker.exe"
   goto :found
 )
 
 rem 3) 备用：32 位 Program Files (x86)
-if exist "%ProgramFiles(x86)%DockerDockeresourcesindocker.exe" (
-  set "DOCKER_BIN=%ProgramFiles(x86)%DockerDockeresourcesindocker.exe"
+if exist "%ProgramFiles(x86)%\Docker\Docker\resources\bin\docker.exe" (
+  set "DOCKER_BIN=%ProgramFiles(x86)%\Docker\Docker\resources\bin\docker.exe"
   goto :found
 )
 

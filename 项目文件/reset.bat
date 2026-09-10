@@ -8,7 +8,7 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 :: 自动探测 docker
-call "%~dp0scriptsdocker-detect.bat"
+call "%~dp0scripts\docker-detect.bat"
 if errorlevel 1 (
     echo [错误] 未检测到 docker！
     echo 重置需要 Docker 环境，请先安装并启动 Docker Desktop。
@@ -76,16 +76,16 @@ for /f "tokens=*" %%i in ('"%DOCKER_BIN%" volume ls --filter "name=unified-workb
 :: ============================================================
 :: 3. 删除持久化文件数据
 :: ============================================================
-if exist "datailes*" (
+if exist "data\files*" (
     echo → 删除上传文件...
-    del /f /s /q "datailes*" 2>nul
-    for /d %%d in ("datailes*") do rmdir /s /q "%%d" 2>nul
+    del /f /s /q "data\files*" 2>nul
+    for /d %%d in ("data\files*") do rmdir /s /q "%%d" 2>nul
 )
 
-if exist "dataackups*" (
+if exist "data\backups*" (
     echo → 删除备份文件...
-    del /f /s /q "dataackups*" 2>nul
-    for /d %%d in ("dataackups*") do rmdir /s /q "%%d" 2>nul
+    del /f /s /q "data\backups*" 2>nul
+    for /d %%d in ("data\backups*") do rmdir /s /q "%%d" 2>nul
 )
 
 :: ============================================================

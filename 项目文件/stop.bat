@@ -8,7 +8,7 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 :: 自动探测 docker
-call "%~dp0scriptsdocker-detect.bat"
+call "%~dp0scripts\docker-detect.bat"
 if errorlevel 1 (
     echo [信息] 未检测到 docker（可能未安装），无需停止服务。
     goto :done
