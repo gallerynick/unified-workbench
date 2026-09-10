@@ -18,6 +18,10 @@
   white-space: nowrap;
 }
 
+.tabs {
+  margin-bottom: var(--spacing-xs);
+}
+
 .table {
   flex: 1;
 }

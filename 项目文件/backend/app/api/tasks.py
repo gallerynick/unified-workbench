@@ -21,10 +21,13 @@ async def list_tasks_endpoint(
     page_size: int = Query(20, ge=1, le=100),
     status: str | None = Query(None),
     priority: str | None = Query(None),
+    owner_id: uuid.UUID | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    tasks, total = await list_tasks(db, current_user.id, page, page_size, status, priority)
+    tasks, total = await list_tasks(
+        db, current_user.id, page, page_size, status, priority, owner_id
+    )
     return UnifiedResponse(
         data=TaskListResponse(
             items=[TaskResponse.model_validate(t) for t in tasks],

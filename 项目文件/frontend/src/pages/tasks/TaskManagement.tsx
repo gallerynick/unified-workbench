@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Select, Tag, Typography, Modal, message, Space, Tooltip } from 'antd';
+import { Table, Button, Select, Tag, Typography, Modal, message, Space, Tooltip, Tabs } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listTasks, updateTask, deleteTask } from '../../api/tasks';
 import type { Task, TaskStatus, TaskPriority } from '../../types/task';
 import { getVisibilityConfig } from '../../utils/visibility';
+import { getUserId } from '../../utils/auth';
 import TaskModal from './TaskModal';
 import styles from './TaskManagement.module.css';
 
@@ -24,6 +25,13 @@ const PRIORITY_MAP: Record<TaskPriority, { color: string; text: string }> = {
   urgent: { color: 'red', text: '紧急' },
 };
 
+type TabKey = 'all' | 'mine';
+
+const TAB_ITEMS: { key: TabKey; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'mine', label: '我创建的' },
+];
+
 export default function TaskManagement() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [total, setTotal] = useState(0);
@@ -32,21 +40,39 @@ export default function TaskManagement() {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [priorityFilter, setPriorityFilter] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
 
   // ── 弹窗状态（共用组件 TaskModal） ──
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [permissionVisible, setPermissionVisible] = useState(false);
 
+  const currentUserId = getUserId();
+
+  // 任务权限：仅创建者可编辑 / 改状态 / 删除（管理员无额外权限，与后端 403 一致）
+  const canManage = (task: Task): boolean => task.owner_id === currentUserId;
+
+  const handleTabChange = (key: string) => {
+    setActiveTab(key as TabKey);
+    setPage(1);
+  };
+
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
-      const params: { page: number; page_size: number; status?: string; priority?: string } = {
+      const params: {
+        page: number;
+        page_size: number;
+        status?: string;
+        priority?: string;
+        owner_id?: string;
+      } = {
         page,
         page_size: pageSize,
       };
       if (statusFilter) params.status = statusFilter;
       if (priorityFilter) params.priority = priorityFilter;
+      if (activeTab === 'mine' && currentUserId) params.owner_id = currentUserId;
       const res = await listTasks(params);
       if (res.code === 0) {
         setTasks(res.data.items);
@@ -57,7 +83,7 @@ export default function TaskManagement() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, statusFilter, priorityFilter]);
+  }, [page, pageSize, statusFilter, priorityFilter, activeTab, currentUserId]);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
@@ -99,6 +125,7 @@ export default function TaskManagement() {
       title: '状态', dataIndex: 'status', key: 'status', width: 100,
       render: (status: TaskStatus, record) => (
         <Select value={status} size="small" style={{ width: 90 }}
+          disabled={!canManage(record)}
           onChange={(v) => handleStatusChange(record, v as TaskStatus)}
           options={Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))}
         />
@@ -132,7 +159,7 @@ export default function TaskManagement() {
     },
     {
       title: '操作', key: 'action', width: 140,
-      render: (_, record) => (
+      render: (_, record) => canManage(record) ? (
         <Space size="small">
           <Tooltip title="编辑">
             <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
@@ -141,6 +168,10 @@ export default function TaskManagement() {
             <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
           </Tooltip>
         </Space>
+      ) : (
+        <Tooltip title="仅创建者可编辑或删除">
+          <Text type="secondary">只读</Text>
+        </Tooltip>
       ),
     },
   ];
@@ -167,6 +198,8 @@ export default function TaskManagement() {
           </Tooltip>
         </Space>
       </div>
+
+      <Tabs activeKey={activeTab} items={TAB_ITEMS} onChange={handleTabChange} className={styles.tabs ?? ''} />
 
       <Table<Task> className={styles.table ?? ''} columns={columns} dataSource={tasks} rowKey="id" loading={loading}
         pagination={{ current: page, pageSize, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`,

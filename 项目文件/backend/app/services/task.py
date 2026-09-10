@@ -45,15 +45,21 @@ def _normalize_access_flags(task: Task) -> None:
 
 async def list_tasks(
     db: AsyncSession,
-    owner_id: uuid.UUID,
+    user_id: uuid.UUID,
     page: int = 1,
     page_size: int = 20,
     status: str | None = None,
     priority: str | None = None,
+    owner_id: uuid.UUID | None = None,
 ) -> tuple[list[Task], int]:
-    user_id = owner_id
+    """列出可见任务。
+
+    owner_id 非空时仅返回该创建者的任务（前端「我创建的」Tab）。
+    """
     visibility_cond = build_visibility_filter(Task, user_id)
     query = select(Task).where(visibility_cond)
+    if owner_id is not None:
+        query = query.where(Task.owner_id == owner_id)
 
     if status:
         query = query.where(Task.status == TaskStatus(status))

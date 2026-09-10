@@ -7,12 +7,15 @@ export async function listTasks(params?: {
   page_size?: number;
   status?: string;
   priority?: string;
+  /** 仅返回该创建者的任务（「我创建的」Tab） */
+  owner_id?: string;
 }): Promise<UnifiedResponse<TaskListResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page) searchParams.set('page', String(params.page));
   if (params?.page_size) searchParams.set('page_size', String(params.page_size));
   if (params?.status) searchParams.set('status', params.status);
   if (params?.priority) searchParams.set('priority', params.priority);
+  if (params?.owner_id) searchParams.set('owner_id', params.owner_id);
   const query = searchParams.toString();
   return request<TaskListResponse>(`/tasks/${query ? `?${query}` : ''}`);
 }
