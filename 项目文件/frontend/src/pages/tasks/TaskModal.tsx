@@ -78,7 +78,7 @@ export default function TaskModal({
         ...(values.description ? { description: values.description } : {}),
         priority: values.priority,
         visibility,
-        ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
+        ...(visibility === 'restricted' ? { restricted_users: restrictedUsers } : {}),
       };
       if (editingTask) {
         const res = await updateTask(editingTask.id, payload);

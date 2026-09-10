@@ -31,6 +31,8 @@ frontend/build/
 # ==================== Docker ====================
 .env
 !.env.example
+# 本地构建工具状态（buildx / compose 插件，沙箱无法写 ~/.docker 时的工作区内替代）
+.docker-local/
 
 # ==================== IDE ====================
 .vscode/

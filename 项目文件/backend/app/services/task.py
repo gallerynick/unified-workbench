@@ -30,6 +30,16 @@ def _visibility_get_check(item: Task, user_id: uuid.UUID) -> bool:
     return False
 
 
+def _normalize_access_flags(task: Task) -> None:
+    """收敛访问相关标记，避免留下与可见性矛盾的无效残留。
+
+    - 非受限可见性不携带授权载体（restricted_users），
+      否则从「指定」改回「公开/私有」后会残留旧授权名单
+    """
+    if task.visibility != Visibility.RESTRICTED:
+        task.restricted_users = None
+
+
 # ── 列表 ──────────────────────────────────────────────────────────────
 
 
@@ -94,7 +104,10 @@ async def create_task(
         assigned_to=request.assigned_to,
         owner_id=owner_id,
         tags=request.tags,
+        visibility=request.visibility,
+        restricted_users=request.restricted_users,
     )
+    _normalize_access_flags(task)
     db.add(task)
     await db.flush()
     await db.refresh(task)
@@ -138,6 +151,11 @@ async def update_task(
         task.assigned_to = request.assigned_to
     if request.tags is not None:
         task.tags = request.tags
+    if request.visibility is not None:
+        task.visibility = request.visibility
+    if request.restricted_users is not None:
+        task.restricted_users = request.restricted_users
+    _normalize_access_flags(task)
     await db.flush()
     await db.refresh(task)
     return task

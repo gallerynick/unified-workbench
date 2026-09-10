@@ -7,6 +7,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.core.visibility import Visibility
+
 
 VALID_STATUSES = {"todo", "in_progress", "done", "cancelled"}
 VALID_PRIORITIES = {"low", "medium", "high", "urgent"}
@@ -20,6 +22,8 @@ class TaskCreate(BaseModel):
     due_date: str | None = None
     assigned_to: uuid.UUID | None = None
     tags: list[str] | None = None
+    visibility: Visibility = Visibility.PRIVATE
+    restricted_users: list[str] | None = None
 
     @field_validator("status")
     @classmethod
@@ -44,6 +48,8 @@ class TaskUpdate(BaseModel):
     due_date: str | None = None
     assigned_to: uuid.UUID | None = None
     tags: list[str] | None = None
+    visibility: Visibility | None = None
+    restricted_users: list[str] | None = None
 
     @field_validator("status")
     @classmethod
@@ -72,6 +78,8 @@ class TaskResponse(BaseModel):
     assigned_to: uuid.UUID | None
     owner_id: uuid.UUID
     tags: list[str] | None
+    visibility: Visibility
+    restricted_users: list[str] | None = None
     created_at: datetime
     updated_at: datetime
 
