@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } fr
 import type { ColumnsType } from 'antd/es/table';
 import { listTasks, updateTask, deleteTask } from '../../api/tasks';
 import type { Task, TaskStatus, TaskPriority } from '../../types/task';
+import { getVisibilityConfig } from '../../utils/visibility';
 import TaskModal from './TaskModal';
 import styles from './TaskManagement.module.css';
 
@@ -108,6 +109,20 @@ export default function TaskManagement() {
       render: (priority: TaskPriority) => <Tag color={PRIORITY_MAP[priority].color}>{PRIORITY_MAP[priority].text}</Tag>,
     },
     {
+      title: '可见性', dataIndex: 'visibility', key: 'visibility', width: 90,
+      render: (visibility: string | undefined, record) => {
+        const cfg = getVisibilityConfig(visibility ?? 'private');
+        const hint = visibility === 'restricted'
+          ? `指定用户可见（${record.restricted_users?.length ?? 0} 人）`
+          : cfg.description;
+        return (
+          <Tooltip title={hint}>
+            <Tag color={cfg.color}>{cfg.text}</Tag>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: '截止日期', dataIndex: 'due_date', key: 'due_date', width: 120,
       render: (date: string | null) => date ? new Date(date).toLocaleDateString('zh-CN') : '-',
     },
@@ -176,31 +191,31 @@ export default function TaskManagement() {
       >
         <div className={styles.permissionContent ?? ''}>
           <Title level={5}>创建者权限</Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有任务的完整管理权限，可以编辑内容、调整状态、删除任务和设置可见范围。</Paragraph>
-          <Title level={5}>成员/指定用户权限</Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>可见范围内的成员可以查看和处理任务；被指定的用户只能查看被授权给自己的任务。</Paragraph>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有该任务的完整管理权限：编辑内容、调整状态、删除任务、设置可见范围。</Paragraph>
+          <Title level={5}>其他成员</Title>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>非创建者只能查看自己可见范围内的任务，不能编辑、调整状态或删除。</Paragraph>
           <Title level={5}>可见范围</Title>
           <ul className={styles.permissionList ?? ''}>
             <li>
               <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                公开：所有成员都可以查看该任务
+                公开：所有登录成员都可以查看该任务
               </Text>
             </li>
             <li>
               <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                私有：仅创建者和被授权成员可以查看
+                私有：仅创建者可以查看
               </Text>
             </li>
             <li>
               <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                指定用户：仅被指定的用户可以看到该任务
+                受限（指定用户）：仅创建者和被指定的用户可以查看
               </Text>
             </li>
           </ul>
           <Title level={5}>管理员</Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员可以管理自己创建以及被指定给自己的任务。</Paragraph>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员不享有额外权限：只能管理自己创建的任务；对公开或指定给自己的任务同样只读。</Paragraph>
           <Title level={5}>创建权限</Title>
-          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建任务，创建时需设定可见范围。</Paragraph>
+          <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建任务，创建时可设定可见范围，默认为私有。</Paragraph>
         </div>
       </Modal>
     </div>
