@@ -667,7 +667,7 @@ export default function CalendarPage() {
         onShowAll={handleShowAll}
       />
 
-      {/* ── 日历 + 详情面板的高度分配区：开合只切换 CSS 变量，flex-basis 做过渡 ── */}
+      {/* ── 日历 + 详情面板区：面板绝对定位浮在日历底部，日历保持全高、不参与压缩 ── */}
       <div ref={gridAreaRef} className={cx(styles.gridArea, !!selectedDay && styles.gridAreaOpen)}>
         {/* 日历主体（内置工具条已隐藏）：点选日期进入压缩态，长按新建 */}
         <div
@@ -706,7 +706,7 @@ export default function CalendarPage() {
           />
         </div>
 
-        {/* 选中日期的日程详情：面板常挂载，开合靠 flex-basis / opacity 过渡 */}
+        {/* 选中日期的日程详情：面板常挂载，绝对定位浮在日历底部，开合靠 height / opacity 过渡 */}
         <section
           className={cx(styles.dayPanel, !!selectedDay && styles.dayPanelOpen)}
           aria-label={panelDay ? formatDayTitle(panelDay) : undefined}

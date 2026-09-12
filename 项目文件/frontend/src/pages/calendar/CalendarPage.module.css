@@ -253,38 +253,30 @@
 
 /* ── 日历主体 + 详情面板的高度分配区 ───────────────────── */
 
-/* 开合只切换 --cal-h / --panel-h 两个自定义属性，由 flex-basis 承担过渡。
-   任意时刻 日历高 + 间距 + 面板高 恒等于 --avail（两条曲线同 easing、同时长），
-   所以日历下压与面板展开是同一根进度条的两端，既无溢出也无跳变。 */
+/* 开合只切换 --panel-h 一个自定义属性，由面板高度承担过渡。
+   日历始终保持 --avail 全高、不参与压缩，因此点开详情时网格不会重排、
+   不会出现行高与滚动条的抽动。面板绝对定位浮在日历底部，占满底部一段高度，
+   顶部留 --cal-visible-h 给网格（约 3 行月视图），用户仍能看到当前周次。 */
 .gridArea {
   --avail: 0px;
-  --cal-collapsed-h: 300px;
-  --cal-h: var(--avail);
+  --cal-visible-h: 300px;
   --panel-h: 0px;
   flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .gridAreaOpen {
-  --cal-h: var(--cal-collapsed-h);
-  --panel-h: max(0px, calc(var(--avail) - var(--cal-collapsed-h) - var(--spacing-sm)));
+  --panel-h: max(0px, calc(var(--avail) - var(--cal-visible-h)));
 }
 
+/* 日历保持全高：面板浮在上面，不参与压缩，故网格不会重排 */
 .calendar {
-  flex: 0 1 var(--cal-h);
+  flex: 1 1 0;
   min-height: 0;
-  margin-bottom: 0;
   overflow: hidden;
-  transition:
-    flex-basis var(--anim-normal) var(--anim-ease-in-out),
-    margin-bottom var(--anim-normal) var(--anim-ease-in-out);
-}
-
-/* 日历下压后让出的间距，随过渡一并交给面板 */
-.gridAreaOpen .calendar {
-  margin-bottom: var(--spacing-sm);
 }
 
 /* sync-table 宽高覆盖：FullCalendar 用 getBoundingClientRect().width/height 量
@@ -304,15 +296,21 @@
   height: var(--cal-grid-h, auto) !important;
 }
 
-/* ── 选中日期的日程详情（日历上压后在底部展开） ── */
+/* ── 选中日期的日程详情（浮在日历底部，日历保持全高） ── */
 
 /* 面板常挂载：收起时高度 0 + 透明 + 隐藏。
    visibility 的延迟写在收起态——收起过程中内容仍然可见（配合 panelDay 保留内容），
-   动画结束后才真正隐藏，届时内部按钮也不再可聚焦。 */
+   动画结束后才真正隐藏，届时内部按钮也不再可聚焦。
+   绝对定位 + 高度过渡：面板从日历底部向上生长，日历不参与布局、不会重排，
+   因此点开/收起详情时网格无抽动。 */
 .dayPanel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
-  flex: 0 1 var(--panel-h);
+  height: var(--panel-h);
   min-height: 0;
   background: var(--canvas);
   border: 1px solid var(--hairline);
@@ -322,7 +320,7 @@
   opacity: 0;
   visibility: hidden;
   transition:
-    flex-basis var(--anim-normal) var(--anim-ease-in-out),
+    height var(--anim-normal) var(--anim-ease-in-out),
     opacity var(--anim-normal) var(--anim-ease-in-out),
     visibility 0s linear var(--anim-normal);
 }
@@ -331,9 +329,9 @@
   opacity: 1;
   visibility: visible;
   transition:
-    flex-basis var(--anim-normal) var(--anim-ease-in-out),
+    height var(--anim-normal) var(--anim-ease-in-out),
     opacity var(--anim-normal) var(--anim-ease-in-out),
-    visibility 0s;
+    visibility 0s linear 0s;
 }
 
 .panelHead {
