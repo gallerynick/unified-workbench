@@ -296,6 +296,12 @@
   height: var(--cal-grid-h, auto) !important;
 }
 
+/* 去掉 FullCalendar 日程条左侧的默认色条：它本身用 3px 左边框做颜色指示，
+   和详情面板里的 eventRow 重复了。这里清零边框，颜色信息靠背景色承载。 */
+.calendar :global(.fc-daygrid) :global(.fc-daygrid-event) {
+  border-left: 0 !important;
+}
+
 /* ── 选中日期的日程详情（浮在日历底部，日历保持全高） ── */
 
 /* 面板常挂载：收起时高度 0 + 透明 + 隐藏。
