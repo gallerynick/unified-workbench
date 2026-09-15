@@ -10,15 +10,20 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.common import UnifiedResponse
 from app.schemas.note import NoteCreate, NoteListResponse, NoteResponse, NoteUpdate
+from app.schemas.note_draft import DraftResponse, DraftSave
+from app.schemas.note_link import BacklinkItem, GraphData, TagCount
 from app.services.note import (
     create_note,
     delete_note,
     get_note,
     list_all_notes,
     list_notes,
+    list_tag_counts,
     move_note,
     update_note,
 )
+from app.services.note_draft import delete_draft, get_draft, upsert_draft
+from app.services.note_link import get_backlinks, get_graph
 
 router = APIRouter()
 
@@ -64,6 +69,97 @@ async def create_note_endpoint(
 ):
     note = await create_note(db, current_user.id, request)
     return UnifiedResponse(data=NoteResponse.model_validate(note))
+
+
+# ── 标签聚合 / 图谱 / 草稿 ─────────────────────────────────────────────
+# 注意：以下字面量路径必须声明在 "/{note_id}" 之前，否则会被路径参数吞掉。
+
+
+@router.get("/tags", response_model=UnifiedResponse[list[TagCount]])
+async def list_tags_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """标签使用次数聚合，仅统计当前用户可见的笔记。"""
+    counts = await list_tag_counts(db, current_user.id)
+    return UnifiedResponse(
+        data=[TagCount(tag=tag, count=count) for tag, count in counts]
+    )
+
+
+@router.get("/graph", response_model=UnifiedResponse[GraphData])
+async def global_graph_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """全局知识图谱：可见笔记为节点，note_link 为边。"""
+    data = await get_graph(db, current_user.id)
+    return UnifiedResponse(data=GraphData(**data))
+
+
+@router.get("/draft", response_model=UnifiedResponse[DraftResponse])
+async def get_draft_endpoint(
+    note_id: uuid.UUID | None = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """读取本人草稿；note_id 为空表示尚未关联笔记的新笔记草稿。"""
+    draft = await get_draft(db, current_user.id, note_id)
+    if not draft:
+        return UnifiedResponse(data=None, msg="无草稿")
+    return UnifiedResponse(data=DraftResponse.model_validate(draft))
+
+
+@router.put("/draft", response_model=UnifiedResponse[DraftResponse])
+async def save_draft_endpoint(
+    request: DraftSave,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """保存或覆盖本人草稿。"""
+    draft = await upsert_draft(
+        db, current_user.id, request.note_id, request.title, request.body
+    )
+    return UnifiedResponse(data=DraftResponse.model_validate(draft))
+
+
+@router.delete("/draft", response_model=UnifiedResponse[None])
+async def delete_draft_endpoint(
+    note_id: uuid.UUID | None = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """删除本人草稿。"""
+    if not await delete_draft(db, current_user.id, note_id):
+        return UnifiedResponse(data=None, msg="无草稿")
+    return UnifiedResponse(msg="草稿已删除")
+
+
+@router.get("/{note_id}/backlinks", response_model=UnifiedResponse[list[BacklinkItem]])
+async def backlinks_endpoint(
+    note_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """反向链接：正文 wikilink 指向该笔记的可见笔记列表。"""
+    if not await get_note(db, note_id, current_user.id):
+        raise HTTPException(status_code=404, detail="笔记不存在")
+    items = await get_backlinks(db, note_id, current_user.id)
+    return UnifiedResponse(data=[BacklinkItem(**item) for item in items])
+
+
+@router.get("/{note_id}/graph", response_model=UnifiedResponse[GraphData])
+async def local_graph_endpoint(
+    note_id: uuid.UUID,
+    depth: int = Query(1, ge=1, le=2),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """局部知识图谱：以该笔记为根做双向 N 跳遍历（1-2 跳）。"""
+    if not await get_note(db, note_id, current_user.id):
+        raise HTTPException(status_code=404, detail="笔记不存在")
+    data = await get_graph(db, current_user.id, root_id=note_id, depth=depth)
+    return UnifiedResponse(data=GraphData(**data))
 
 
 @router.get("/{note_id}", response_model=UnifiedResponse[NoteResponse])

@@ -610,3 +610,223 @@ async def test_list_notes_tag_filter(client, member_token):
     data = resp.json()["data"]
     assert data["total"] == 2
     assert {n["title"] for n in data["items"]} == {"标签A和B", "标签B"}
+
+
+# ── 反向链接 / 图谱 HTTP 端点 ─────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_backlinks_endpoint_returns_sources(client, member_token):
+    """A 正文 wikilink 指向 B：GET /{B}/backlinks 返回 A。"""
+    a = await _create_note(client, member_token, title="引用方")
+    b = await _create_note(client, member_token, title="被引用方")
+    await client.put(
+        f"/api/v1/notes/{a['data']['id']}",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"body": _wikilink_body(b["data"]["id"], "被引用方")},
+    )
+
+    resp = await client.get(
+        f"/api/v1/notes/{b['data']['id']}/backlinks",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+    items = resp.json()["data"]
+    assert len(items) == 1
+    assert items[0]["note_id"] == a["data"]["id"]
+    assert items[0]["title"] == "引用方"
+
+
+@pytest.mark.asyncio
+async def test_backlinks_endpoint_empty_after_source_deleted(client, member_token):
+    """引用方笔记被删除后，反向链接随之清空（级联）。"""
+    a = await _create_note(client, member_token, title="引用方")
+    b = await _create_note(client, member_token, title="被引用方")
+    await client.put(
+        f"/api/v1/notes/{a['data']['id']}",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"body": _wikilink_body(b["data"]["id"], "被引用方")},
+    )
+
+    resp = await client.delete(
+        f"/api/v1/notes/{a['data']['id']}",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+
+    resp = await client.get(
+        f"/api/v1/notes/{b['data']['id']}/backlinks",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"] == []
+
+
+@pytest.mark.asyncio
+async def test_local_graph_endpoint_respects_depth(client, member_token):
+    """A→B→C：depth=1 只见一跳，depth=2 见完整链路。"""
+    a = await _create_note(client, member_token, title="根A")
+    b = await _create_note(client, member_token, title="中B")
+    c = await _create_note(client, member_token, title="末端C")
+    for src, tgt in ((a, b), (b, c)):
+        await client.put(
+            f"/api/v1/notes/{src['data']['id']}",
+            headers={"Authorization": f"Bearer {member_token}"},
+            json={"body": _wikilink_body(tgt["data"]["id"])},
+        )
+
+    resp = await client.get(
+        f"/api/v1/notes/{a['data']['id']}/graph",
+        params={"depth": 1},
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert {n["id"] for n in data["nodes"]} == {a["data"]["id"], b["data"]["id"]}
+    assert len(data["links"]) == 1
+
+    resp = await client.get(
+        f"/api/v1/notes/{a['data']['id']}/graph",
+        params={"depth": 2},
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    data = resp.json()["data"]
+    assert {n["id"] for n in data["nodes"]} == {
+        a["data"]["id"],
+        b["data"]["id"],
+        c["data"]["id"],
+    }
+    assert len(data["links"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_global_graph_endpoint(client, member_token):
+    """全局图谱返回全部可见笔记与全部双链边。"""
+    a = await _create_note(client, member_token, title="起点笔记")
+    b = await _create_note(client, member_token, title="被引笔记")
+    await client.put(
+        f"/api/v1/notes/{a['data']['id']}",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"body": _wikilink_body(b["data"]["id"])},
+    )
+
+    resp = await client.get(
+        "/api/v1/notes/graph",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert len(data["nodes"]) == 2
+    assert len(data["links"]) == 1
+    link = data["links"][0]
+    assert link["source"] == a["data"]["id"]
+    assert link["target"] == b["data"]["id"]
+
+
+@pytest.mark.asyncio
+async def test_tags_endpoint_counts_desc(client, member_token):
+    """标签聚合按出现次数降序返回。"""
+    await _create_note(client, member_token, title="一", tags=["工作", "重要"])
+    await _create_note(client, member_token, title="二", tags=["工作"])
+    await _create_note(client, member_token, title="三", tags=["工作", "生活"])
+    await _create_note(client, member_token, title="四", tags=["重要"])
+
+    resp = await client.get(
+        "/api/v1/notes/tags",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [(t["tag"], t["count"]) for t in data] == [
+        ("工作", 3),
+        ("重要", 2),
+        ("生活", 1),
+    ]
+
+
+# ── 服务端草稿 ────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_draft_roundtrip(client, member_token):
+    """PUT 保存 → GET 读到一致内容 → DELETE 后 GET 为空。"""
+    note = await _create_note(client, member_token, title="草稿宿主")
+    note_id = note["data"]["id"]
+    body = _tiptap_body(["草稿正文"])
+
+    resp = await client.put(
+        "/api/v1/notes/draft",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"note_id": note_id, "title": "草稿标题", "body": body},
+    )
+    assert resp.status_code == 200
+    saved = resp.json()["data"]
+    assert saved["note_id"] == note_id
+    assert saved["title"] == "草稿标题"
+    assert saved["body"] == body
+
+    resp = await client.get(
+        "/api/v1/notes/draft",
+        params={"note_id": note_id},
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["title"] == "草稿标题"
+
+    resp = await client.delete(
+        "/api/v1/notes/draft",
+        params={"note_id": note_id},
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+
+    resp = await client.get(
+        "/api/v1/notes/draft",
+        params={"note_id": note_id},
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"] is None
+
+
+@pytest.mark.asyncio
+async def test_draft_upsert_updates_existing(client, member_token):
+    """同一篇笔记重复保存只保留一份草稿，内容为最新值。"""
+    note = await _create_note(client, member_token, title="宿主")
+    note_id = note["data"]["id"]
+    for title in ("第一次", "第二次"):
+        resp = await client.put(
+            "/api/v1/notes/draft",
+            headers={"Authorization": f"Bearer {member_token}"},
+            json={
+                "note_id": note_id,
+                "title": title,
+                "body": _tiptap_body([title]),
+            },
+        )
+        assert resp.status_code == 200
+
+    resp = await client.get(
+        "/api/v1/notes/draft",
+        params={"note_id": note_id},
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.json()["data"]["title"] == "第二次"
+
+
+@pytest.mark.asyncio
+async def test_draft_owner_isolation(client, member_token, admin_token):
+    """草稿归属本人：成员读不到管理员的草稿。"""
+    resp = await client.put(
+        "/api/v1/notes/draft",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={"title": "管理员草稿", "body": _tiptap_body(["管理员正文"])},
+    )
+    assert resp.status_code == 200
+
+    resp = await client.get(
+        "/api/v1/notes/draft",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"] is None

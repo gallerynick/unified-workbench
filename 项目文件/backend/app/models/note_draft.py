@@ -34,7 +34,9 @@ class NoteDraft(Base):
     )
     title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     body: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    saved_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    saved_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     owner: Mapped[User] = relationship("User")
     note: Mapped[Note | None] = relationship("Note")

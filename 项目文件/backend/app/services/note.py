@@ -247,6 +247,18 @@ async def list_all_notes(db: AsyncSession, owner_id: uuid.UUID) -> list[Note]:
     return list(result.scalars().all())
 
 
+async def list_tag_counts(
+    db: AsyncSession, owner_id: uuid.UUID
+) -> list[tuple[str, int]]:
+    """统计当前用户可见笔记的标签使用次数，按次数降序（同次数按标签名）。"""
+    notes = await list_all_notes(db, owner_id)
+    counter: dict[str, int] = {}
+    for note in notes:
+        for tag in note.tags or []:
+            counter[tag] = counter.get(tag, 0) + 1
+    return sorted(counter.items(), key=lambda item: (-item[1], item[0]))
+
+
 # ── 移动 ──────────────────────────────────────────────────────────────
 
 
