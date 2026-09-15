@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.1-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/python-3.11+-blue" alt="Python">
   <img src="https://img.shields.io/badge/react-18-61dafb" alt="React">
@@ -17,14 +17,14 @@
 
 | 模块 | 功能 |
 |------|------|
-| 📋 **内容管理** | 富文本编辑器（Tiptap）、文件/图片管理、文件夹组织 |
+| 📋 **内容管理** | 通用内容条目（Tiptap 富文本）、文件/图片管理、文件夹组织 |
 | 📁 **项目管理** | 项目立项、进度追踪、文档协作、表单/投票/记录 |
 | 📅 **日历** | 日程管理、重复事件、多种视图 |
 | 🎥 **直播工作室** | 直播间系统，支持内置推流（WebRTC）和外部推流（OBS/RTMP），场景合成 |
 | 🔔 **通知** | WebSocket 实时推送、站内消息 |
 | 💰 **财务** | 预算管理、订阅追踪 |
 | 📦 **资产** | 物料管理、联系人管理 |
-| 📝 **知识库** | 笔记编辑（支持知识图谱）、模板系统 |
+| 📝 **知识库** | 知识笔记（Tiptap 富文本、双向链接、反向链接、知识图谱、标签、全文搜索、服务端草稿） |
 | 🗝️ **密钥管理** | AES-256-GCM 加密存储、二次密码验证 |
 | ⏰ **提醒** | 定时提醒、Celery 定时任务 |
 | ⚙️ **系统设置** | 用户管理、标签系统、站点设置、备份、公告、审计日志 |
