@@ -3,17 +3,40 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.visibility import Visibility
 from app.models.note import Note
 from app.models.user import User, UserRole
 from app.schemas.note import NoteCreate, NoteUpdate
+from app.services.note_link import rebuild_outgoing_links
 from app.services.note_text import extract_plain_text
 from app.services.visibility import check_visibility as build_visibility_filter
+
+# ── 辅助函数 ──────────────────────────────────────────────────────────
+
+
+def _derive_plain_text(body: dict[str, Any] | None, content: str | None) -> str | None:
+    """派生纯文本：优先从新版 body 提取，无 body 时回退旧版 content。"""
+    return extract_plain_text(body) or (content or None)
+
+
+def _tags_contains_expr(db: AsyncSession, value: str) -> ColumnElement[bool]:
+    """构建「tags 数组包含 value」的过滤表达式。
+
+    PostgreSQL（生产库）用 JSONB 的 @> 包含语义，可被 GIN 索引加速；
+    SQLite（仅测试库）没有 @> 运算符，改用 JSON1 的 json_each 做元素
+    存在性判断。SQLite 下必须直接传列本身——写成 CAST(tags AS JSON) 会
+    使 json_each 返回空结果（实测行为），故不做类型转换。
+    """
+    if db.bind is not None and db.bind.dialect.name == "sqlite":
+        elements = func.json_each(Note.tags).table_valued("value")
+        return exists(select(1).select_from(elements).where(elements.c.value == value))
+    return Note.tags.contains([value])
 
 
 # ── 辅助函数 ──────────────────────────────────────────────────────────
@@ -46,9 +69,7 @@ async def _require_manage_permission(
     """检查管理权限（owner 或 admin-own+designated）。"""
     if item.owner_id == user_id:
         return
-    _role_result = await db.execute(
-        select(User.role).where(User.id == user_id)
-    )
+    _role_result = await db.execute(select(User.role).where(User.id == user_id))
     _user_role = _role_result.scalar_one_or_none()
     _is_admin = _user_role == UserRole.ADMIN
     if not (_is_admin and _admin_can_manage_own_designated(item, user_id)):
@@ -67,6 +88,7 @@ async def list_notes(
     page_size: int = 20,
     search: str | None = None,
     category: str | None = None,
+    tag: str | None = None,
     parent_id: uuid.UUID | None = None,
 ) -> tuple[list[Note], int]:
     user_id = owner_id
@@ -74,9 +96,17 @@ async def list_notes(
     query = select(Note).where(visibility_cond)
 
     if search:
+        like = f"%{search}%"
+        # 标题/正文/分类按文本模糊匹配；tags 为 JSON 数组，按元素包含判断
         query = query.where(
-            Note.title.ilike(f"%{search}%") | Note.content.ilike(f"%{search}%")
+            Note.title.ilike(like)
+            | Note.plain_text.ilike(like)
+            | Note.category.ilike(like)
+            | _tags_contains_expr(db, search)
         )
+    if tag:
+        # 精确标签筛选：按数组元素相等判断，不误伤同名字符串前缀
+        query = query.where(_tags_contains_expr(db, tag))
     if category:
         query = query.where(Note.category == category)
     if parent_id is not None:
@@ -106,9 +136,7 @@ async def get_note(
     if not item:
         return None
     if not _visibility_get_check(item, user_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="无权访问"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
     return item
 
 
@@ -122,7 +150,7 @@ async def create_note(
         title=request.title,
         content=request.content,
         body=request.body,
-        plain_text=extract_plain_text(request.body),
+        plain_text=_derive_plain_text(request.body, request.content),
         category=request.category,
         tags=request.tags,
         restricted_tags=request.restricted_tags,
@@ -132,6 +160,8 @@ async def create_note(
     )
     db.add(note)
     await db.flush()
+    # 出边随 body 全量重建（先删后插），保证反向链接与图谱同步
+    await rebuild_outgoing_links(db, note.id, note.body)
     await db.refresh(note)
     return note
 
@@ -158,8 +188,6 @@ async def update_note(
         note.content = request.content
     if request.body is not None:
         note.body = request.body
-        # body 变更必须同步重算纯文本，否则搜索与摘要会读到旧值
-        note.plain_text = extract_plain_text(request.body)
     if request.category is not None:
         note.category = request.category
     if request.tags is not None:
@@ -170,6 +198,17 @@ async def update_note(
         note.is_pinned = request.is_pinned
     if request.parent_id is not None:
         note.parent_id = request.parent_id
+
+    # 纯文本与最新正文保持一致：优先新版 body，旧版仅改 content 时同步回写，
+    # 否则搜索与摘要会读到旧值
+    if request.body is not None:
+        note.plain_text = extract_plain_text(request.body)
+    elif request.content is not None:
+        note.plain_text = request.content or None
+    # 出边仅随 body 变化重建；未传 body 时保持原有链接
+    if request.body is not None:
+        await rebuild_outgoing_links(db, note.id, note.body)
+
     await db.flush()
     await db.refresh(note)
     return note
@@ -196,9 +235,7 @@ async def delete_note(
 # ── 全部获取 ──────────────────────────────────────────────────────────
 
 
-async def list_all_notes(
-    db: AsyncSession, owner_id: uuid.UUID
-) -> list[Note]:
+async def list_all_notes(db: AsyncSession, owner_id: uuid.UUID) -> list[Note]:
     """获取用户可见的所有笔记"""
     user_id = owner_id
     visibility_cond = build_visibility_filter(Note, user_id)

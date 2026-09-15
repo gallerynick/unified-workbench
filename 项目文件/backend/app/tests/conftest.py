@@ -10,6 +10,7 @@ os.environ.setdefault(
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -31,11 +32,24 @@ async def engine():
     import app.models  # noqa: F401 - 导入整个包，确保全部模型注册到 Base.metadata
 
     eng = create_async_engine(TEST_DATABASE_URL, echo=False)
+
+    # SQLite 默认不强制外键约束，需按连接开启，否则 note_link 的
+    # ON DELETE CASCADE 在测试库不会生效（PostgreSQL 默认强制）
+    @event.listens_for(eng.sync_engine, "connect")
+    def _enable_foreign_keys(dbapi_conn, _connection_record):
+        dbapi_conn.execute("PRAGMA foreign_keys=ON")
+
     async with eng.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield eng
-    async with eng.begin() as conn:
+    # drop_all 前关闭外键：project_meeting / project_proposal / project_todo
+    # 存在循环外键，SQLite 排不出安全删除顺序（生产 PostgreSQL 不受影响）。
+    # PRAGMA foreign_keys 在事务内是 no-op，故用独立连接并先提交退出事务。
+    async with eng.connect() as conn:
+        await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        await conn.commit()
         await conn.run_sync(Base.metadata.drop_all)
+        await conn.commit()
     await eng.dispose()
 
 
