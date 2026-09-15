@@ -4,7 +4,9 @@ import os
 
 # 必须在导入任何 app 模块之前设置，否则 database.py 会在 import 时
 # 用 postgresql+asyncpg:// 创建引擎并报 validator 错误。
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/test")
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/test"
+)
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -26,7 +28,7 @@ TEST_DATABASE_URL = "sqlite+aiosqlite://"
 @pytest.fixture
 async def engine():
     """创建测试数据库引擎，建表前建后自动清理。"""
-    from app.models import Tag, User, UserTag  # noqa: F401 - 确保模型注册到 Base.metadata
+    import app.models  # noqa: F401 - 导入整个包，确保全部模型注册到 Base.metadata
 
     eng = create_async_engine(TEST_DATABASE_URL, echo=False)
     async with eng.begin() as conn:
@@ -88,12 +90,94 @@ async def seeded_admin(db):
     return admin
 
 
-@pytest.fixture
-async def admin_token(seeded_admin):
-    """为 seeded_admin 生成合法 JWT access token。"""
-    from app.core.security import create_access_token
+@pytest.fixture(autouse=True)
+def _sqlite_naive_clock(monkeypatch):
+    """把 app.core.deps 内的 now_shanghai 换成 naive 版本（仅测试环境）。
 
-    return create_access_token(str(seeded_admin.id), seeded_admin.role.value)
+    背景：UserSession.last_active_at 是 DateTime(timezone=True) +
+    server_default=func.now()。PostgreSQL 往返保持 aware，SQLite 不保留时区，
+    写回后读回是 naive datetime。get_current_user 中
+    `session.last_active_at < now_shanghai() - timedelta(...)` 因此抛
+    TypeError，被该函数的兜底 except 转成 401「无效的令牌」——生产
+    （PostgreSQL）不受影响，属测试库特有问题。
+    让时钟与列取值同为 naive，即可消除该比较。
+    """
+    import datetime
+
+    import app.core.deps as deps
+
+    monkeypatch.setattr(deps, "now_shanghai", lambda: datetime.datetime.now())
+
+
+@pytest.fixture(autouse=True)
+def _sqlite_jsonb_contains(monkeypatch):
+    """用 LIKE 近似替换 JSONB 的 @> 包含判断（仅测试环境）。
+
+    visibility.check_visibility 用 restricted_users.contains([uid]) 表达
+    「uid 在 restricted_users 数组内」。该表达式在 PostgreSQL 上编译为 @>，
+    SQLite 报 `unrecognized token: "@"`，导致所有走可见性过滤的列表接口
+    在测试库上不可用（笔记、密钥等模块均受影响）。
+
+    restricted_users 存的是 UUID 字符串数组，JSON 文本中每个元素都带引号，
+    故匹配 '"<uid>"'（而非裸 uid）以排除子串误命中；语义上等价于 Python
+    侧的 str(user_id) in item.restricted_users 成员判断。
+    生产代码不变，仅测试环境生效。
+    """
+    import importlib
+    import pkgutil
+
+    from sqlalchemy import String, cast, or_
+
+    import app.services as services_pkg
+    import app.services.visibility as vis
+    from app.core.visibility import Visibility
+
+    def _check(model_cls, user_id):
+        uid = str(user_id)
+        ru = cast(model_cls.restricted_users, String)
+        return or_(
+            model_cls.visibility == Visibility.PUBLIC,
+            model_cls.owner_id == user_id,
+            (model_cls.visibility == Visibility.RESTRICTED) & ru.like(f'%"{uid}"%'),
+        )
+
+    orig = vis.check_visibility
+    monkeypatch.setattr(vis, "check_visibility", _check)
+    # 各服务模块以 `from ... import check_visibility as <别名>` 绑定了该函数，
+    # 且别名不统一（build_visibility_filter / visibility_filter 等），
+    # 故按「值 is orig」遍历替换，避免硬编码别名导致漏覆盖。
+    for mod_info in pkgutil.iter_modules(services_pkg.__path__):
+        try:
+            mod = importlib.import_module(f"app.services.{mod_info.name}")
+        except ImportError:
+            continue
+        for name, value in list(vars(mod).items()):
+            if value is orig:
+                monkeypatch.setattr(mod, name, _check)
+
+
+async def _issue_token(db, user, device_name: str) -> str:
+    """为用户签发测试用 access token，并创建匹配的会话行。
+
+    会话制认证（UserSession.jti 校验）要求令牌 jti 必须能在 user_session
+    表中查到且未撤销，否则 get_current_user 返回 401。
+    配合 _sqlite_naive_clock，last_active_at 的比较不会抛 TypeError。
+    """
+    import uuid
+
+    from app.core.security import create_access_token
+    from app.models.user_session import UserSession
+
+    jti = str(uuid.uuid4())
+    db.add(UserSession(user_id=user.id, jti=jti, device_name=device_name))
+    await db.flush()
+    return create_access_token(str(user.id), user.role.value, jti)
+
+
+@pytest.fixture
+async def admin_token(db, seeded_admin):
+    """为 seeded_admin 生成合法 JWT access token。"""
+    return await _issue_token(db, seeded_admin, "pytest-admin")
 
 
 @pytest.fixture
@@ -136,8 +220,6 @@ async def seeded_users(db):
 
 
 @pytest.fixture
-async def member_token(seeded_user):
+async def member_token(db, seeded_user):
     """为 seeded_user 生成合法 JWT access token（普通成员）。"""
-    from app.core.security import create_access_token
-
-    return create_access_token(str(seeded_user.id), seeded_user.role.value)
+    return await _issue_token(db, seeded_user, "pytest-member")
