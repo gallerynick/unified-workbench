@@ -25,6 +25,10 @@ class Note(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=True)
+    # Tiptap 文档树；旧版纯文本编辑器写 content，新版富文本写 body
+    body: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # 由 body 提取的纯文本，供全文搜索与摘要使用
+    plain_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
     tags: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     is_pinned: Mapped[bool] = mapped_column(default=False)
@@ -37,6 +41,8 @@ class Note(Base):
         String(20), nullable=False, server_default="private"
     )
     restricted_users: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    # restricted 可见性下按标签授权，与 restricted_users 互补
+    restricted_tags: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 

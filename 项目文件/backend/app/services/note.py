@@ -12,6 +12,7 @@ from app.core.visibility import Visibility
 from app.models.note import Note
 from app.models.user import User, UserRole
 from app.schemas.note import NoteCreate, NoteUpdate
+from app.services.note_text import extract_plain_text
 from app.services.visibility import check_visibility as build_visibility_filter
 
 
@@ -120,8 +121,11 @@ async def create_note(
     note = Note(
         title=request.title,
         content=request.content,
+        body=request.body,
+        plain_text=extract_plain_text(request.body),
         category=request.category,
         tags=request.tags,
+        restricted_tags=request.restricted_tags,
         is_pinned=request.is_pinned,
         parent_id=request.parent_id,
         owner_id=owner_id,
@@ -152,10 +156,16 @@ async def update_note(
         note.title = request.title
     if request.content is not None:
         note.content = request.content
+    if request.body is not None:
+        note.body = request.body
+        # body 变更必须同步重算纯文本，否则搜索与摘要会读到旧值
+        note.plain_text = extract_plain_text(request.body)
     if request.category is not None:
         note.category = request.category
     if request.tags is not None:
         note.tags = request.tags
+    if request.restricted_tags is not None:
+        note.restricted_tags = request.restricted_tags
     if request.is_pinned is not None:
         note.is_pinned = request.is_pinned
     if request.parent_id is not None:

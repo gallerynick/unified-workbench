@@ -1,7 +1,8 @@
 """笔记模块回归测试。
 
-8 个基线场景：创建、详情、更新、删除、列表分页、置顶排序、
-循环挂载拦截、可见性三态读权限（private / public / restricted）。
+覆盖场景：创建、详情、更新、删除、列表分页、置顶排序、循环挂载拦截、
+可见性三态读权限（private / public / restricted）、Tiptap body 与
+plain_text 派生、restricted_tags 读写。
 
 可见性用例中，NoteCreate/NoteUpdate 至今不含 visibility / restricted_users
 字段（写侧尚未开放），因此 public 与 restricted 两态改用 db fixture 直接
@@ -262,3 +263,92 @@ async def test_visibility_restricted_unauthorized_forbidden(
         headers={"Authorization": f"Bearer {member_token}"},
     )
     assert resp.status_code == 403
+
+
+# ── Tiptap body 与 plain_text 派生 ────────────────────────────────────
+
+
+def _tiptap_body(paragraphs):
+    """辅助：构造最小的 Tiptap 文档树。"""
+    return {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": p}],
+            }
+            for p in paragraphs
+        ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_create_note_with_body_derives_plain_text(client, member_token):
+    """创建时带 body：body 原样回显，plain_text 由服务端从 body 派生。"""
+    body = _tiptap_body(["第一段", "第二段"])
+    resp = await client.post(
+        "/api/v1/notes/",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"title": "富文本笔记", "body": body},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["body"] == body
+    assert data["plain_text"] == "第一段\n\n第二段"
+
+
+@pytest.mark.asyncio
+async def test_update_note_body_recomputes_plain_text(client, member_token):
+    """更新 body 后 plain_text 必须同步重算，否则搜索会读到旧值。"""
+    created = await _create_note(
+        client, member_token, title="待改正文", body=_tiptap_body(["旧正文"])
+    )
+    assert created["data"]["plain_text"] == "旧正文"
+    note_id = created["data"]["id"]
+
+    new_body = _tiptap_body(["新第一段", "新第二段"])
+    resp = await client.put(
+        f"/api/v1/notes/{note_id}",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"body": new_body},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["body"] == new_body
+    assert data["plain_text"] == "新第一段\n\n新第二段"
+
+
+@pytest.mark.asyncio
+async def test_update_note_without_body_keeps_plain_text(client, member_token):
+    """只改 title 不动 body：plain_text 保持不变。"""
+    created = await _create_note(
+        client, member_token, title="旧标题", body=_tiptap_body(["正文不动"])
+    )
+    note_id = created["data"]["id"]
+
+    resp = await client.put(
+        f"/api/v1/notes/{note_id}",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"title": "新标题"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["title"] == "新标题"
+    assert data["plain_text"] == "正文不动"
+
+
+@pytest.mark.asyncio
+async def test_restricted_tags_round_trip(client, member_token):
+    """restricted_tags 可写入并回显。"""
+    created = await _create_note(
+        client, member_token, title="标签授权", restricted_tags=["财务", "机密"]
+    )
+    assert created["data"]["restricted_tags"] == ["财务", "机密"]
+
+    resp = await client.put(
+        f"/api/v1/notes/{created['data']['id']}",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"restricted_tags": ["公开"]},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["restricted_tags"] == ["公开"]
