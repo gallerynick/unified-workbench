@@ -1,0 +1,32 @@
+/* wikilink 行内药丸。颜色一律取 design token，深浅色由 token.css 自动切换。 */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  padding: 0 var(--spacing-xs);
+  margin: 0 var(--spacing-xxs);
+  border-radius: var(--rounded-chip);
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  font-size: 0.92em;
+  line-height: 1.7;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: baseline;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pill:hover {
+  filter: brightness(0.95);
+  box-shadow: 0 0 0 1px var(--divider-soft);
+}
+
+.pill:active {
+  filter: brightness(0.9);
+}
+
+.icon {
+  font-size: 0.85em;
+  flex-shrink: 0;
+}

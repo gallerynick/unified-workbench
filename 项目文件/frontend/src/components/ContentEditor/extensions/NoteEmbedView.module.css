@@ -1,0 +1,97 @@
+/* 笔记内嵌卡片。颜色一律取 design token，深浅色由 token.css 切换。 */
+
+.embed {
+  margin: var(--spacing-sm) 0;
+  border: 1px solid var(--border-secondary);
+  border-left: 3px solid var(--color-info);
+  border-radius: var(--rounded-sm);
+  background-color: var(--bg-secondary);
+}
+
+.embed[data-state='forbidden'] {
+  border-left-color: var(--color-error);
+  background-color: var(--color-error-bg);
+}
+
+.embed[data-state='expanded'] {
+  border-color: var(--border-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.header:disabled {
+  cursor: default;
+}
+
+.icon {
+  color: var(--color-info);
+  flex-shrink: 0;
+}
+
+.embed[data-state='forbidden'] .icon {
+  color: var(--color-error);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toggle {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  font-size: 0.8em;
+}
+
+.excerpt {
+  margin: 0;
+  padding: 0 var(--spacing-sm) var(--spacing-sm);
+  color: var(--text-tertiary);
+  font-size: 0.92em;
+  line-height: 1.6;
+}
+
+.forbidden {
+  padding: 0 var(--spacing-sm) var(--spacing-sm);
+  color: var(--text-secondary);
+  font-size: 0.92em;
+}
+
+.hint {
+  margin: 0;
+  padding: var(--spacing-sm);
+  color: var(--text-tertiary);
+  font-size: 0.9em;
+}
+
+.body {
+  border-top: 1px solid var(--border-secondary);
+  padding: var(--spacing-sm);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+[data-note-embed-stub] {
+  margin: var(--spacing-xs) 0;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px dashed var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  color: var(--text-tertiary);
+  font-size: 0.92em;
+}

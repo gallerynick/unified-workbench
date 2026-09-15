@@ -25,7 +25,7 @@ import {
   PROPOSAL_TYPE_OPTIONS,
   PROJECT_NUMBER_PREFIX,
 } from '../../../constants/project';
-import ContentEditor from '../../content/ContentEditor';
+import ContentEditor from '@/components/ContentEditor/ContentEditor';
 import { parseDescription, serializeDescription, wrapPlainTextToDoc } from './proposalDescription';
 
 interface ProposalModalProps {

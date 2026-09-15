@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Form, Input, Modal, message } from 'antd';
 import type { Template, TemplateField } from '../../types/template';
 import type { Visibility } from '../../utils/visibility';
-import ContentEditor from '../content/ContentEditor';
+import ContentEditor from '@/components/ContentEditor/ContentEditor';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import { createTemplate, updateTemplate } from '../../api/templates';
 

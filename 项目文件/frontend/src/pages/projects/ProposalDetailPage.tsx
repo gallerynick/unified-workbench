@@ -33,7 +33,7 @@ import { listProjectTodos, updateProjectTodo } from '../../api/project-todos';
 import { listProjectMeetings, updateProjectMeeting } from '../../api/project-meetings';
 import { listUsers } from '../../api/users';
 import { useUser } from '../../contexts/UserContext';
-import ContentEditor from '../content/ContentEditor';
+import ContentEditor from '@/components/ContentEditor/ContentEditor';
 import TodoModal from './components/TodoModal';
 import MeetingModal from './components/MeetingModal';
 import ProposalModal from './components/ProposalModal';

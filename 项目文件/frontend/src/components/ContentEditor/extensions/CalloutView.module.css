@@ -1,0 +1,61 @@
+/* Callout 提示块。variant 颜色一律取 design token，深浅色由 token.css 切换。 */
+
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-sm) 0;
+  padding: var(--spacing-sm);
+  border-radius: var(--rounded-sm);
+  border-left: 3px solid var(--color-info);
+  background-color: var(--color-info-bg);
+}
+
+.callout[data-variant='warning'] {
+  border-left-color: var(--color-warning);
+  background-color: var(--color-warning-bg);
+}
+
+.callout[data-variant='danger'] {
+  border-left-color: var(--color-error);
+  background-color: var(--color-error-bg);
+}
+
+.callout[data-variant='success'] {
+  border-left-color: var(--color-success);
+  background-color: var(--color-success-bg);
+}
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-info);
+  font-size: 1.05em;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.callout[data-variant='warning'] .marker {
+  color: var(--color-warning);
+}
+
+.callout[data-variant='danger'] .marker {
+  color: var(--color-error);
+}
+
+.callout[data-variant='success'] .marker {
+  color: var(--color-success);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.content > *:first-child {
+  margin-top: 0;
+}
+
+.content > *:last-child {
+  margin-bottom: 0;
+}

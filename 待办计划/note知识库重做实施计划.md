@@ -859,6 +859,32 @@ export function noteExtensions(onNavigate: (noteId: string) => void): any[] {
 **Step 1** —— 运行 `cd 项目文件/backend && pytest app/tests/test_content.py -q`。
 **Step 2** —— `npm run build` 后启动，验证内容管理新增、编辑、保存、列表正常，确认编辑器迁移未破坏 content。
 
+#### P2 实际执行记录（2026-09-16 完成）
+
+**结论**：P2 全部 8 项完成。`npx tsc -b --force` 零错误、`npx eslint src/components/ContentEditor` 零问题、`npm run build` 成功；`pytest app/tests/test_notes.py` 33 passed；全量 `pytest app/tests` 25 failed / 77 passed，与迁移前基线完全一致（25 条失败均为既有的尾斜杠 307 债务，零回归）。
+
+**T2.1 依赖取舍（偏离计划 Step 1）**：当前环境无网络且 npm 缓存为空（`npm install --offline` 报 `ENOTCACHED`），无法安装任何新包，故**未执行 npm install、零新增依赖**。原计划的 11 个包按以下方式落地：
+
+| 原计划包 | 实际落地方式 |
+|---|---|
+| `@tiptap/extension-task-list` / `extension-task-item` | 复用 starter-kit 已传递依赖的 `@tiptap/extension-list`（3.31.3，子路径 `./task-list`、`./task-item`）。该包 3.x 已内置 TaskList/TaskItem 运行时（含复选框、a11y、`- [ ]` 输入规则），**已删除手写实现** |
+| `@tiptap/extension-table` / `row` / `cell` / `header-row` | **明确延后**。表格属三档能力，拿到包后可纯增量补齐 |
+| `lowlight` / `highlight.js` | **明确延后**。代码块语法高亮属三档；代码块本体由 StarterKit 提供 |
+| `@tiptap/extension-image` / `placeholder` / `highlight` | 自写轻量扩展（`Image.ts`、`Placeholder.ts`、`Highlight.ts`），零依赖 |
+| `@tiptap/extension-link` | **声明后移除**：实现中确认无引用（双链由自写 WikiLink 承载），已从 `package.json` 删除该行 |
+
+代码实际直接导入的 `@tiptap/core` 与 `@tiptap/extension-list` 均为 `@tiptap/starter-kit`（HEAD 已声明的直接依赖）的传递依赖，`npm ci` 可正常解析。故本轮**不提交** `package.json` / `package-lock.json` —— 这两个文件同时含并行工作流的改动（`version` 2.0.0、`react-router-dom` v7、`recharts`、tiptap 3.27.0→3.31.3 同步），混入本次提交会造成归属混乱；依赖声明由该并行工作流统一落地。
+
+**T2.2 实际**：`git mv` 至 `src/components/ContentEditor/`，新增 `extensions?: Extensions`（Tiptap 3 须用 `Extensions` 而非计划的 `Extension[]` —— `Node`/`Mark` 不能赋给 `Extension`，会触发 `addCommands` 的 `this` 类型冲突）。base 5 项逐字未变，content 调用方不传 `extensions` 即行为不变。实际修正 import **6 处**（计划只列 ContentForm 与 ContentManagement；实际引用方为 ContentForm、TemplateDocModal、ProposalModal、ProposalDetailPage、ProjectDocumentTab）。
+
+**T2.6 取舍（偏离计划 Step 1/3）**：
+
+- 计划写「antd `Popover` + `List`」。Popover 需要锚点元素，而菜单须跟随编辑器内的光标坐标，改用 `createPortal` + `position: fixed` + `editor.view.coordsAtPos()` 定位；命令分组仍照计划清单。
+- 计划写「`[[` 触发标题联想下拉」。`[[` 改为打开 antd `Modal` 笔记选择器（数据源同为 `listAllNotes`，支持标题与标签检索）。笔记列表需异步加载，Modal 承载比定位下拉更简单稳健，交互等价。
+- Tiptap 3 的 `EditorEvents` 不含 `keydown`（含 transaction / focus / blur / update 等），键盘拦截改为监听 `editor.view.dom` 的 `keydown`。
+
+**T2.3/T2.4/T2.5 的 Tiptap 3 差异**：无 `nodeAttribute`（属性直接写成默认值对象）、`def` 已从 NodeConfig 移除、`commands.lift()` 签名为 `lift(typeOrName, attributes?)`；`Commands` 模块增广的返回类型须用泛型名 `ReturnType`（不是 `ReturnValue`）。NoteEmbed 的 1 层嵌套上限通过展开时注入 `NoteEmbedStub`（无 NodeView、`renderHTML` 输出静态标题行的降级形态）实现，而非从扩展集剔除。
+
 ---
 
 ### P3 —— 前端工作台

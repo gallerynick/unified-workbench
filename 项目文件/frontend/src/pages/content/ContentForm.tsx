@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Modal, Form, Input, Select, message, Button, Space } from 'antd';
 import { createContent, updateContent } from '../../api/contents';
 import type { Content, ContentCreateRequest, ContentUpdateRequest } from '../../types/content';
-import ContentEditor from './ContentEditor';
+import ContentEditor from '@/components/ContentEditor/ContentEditor';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import type { Visibility } from '../../utils/visibility';
 import styles from './ContentForm.module.css';

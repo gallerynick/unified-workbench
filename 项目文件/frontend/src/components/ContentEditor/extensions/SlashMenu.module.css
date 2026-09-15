@@ -1,0 +1,89 @@
+/* 斜杠菜单。颜色与尺寸一律取 design token，深浅色由 token.css 切换。 */
+
+.menuRoot {
+  position: fixed;
+  z-index: 1200;
+  width: 260px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: var(--spacing-xs);
+  background-color: var(--canvas);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.group {
+  margin-bottom: var(--spacing-xxs);
+}
+
+.groupTitle {
+  padding: var(--spacing-xxs) var(--spacing-xs);
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  padding: var(--spacing-xxs) var(--spacing-xs);
+  border: none;
+  border-radius: var(--rounded-xs);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.itemActive {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.itemActive:hover {
+  background-color: var(--color-info-bg);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  width: 18px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.itemActive .icon {
+  color: inherit;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  padding: var(--spacing-sm);
+  color: var(--text-tertiary);
+  font-size: 0.9em;
+}
+
+.footer {
+  margin-top: var(--spacing-xxs);
+  padding: var(--spacing-xxs) var(--spacing-xs);
+  border-top: 1px solid var(--border-secondary);
+  color: var(--text-tertiary);
+  font-size: 0.78em;
+}

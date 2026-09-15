@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import { Extension } from '@tiptap/core';
+import { Extension, type Extensions } from '@tiptap/core';
 import type { CommandProps } from '@tiptap/core';
 import { Popover, Select } from 'antd';
 import {
@@ -85,6 +85,8 @@ interface ContentEditorProps {
   placeholder?: string;
   minHeight?: number;
   editable?: boolean;
+  /** 调用方注入的额外扩展；默认空数组，行为与组件全局化之前完全一致 */
+  extensions?: Extensions;
 }
 
 export interface ContentEditorHandle {
@@ -97,6 +99,7 @@ const ContentEditor = forwardRef<ContentEditorHandle, ContentEditorProps>(functi
   placeholder = '请输入内容...',
   minHeight = 200,
   editable = true,
+  extensions,
 }, ref) {
   const currentColorRef = useRef('var(--ink)');
   const isExternalUpdate = useRef(false);
@@ -110,6 +113,7 @@ const ContentEditor = forwardRef<ContentEditorHandle, ContentEditorProps>(functi
       TextStyle,
       Color,
       FontSize,
+      ...(extensions ?? []),
     ],
     editable: editable,
     content: value ? JSON.parse(JSON.stringify(value)) : undefined,

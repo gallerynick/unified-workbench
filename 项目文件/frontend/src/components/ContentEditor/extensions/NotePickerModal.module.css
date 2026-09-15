@@ -1,0 +1,61 @@
+/* 笔记选择器。颜色与尺寸一律取 design token。 */
+
+.hint {
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-tertiary);
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
+.search {
+  margin-bottom: var(--spacing-sm);
+}
+
+.listWrap {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex !important;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm) !important;
+  border-radius: var(--rounded-xs) !important;
+  cursor: pointer;
+}
+
+.item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.itemIcon {
+  color: var(--color-info);
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.itemBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemTitle {
+  color: var(--ink);
+  font-size: 0.95em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xxs);
+  margin-top: var(--spacing-xxs);
+}
+
+.tag {
+  margin: 0;
+  font-size: 0.78em;
+}

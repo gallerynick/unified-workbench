@@ -29,7 +29,7 @@ import {
 } from '@ant-design/icons';
 import type { Project } from '../../../types/project';
 import type { Template } from '../../../types/template';
-import ContentEditor, { type ContentEditorHandle } from '../../content/ContentEditor';
+import ContentEditor, { type ContentEditorHandle } from '@/components/ContentEditor/ContentEditor';
 import TemplateSelector from '../TemplateSelector';
 import styles from './ProjectDocumentTab.module.css';
 
