@@ -24,13 +24,6 @@
   margin: 0;
 }
 
-.loadingOverlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: var(--z-dropdown);
-}
 
 /* 空态同样铺满父级，不能写固定 height */
 .emptyState {

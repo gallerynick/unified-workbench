@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Divider, Empty, Input, Select, Space, Spin, Switch, Tag, TreeSelect, Typography, message } from 'antd';
+import { Collapse, Empty, Input, Select, Space, Spin, Switch, Tag, TreeSelect, Typography, message } from 'antd';
 import { PushpinOutlined, SaveOutlined, UserOutlined } from '@ant-design/icons';
 import { listNoteTags, updateNote } from '@/api/notes';
 import type { Note, NoteUpdate, TagCount } from '@/types/note';
@@ -134,8 +134,12 @@ export default function NoteMetaPanel({
     <div className={styles.panel ?? ''}>
       {saving && <Spin size="small" className={styles.saving ?? ''} />}
 
-      <Divider plain className={styles.divider ?? ''}>可编辑</Divider>
+      <div className={styles.panelHead ?? ''}>
+        <Text className={styles.panelHeadTitle ?? ''}>笔记属性</Text>
+        <Tag color={ownVisibility.color}>{ownVisibility.text}</Tag>
+      </div>
 
+      <div className={styles.fields ?? ''}>
       <div className={styles.field ?? ''}>
         <label className={styles.label ?? ''} htmlFor="note-meta-category">分类</label>
         <Input
@@ -214,13 +218,19 @@ export default function NoteMetaPanel({
         />
       </div>
 
-      <Divider plain className={styles.divider ?? ''}>只读信息</Divider>
+      </div>
 
-      <div className={styles.infoGrid ?? ''}>
-        <div className={styles.infoRow ?? ''}>
-          <span className={styles.infoKey ?? ''}>可见性</span>
-          <Tag color={ownVisibility.color}>{ownVisibility.text}</Tag>
-        </div>
+      <Collapse
+        ghost
+        size="small"
+        className={styles.detailCollapse ?? ''}
+        defaultActiveKey={['detail']}
+        items={[
+          {
+            key: 'detail',
+            label: '只读信息',
+            children: (
+              <div className={styles.infoGrid ?? ''}>
         <div className={styles.infoRow ?? ''}>
           <span className={styles.infoKey ?? ''}>所有者</span>
           <Space size={4}>
@@ -248,7 +258,11 @@ export default function NoteMetaPanel({
             </button>
           </div>
         ) : null}
-      </div>
+              </div>
+            ),
+          },
+        ]}
+      />
 
       <div className={styles.footer ?? ''}>
         <SaveOutlined />

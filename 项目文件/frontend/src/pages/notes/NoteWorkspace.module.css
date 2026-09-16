@@ -95,6 +95,14 @@
   overflow: hidden;
 }
 
+/* 图谱范围切换：只在该视图有意义，故放进画布右上角而非页面工具条 */
+.graphControls {
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  z-index: var(--z-dropdown);
+}
+
 .loadingBox {
   position: absolute;
   inset: 0;

@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Button, Empty, Input, Modal, Segmented, Select, Spin, Switch, Tooltip, Tree, message } from 'antd';
+import { Button, Dropdown, Empty, Input, Modal, Segmented, Spin, Tooltip, Tree, message } from 'antd';
+import type { MenuProps } from 'antd';
 import type { DataNode, TreeProps } from 'antd/es/tree';
 import {
+  AppstoreOutlined,
+  CheckOutlined,
   DeleteOutlined,
+  DownOutlined,
   FileOutlined,
+  FilterOutlined,
   FolderOutlined,
   LoadingOutlined,
+  MoreOutlined,
   PushpinOutlined,
   SearchOutlined,
+  TagsOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
 import { deleteNote, listAllNotes, listNoteTags, moveNote, updateNote } from '@/api/notes';
@@ -176,19 +183,6 @@ export default function NoteSidebar({
   const tree = useMemo(() => buildTree(filtered), [filtered]);
   const visibleTree = useMemo(() => (search ? filterTree(tree, search) : tree), [search, tree]);
 
-  // 第二参数只取 length 判断是否文件夹，故放宽为带 length 的结构
-  const renderTitle = useCallback((note: Note, children: { length: number }): ReactNode => {
-    const isFolder = children.length > 0;
-    return (
-      <div className={styles.item ?? ''}>
-        {isFolder ? <FolderOutlined className={styles.itemIcon ?? ''} /> : <FileOutlined className={styles.itemIcon ?? ''} />}
-        {note.is_pinned ? <PushpinOutlined className={styles.pinIcon ?? ''} /> : null}
-        <span className={styles.itemTitle ?? ''}>{note.title}</span>
-        {note.category ? <span className={styles.categoryTag ?? ''}>{note.category}</span> : null}
-      </div>
-    );
-  }, []);
-
   const handleDelete = useCallback((note: Note) => {
     const childCount = notes.filter((n) => n.parent_id === note.id).length;
     Modal.confirm({
@@ -223,6 +217,52 @@ export default function NoteSidebar({
     }
   }, [fetchNotes]);
 
+  /** 树形节点的行内操作菜单：平铺模式一直有置顶/删除，树形模式原先完全没有 */
+  const nodeMenu = useCallback(
+    (note: Note): MenuProps => ({
+      items: [
+        {
+          key: 'pin',
+          icon: <PushpinOutlined />,
+          label: note.is_pinned ? '取消置顶' : '置顶',
+          onClick: () => void handleTogglePin(note),
+        },
+        { type: 'divider' },
+        {
+          key: 'delete',
+          icon: <DeleteOutlined />,
+          label: '删除',
+          danger: true,
+          onClick: () => handleDelete(note),
+        },
+      ],
+    }),
+    [handleTogglePin, handleDelete],
+  );
+
+  // 第二参数只取 length 判断是否文件夹，故放宽为带 length 的结构
+  const renderTitle = useCallback((note: Note, children: { length: number }): ReactNode => {
+    const isFolder = children.length > 0;
+    return (
+      <div className={styles.item ?? ''}>
+        {isFolder ? <FolderOutlined className={styles.itemIcon ?? ''} /> : <FileOutlined className={styles.itemIcon ?? ''} />}
+        {note.is_pinned ? <PushpinOutlined className={styles.pinIcon ?? ''} /> : null}
+        <span className={styles.itemTitle ?? ''}>{note.title}</span>
+        {note.category ? <span className={styles.categoryTag ?? ''}>{note.category}</span> : null}
+        <Dropdown trigger={['hover']} menu={nodeMenu(note)}>
+          <Button
+            type="text"
+            size="small"
+            icon={<MoreOutlined />}
+            className={styles.nodeMore ?? ''}
+            aria-label="笔记操作"
+            onMouseDown={(event) => event.stopPropagation()}
+          />
+        </Dropdown>
+      </div>
+    );
+  }, [nodeMenu]);
+
   const onDrop: TreeProps['onDrop'] = async (info) => {
     const dragKey = String(info.dragNode.key);
     let dropKey: string | null;
@@ -246,6 +286,18 @@ export default function NoteSidebar({
     await fetchNotes();
   };
 
+  const toggleTag = useCallback((tag: string) => {
+    setTagFilters((prev) =>
+      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag],
+    );
+  }, []);
+
+  const clearAllFilters = useCallback(() => {
+    setCategoryFilter(undefined);
+    setTagFilters([]);
+    setPinnedOnly(false);
+  }, []);
+
   if (collapsed) {
     return (
       <div className={styles.rail ?? ''}>
@@ -268,6 +320,54 @@ export default function NoteSidebar({
   }
 
   const isFiltering = search !== '' || categoryFilter !== undefined || tagFilters.length > 0 || pinnedOnly;
+  const activeFilterCount =
+    (categoryFilter !== undefined ? 1 : 0) + tagFilters.length + (pinnedOnly ? 1 : 0);
+
+  // 筛选收进多级菜单：分类、标签各一个子菜单。选中项带勾选图标，
+  // 菜单标题回显当前值，按钮带激活数量——状态全部可见，不做无提示的收纳
+  const filterItems: NonNullable<MenuProps['items']> = [
+    {
+      key: 'category',
+      icon: <AppstoreOutlined />,
+      label: categoryFilter ?? '全部分类',
+      children: [
+        { key: 'category-all', label: '全部分类', onClick: () => setCategoryFilter(undefined) },
+        ...categories.map((category) => ({
+          key: `category-${category}`,
+          label: category,
+          ...(categoryFilter === category ? { icon: <CheckOutlined /> } : {}),
+          onClick: () => setCategoryFilter((prev) => (prev === category ? undefined : category)),
+        })),
+      ],
+    },
+    {
+      key: 'tags',
+      icon: <TagsOutlined />,
+      label: tagFilters.length > 0 ? `标签（已选 ${tagFilters.length}）` : '标签',
+      children: [
+        { key: 'tags-clear', label: '清除标签筛选', onClick: () => setTagFilters([]) },
+        ...tagCounts.map((item) => ({
+          key: `tag-${item.tag}`,
+          label: `${item.tag} (${item.count})`,
+          ...(tagFilters.includes(item.tag) ? { icon: <CheckOutlined /> } : {}),
+          onClick: () => toggleTag(item.tag),
+        })),
+      ],
+    },
+    { type: 'divider' },
+    {
+      key: 'pinned-only',
+      icon: <PushpinOutlined />,
+      label: pinnedOnly ? '显示全部笔记' : '仅显示置顶',
+      onClick: () => setPinnedOnly((prev) => !prev),
+    },
+  ];
+  if (activeFilterCount > 0) {
+    filterItems.push(
+      { type: 'divider' },
+      { key: 'clear-all', label: '清除全部筛选', onClick: clearAllFilters },
+    );
+  }
 
   return (
     <div className={styles.sidebar ?? ''}>
@@ -284,32 +384,15 @@ export default function NoteSidebar({
           />
         </div>
         <div className={styles.filterRow ?? ''}>
-          <Select
-            className={styles.filterSelect ?? ''}
-            placeholder="全部分类"
-            value={categoryFilter}
-            onChange={(value) => setCategoryFilter(value ?? undefined)}
-            options={categories.map((category) => ({ value: category, label: category }))}
-            allowClear
-            size="small"
-          />
-          <Select
-            className={styles.filterSelect ?? ''}
-            mode="multiple"
-            placeholder="标签"
-            value={tagFilters}
-            onChange={(value: string[]) => setTagFilters(value)}
-            options={tagCounts.map((item) => ({ value: item.tag, label: `${item.tag} ${item.count}` }))}
-            allowClear
-            size="small"
-            maxTagCount="responsive"
-          />
-        </div>
-        <div className={styles.filterRow ?? ''}>
-          <div className={styles.toggleGroup ?? ''}>
-            <span className={styles.toggleLabel ?? ''}>仅置顶</span>
-            <Switch size="small" checked={pinnedOnly} onChange={setPinnedOnly} />
-          </div>
+          <Dropdown trigger={['click']} menu={{ items: filterItems }}>
+            <Button size="small" icon={<FilterOutlined />} aria-label="筛选笔记">
+              筛选
+              {activeFilterCount > 0 ? (
+                <span className={styles.filterCount ?? ''}>{activeFilterCount}</span>
+              ) : null}
+              <DownOutlined className={styles.filterCaret ?? ''} />
+            </Button>
+          </Dropdown>
           <Segmented
             size="small"
             value={viewMode}
@@ -374,11 +457,6 @@ export default function NoteSidebar({
         </div>
       )}
 
-      <div className={styles.footer ?? ''}>
-        <Button type="dashed" block icon={<FileOutlined />} onClick={onCreate}>
-          新建笔记
-        </Button>
-      </div>
     </div>
   );
 }

@@ -46,7 +46,7 @@
 .controls {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   padding: var(--spacing-sm);
   border-bottom: var(--border-width-thin) solid var(--border-tertiary);
   flex-shrink: 0;
@@ -64,29 +64,31 @@
   flex-shrink: 0;
 }
 
-.filterSelect {
-  flex: 1;
-  min-width: 0;
-}
-
-.toggleGroup {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xxs);
-  flex-shrink: 0;
-}
-
-.toggleLabel {
-  color: var(--text-secondary);
+/* 筛选按钮上的激活数量：筛选收进菜单后，条件数量必须始终可见 */
+.filterCount {
+  margin-left: var(--spacing-xxs);
+  padding: 0 var(--spacing-xxs);
+  min-width: var(--spacing-sm);
+  height: var(--spacing-sm);
+  line-height: var(--spacing-sm);
+  text-align: center;
+  border-radius: var(--rounded-chip);
+  background: var(--color-primary);
+  color: var(--text-inverse);
   font-size: var(--text-body-xs-size);
-  white-space: nowrap;
+}
+
+.filterCaret {
+  margin-left: var(--spacing-xxs);
+  color: var(--text-tertiary);
+  font-size: var(--text-body-xs-size);
 }
 
 .treeWrap {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--spacing-xs);
+  padding: var(--spacing-sm);
 }
 
 .flatList {
@@ -96,7 +98,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xxs);
-  padding: var(--spacing-xs);
+  padding: var(--spacing-sm);
 }
 
 .flatItem,
@@ -124,7 +126,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-xxs);
-  padding: var(--spacing-xxs) var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-xs);
   border: none;
   background: none;
   color: inherit;
@@ -152,6 +154,21 @@
   align-items: center;
   gap: var(--spacing-xxs);
   min-width: 0;
+  padding-right: var(--spacing-xxs);
+}
+
+/* 树形节点的行内操作入口：hover 才出现，不占默认视觉空间 */
+.nodeMore {
+  flex-shrink: 0;
+  padding: 0 var(--spacing-xxs);
+  color: var(--text-tertiary);
+  opacity: 0;
+  transition: opacity var(--anim-fast) ease;
+}
+
+.item:hover .nodeMore,
+.item:focus-within .nodeMore {
+  opacity: 1;
 }
 
 .itemIcon {
@@ -192,10 +209,4 @@
   justify-content: center;
   flex: 1;
   padding: var(--spacing-xl) var(--spacing-sm);
-}
-
-.footer {
-  flex-shrink: 0;
-  padding: var(--spacing-sm);
-  border-top: var(--border-width-thin) solid var(--border-tertiary);
 }

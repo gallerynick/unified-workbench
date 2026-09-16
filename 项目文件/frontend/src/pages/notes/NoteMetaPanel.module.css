@@ -12,7 +12,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   height: 100%;
   overflow-y: auto;
   padding-right: var(--spacing-xxs);
@@ -25,14 +25,45 @@
   z-index: var(--z-sticky);
 }
 
-.divider {
-  margin: var(--spacing-xs) 0 var(--spacing-xxs);
+/* 面板头：把最常查的可见性状态提到最前，省掉一整行只读信息 */
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.panelHeadTitle {
+  color: var(--text-tertiary);
+  font-size: var(--text-body-xs-size);
+  font-weight: var(--text-caption-strong-weight);
+}
+
+/* 可编辑字段组：字段之间留足呼吸，不再紧贴 */
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xxs);
+  gap: var(--spacing-xs);
+}
+
+/* 只读信息可折叠：默认展开，需要收纳时收起，状态不隐藏 */
+.detailCollapse {
+  border-top: var(--border-width-thin) solid var(--border-tertiary);
+  padding-top: var(--spacing-xs);
+}
+
+.detailCollapse :global(.ant-collapse-header) {
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--text-secondary);
+  font-size: var(--text-body-xs-size);
+  font-weight: var(--text-caption-strong-weight);
 }
 
 .label {
@@ -52,7 +83,8 @@
 .infoGrid {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xxs);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) 0 var(--spacing-xxs);
 }
 
 .infoRow {

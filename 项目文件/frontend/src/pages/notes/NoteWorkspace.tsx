@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Empty, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd';
+import { Button, Dropdown, Empty, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   AppstoreOutlined,
   FileAddOutlined,
+  LayoutOutlined,
   LoadingOutlined,
-  ShareAltOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShareAltOutlined,
 } from '@ant-design/icons';
 import { createNote, deleteNote, getGlobalGraph, getGraph, getNote } from '@/api/notes';
 import type { GraphData, Note } from '@/types/note';
@@ -137,53 +139,46 @@ export default function NoteWorkspace() {
     void openNote(noteId);
   }, [openNote]);
 
-  const handleSelectView = useCallback((value: ViewMode) => {
-    setViewMode(value);
-  }, []);
+  // 面板显隐收进同一个下拉：两个开关合成一个入口，工具条只留主操作与视图切换。
+  // 两个选项都带勾选态文案与图标切换，状态不靠隐藏表达
+  const panelMenu: MenuProps = {
+    items: [
+      {
+        key: 'toggle-left',
+        icon: leftCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />,
+        label: leftCollapsed ? '展开笔记列表' : '收起笔记列表',
+        onClick: () => setLeftCollapsed((prev) => !prev),
+      },
+      { type: 'divider' },
+      {
+        key: 'toggle-right',
+        icon: rightCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />,
+        label: rightCollapsed ? '展开右侧面板' : '收起右侧面板',
+        onClick: () => setRightCollapsed((prev) => !prev),
+        disabled: viewMode === 'graph',
+      },
+    ],
+  };
 
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>笔记知识库</Title>
         <Space size={8}>
-          {viewMode === 'graph' ? (
-            <Segmented
-              size="small"
-              value={graphScope}
-              onChange={(value) => setGraphScope(value as GraphScope)}
-              options={[
-                { label: '全局图谱', value: 'global' },
-                { label: '局部图谱', value: 'local', disabled: !currentId },
-              ]}
-            />
-          ) : null}
+          <Dropdown menu={panelMenu} trigger={['click']}>
+            <Tooltip title="面板显示">
+              <Button type="text" icon={<LayoutOutlined />} aria-label="面板显示设置" />
+            </Tooltip>
+          </Dropdown>
           <Segmented
             size="small"
             value={viewMode}
-            onChange={(value) => handleSelectView(value as ViewMode)}
+            onChange={(value) => setViewMode(value as ViewMode)}
             options={[
               { label: '工作台', value: 'workspace', icon: <AppstoreOutlined /> },
               { label: '图谱', value: 'graph', icon: <ShareAltOutlined /> },
             ]}
           />
-          <Tooltip title={leftCollapsed ? '展开笔记列表' : '折叠笔记列表'}>
-            <Button
-              type="text"
-              icon={leftCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              aria-label="折叠或展开笔记列表"
-              onClick={() => setLeftCollapsed((prev) => !prev)}
-            />
-          </Tooltip>
-          {viewMode === 'workspace' ? (
-            <Tooltip title={rightCollapsed ? '展开右侧面板' : '折叠右侧面板'}>
-              <Button
-                type="text"
-                icon={rightCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                aria-label="折叠或展开右侧面板"
-                onClick={() => setRightCollapsed((prev) => !prev)}
-              />
-            </Tooltip>
-          ) : null}
           <Button type="primary" icon={<FileAddOutlined />} onClick={() => void handleCreate()}>
             新建笔记
           </Button>
@@ -213,6 +208,17 @@ export default function NoteWorkspace() {
             />
           ) : (
             <div className={styles.graphWrap ?? ''}>
+              <div className={styles.graphControls ?? ''}>
+                <Segmented
+                  size="small"
+                  value={graphScope}
+                  onChange={(value) => setGraphScope(value as GraphScope)}
+                  options={[
+                    { label: '全局图谱', value: 'global' },
+                    { label: '局部图谱', value: 'local', disabled: !currentId },
+                  ]}
+                />
+              </div>
               {graphLoading ? (
                 <div className={styles.loadingBox ?? ''}><Spin indicator={<LoadingOutlined spin />} /></div>
               ) : graph ? (

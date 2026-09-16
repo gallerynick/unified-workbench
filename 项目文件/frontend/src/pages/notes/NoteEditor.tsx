@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, Button, Empty, Input, Space, Switch, Tooltip, Typography, message } from 'antd';
+import { Alert, Button, Empty, Input, Space, Tooltip, Typography, message } from 'antd';
 import {
   CheckCircleOutlined,
   CloseOutlined,
@@ -183,12 +183,14 @@ export default function NoteEditor({ note, isNew, onNavigate, onSaved, onCancelN
           aria-label="笔记标题"
         />
         <Space size={8} className={styles.actions ?? ''}>
+          {/* 用状态明确的图标按钮替代「两种状态都显示图钉」的 Switch */}
           <Tooltip title={isPinned ? '取消置顶' : '置顶'}>
-            <Switch
-              checked={isPinned}
-              checkedChildren={<PushpinOutlined />}
-              unCheckedChildren={<PushpinOutlined />}
-              onChange={(checked) => void handleTogglePin(checked)}
+            <Button
+              type={isPinned ? 'primary' : 'text'}
+              icon={<PushpinOutlined />}
+              aria-label={isPinned ? '取消置顶' : '置顶'}
+              aria-pressed={isPinned}
+              onClick={() => void handleTogglePin(!isPinned)}
             />
           </Tooltip>
           {isNew ? (
