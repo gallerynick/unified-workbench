@@ -1,17 +1,29 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject, LinkObject } from 'react-force-graph-2d';
-import { Empty, Spin } from 'antd';
-import type { Note } from '../../types/note';
-import { notesToGraphData } from './notesToGraphData';
-import type { GraphNodeData, GraphLinkData } from './notesToGraphData';
+import { Alert, Empty, Spin } from 'antd';
+import type { GraphData } from '../../types/note';
 import styles from './GraphView.module.css';
 
 interface GraphViewProps {
-  notes: Note[];
-  onNodeClick: (note: Note) => void;
-  isDark: boolean;
+  /** 图谱数据由后端 note_link 服务提供，边来源仅 wikilink */
+  graph: GraphData;
+  onNodeClick: (noteId: string) => void;
   search?: string;
+}
+
+/** 力导向图内部节点：在后端节点基础上补算 degree 供节点半径使用 */
+interface GraphNodeData {
+  id: string;
+  name: string;
+  category: string | null;
+  isPinned: boolean;
+  degree: number;
+}
+
+interface GraphLinkData {
+  source: string;
+  target: string;
 }
 
 const CATEGORY_PALETTE = [
@@ -36,7 +48,7 @@ function readTokens(): { bg: string; text: string; textSecondary: string; warnin
   const style = getComputedStyle(root);
   return {
     bg: style.getPropertyValue('--canvas-parchment').trim() || 'var(--canvas-parchment)',
-    text: style.getPropertyValue('--text-primary').trim() || 'var(--body)',
+    text: style.getPropertyValue('--text-primary').trim() || 'var(--text-primary)',
     textSecondary: style.getPropertyValue('--text-secondary').trim() || 'var(--text-secondary)',
     warning: style.getPropertyValue('--color-warning').trim() || 'var(--color-warning)',
   };
@@ -55,7 +67,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
 }
 
-export default function GraphView({ notes, onNodeClick, isDark: _isDark, search }: GraphViewProps) {
+export default function GraphView({ graph, onNodeClick, search }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraphMethods<NodeObject<GraphNodeData>, GraphLinkData> | undefined>(undefined);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -63,11 +75,8 @@ export default function GraphView({ notes, onNodeClick, isDark: _isDark, search 
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const hoveredNeighbors = useRef<Set<string>>(new Set());
 
-  // 运行时读取 CSS token（每次渲染时重新读取，确保主题切换时更新）
   const tokens = readTokens();
-  // 节点色板需在运行时解析为具体色值供 canvas 绘制
   const palette = CATEGORY_PALETTE.map(resolveCssVar);
-  // 将 textSecondary hex 转为 rgb 分量用于 rgba 构造
   const textSecondaryRgb = useMemo(() => hexToRgb(tokens.textSecondary) ?? { r: 140, g: 140, b: 140 }, [tokens.textSecondary]);
 
   useEffect(() => {
@@ -86,7 +95,25 @@ export default function GraphView({ notes, onNodeClick, isDark: _isDark, search 
     return () => observer.disconnect();
   }, []);
 
-  const graphData = useMemo(() => notesToGraphData(notes), [notes]);
+  /** 后端只返回节点与边，度数需在前端从 links 补算 */
+  const graphData = useMemo(() => {
+    const degree = new Map<string, number>();
+    for (const node of graph.nodes) degree.set(node.id, 0);
+    for (const link of graph.links) {
+      degree.set(link.source, (degree.get(link.source) ?? 0) + 1);
+      degree.set(link.target, (degree.get(link.target) ?? 0) + 1);
+    }
+    return {
+      nodes: graph.nodes.map((node) => ({
+        id: node.id,
+        name: node.title,
+        category: node.category,
+        isPinned: node.is_pinned,
+        degree: degree.get(node.id) ?? 0,
+      })),
+      links: graph.links.map((link) => ({ source: link.source, target: link.target })),
+    };
+  }, [graph]);
 
   const filteredData = useMemo(() => {
     if (!search) return graphData;
@@ -94,11 +121,9 @@ export default function GraphView({ notes, onNodeClick, isDark: _isDark, search 
     const matchedIds = new Set<string>();
 
     for (const node of graphData.nodes) {
-      const note = node.note;
       if (
-        note.title.toLowerCase().includes(lower) ||
-        (note.content?.toLowerCase().includes(lower) ?? false) ||
-        (note.category?.toLowerCase().includes(lower) ?? false)
+        node.name.toLowerCase().includes(lower) ||
+        (node.category?.toLowerCase().includes(lower) ?? false)
       ) {
         matchedIds.add(node.id);
       }
@@ -117,9 +142,7 @@ export default function GraphView({ notes, onNodeClick, isDark: _isDark, search 
 
   const neighborIndex = useMemo(() => {
     const index = new Map<string, Set<string>>();
-    for (const n of filteredData.nodes) {
-      index.set(n.id, new Set());
-    }
+    for (const n of filteredData.nodes) index.set(n.id, new Set());
     for (const l of filteredData.links) {
       index.get(l.source)?.add(l.target);
       index.get(l.target)?.add(l.source);
@@ -250,21 +273,34 @@ export default function GraphView({ notes, onNodeClick, isDark: _isDark, search 
   }, [hoveredNode, textSecondaryRgb]);
 
   const handleNodeClick = useCallback((node: NodeObject<GraphNodeData>) => {
-    onNodeClick(node.note);
+    onNodeClick(node.id);
   }, [onNodeClick]);
 
-  if (notes.length === 0) {
+  if (graph.nodes.length === 0) {
     return (
-      <div className={styles.emptyState}>
+      <div className={styles.emptyState ?? ''}>
         <Empty description="还没有笔记" />
       </div>
     );
   }
 
+  const orphanHint = graph.links.length === 0 ? (
+    <div className={styles.orphanHint ?? ''}>
+      <Alert
+        type="info"
+        showIcon
+        message="这些笔记还没有双链连接，当前显示为孤立节点"
+        description="在正文里输入 [[ 选择另一篇笔记，就能在图谱中连出一条边"
+        banner
+      />
+    </div>
+  ) : null;
+
   return (
-    <div ref={containerRef} className={styles.graphContainer}>
+    <div ref={containerRef} className={styles.graphContainer ?? ''}>
+      {orphanHint}
       {loading && (
-        <div className={styles.loadingOverlay}>
+        <div className={styles.loadingOverlay ?? ''}>
           <Spin size="large" />
         </div>
       )}

@@ -37,7 +37,7 @@ const FormResponses = lazy(() => import('@/pages/forms/FormResponses'));
 const MemberDirectory = lazy(() => import('@/pages/members/MemberDirectory'));
 const MemberDetail = lazy(() => import('@/pages/members/MemberDetail'));
 const AnnouncementManagement = lazy(() => import('@/pages/announcements/AnnouncementManagement'));
-const NoteManagement = lazy(() => import('@/pages/notes/NoteManagement'));
+const NoteWorkspace = lazy(() => import('@/pages/notes/NoteWorkspace'));
 const TagManagement = lazy(() => import('@/pages/settings/TagManagement'));
 const Profile = lazy(() => import('@/pages/settings/Profile'));
 const DevicesPage = lazy(() => import('@/pages/settings/DevicesPage'));
@@ -266,7 +266,7 @@ export const router = createBrowserRouter([
                 path: 'notes',
                 element: (
                   <LazyPage>
-                    <NoteManagement />
+                    <NoteWorkspace />
                   </LazyPage>
                 ),
               },

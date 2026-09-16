@@ -1,0 +1,87 @@
+/* 反向链接面板：颜色与尺寸一律取 design token */
+
+.emptyBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 40px 12px;
+}
+
+.emptyHint {
+  max-width: 220px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  overflow-y: auto;
+  padding-right: var(--spacing-xxs);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: var(--border-width-thin) solid var(--border-tertiary);
+  border-radius: var(--rounded-sm);
+  background: var(--card-bg);
+  cursor: pointer;
+  transition: border-color var(--anim-fast) ease, background-color var(--anim-fast) ease;
+}
+
+.item:hover {
+  border-color: var(--border-secondary);
+  background-color: var(--card-hover-bg);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+.itemTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.itemIcon {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.itemTitleText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.itemExcerpt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  color: var(--text-tertiary);
+  font-size: 11px;
+}

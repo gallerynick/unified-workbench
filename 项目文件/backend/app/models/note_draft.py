@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -33,7 +33,7 @@ class NoteDraft(Base):
         ForeignKey("note.id", ondelete="CASCADE"), nullable=True
     )
     title: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    body: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    body: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     saved_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )

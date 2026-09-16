@@ -1,0 +1,66 @@
+/* 笔记编辑器：颜色与尺寸一律取 design token */
+
+.emptyBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 360px;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: var(--border-width-thin) solid var(--border-tertiary);
+  flex-shrink: 0;
+}
+
+.titleInput {
+  flex: 1;
+  min-width: 0;
+  font-size: 20px;
+  font-weight: 600;
+  padding: 0 !important;
+}
+
+.actions {
+  flex-shrink: 0;
+}
+
+.draftAlert {
+  flex-shrink: 0;
+  margin-top: var(--spacing-sm);
+}
+
+.bodyWrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: var(--spacing-sm);
+}
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding-top: var(--spacing-xs);
+  border-top: var(--border-width-thin) solid var(--border-tertiary);
+}
+
+.statusText {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  font-size: 12px;
+}
