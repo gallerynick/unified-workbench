@@ -964,6 +964,25 @@ export function noteExtensions(onNavigate: (noteId: string) => void): any[] {
 **Step 2** —— `git rm` 三个旧文件。
 **Step 3** —— `npx tsc -b && npm run build`。
 
+#### P3 实际执行记录（2026-09-16 完成）
+
+**结论**：P3 全部 8 项完成并提交（a329039，21 文件 +2356/-719）。`npx tsc -b --force` 零错误、`npx eslint src/pages/notes src/api/notes.ts src/types/note.ts` 0 error 0 warning、`npm run build` 成功（新增 NoteWorkspace chunk 234.91 kB / gzip 77.81 kB）；后端 `ruff check` 与 `black --check` 全通过，`pytest app/tests/test_notes.py` 33 passed。日志编号 138。
+
+**T3.3 搜索数据源（偏离计划 Step 1）**：计划写搜索调 `listNotes({ search })`，实际改用 `listAllNotes()` + 前端过滤。后端 `list_notes` 在不传 `parent_id` 时只返回根笔记（根/子互斥），服务端搜索结果无法构建树结构；受限于 20 人小团队与 <10 万条记录，前端过滤性能可接受。分类、标签、置顶筛选与搜索共用同一份全量列表，避免多次往返。
+
+**T3.4 草稿 baseline**：`useNoteDraft` 用 baseline 引用区分「载入」与「编辑」——打开笔记的 effect 同步调用 `reset(noteId, title, body)` 记录基线，之后 `body` / `title` 相对基线变化才排期保存。否则打开任意笔记都会产生一次 state 变化并被误判为用户编辑，凭空写出一条草稿。debounce 1.5s；切换 `noteId` 自动重置；发布成功后 `clear()` 取消排队并删除服务端草稿。旧版只有 `content` 列的笔记用 `textToBody` 包成单段 paragraph 载入，避免内容丢失。
+
+**T3.6 可见性只读（偏离计划）**：计划写「复用 `VisibilitySetting` 编辑可见性」，实际只做只读 Tag 展示。后端 `NoteCreate` / `NoteUpdate` 不含 `visibility` / `restricted_users` 字段，提交会被 Pydantic `extra=ignore` 静默丢弃——写进 UI 就是伪功能。`src/types/note.ts` 已删除这两个声明字段（同样原因），可见性编辑待后端补 schema 后恢复。
+
+**T3.7 图谱数据源**：`GraphView` 的 props 从 notes 数组改为后端 `GraphData`（nodes / links 已按可见性过滤），节点 degree 由 links 前端补算用于尺寸与 tooltip；无出边的孤立节点用 Alert banner 显式说明，避免被误读为加载失败。新增全局图谱（`getGlobalGraph`）与局部图谱（`getGraph(id, depth=1)`）两个入口，工具条 Segmented 切换，未选笔记时局部图谱禁用。删除 `notesToGraphData.ts`（数据源已迁到后端 `note_link` 表）。交互参数沿用 P2 设定不变。
+
+**T3.8 路由抽取提交**：`router.tsx` 同时含并行工作流改动（`lazyChunk` / `ErrorBoundary` / `RouteErrorElement`）。本次只把 `NoteManagement` 到 `NoteWorkspace` 两处引用抽取入库（备份工作区版本 → 还原到 HEAD → 应用 2 行改动 → `git add` → 复原工作区），并行改动保留在工作区随其自身提交落地。
+
+**T3.2 工具条搜索位置**：计划的工具条搜索框改放在侧栏顶部，与过滤结果同屏、交互路径更短，功能一致。
+
+**ant-design 类型细节**：`Switch` 的属性名是 `unCheckedChildren`（大写 C）；`Tree` 的 `DataNode.children` 在 `exactOptionalPropertyTypes` 下不能赋 `undefined`，父笔记树节点改为 `children` 恒为数组（空数组即叶子，rc-tree 按 `children.length` 判叶）。图标校验：`LayoutOutlined` / `MenuFoldOutlined` / `MenuUnfoldOutlined` 存在，`ShareOutlined` / `ColumnsOutlined` 不存在。
+
+**后端附带修复**：`note_draft.body` 由 `Mapped[dict]` 改为 `Mapped[dict[str, Any]]`，消除 mypy `type-arg` 告警。仓库存量 mypy 告警（`no-untyped-def` 等）属既有债，本次未扩大范围。
 ---
 
 ### P4 —— 验证与收尾
