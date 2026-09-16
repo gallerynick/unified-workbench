@@ -93,6 +93,24 @@ if [ ! -f .env ]; then
   info "已从 .env.example 创建 .env"
 fi
 
+# 源文件权限归一：write 类工具新建的文件常带 600（仅属主可读）会被 COPY 进镜像，
+# 而后端容器以非 root 用户 workbench 运行（见 backend/Dockerfile 的 USER workbench），
+# 读到 600 文件即抛 PermissionError，uvicorn 反复重启、API 全线 502。
+# 统一改成仓库既有惯例 644；私钥（*.key / *.pem）必须保持 600，按名排除。
+normalize_source_modes() {
+  local files changed
+  files=$(find backend frontend nginx scripts -type f -perm 600 -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/__pycache__/*' -not -path '*/dist/*' -not -path '*/.docker-local/*' -not -name '*.key' -not -name '*.pem' 2>/dev/null)
+  if [ -z "$files" ]; then
+    ok "源文件权限正常"
+    return 0
+  fi
+  printf '%s\n' "$files" | xargs -r chmod 644 2>/dev/null
+  changed=$(printf '%s\n' "$files" | wc -l | tr -d ' ')
+  warn "已把 $changed 个 600 权限的源文件改为 644（容器内非 root 用户需要读权限）"
+}
+
+normalize_source_modes
+
 # ============================================================
 # [2/5] 前端构建
 # ============================================================
