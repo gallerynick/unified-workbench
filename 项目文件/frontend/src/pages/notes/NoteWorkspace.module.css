@@ -1,41 +1,31 @@
 /* 笔记工作台三栏布局：颜色与尺寸一律取 design token */
 
-.workspace {
+/* 页面容器：沿用全站管理页的 .container 语义（flex 列布局 + 卡片间距）。
+   额外加 flex:1 与 min-height:0，使其填满 MainLayout 的 transitionWrapper，
+   三栏布局才能拿到真实高度 */
+.container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  gap: var(--spacing-card-gap);
+  flex: 1;
   min-height: 0;
 }
 
-.toolbar {
+/* 操作区头部：与全站管理页统一（标题左、工具按钮右，无独立底色） */
+.header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-card-gap);
+  min-height: var(--spacing-xxl);
   flex-shrink: 0;
-  padding: var(--spacing-xs) var(--spacing-md);
-  background: var(--card-bg);
-  border-bottom: var(--border-width-thin) solid var(--border-secondary);
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  color: var(--color-primary);
-}
-
-.brandTitle {
+/* 操作区标题：全站统一 h4 */
+.title {
   margin: 0 !important;
-  color: var(--ink) !important;
-  font-size: 16px !important;
-}
-
-.toolbarRight {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  flex-shrink: 0;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .columns {
@@ -96,6 +86,8 @@
   flex-shrink: 0;
 }
 
+/* 图谱画布的外层：position:relative 让画布可绝对定位铺满，
+   flex:1 + min-height:0 让它拿到 .center 的剩余高度 */
 .graphWrap {
   position: relative;
   flex: 1;
@@ -109,4 +101,34 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding: var(--spacing-xs);
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .columns {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .left,
+  .leftCollapsed,
+  .right {
+    width: 100%;
+    border-right: none;
+    border-left: none;
+    border-bottom: var(--border-width-thin) solid var(--border-tertiary);
+  }
+
+  .center {
+    min-height: 320px;
+  }
 }

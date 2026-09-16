@@ -78,7 +78,7 @@
 
 .toggleLabel {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--text-body-xs-size);
   white-space: nowrap;
 }
 
@@ -162,7 +162,7 @@
 .pinIcon {
   flex-shrink: 0;
   color: var(--color-warning);
-  font-size: 11px;
+  font-size: var(--text-body-xs-size);
 }
 
 .itemTitle {
@@ -183,7 +183,7 @@
   border-radius: var(--rounded-chip);
   background: var(--surface-chip-translucent);
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: var(--text-body-xs-size);
 }
 
 .emptyBox {
@@ -191,7 +191,7 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  padding: 40px var(--spacing-sm);
+  padding: var(--spacing-xl) var(--spacing-sm);
 }
 
 .footer {

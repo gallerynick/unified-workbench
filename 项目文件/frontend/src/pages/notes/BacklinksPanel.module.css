@@ -5,13 +5,13 @@
   flex-direction: column;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: 40px 12px;
+  padding: var(--spacing-xl) var(--spacing-sm);
 }
 
 .emptyHint {
   max-width: 220px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--text-body-xs-size);
   line-height: 1.6;
 }
 
@@ -63,14 +63,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: var(--text-body-xs-size);
   font-weight: 600;
   color: var(--ink);
 }
 
 .itemExcerpt {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--text-body-xs-size);
   line-height: 1.6;
   overflow: hidden;
   display: -webkit-box;
@@ -83,5 +83,5 @@
   align-items: center;
   gap: var(--spacing-xxs);
   color: var(--text-tertiary);
-  font-size: 11px;
+  font-size: var(--text-body-xs-size);
 }

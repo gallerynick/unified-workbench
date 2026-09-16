@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Empty, Segmented, Spin, Tabs, Tooltip, Typography, message } from 'antd';
+import { Button, Empty, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd';
 import {
   AppstoreOutlined,
   FileAddOutlined,
-  FolderOutlined,
   LoadingOutlined,
   ShareAltOutlined,
   MenuFoldOutlined,
@@ -143,13 +142,10 @@ export default function NoteWorkspace() {
   }, []);
 
   return (
-    <div className={styles.workspace ?? ''}>
-      <header className={styles.toolbar ?? ''}>
-        <div className={styles.brand ?? ''}>
-          <FolderOutlined />
-          <Title level={4} className={styles.brandTitle ?? ''}>笔记知识库</Title>
-        </div>
-        <div className={styles.toolbarRight ?? ''}>
+    <div className={styles.container ?? ''}>
+      <div className={styles.header ?? ''}>
+        <Title level={4} className={styles.title ?? ''}>笔记知识库</Title>
+        <Space size={8}>
           {viewMode === 'graph' ? (
             <Segmented
               size="small"
@@ -191,8 +187,8 @@ export default function NoteWorkspace() {
           <Button type="primary" icon={<FileAddOutlined />} onClick={() => void handleCreate()}>
             新建笔记
           </Button>
-        </div>
-      </header>
+        </Space>
+      </div>
 
       <div className={styles.columns ?? ''}>
         <aside className={leftCollapsed ? styles.leftCollapsed ?? '' : styles.left ?? ''}>

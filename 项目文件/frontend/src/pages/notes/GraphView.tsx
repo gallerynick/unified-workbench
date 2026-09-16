@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject, LinkObject } from 'react-force-graph-2d';
-import { Alert, Empty, Spin } from 'antd';
-import type { GraphData } from '../../types/note';
+import { Alert, Empty } from 'antd';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { GraphData } from '@/types/note';
 import styles from './GraphView.module.css';
 
 interface GraphViewProps {
@@ -70,25 +71,38 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 export default function GraphView({ graph, onNodeClick, search }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraphMethods<NodeObject<GraphNodeData>, GraphLinkData> | undefined>(undefined);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const [loading, setLoading] = useState(true);
+  // 初始为 0：useLayoutEffect 会在首次绘制前量出真实尺寸，
+  // 避免 ForceGraph2D 先按 800x600 布局、等 ResizeObserver 回调再跳变
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const hoveredNeighbors = useRef<Set<string>>(new Set());
 
-  const tokens = readTokens();
-  const palette = CATEGORY_PALETTE.map(resolveCssVar);
+  // token 与调色板只随主题切换重算。否则每次渲染都调用十余次 getComputedStyle，
+  // 且 tokens 每次都是新对象，会让 canvas 绘制回调身份变化而反复重注册
+  const { isDark } = useTheme();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- readTokens 从 :root 读取 CSS 变量，随 data-theme 切换而变化
+  const tokens = useMemo(() => readTokens(), [isDark]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- resolveCssVar 同样依赖 :root 上的主题变量
+  const palette = useMemo(() => CATEGORY_PALETTE.map(resolveCssVar), [isDark]);
   const textSecondaryRgb = useMemo(() => hexToRgb(tokens.textSecondary) ?? { r: 140, g: 140, b: 140 }, [tokens.textSecondary]);
 
-  useEffect(() => {
+  // useLayoutEffect 在浏览器绘制前执行：先同步量一次，再挂 ResizeObserver 跟踪后续变化。
+  // 画布自身尺寸由父级 .graphWrap 决定（见 GraphView.module.css），这里只负责把尺寸读出来
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    const apply = (width: number, height: number) => {
+      if (width > 0 && height > 0) setDimensions({ width, height });
+    };
+
+    const rect = container.getBoundingClientRect();
+    apply(rect.width, rect.height);
+
     const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        setDimensions({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        apply(width, height);
       }
     });
     observer.observe(container);
@@ -166,11 +180,6 @@ export default function GraphView({ graph, onNodeClick, search }: GraphViewProps
       return () => clearTimeout(timer);
     }
   }, [filteredData]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleNodeHover = useCallback((node: NodeObject<GraphNodeData> | null) => {
     if (node) {
@@ -299,12 +308,8 @@ export default function GraphView({ graph, onNodeClick, search }: GraphViewProps
   return (
     <div ref={containerRef} className={styles.graphContainer ?? ''}>
       {orphanHint}
-      {loading && (
-        <div className={styles.loadingOverlay ?? ''}>
-          <Spin size="large" />
-        </div>
-      )}
-      <ForceGraph2D
+      {dimensions.width > 0 && dimensions.height > 0 ? (
+        <ForceGraph2D
         ref={graphRef}
         graphData={filteredData}
         width={dimensions.width}
@@ -324,6 +329,7 @@ export default function GraphView({ graph, onNodeClick, search }: GraphViewProps
         enableZoomInteraction={true}
         enablePanInteraction={true}
       />
+      ) : null}
     </div>
   );
 }

@@ -1,11 +1,27 @@
+/* 图谱画布：颜色与尺寸一律取 design token */
+
+/* 父级 .graphWrap 是 position:relative + flex:1 + min-height:0，
+   所以画布用绝对定位铺满父级。
+   不能在这里写 flex:1 或 min-height——那会让画布高度由自身内容
+   （即 canvas 的 height）反推，形成自引用：尺寸量出来的值又是
+   上次传给 ForceGraph2D 的值，画布永远停在初始的 600px。 */
 .graphContainer {
-  flex: 1;
-  position: relative;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   border-radius: var(--rounded-chip);
-  border: 1px solid var(--border-secondary);
+  border: var(--border-width-thin) solid var(--border-secondary);
   background: var(--canvas-parchment);
-  min-height: 400px;
+}
+
+/* 孤立节点提示：浮在画布上层，不占布局空间，也不挤压画布 */
+.orphanHint {
+  position: absolute;
+  top: var(--spacing-xs);
+  left: var(--spacing-xs);
+  right: var(--spacing-xs);
+  z-index: var(--z-dropdown);
+  margin: 0;
 }
 
 .loadingOverlay {
@@ -16,11 +32,13 @@
   z-index: var(--z-dropdown);
 }
 
+/* 空态同样铺满父级，不能写固定 height */
 .emptyState {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 400px;
   color: var(--text-secondary);
   font-size: var(--text-body-xs-size);
 }

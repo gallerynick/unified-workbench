@@ -28,7 +28,7 @@
 .titleInput {
   flex: 1;
   min-width: 0;
-  font-size: 20px;
+  font-size: var(--text-heading-3-size);
   font-weight: 600;
   padding: 0 !important;
 }
@@ -62,5 +62,5 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xxs);
-  font-size: 12px;
+  font-size: var(--text-body-xs-size);
 }
