@@ -72,19 +72,16 @@
 }
 
 /* 筛选按钮上的激活数量：筛选收进菜单后，条件数量必须始终可见。
-   宽度固定为 17px（可容纳两位数字）、且零数量时也保留占位，
-   所以按钮宽度在筛选前后不变，不会把右侧的视图切换顶出侧栏 */
+   按纯文本呈现，不加底色壳；宽度固定为 17px（可容纳两位数字），
+   且零数量时同样保留占位，所以按钮宽度在筛选前后不变，
+   也不会因数字位数抖动把右侧的视图切换顶出侧栏 */
 .filterCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   width: var(--spacing-md);
-  height: var(--spacing-md);
-  overflow: hidden;
   margin-left: var(--spacing-xs);
-  border-radius: var(--rounded-pill);
-  background: var(--color-primary);
-  color: var(--text-inverse);
+  text-align: center;
+  overflow: hidden;
+  color: var(--text-secondary);
   font-size: var(--text-body-xs-size);
 }
 
