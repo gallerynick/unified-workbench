@@ -3,6 +3,7 @@ import { Button, Dropdown, Empty, Segmented, Space, Spin, Tabs, Tooltip, Typogra
 import type { MenuProps } from 'antd';
 import {
   AppstoreOutlined,
+  DownOutlined,
   FileAddOutlined,
   LayoutOutlined,
   LoadingOutlined,
@@ -167,11 +168,12 @@ export default function NoteWorkspace() {
         <Space size={8}>
           <Dropdown menu={panelMenu} trigger={['click']}>
             <Tooltip title="面板显示">
-              <Button type="text" icon={<LayoutOutlined />} aria-label="面板显示设置" />
+              <Button type="text" icon={<LayoutOutlined />} aria-label="面板显示设置">
+                <DownOutlined />
+              </Button>
             </Tooltip>
           </Dropdown>
           <Segmented
-            size="small"
             value={viewMode}
             onChange={(value) => setViewMode(value as ViewMode)}
             options={[
@@ -210,7 +212,6 @@ export default function NoteWorkspace() {
             <div className={styles.graphWrap ?? ''}>
               <div className={styles.graphControls ?? ''}>
                 <Segmented
-                  size="small"
                   value={graphScope}
                   onChange={(value) => setGraphScope(value as GraphScope)}
                   options={[
@@ -237,7 +238,6 @@ export default function NoteWorkspace() {
             <Tabs
               className={styles.rightTabs ?? ''}
               defaultActiveKey="meta"
-              size="small"
               items={[
                 {
                   key: 'meta',

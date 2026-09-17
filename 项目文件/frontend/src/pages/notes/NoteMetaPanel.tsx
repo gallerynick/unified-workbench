@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Collapse, Empty, Input, Select, Space, Spin, Switch, Tag, TreeSelect, Typography, message } from 'antd';
-import { PushpinOutlined, SaveOutlined, UserOutlined } from '@ant-design/icons';
+import { SaveOutlined, UserOutlined } from '@ant-design/icons';
 import { listNoteTags, updateNote } from '@/api/notes';
 import type { Note, NoteUpdate, TagCount } from '@/types/note';
 import { getUserId } from '@/utils/auth';
@@ -209,8 +209,6 @@ export default function NoteMetaPanel({
         <span className={styles.label ?? ''}>置顶</span>
         <Switch
           checked={isPinned}
-          checkedChildren={<PushpinOutlined />}
-          unCheckedChildren={<PushpinOutlined />}
           onChange={(checked) => {
             setIsPinned(checked);
             void save({ is_pinned: checked });
