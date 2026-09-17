@@ -9,7 +9,6 @@ import {
   DeleteOutlined,
   DownOutlined,
   FileOutlined,
-  FilterOutlined,
   FolderOutlined,
   LoadingOutlined,
   MoreOutlined,
@@ -323,6 +322,13 @@ export default function NoteSidebar({
   const activeFilterCount =
     (categoryFilter !== undefined ? 1 : 0) + tagFilters.length + (pinnedOnly ? 1 : 0);
 
+  // 徽标占位恒定：数量为 0 时也渲染同样的占位，只是不显示，
+  // 这样按钮宽度在筛选前后完全一致，右侧的视图切换不会被顶出侧栏
+  const countClass =
+    activeFilterCount > 0
+      ? styles.filterCount ?? ''
+      : (styles.filterCount ?? '') + ' ' + (styles.filterCountHidden ?? '');
+
   // 筛选收进多级菜单：分类、标签各一个子菜单。选中项带勾选图标，
   // 菜单标题回显当前值，按钮带激活数量——状态全部可见，不做无提示的收纳
   const filterItems: NonNullable<MenuProps['items']> = [
@@ -385,13 +391,13 @@ export default function NoteSidebar({
         </div>
         <div className={styles.filterRow ?? ''}>
           <Dropdown trigger={['click']} menu={{ items: filterItems }}>
-            <Button size="small" icon={<FilterOutlined />} aria-label="筛选笔记">
-              筛选
-              {activeFilterCount > 0 ? (
-                <span className={styles.filterCount ?? ''}>{activeFilterCount}</span>
-              ) : null}
-              <DownOutlined className={styles.filterCaret ?? ''} />
-            </Button>
+            <Tooltip title="筛选笔记">
+              <Button size="small" aria-label="筛选笔记">
+                筛选
+                <span className={countClass}>{activeFilterCount}</span>
+                <DownOutlined className={styles.filterCaret ?? ''} />
+              </Button>
+            </Tooltip>
           </Dropdown>
           <Segmented
             size="small"

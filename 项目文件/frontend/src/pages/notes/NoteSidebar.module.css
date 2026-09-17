@@ -58,24 +58,38 @@
 
 .filterRow {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  min-width: 0;
 }
 
-/* 筛选按钮上的激活数量：筛选收进菜单后，条件数量必须始终可见 */
+/* 两个控件各按自然宽度排布、都不可被压缩：
+   侧栏只有 280px，空间吃紧时宁可让按钮宽度恒定，也不要让视图切换变形 */
+.filterRow > * {
+  flex-shrink: 0;
+}
+
+/* 筛选按钮上的激活数量：筛选收进菜单后，条件数量必须始终可见。
+   宽度固定为 17px（可容纳两位数字）、且零数量时也保留占位，
+   所以按钮宽度在筛选前后不变，不会把右侧的视图切换顶出侧栏 */
 .filterCount {
-  margin-left: var(--spacing-xs);
-  padding: 0 var(--spacing-xs);
-  min-width: var(--spacing-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--spacing-md);
   height: var(--spacing-md);
-  line-height: var(--spacing-md);
-  text-align: center;
+  overflow: hidden;
+  margin-left: var(--spacing-xs);
   border-radius: var(--rounded-pill);
   background: var(--color-primary);
   color: var(--text-inverse);
   font-size: var(--text-body-xs-size);
+}
+
+.filterCountHidden {
+  visibility: hidden;
 }
 
 .filterCaret {
