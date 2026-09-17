@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject, LinkObject } from 'react-force-graph-2d';
-import { Alert, Empty } from 'antd';
+import { Empty } from 'antd';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { GraphData } from '@/types/note';
 import styles from './GraphView.module.css';
@@ -293,21 +293,8 @@ export default function GraphView({ graph, onNodeClick, search }: GraphViewProps
     );
   }
 
-  const orphanHint = graph.links.length === 0 ? (
-    <div className={styles.orphanHint ?? ''}>
-      <Alert
-        type="info"
-        showIcon
-        message="这些笔记还没有双链连接，当前显示为孤立节点"
-        description="在正文里输入 [[ 选择另一篇笔记，就能在图谱中连出一条边"
-        banner
-      />
-    </div>
-  ) : null;
-
   return (
     <div ref={containerRef} className={styles.graphContainer ?? ''}>
-      {orphanHint}
       {dimensions.width > 0 && dimensions.height > 0 ? (
         <ForceGraph2D
         ref={graphRef}

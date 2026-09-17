@@ -14,16 +14,6 @@
   background: var(--canvas-parchment);
 }
 
-/* 孤立节点提示：浮在画布上层，不占布局空间，也不挤压画布 */
-.orphanHint {
-  position: absolute;
-  top: var(--spacing-sm);
-  left: var(--spacing-sm);
-  right: var(--spacing-sm);
-  z-index: var(--z-dropdown);
-  margin: 0;
-}
-
 /* 空态同样铺满父级，不能写固定 height */
 .emptyState {
   position: absolute;
