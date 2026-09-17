@@ -13,7 +13,7 @@ import {
 import ContentEditor from '@/components/ContentEditor/ContentEditor';
 import { noteExtensions } from '@/components/ContentEditor/extensions/noteExtensions';
 import { updateNote } from '@/api/notes';
-import type { Note, NoteBody } from '@/types/note';
+import type { Note, NoteBody, NoteDraft } from '@/types/note';
 import { useNoteDraft, type DraftSaveState } from './useNoteDraft';
 import styles from './NoteEditor.module.css';
 
@@ -53,6 +53,25 @@ function countWords(body: NoteBody): number {
   return total;
 }
 
+/**
+ * 稳定序列化：递归排序对象键后 stringify。
+ * Tiptap JSON 的键序在不同写入路径下可能不一致，直接 JSON.stringify
+ * 比较会把内容相同的草稿误判为「已改动」。
+ */
+function stableStringify(value: unknown): string {
+  const normalize = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(normalize);
+    if (node !== null && typeof node === 'object') {
+      const record = node as Record<string, unknown>;
+      const sorted: Record<string, unknown> = {};
+      for (const key of Object.keys(record).sort()) sorted[key] = normalize(record[key]);
+      return sorted;
+    }
+    return node;
+  };
+  return JSON.stringify(normalize(value));
+}
+
 function formatTime(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '未知时间';
@@ -84,8 +103,13 @@ export default function NoteEditor({ note, isNew, onNavigate, onSaved, onCancelN
   const [body, setBody] = useState<NoteBody>({});
   const [isPinned, setIsPinned] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  /**
+   * 载入笔记时判定出的「待恢复草稿」。
+   * 只在载入那一刻判定一次，之后不随编辑内容变化重新判定。
+   */
+  const [pendingDraft, setPendingDraft] = useState<NoteDraft | null>(null);
 
-  const { saveState, existingDraft, loadExisting, clear, reset } = useNoteDraft(note?.id ?? null, title, body);
+  const { saveState, loadExisting, clear, reset } = useNoteDraft(note?.id ?? null, title, body);
 
   const extensions = useMemo(() => noteExtensions({ onNavigateNote: onNavigate }), [onNavigate]);
 
@@ -94,6 +118,7 @@ export default function NoteEditor({ note, isNew, onNavigate, onSaved, onCancelN
       setTitle('');
       setBody({});
       setIsPinned(false);
+      setPendingDraft(null);
       return;
     }
     const nextTitle = note.title;
@@ -102,30 +127,37 @@ export default function NoteEditor({ note, isNew, onNavigate, onSaved, onCancelN
     setBody(nextBody);
     setIsPinned(note.is_pinned);
     reset(note.id, nextTitle, nextBody);
-    void loadExisting();
+    // 「是否有待恢复的草稿」只在载入这一刻判定一次，比较对象是刚载入的
+    // 已发布内容，而不是实时编辑器内容。若与实时内容比较，用户一敲键盘
+    // 就会判成「有差异」；自动保存又把草稿更新为当前内容，提示随之消失，
+    // 于是一路打字一路闪现。此刻的草稿就是本人正在写的内容，无需提示。
+    void loadExisting().then((draft) => {
+      const differs =
+        draft !== null &&
+        (draft.title !== nextTitle ||
+          stableStringify(draft.body ?? {}) !== stableStringify(nextBody));
+      setPendingDraft(differs ? draft : null);
+    });
   // 依赖 note.id 而非 note 对象：父组件重渲染产生的新对象不应触发重新载入
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note?.id, reset, loadExisting]);
 
   const wordCount = useMemo(() => countWords(body), [body]);
 
-  const draftDiffers = useMemo(() => {
-    if (!existingDraft || !note) return false;
-    const draftBody = existingDraft.body ?? {};
-    return JSON.stringify(draftBody) !== JSON.stringify(body);
-  }, [existingDraft, body, note]);
-
   const restoreDraft = useCallback(() => {
-    if (!existingDraft) return;
-    const nextTitle = existingDraft.title ?? title;
-    const nextBody = existingDraft.body ?? body;
+    if (!pendingDraft) return;
+    const nextTitle = pendingDraft.title ?? title;
+    const nextBody = pendingDraft.body ?? body;
     setTitle(nextTitle);
     setBody(nextBody);
+    // 恢复后草稿内容就是当前编辑内容，基线随之对齐，提示清除
     reset(note?.id ?? null, nextTitle, nextBody);
-  }, [existingDraft, title, body, note?.id, reset]);
+    setPendingDraft(null);
+  }, [pendingDraft, title, body, note?.id, reset]);
 
   const discardDraft = useCallback(async () => {
     await clear();
+    setPendingDraft(null);
     message.info('已丢弃草稿');
   }, [clear]);
 
@@ -139,6 +171,7 @@ export default function NoteEditor({ note, isNew, onNavigate, onSaved, onCancelN
       if (res.code === 0) {
         await clear();
         reset(note.id, finalTitle, body);
+        setPendingDraft(null);
         onSaved(res.data);
         message.success('已保存');
       } else {
@@ -207,13 +240,13 @@ export default function NoteEditor({ note, isNew, onNavigate, onSaved, onCancelN
         </Space>
       </div>
 
-      {draftDiffers ? (
+      {pendingDraft ? (
         <Alert
           type="warning"
           showIcon
           className={styles.draftAlert ?? ''}
           message="检测到未保存的草稿"
-          description={existingDraft ? `服务端草稿保存于 ${formatTime(existingDraft.saved_at)}，与当前内容不同。` : ''}
+          description={`服务端草稿保存于 ${formatTime(pendingDraft.saved_at)}，与已发布的内容不同。`}
           action={
             <Space size={8}>
               <Button size="small" type="primary" onClick={restoreDraft}>恢复草稿</Button>
