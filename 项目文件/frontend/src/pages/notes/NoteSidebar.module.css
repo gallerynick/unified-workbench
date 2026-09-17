@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-xxs);
+  gap: var(--spacing-xs);
   height: 100%;
   overflow-y: auto;
   padding: var(--spacing-xs) 0;
@@ -58,7 +58,7 @@
 
 .filterRow {
   display: flex;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
@@ -66,20 +66,20 @@
 
 /* 筛选按钮上的激活数量：筛选收进菜单后，条件数量必须始终可见 */
 .filterCount {
-  margin-left: var(--spacing-xxs);
-  padding: 0 var(--spacing-xxs);
-  min-width: var(--spacing-sm);
-  height: var(--spacing-sm);
-  line-height: var(--spacing-sm);
+  margin-left: var(--spacing-xs);
+  padding: 0 var(--spacing-xs);
+  min-width: var(--spacing-md);
+  height: var(--spacing-md);
+  line-height: var(--spacing-md);
   text-align: center;
-  border-radius: var(--rounded-chip);
+  border-radius: var(--rounded-pill);
   background: var(--color-primary);
   color: var(--text-inverse);
   font-size: var(--text-body-xs-size);
 }
 
 .filterCaret {
-  margin-left: var(--spacing-xxs);
+  margin-left: var(--spacing-xs);
   color: var(--text-tertiary);
   font-size: var(--text-body-xs-size);
 }
@@ -97,7 +97,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xxs);
+  gap: var(--spacing-xs);
   padding: var(--spacing-sm);
 }
 
@@ -105,7 +105,7 @@
 .flatItemActive {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xxs);
+  gap: var(--spacing-xs);
   border-radius: var(--rounded-sm);
   border: var(--border-width-thin) solid transparent;
 }
@@ -125,8 +125,8 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: var(--spacing-xxs);
-  padding: var(--spacing-xs) var(--spacing-xs);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
   border: none;
   background: none;
   color: inherit;
@@ -137,9 +137,9 @@
 
 .rowActions {
   display: flex;
-  gap: 2px;
+  gap: var(--spacing-xs);
   flex-shrink: 0;
-  padding-right: var(--spacing-xxs);
+  padding-right: var(--spacing-xs);
   opacity: 0;
   transition: opacity var(--anim-fast) ease;
 }
@@ -152,15 +152,14 @@
 .item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xxs);
+  gap: var(--spacing-xs);
   min-width: 0;
-  padding-right: var(--spacing-xxs);
+  padding-right: var(--spacing-xs);
 }
 
 /* 树形节点的行内操作入口：hover 才出现，不占默认视觉空间 */
 .nodeMore {
   flex-shrink: 0;
-  padding: 0 var(--spacing-xxs);
   color: var(--text-tertiary);
   opacity: 0;
   transition: opacity var(--anim-fast) ease;
@@ -192,11 +191,11 @@
 
 .categoryTag {
   flex-shrink: 0;
-  max-width: 80px;
+  max-width: 96px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0 var(--spacing-xxs);
+  padding: 0 var(--spacing-xs);
   border-radius: var(--rounded-chip);
   background: var(--surface-chip-translucent);
   color: var(--text-secondary);

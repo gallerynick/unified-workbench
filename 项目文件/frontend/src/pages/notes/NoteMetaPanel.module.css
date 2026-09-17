@@ -15,13 +15,13 @@
   gap: var(--spacing-md);
   height: 100%;
   overflow-y: auto;
-  padding-right: var(--spacing-xxs);
+  padding: var(--spacing-sm);
 }
 
 .saving {
   position: absolute;
-  top: var(--spacing-xxs);
-  right: var(--spacing-xxs);
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
   z-index: var(--z-sticky);
 }
 
@@ -30,12 +30,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
 }
 
 .panelHeadTitle {
   color: var(--text-tertiary);
   font-size: var(--text-body-xs-size);
+  line-height: var(--text-body-xs-line);
   font-weight: var(--text-caption-strong-weight);
 }
 
@@ -49,13 +50,14 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
 }
 
 /* 只读信息可折叠：默认展开，需要收纳时收起，状态不隐藏 */
 .detailCollapse {
   border-top: var(--border-width-thin) solid var(--border-tertiary);
-  padding-top: var(--spacing-xs);
+  padding-top: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
 }
 
 .detailCollapse :global(.ant-collapse-header) {
@@ -63,12 +65,14 @@
   gap: var(--spacing-xs);
   color: var(--text-secondary);
   font-size: var(--text-body-xs-size);
+  line-height: var(--text-body-xs-line);
   font-weight: var(--text-caption-strong-weight);
 }
 
 .label {
   color: var(--text-secondary);
   font-size: var(--text-body-xs-size);
+  line-height: var(--text-body-xs-line);
   font-weight: 500;
 }
 
@@ -77,14 +81,14 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-sm);
-  padding: var(--spacing-xxs) 0;
+  padding: var(--spacing-xs) 0;
 }
 
 .infoGrid {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
-  padding: var(--spacing-xs) 0 var(--spacing-xxs);
+  padding: var(--spacing-xs) 0 var(--spacing-sm);
 }
 
 .infoRow {
@@ -92,8 +96,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-sm);
-  min-height: var(--spacing-md);
+  min-height: var(--spacing-lg);
   font-size: var(--text-body-xs-size);
+  line-height: var(--text-body-xs-line);
 }
 
 .infoKey {
@@ -121,8 +126,9 @@
 .footer {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xxs);
+  gap: var(--spacing-xs);
   color: var(--text-tertiary);
   font-size: var(--text-body-xs-size);
-  padding-top: var(--spacing-xs);
+  line-height: var(--text-body-xs-line);
+  padding-top: var(--spacing-sm);
 }
