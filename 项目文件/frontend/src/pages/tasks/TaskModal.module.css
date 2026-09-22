@@ -1,4 +1,9 @@
-/* 新建 / 编辑 任务弹窗 —— 标记色选择 */
+/* 新建 / 编辑 任务弹窗 —— 标记色选择
+ *
+ * 遵循《浮窗交互组件标准化规范》的「选择卡片」模式：
+ * 浮窗内交互项禁止使用 box-shadow，仅允许 border-color 变化 + transform: scale
+ * 两种反馈；倍率（1.02）、时长（0.2s）与色值均取规范固定值。
+ */
 
 .colorGroup {
   display: flex;
@@ -10,26 +15,42 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xxs);
-  padding: 3px 10px;
-  border-radius: var(--rounded-pill);
+  padding: 4px 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--rounded-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
   font-size: var(--text-body-sm-size);
   line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s, transform 0.2s;
 }
 
-/* 隐藏 antd 自带的方形勾选框，选中态改由按钮描边表达 */
-.colorOption :global(.ant-radio-inner) {
-  display: none;
+.colorOption:hover {
+  border-color: var(--color-primary-hover);
+  transform: scale(1.02);
 }
 
-.colorOption :global(> span) {
-  padding-inline-end: 0;
+.colorOptionSelected {
+  border-color: var(--color-info);
+  background: var(--color-info-bg);
+  transform: scale(1);
 }
 
+/* 键盘焦点：用 outline 而非 box-shadow，不受浮窗内禁阴影规则约束 */
+.colorOption:focus-visible {
+  outline: 2px solid var(--color-info);
+  outline-offset: 1px;
+}
+
+/* 色块本身不是交互项，仅作颜色指示；描边用 border 实现，不用 box-shadow */
 .colorDot {
   display: inline-block;
   flex-shrink: 0;
   width: 14px;
   height: 14px;
   border-radius: var(--rounded-circular);
-  box-shadow: inset 0 0 0 1px var(--border-primary);
+  border: 1px solid var(--border-tertiary);
+  box-sizing: border-box;
 }

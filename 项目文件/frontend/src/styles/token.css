@@ -11,6 +11,7 @@
   /* === 品牌与强调色 === */
   --color-primary: #0066cc;              /* 行动蓝 — 单一交互色 */
   --color-primary-focus: #0071e3;        /* 焦点蓝 — 键盘焦点环 */
+  --color-primary-hover: #4096ff;        /* 悬浮蓝 — 浮窗内选择卡片悬浮描边 */
   --color-primary-on-dark: #2997ff;      /* 浅底亮蓝 — 深色表面链接 */
 
   /* === 底色 === */
@@ -164,8 +165,9 @@
   --card-padding: 16px;
   --card-hover-bg: var(--bg-tertiary);
   --card-hover-border: 1px solid var(--border-primary);
-  --card-grid: repeat(auto-fill, minmax(300px, 1fr));
-  --card-grid-gap: var(--spacing-sm);
+  /* 卡片网格间距与 UI 设计规范 card-grid.gap = {spacing.card-gap} 对齐（原为 --spacing-sm 12px，已过期）；
+     规范 L387 的 auto-fill minmax(300px) 网格 token 因全站无使用点已删除 */
+  --card-grid-gap: var(--spacing-card-gap);
 
   /* === 组件级 token — 模态框 === */
   --modal-bg: var(--canvas);
@@ -212,6 +214,8 @@
   --header-bg: var(--canvas);
   --header-border: 1px solid var(--border-secondary);
   --header-padding: 0 24px;
+  /* 顶栏工具图标统一尺寸（锁定 / 暂停 / 通知），保证三个按钮视觉等大 */
+  --header-icon-size: 18px;
 
   /* === 组件级 token — 导航 === */
   --breadcrumb-text: var(--text-secondary);
@@ -286,6 +290,7 @@
   --color-error-bg: var(--color-error-bg-dark);
   --color-info: var(--color-info-dark);
   --color-info-bg: var(--color-info-bg-dark);
+  --color-primary-hover: #3c89e8;        /* 深色模式悬浮蓝 */
 
   /* === 扩展背景/文本/边框 token（深色） === */
   --bg-primary: #141414;

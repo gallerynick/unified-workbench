@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Modal, Radio, Select, message } from 'antd';
+import { Form, Input, Modal, Select, message } from 'antd';
 import type { Task, TaskPriority } from '../../types/task';
 import type { Visibility } from '../../utils/visibility';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
@@ -30,6 +30,46 @@ interface TaskFormValues {
   description?: string;
   priority: TaskPriority;
   color: string;
+}
+
+interface TaskColorPickerProps {
+  value?: string;
+  onChange?: (value: string) => void;
+}
+
+/**
+ * 标记色选择器
+ *
+ * 按《浮窗交互组件标准化规范》的「选择卡片」模式实现：浮窗内交互项
+ * 禁止 box-shadow，仅用 border-color 变化 + transform: scale 表达反馈。
+ * 具体色值与倍率见 TaskModal.module.css 的 .colorOption。
+ */
+function TaskColorPicker({ value, onChange }: TaskColorPickerProps) {
+  return (
+    <div className={styles.colorGroup ?? ''} role="group" aria-label="标记颜色">
+      {TASK_COLORS.map((c) => {
+        const selected = value === c.key;
+        const classes = [styles.colorOption ?? '', selected ? styles.colorOptionSelected ?? '' : '']
+          .filter(Boolean)
+          .join(' ');
+        return (
+          <button
+            key={c.key}
+            type="button"
+            aria-pressed={selected}
+            className={classes}
+            onClick={() => onChange?.(c.key)}
+          >
+            <span
+              className={styles.colorDot ?? ''}
+              style={{ background: `var(--${c.token})` }}
+            />
+            {c.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 /**
@@ -139,14 +179,7 @@ export default function TaskModal({
           <Select options={Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
         </Form.Item>
         <Form.Item name="color" label="标记颜色">
-          <Radio.Group className={styles.colorGroup ?? ''}>
-            {TASK_COLORS.map((c) => (
-              <Radio.Button key={c.key} value={c.key} className={styles.colorOption ?? ''}>
-                <span className={styles.colorDot ?? ''} style={{ background: `var(--${c.token})` }} />
-                {c.label}
-              </Radio.Button>
-            ))}
-          </Radio.Group>
+          <TaskColorPicker />
         </Form.Item>
         <Form.Item label="可见性">
           <VisibilitySetting
