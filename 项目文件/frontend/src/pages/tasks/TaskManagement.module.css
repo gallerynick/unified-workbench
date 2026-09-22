@@ -60,8 +60,10 @@
 }
 
 /* ── 卡片 ───────────────────────────────────────────
- * 左侧色条与主体衔接：卡片左边取直角且无边框，右侧保留圆角；
- * 色条只在右侧取圆角，形成与主体一致的过渡。
+ * 卡片本身是完整圆角矩形；色条像书签一样贴在卡片最左边缘。
+ * 卡片左侧去掉描边（border-left: none），让色条直接成为左边缘；
+ * 色条不自带圆角——左端由 overflow:hidden 配合卡片左圆角裁切，
+ * 自然贴合圆角；右端为直线，与内容区衔接。
  */
 
 .card {
@@ -69,7 +71,7 @@
   background: var(--card-bg);
   border: var(--card-border);
   border-left: none;
-  border-radius: 0 var(--card-rounded) var(--card-rounded) 0;
+  border-radius: var(--card-rounded);
   overflow: hidden;
   transition: border-color var(--anim-fast) var(--anim-ease),
     box-shadow var(--anim-fast) var(--anim-ease);
@@ -85,7 +87,6 @@
   flex-shrink: 0;
   width: 6px;
   align-self: stretch;
-  border-radius: 0 var(--card-rounded) var(--card-rounded) 0;
 }
 
 .cardBody {
