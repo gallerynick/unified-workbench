@@ -98,13 +98,8 @@ function TaskCard({ task, canManage, onEdit, onDelete, onStatusChange }: TaskCar
     ? `指定用户可见（${task.restricted_users?.length ?? 0} 人）`
     : visibility.description;
 
-  const classes = [styles.card ?? '', `status-${task.status}`, !canManage ? 'readonly' : '']
-    .filter(Boolean)
-    .join(' ');
-
   return (
-    <div className={classes}>
-      <div className={styles.accentBar ?? ''} />
+    <div className={styles.card ?? ''}>
       <div className={styles.cardBody ?? ''}>
         <div className={styles.cardHead ?? ''}>
           <Select

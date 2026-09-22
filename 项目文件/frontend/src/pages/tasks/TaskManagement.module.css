@@ -62,12 +62,9 @@
 /* ── 卡片 ─────────────────────────────────────────── */
 
 .card {
-  position: relative;
-  display: flex;
   background: var(--card-bg);
   border: var(--card-border);
   border-radius: var(--card-rounded);
-  overflow: hidden;
   transition: border-color var(--anim-fast) var(--anim-ease),
     box-shadow var(--anim-fast) var(--anim-ease);
 }
@@ -77,33 +74,7 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* 左侧状态色条 */
-.accentBar {
-  flex-shrink: 0;
-  width: 3px;
-  align-self: stretch;
-  background: var(--border-primary);
-}
-
-.card.status-todo .accentBar {
-  background: var(--text-tertiary);
-}
-
-.card.status-in_progress .accentBar {
-  background: var(--color-info);
-}
-
-.card.status-done .accentBar {
-  background: var(--color-success);
-}
-
-.card.status-cancelled .accentBar {
-  background: var(--color-error);
-}
-
 .cardBody {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
