@@ -5,25 +5,33 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.visibility import Visibility
 
-
 VALID_STATUSES = {"todo", "in_progress", "done", "cancelled"}
 VALID_PRIORITIES = {"low", "medium", "high", "urgent"}
+VALID_COLORS = {"blue", "cyan", "green", "orange", "red", "purple", "pink", "gray"}
 
 
 class TaskCreate(BaseModel):
-    title: str
+    title: str = Field(max_length=200)
     description: str | None = None
     status: str = "todo"
     priority: str = "medium"
+    color: str | None = "blue"
     due_date: str | None = None
     assigned_to: uuid.UUID | None = None
     tags: list[str] | None = None
     visibility: Visibility = Visibility.PRIVATE
     restricted_users: list[str] | None = None
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_COLORS:
+            raise ValueError(f"color 必须是 {VALID_COLORS} 之一")
+        return v
 
     @field_validator("status")
     @classmethod
@@ -41,15 +49,23 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    title: str | None = None
+    title: str | None = Field(default=None, max_length=200)
     description: str | None = None
     status: str | None = None
     priority: str | None = None
+    color: str | None = None
     due_date: str | None = None
     assigned_to: uuid.UUID | None = None
     tags: list[str] | None = None
     visibility: Visibility | None = None
     restricted_users: list[str] | None = None
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_COLORS:
+            raise ValueError(f"color 必须是 {VALID_COLORS} 之一")
+        return v
 
     @field_validator("status")
     @classmethod
@@ -74,6 +90,7 @@ class TaskResponse(BaseModel):
     description: str | None
     status: str
     priority: str
+    color: str
     due_date: datetime | None
     assigned_to: uuid.UUID | None
     owner_id: uuid.UUID

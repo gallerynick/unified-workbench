@@ -46,6 +46,9 @@ class Task(Base):
     priority: Mapped[TaskPriority] = mapped_column(
         Enum(TaskPriority, create_type=False), default=TaskPriority.MEDIUM
     )
+    color: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="blue", default="blue"
+    )
     due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("user.id"), nullable=True

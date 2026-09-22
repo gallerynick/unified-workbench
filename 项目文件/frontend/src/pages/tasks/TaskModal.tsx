@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Modal, Select, message } from 'antd';
+import { Form, Input, Modal, Radio, Select, message } from 'antd';
 import type { Task, TaskPriority } from '../../types/task';
 import type { Visibility } from '../../utils/visibility';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import { createTask, updateTask } from '../../api/tasks';
+import { DEFAULT_TASK_COLOR, TASK_COLORS } from './taskColors';
+import styles from './TaskModal.module.css';
 
 const { TextArea } = Input;
 
@@ -27,6 +29,7 @@ interface TaskFormValues {
   title: string;
   description?: string;
   priority: TaskPriority;
+  color: string;
 }
 
 /**
@@ -54,11 +57,12 @@ export default function TaskModal({
         title: editingTask.title,
         ...(editingTask.description ? { description: editingTask.description } : {}),
         priority: editingTask.priority,
+        color: editingTask.color ?? DEFAULT_TASK_COLOR,
       });
       setVisibility((editingTask.visibility as Visibility) || 'private');
       setRestrictedUsers(editingTask.restricted_users || []);
     } else {
-      form.setFieldsValue({ priority: 'medium' });
+      form.setFieldsValue({ priority: 'medium', color: DEFAULT_TASK_COLOR });
       setVisibility('private');
       setRestrictedUsers([]);
     }
@@ -77,6 +81,7 @@ export default function TaskModal({
         title: values.title,
         ...(values.description ? { description: values.description } : {}),
         priority: values.priority,
+        color: values.color,
         visibility,
         ...(visibility === 'restricted' ? { restricted_users: restrictedUsers } : {}),
       };
@@ -132,6 +137,16 @@ export default function TaskModal({
         </Form.Item>
         <Form.Item name="priority" label="优先级">
           <Select options={Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
+        </Form.Item>
+        <Form.Item name="color" label="标记颜色">
+          <Radio.Group className={styles.colorGroup ?? ''}>
+            {TASK_COLORS.map((c) => (
+              <Radio.Button key={c.key} value={c.key} className={styles.colorOption ?? ''}>
+                <span className={styles.colorDot ?? ''} style={{ background: `var(--${c.token})` }} />
+                {c.label}
+              </Radio.Button>
+            ))}
+          </Radio.Group>
         </Form.Item>
         <Form.Item label="可见性">
           <VisibilitySetting

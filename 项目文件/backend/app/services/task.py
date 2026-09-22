@@ -104,6 +104,7 @@ async def create_task(
         description=request.description,
         status=TaskStatus(request.status),
         priority=TaskPriority(request.priority),
+        color=request.color or "blue",
         due_date=(
             datetime.fromisoformat(request.due_date) if request.due_date else None
         ),
@@ -149,6 +150,8 @@ async def update_task(
         task.status = TaskStatus(request.status)
     if request.priority is not None:
         task.priority = TaskPriority(request.priority)
+    if request.color is not None:
+        task.color = request.color
     if request.due_date is not None:
         task.due_date = (
             datetime.fromisoformat(request.due_date) if request.due_date else None

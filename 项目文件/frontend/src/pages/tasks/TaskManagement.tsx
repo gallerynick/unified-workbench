@@ -29,6 +29,7 @@ import type { Task, TaskStatus, TaskPriority } from '../../types/task';
 import { getVisibilityConfig } from '../../utils/visibility';
 import { getUserId } from '../../utils/auth';
 import TaskModal from './TaskModal';
+import { taskColorValue } from './taskColors';
 import styles from './TaskManagement.module.css';
 
 const { Paragraph, Text } = Typography;
@@ -100,6 +101,10 @@ function TaskCard({ task, canManage, onEdit, onDelete, onStatusChange }: TaskCar
 
   return (
     <div className={styles.card ?? ''}>
+      <div
+        className={styles.accentBar ?? ''}
+        style={{ background: taskColorValue(task.color) }}
+      />
       <div className={styles.cardBody ?? ''}>
         <div className={styles.cardHead ?? ''}>
           <Select

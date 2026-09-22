@@ -9,6 +9,8 @@ export interface Task {
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  /** 卡片左侧标记色（调色板 key），由后端回填，见 taskColors.ts */
+  color?: string;
   due_date: string | null;
   assigned_to: string | null;
   owner_id: string;
@@ -24,6 +26,7 @@ export interface TaskCreate {
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
+  color?: string;
   due_date?: string;
   assigned_to?: string;
   tags?: string[];
@@ -36,6 +39,7 @@ export interface TaskUpdate {
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
+  color?: string;
   due_date?: string;
   assigned_to?: string;
   tags?: string[];
