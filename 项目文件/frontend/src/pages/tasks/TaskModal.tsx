@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Modal, Select, message } from 'antd';
+import { Form, Input, Modal, Select, Tooltip, message } from 'antd';
 import type { Task, TaskPriority } from '../../types/task';
 import type { Visibility } from '../../utils/visibility';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import { createTask, updateTask } from '../../api/tasks';
-import { DEFAULT_TASK_COLOR, TASK_COLORS } from './taskColors';
+import { DEFAULT_TASK_COLOR, TASK_COLORS, taskColorLabel } from './taskColors';
 import styles from './TaskModal.module.css';
 
 const { TextArea } = Input;
@@ -46,28 +46,27 @@ interface TaskColorPickerProps {
  */
 function TaskColorPicker({ value, onChange }: TaskColorPickerProps) {
   return (
-    <div className={styles.colorGroup ?? ''} role="group" aria-label="标记颜色">
+    <div className={styles.colorRow ?? ''} role="group" aria-label="标记颜色">
       {TASK_COLORS.map((c) => {
-        const selected = value === c.key;
-        const classes = [styles.colorOption ?? '', selected ? styles.colorOptionSelected ?? '' : '']
-          .filter(Boolean)
-          .join(' ');
+        const active = value === c.key;
         return (
-          <button
-            key={c.key}
-            type="button"
-            aria-pressed={selected}
-            className={classes}
-            onClick={() => onChange?.(c.key)}
-          >
-            <span
-              className={styles.colorDot ?? ''}
-              style={{ background: `var(--${c.token})` }}
-            />
-            {c.label}
-          </button>
+          <Tooltip key={c.key} title={c.label} placement="top" mouseEnterDelay={0.2}>
+            <button
+              type="button"
+              className={active ? styles.colorDotActive ?? '' : styles.colorDot ?? ''}
+              onClick={() => onChange?.(c.key)}
+              aria-label={c.label}
+              aria-pressed={active}
+            >
+              <span
+                className={styles.colorInner ?? ''}
+                style={{ backgroundColor: `var(--${c.token})` }}
+              />
+            </button>
+          </Tooltip>
         );
       })}
+      <span className={styles.colorName ?? ''}>{taskColorLabel(value)}</span>
     </div>
   );
 }
@@ -178,7 +177,7 @@ export default function TaskModal({
         <Form.Item name="priority" label="优先级">
           <Select options={Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
         </Form.Item>
-        <Form.Item name="color" label="标记颜色">
+        <Form.Item name="color" label="颜色">
           <TaskColorPicker />
         </Form.Item>
         <Form.Item label="可见性">
