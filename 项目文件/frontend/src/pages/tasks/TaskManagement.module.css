@@ -1,3 +1,9 @@
+/* 任务中心 —— 卡片式列表
+ *
+ * 每条任务一张卡片：标题与任务描述直接平铺展示，不必进入编辑弹窗。
+ * 颜色一律取 design token，深浅色模式由全局 token 重定义自动适配。
+ */
+
 .container {
   display: flex;
   flex-direction: column;
@@ -12,9 +18,24 @@
   min-height: var(--spacing-xxl);
 }
 
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  min-width: 0;
+}
+
 .title {
-  margin: 0 !important;
+  font-size: var(--text-heading-4-size);
   font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.subtitle {
+  font-size: var(--text-body-sm-size);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -22,8 +43,200 @@
   margin-bottom: var(--spacing-xs);
 }
 
-.table {
+.listWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.empty {
+  padding: var(--spacing-xxl) 0;
+}
+
+/* ── 卡片 ─────────────────────────────────────────── */
+
+.card {
+  position: relative;
+  display: flex;
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-rounded);
+  overflow: hidden;
+  transition: border-color var(--anim-fast) var(--anim-ease),
+    box-shadow var(--anim-fast) var(--anim-ease);
+}
+
+.card:hover {
+  border: var(--card-hover-border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 左侧状态色条 */
+.accentBar {
+  flex-shrink: 0;
+  width: 3px;
+  align-self: stretch;
+  background: var(--border-primary);
+}
+
+.card.status-todo .accentBar {
+  background: var(--text-tertiary);
+}
+
+.card.status-in_progress .accentBar {
+  background: var(--color-info);
+}
+
+.card.status-done .accentBar {
+  background: var(--color-success);
+}
+
+.card.status-cancelled .accentBar {
+  background: var(--color-error);
+}
+
+.cardBody {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--card-padding);
+}
+
+/* ── 卡片头：状态选择器 + 标题 + 标签 / 操作 ───────── */
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.statusSelect {
+  flex-shrink: 0;
+  width: 108px;
+}
+
+.cardTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-body-strong-size);
+  color: var(--text-primary);
+}
+
+.cardHeadRight {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.readonlyText {
+  font-size: var(--text-body-xs-size);
+  white-space: nowrap;
+}
+
+/* ── 任务描述（直接展示） ─────────────────────────── */
+
+.cardDesc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  min-width: 0;
+}
+
+.descText {
+  font-size: var(--text-body-size);
+  line-height: 1.6;
+  color: var(--text-primary);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.descClamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.descToggle {
+  align-self: flex-start;
+  padding: 0 var(--spacing-xxs);
+  height: auto;
+  font-size: var(--text-body-xs-size);
+}
+
+.descEmpty {
+  padding-top: var(--spacing-xxs);
+}
+
+/* ── 卡片脚：元信息 ───────────────────────────────── */
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  margin-top: var(--spacing-xxs);
+  border-top: 1px solid var(--border-tertiary);
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.metaItem :global(.anticon) {
+  font-size: var(--text-body-xs-size);
+}
+
+.metaTags {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xxs);
+}
+
+/* ── 分页 ─────────────────────────────────────────── */
+
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--spacing-xs);
+}
+
+/* ── 权限说明弹窗 ─────────────────────────────────── */
+
+.permissionContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.permissionContent .ant-typography {
+  margin-bottom: var(--spacing-xxs);
+}
+
+.permissionContent > :last-child {
+  margin-bottom: 0 !important;
+}
+
+.permissionHeading {
+  font-size: var(--text-body-strong-size);
+  color: var(--text-primary);
+  margin-top: var(--spacing-xs);
 }
 
 .permissionList {
@@ -39,19 +252,7 @@
   margin-bottom: 0;
 }
 
-.permissionContent {
-  display: flex;
-  flex-direction: column;
-}
-
-.permissionContent .ant-typography {
-  margin-bottom: var(--spacing-xxs);
-}
-
-.permissionContent > :last-child {
-  margin-bottom: 0 !important;
-}
-
+/* ── 移动端 ───────────────────────────────────────── */
 
 @media (max-width: 767px) {
   .container {
@@ -60,6 +261,7 @@
 
   .header {
     flex-direction: column;
+    align-items: stretch;
     gap: var(--spacing-xs);
   }
 
@@ -67,7 +269,17 @@
     width: 100%;
   }
 
-  .table {
-    overflow-x: auto;
+  .subtitle {
+    white-space: normal;
+  }
+
+  .cardHead {
+    flex-wrap: wrap;
+  }
+
+  .cardHeadRight {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
   }
 }

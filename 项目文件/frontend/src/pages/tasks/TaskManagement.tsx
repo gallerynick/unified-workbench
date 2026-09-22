@@ -1,7 +1,29 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Select, Tag, Typography, Modal, message, Space, Tooltip, Tabs } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import {
+  Button,
+  Select,
+  Tag,
+  Typography,
+  Modal,
+  message,
+  Space,
+  Tooltip,
+  Tabs,
+  Pagination,
+  Empty,
+  Spin,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  QuestionCircleOutlined,
+  CalendarOutlined,
+  TagOutlined,
+  ClockCircleOutlined,
+  DownOutlined,
+  UpOutlined,
+} from '@ant-design/icons';
 import { listTasks, updateTask, deleteTask } from '../../api/tasks';
 import type { Task, TaskStatus, TaskPriority } from '../../types/task';
 import { getVisibilityConfig } from '../../utils/visibility';
@@ -9,7 +31,7 @@ import { getUserId } from '../../utils/auth';
 import TaskModal from './TaskModal';
 import styles from './TaskManagement.module.css';
 
-const { Title, Paragraph, Text } = Typography;
+const { Paragraph, Text } = Typography;
 
 const STATUS_MAP: Record<TaskStatus, { color: string; text: string }> = {
   todo: { color: 'default', text: '待办' },
@@ -31,6 +53,152 @@ const TAB_ITEMS: { key: TabKey; label: string }[] = [
   { key: 'all', label: '全部' },
   { key: 'mine', label: '我创建的' },
 ];
+
+const STATUS_OPTIONS = Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }));
+const PRIORITY_OPTIONS = Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }));
+
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString('zh-CN');
+}
+
+function formatDate(value: string): string {
+  return new Date(value).toLocaleDateString('zh-CN');
+}
+
+interface TaskCardProps {
+  task: Task;
+  canManage: boolean;
+  onEdit: (task: Task) => void;
+  onDelete: (task: Task) => void;
+  onStatusChange: (task: Task, status: TaskStatus) => void;
+}
+
+/**
+ * 单条任务卡片：标题与任务描述直接平铺展示，不必进入编辑弹窗。
+ * 描述超过 3 行时折叠，可「展开 / 收起」。
+ */
+function TaskCard({ task, canManage, onEdit, onDelete, onStatusChange }: TaskCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+  const descRef = useRef<HTMLDivElement>(null);
+
+  // 仅当描述确实被截断时才显示「展开」，避免空按钮
+  useLayoutEffect(() => {
+    const el = descRef.current;
+    if (!el) {
+      setOverflowing(false);
+      return;
+    }
+    setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [task.description, expanded]);
+
+  const description = (task.description ?? '').trim();
+  const visibility = getVisibilityConfig(task.visibility ?? 'private');
+  const restrictedHint = task.visibility === 'restricted'
+    ? `指定用户可见（${task.restricted_users?.length ?? 0} 人）`
+    : visibility.description;
+
+  const classes = [styles.card ?? '', `status-${task.status}`, !canManage ? 'readonly' : '']
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <div className={classes}>
+      <div className={styles.accentBar ?? ''} />
+      <div className={styles.cardBody ?? ''}>
+        <div className={styles.cardHead ?? ''}>
+          <Select
+            value={task.status}
+            size="small"
+            className={styles.statusSelect ?? ''}
+            disabled={!canManage}
+            onChange={(v) => onStatusChange(task, v as TaskStatus)}
+            options={STATUS_OPTIONS}
+          />
+          <Text className={styles.cardTitle ?? ''} strong ellipsis={{ tooltip: task.title }}>
+            {task.title}
+          </Text>
+          <div className={styles.cardHeadRight ?? ''}>
+            <Tag color={PRIORITY_MAP[task.priority].color}>{PRIORITY_MAP[task.priority].text}</Tag>
+            <Tooltip title={restrictedHint}>
+              <Tag color={visibility.color}>{visibility.text}</Tag>
+            </Tooltip>
+            {canManage ? (
+              <Space size="small">
+                <Button type="link" size="small" icon={<EditOutlined />} onClick={() => onEdit(task)}>
+                  编辑
+                </Button>
+                <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => onDelete(task)}>
+                  删除
+                </Button>
+              </Space>
+            ) : (
+              <Tooltip title="仅创建者可编辑或删除">
+                <Text type="secondary" className={styles.readonlyText ?? ''}>
+                  只读
+                </Text>
+              </Tooltip>
+            )}
+          </div>
+        </div>
+
+        {description ? (
+          <div className={styles.cardDesc ?? ''}>
+            <div
+              ref={descRef}
+              className={[styles.descText ?? '', !expanded ? styles.descClamped : ''].filter(Boolean).join(' ')}
+            >
+              {description}
+            </div>
+            {expanded ? (
+              <Button type="link" size="small" className={styles.descToggle ?? ''} onClick={() => setExpanded(false)}>
+                收起 <UpOutlined />
+              </Button>
+            ) : overflowing ? (
+              <Button type="link" size="small" className={styles.descToggle ?? ''} onClick={() => setExpanded(true)}>
+                展开 <DownOutlined />
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <div className={[styles.cardDesc ?? '', styles.descEmpty ?? ''].join(' ')}>
+            <Text type="secondary">未填写任务描述</Text>
+          </div>
+        )}
+
+        <div className={styles.cardMeta ?? ''}>
+          {task.due_date ? (
+            <span className={styles.metaItem ?? ''}>
+              <CalendarOutlined />
+              截止 {formatDate(task.due_date)}
+            </span>
+          ) : null}
+          {task.tags && task.tags.length > 0 ? (
+            <span className={styles.metaItem ?? ''}>
+              <TagOutlined />
+              <span className={styles.metaTags}>
+                {task.tags.map((tag) => (
+                  <Tag key={tag} bordered={false}>
+                    {tag}
+                  </Tag>
+                ))}
+              </span>
+            </span>
+          ) : null}
+          <span className={styles.metaItem ?? ''}>
+            <ClockCircleOutlined />
+            创建 {formatDateTime(task.created_at)}
+          </span>
+          {task.updated_at !== task.created_at ? (
+            <span className={styles.metaItem ?? ''}>
+              更新 {formatDateTime(task.updated_at)}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function TaskManagement() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -102,7 +270,9 @@ export default function TaskManagement() {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除任务「${task.title}」吗？`,
-      okText: '删除', okButtonProps: { danger: true }, cancelText: '取消',
+      okText: '删除',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
       onOk: async () => {
         try {
           const res = await deleteTask(task.id);
@@ -119,73 +289,19 @@ export default function TaskManagement() {
     } catch { message.error('更新失败'); }
   };
 
-  const columns: ColumnsType<Task> = [
-    { title: '标题', dataIndex: 'title', key: 'title', width: 200 },
-    {
-      title: '状态', dataIndex: 'status', key: 'status', width: 100,
-      render: (status: TaskStatus, record) => (
-        <Select value={status} size="small" style={{ width: 90 }}
-          disabled={!canManage(record)}
-          onChange={(v) => handleStatusChange(record, v as TaskStatus)}
-          options={Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))}
-        />
-      ),
-    },
-    {
-      title: '优先级', dataIndex: 'priority', key: 'priority', width: 80,
-      render: (priority: TaskPriority) => <Tag color={PRIORITY_MAP[priority].color}>{PRIORITY_MAP[priority].text}</Tag>,
-    },
-    {
-      title: '可见性', dataIndex: 'visibility', key: 'visibility', width: 90,
-      render: (visibility: string | undefined, record) => {
-        const cfg = getVisibilityConfig(visibility ?? 'private');
-        const hint = visibility === 'restricted'
-          ? `指定用户可见（${record.restricted_users?.length ?? 0} 人）`
-          : cfg.description;
-        return (
-          <Tooltip title={hint}>
-            <Tag color={cfg.color}>{cfg.text}</Tag>
-          </Tooltip>
-        );
-      },
-    },
-    {
-      title: '截止日期', dataIndex: 'due_date', key: 'due_date', width: 120,
-      render: (date: string | null) => date ? new Date(date).toLocaleDateString('zh-CN') : '-',
-    },
-    {
-      title: '创建时间', dataIndex: 'created_at', key: 'created_at', width: 160,
-      render: (date: string) => new Date(date).toLocaleString('zh-CN'),
-    },
-    {
-      title: '操作', key: 'action', width: 140,
-      render: (_, record) => canManage(record) ? (
-        <Space size="small">
-          <Tooltip title="编辑">
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
-          </Tooltip>
-          <Tooltip title="删除">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
-          </Tooltip>
-        </Space>
-      ) : (
-        <Tooltip title="仅创建者可编辑或删除">
-          <Text type="secondary">只读</Text>
-        </Tooltip>
-      ),
-    },
-  ];
-
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <Title level={4} className={styles.title ?? ''}>任务中心</Title>
-        <Space>
+        <div className={styles.headerLeft ?? ''}>
+          <Text className={styles.title ?? ''} strong>任务中心</Text>
+          <Text type="secondary" className={styles.subtitle ?? ''}>标题与任务详情直接展示，无需进入编辑</Text>
+        </div>
+        <Space wrap>
           <Select value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} placeholder="状态筛选" allowClear style={{ width: 120 }}
-            options={[{ value: '', label: '全部' }, ...Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
+            options={[{ value: '', label: '全部' }, ...STATUS_OPTIONS]}
           />
           <Select value={priorityFilter} onChange={(v) => { setPriorityFilter(v); setPage(1); }} placeholder="优先级筛选" allowClear style={{ width: 120 }}
-            options={[{ value: '', label: '全部' }, ...Object.entries(PRIORITY_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
+            options={[{ value: '', label: '全部' }, ...PRIORITY_OPTIONS]}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建任务</Button>
           <Tooltip title="权限说明">
@@ -201,11 +317,42 @@ export default function TaskManagement() {
 
       <Tabs activeKey={activeTab} items={TAB_ITEMS} onChange={handleTabChange} className={styles.tabs ?? ''} />
 
-      <Table<Task> className={styles.table ?? ''} columns={columns} dataSource={tasks} rowKey="id" loading={loading}
-        pagination={{ current: page, pageSize, total, showSizeChanger: true, showQuickJumper: true, showTotal: (t) => `共 ${t} 条`,
-          onChange: (p, ps) => { setPage(p); setPageSize(ps); },
-        }}
-      />
+      <div className={styles.listWrap ?? ''}>
+        <Spin spinning={loading}>
+          {tasks.length === 0 && !loading ? (
+            <div className={styles.empty ?? ''}>
+              <Empty description="暂无任务，点击右上角「新建任务」创建第一条" />
+            </div>
+          ) : (
+            <div className={styles.list ?? ''}>
+              {tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  canManage={canManage(task)}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onStatusChange={handleStatusChange}
+                />
+              ))}
+            </div>
+          )}
+        </Spin>
+
+        {total > 0 ? (
+          <div className={styles.pager ?? ''}>
+            <Pagination
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              showSizeChanger
+              showQuickJumper
+              showTotal={(t) => `共 ${t} 条`}
+              onChange={(p, ps) => { setPage(p); setPageSize(ps); }}
+            />
+          </div>
+        ) : null}
+      </div>
 
       {/* 新建/编辑 任务（共用组件 TaskModal） */}
       <TaskModal
@@ -223,11 +370,11 @@ export default function TaskManagement() {
         onCancel={() => setPermissionVisible(false)}
       >
         <div className={styles.permissionContent ?? ''}>
-          <Title level={5}>创建者权限</Title>
+          <Text className={styles.permissionHeading ?? ''} strong>创建者权限</Text>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有该任务的完整管理权限：编辑内容、调整状态、删除任务、设置可见范围。</Paragraph>
-          <Title level={5}>其他成员</Title>
+          <Text className={styles.permissionHeading ?? ''} strong>其他成员</Text>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>非创建者只能查看自己可见范围内的任务，不能编辑、调整状态或删除。</Paragraph>
-          <Title level={5}>可见范围</Title>
+          <Text className={styles.permissionHeading ?? ''} strong>可见范围</Text>
           <ul className={styles.permissionList ?? ''}>
             <li>
               <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
@@ -245,9 +392,9 @@ export default function TaskManagement() {
               </Text>
             </li>
           </ul>
-          <Title level={5}>管理员</Title>
+          <Text className={styles.permissionHeading ?? ''} strong>管理员</Text>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员不享有额外权限：只能管理自己创建的任务；对公开或指定给自己的任务同样只读。</Paragraph>
-          <Title level={5}>创建权限</Title>
+          <Text className={styles.permissionHeading ?? ''} strong>创建权限</Text>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建任务，创建时可设定可见范围，默认为私有。</Paragraph>
         </div>
       </Modal>
