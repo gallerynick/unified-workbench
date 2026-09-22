@@ -18,24 +18,9 @@
   min-height: var(--spacing-xxl);
 }
 
-.headerLeft {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xxs);
-  min-width: 0;
-}
-
 .title {
-  font-size: var(--text-heading-4-size);
+  margin: 0 !important;
   font-weight: 600;
-  line-height: 1.2;
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
-.subtitle {
-  font-size: var(--text-body-sm-size);
-  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -221,12 +206,6 @@
   margin-bottom: 0 !important;
 }
 
-.permissionHeading {
-  font-size: var(--text-body-strong-size);
-  color: var(--text-primary);
-  margin-top: var(--spacing-xs);
-}
-
 .permissionList {
   margin: var(--spacing-xxs) 0 var(--spacing-xs) 0;
   padding-left: var(--spacing-md);
@@ -255,10 +234,6 @@
 
   .header > * {
     width: 100%;
-  }
-
-  .subtitle {
-    white-space: normal;
   }
 
   .cardHead {

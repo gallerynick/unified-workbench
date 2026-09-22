@@ -32,7 +32,7 @@ import TaskModal from './TaskModal';
 import { taskColorValue } from './taskColors';
 import styles from './TaskManagement.module.css';
 
-const { Paragraph, Text } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 const STATUS_MAP: Record<TaskStatus, { color: string; text: string }> = {
   todo: { color: 'default', text: '待办' },
@@ -292,11 +292,8 @@ export default function TaskManagement() {
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
-        <div className={styles.headerLeft ?? ''}>
-          <Text className={styles.title ?? ''} strong>任务中心</Text>
-          <Text type="secondary" className={styles.subtitle ?? ''}>标题与任务详情直接展示，无需进入编辑</Text>
-        </div>
-        <Space wrap>
+        <Title level={4} className={styles.title ?? ''}>任务中心</Title>
+        <Space>
           <Select value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} placeholder="状态筛选" allowClear style={{ width: 120 }}
             options={[{ value: '', label: '全部' }, ...STATUS_OPTIONS]}
           />
@@ -370,11 +367,11 @@ export default function TaskManagement() {
         onCancel={() => setPermissionVisible(false)}
       >
         <div className={styles.permissionContent ?? ''}>
-          <Text className={styles.permissionHeading ?? ''} strong>创建者权限</Text>
+          <Title level={5}>创建者权限</Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>创建者拥有该任务的完整管理权限：编辑内容、调整状态、删除任务、设置可见范围。</Paragraph>
-          <Text className={styles.permissionHeading ?? ''} strong>其他成员</Text>
+          <Title level={5}>其他成员</Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>非创建者只能查看自己可见范围内的任务，不能编辑、调整状态或删除。</Paragraph>
-          <Text className={styles.permissionHeading ?? ''} strong>可见范围</Text>
+          <Title level={5}>可见范围</Title>
           <ul className={styles.permissionList ?? ''}>
             <li>
               <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
@@ -392,9 +389,9 @@ export default function TaskManagement() {
               </Text>
             </li>
           </ul>
-          <Text className={styles.permissionHeading ?? ''} strong>管理员</Text>
+          <Title level={5}>管理员</Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>系统管理员不享有额外权限：只能管理自己创建的任务；对公开或指定给自己的任务同样只读。</Paragraph>
-          <Text className={styles.permissionHeading ?? ''} strong>创建权限</Text>
+          <Title level={5}>创建权限</Title>
           <Paragraph style={{ fontSize: 'var(--text-body-sm-size)' }}>所有成员都可以创建任务，创建时可设定可见范围，默认为私有。</Paragraph>
         </div>
       </Modal>
