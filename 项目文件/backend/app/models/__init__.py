@@ -8,7 +8,6 @@ from app.models.content import Content
 from app.models.file_share import FileShare
 from app.models.form import Form, FormResponse
 from app.models.inventory import Inventory
-from app.models.link_relation import LinkRelation
 from app.models.note import Note
 from app.models.note_draft import NoteDraft
 from app.models.note_link import NoteLink
@@ -56,7 +55,6 @@ __all__ = [
     "Form",
     "FormResponse",
     "Inventory",
-    "LinkRelation",
     "Note",
     "NoteDraft",
     "NoteLink",

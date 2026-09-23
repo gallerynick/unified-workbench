@@ -16,7 +16,6 @@ from app.api.finance import router as finance_router
 from app.api.forms import router as forms_router
 from app.api.health import router as health_router
 from app.api.inventory import router as inventory_router
-from app.api.link_relations import router as link_relations_router
 from app.api.notes import router as notes_router
 from app.api.notifications import router as notifications_router
 from app.api.project_changes import router as project_changes_router
@@ -34,6 +33,7 @@ from app.api.servers import router as servers_router
 from app.api.services import router as services_router
 from app.api.stream import router as stream_router
 from app.api.stream_room import router as stream_room_router
+from app.api.status import router as status_router
 from app.api.system import router as system_router
 from app.api.system_config import router as system_config_router
 from app.api.systems import router as systems_router
@@ -82,12 +82,12 @@ api_router.include_router(project_meetings_router, prefix="/project-meetings", t
 api_router.include_router(project_changes_router, prefix="/project-changes", tags=["项目变更"])
 api_router.include_router(project_todos_router, prefix="/project-todos", tags=["项目待办"])
 api_router.include_router(project_events_router, prefix="/project-events", tags=["项目事件"])
-api_router.include_router(link_relations_router, prefix="/link-relations", tags=["关联关系"])
 api_router.include_router(projects_router, prefix="/projects", tags=["项目文档"])
 api_router.include_router(tags_router, prefix="/tags", tags=["标签管理"])
 api_router.include_router(topology_router, prefix="/topologies", tags=["拓扑管理"])
 api_router.include_router(notifications_router, prefix="/notifications", tags=["通知"])
 api_router.include_router(system_router)
+api_router.include_router(status_router)
 api_router.include_router(servers_router, prefix="/servers", tags=["服务器管理"])
 api_router.include_router(systems_router, prefix="/systems", tags=["系统管理"])
 api_router.include_router(services_router, prefix="/services", tags=["服务管理"])

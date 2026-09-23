@@ -12,6 +12,7 @@
 4. note.body / plain_text / restricted_tags 三列 + 存量回填 + 全文搜索索引
    + 新笔记草稿部分唯一索引 —— 迁移 047
 5. task.color                    —— 迁移 048
+6. link_relation 表删除          —— 迁移 049
 
 注意：create_all 只创建缺失的表，不会给已存在的表补列或改列名，
 所以第 1、2、4 项用 ADD COLUMN IF NOT EXISTS；note_link / note_draft 是
@@ -140,6 +141,10 @@ def run() -> None:
                 "(owner_id) WHERE note_id IS NULL"
             )
         )
+
+        # 删除 link_relation 通用关联表（零消费者，项目内部关联已由外键覆盖）
+        conn.execute(sa.text("DROP INDEX IF EXISTS ix_link_relation_source_type_source_id"))
+        conn.execute(sa.text("DROP TABLE IF EXISTS link_relation"))
 
     print("[startup_migrate] 建表与增量迁移完成")
 
