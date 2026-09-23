@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, Space } from 'antd';
+import { Button, Space } from 'antd';
 import {
   FileOutlined,
   FileTextOutlined,
@@ -22,23 +22,24 @@ const links = [
   { label: '系统设置', icon: <SettingOutlined />, path: '/settings/site' },
 ];
 
+// 外壳与标题行由 SortableWidget 统一渲染（标题见 Home.tsx 的 WIDGET_META）
 export default function QuickLinksWidget() {
   const navigate = useNavigate();
 
   return (
-    <Card title="快捷入口" size="small">
-      <Space wrap>
-        {links.map((link) => (
-          <Button
-            key={link.path}
-            icon={link.icon}
-            onClick={() => navigate(link.path)}
-            size="middle"
-          >
-            {link.label}
-          </Button>
-        ))}
-      </Space>
-    </Card>
+    // gap 显式绑定 --spacing-xs：antd Space 的 size 只接受数字或预设值，
+    // 不接受 CSS 变量，故用内联 style 覆盖默认的 paddingXS 派生间距
+    <Space wrap style={{ gap: 'var(--spacing-xs)' }}>
+      {links.map((link) => (
+        <Button
+          key={link.path}
+          icon={link.icon}
+          onClick={() => navigate(link.path)}
+          size="middle"
+        >
+          {link.label}
+        </Button>
+      ))}
+    </Space>
   );
 }

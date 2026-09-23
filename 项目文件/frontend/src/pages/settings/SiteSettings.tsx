@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Switch, Button, Typography, message, Alert, Space, Result } from 'antd';
+import { Card, Form, Switch, Button, Typography, message, Space, Result } from 'antd';
 import { SaveOutlined, SafetyOutlined, LockOutlined } from '@ant-design/icons';
 import { isAdmin } from '../../utils/auth';
 import { request } from '../../utils/request';
@@ -117,14 +117,6 @@ export default function SiteSettings() {
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>站点配置</Title>
       </div>
-      <Alert
-        message="管理员专属"
-        description="这些配置影响整个站点的访问方式，保存后对全站所有成员统一生效。"
-        type="warning"
-        showIcon
-        style={{ marginBottom: "var(--spacing-lg)" }}
-      />
-
       <Form form={form} layout="vertical">
         <Card title={<><SafetyOutlined /> 维护模式</>} style={{ marginBottom: "var(--spacing-lg)" }}>
           <Form.Item

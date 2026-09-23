@@ -20,27 +20,37 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
-def create_access_token(user_id: str, role: str) -> str:
-    """Create a JWT access token with unique jti for session tracking."""
+def create_access_token(user_id: str, role: str, jti: str | None = None) -> str:
+    """Create a JWT access token with unique jti for session tracking.
+
+    ``jti`` 缺省时自动生成新 UUID（首次登录）；传入既有 jti 时复用（刷新换发
+    新访问令牌），使「一次登录」在凭证轮换后仍对应同一条会话行。
+    """
     settings = get_settings()
     expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": user_id,
         "role": role,
         "type": "access",
-        "jti": str(uuid.uuid4()),
+        "jti": jti or str(uuid.uuid4()),
         "exp": expire,
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
 
-def create_refresh_token(user_id: str) -> str:
-    """Create a JWT refresh token."""
+def create_refresh_token(user_id: str, jti: str) -> str:
+    """Create a JWT refresh token.
+
+    刷新令牌携带它所属会话行的 ``jti``。缺这个字段，刷新就找不到会话行，
+    换出来的访问令牌在 ``user_session`` 里查不到——登出与「仅允许一处登录」
+    的强制下线都会被一次刷新绕过。
+    """
     settings = get_settings()
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": user_id,
         "type": "refresh",
+        "jti": jti,
         "exp": expire,
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")

@@ -43,9 +43,9 @@ class TemplateCreate(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    name: str
-    category: str = "默认"
-    location: str = "global"
+    name: str = Field(max_length=100)
+    category: str = Field(default="默认", max_length=50)
+    location: str = Field(default="global", max_length=20)
     schema_: list[TemplateField] = Field(alias="schema")
 
 
@@ -54,9 +54,9 @@ class TemplateUpdate(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    name: str | None = None
-    category: str | None = None
-    location: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    category: str | None = Field(default=None, max_length=50)
+    location: str | None = Field(default=None, max_length=20)
     schema_: list[TemplateField] | None = Field(default=None, alias="schema")
 
 

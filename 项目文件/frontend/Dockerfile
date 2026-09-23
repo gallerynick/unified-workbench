@@ -22,8 +22,10 @@ RUN addgroup -g 1001 -S workbench && \
 USER workbench
 
 # 健康检查
+# 必须用 127.0.0.1 而非 localhost：镜像内 localhost 解析为 ::1（IPv6），
+# 而 nginx 仅绑定 0.0.0.0:80（IPv4），用 localhost 会连接被拒、健康检查恒报 unhealthy（假阳性）。
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget -q --spider http://localhost:80 || exit 1
+    CMD wget -q --spider http://127.0.0.1:80 || exit 1
 
 EXPOSE 80
 

@@ -1,7 +1,7 @@
 {
   "name": "unified-workbench-frontend",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,11 +21,13 @@
     "@fullcalendar/list": "^6.1.21",
     "@fullcalendar/react": "^6.1.21",
     "@fullcalendar/timegrid": "^6.1.21",
-    "@tiptap/extension-color": "^3.27.0",
-    "@tiptap/extension-text-style": "^3.27.0",
-    "@tiptap/extension-underline": "^3.27.0",
-    "@tiptap/react": "^3.27.0",
-    "@tiptap/starter-kit": "^3.27.0",
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/extension-color": "^3.31.3",
+    "@tiptap/extension-list": "^3.31.3",
+    "@tiptap/extension-text-style": "^3.31.3",
+    "@tiptap/extension-underline": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
     "@types/three": "^0.185.4",
     "antd": "^5.22.0",
     "antd-img-crop": "^4.30.0",
@@ -33,7 +35,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-force-graph-2d": "^1.29.1",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^7.18.3",
+    "recharts": "^3.10.1",
     "three": "^0.185.1"
   },
   "devDependencies": {

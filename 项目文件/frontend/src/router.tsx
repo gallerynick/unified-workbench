@@ -1,5 +1,5 @@
 import { Spin } from 'antd';
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AuthGuard from '@/components/AuthGuard';
 import LockGuard from '@/components/LockGuard';
@@ -10,6 +10,12 @@ import Welcome from '@/pages/Welcome';
 import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
+import { lazyChunk } from './utils/chunkGuard';
+import { RouteErrorElement } from './components/ErrorBoundary';
+
+// 用带 chunk 失效自愈能力的 lazy 替换 React.lazy：47 处懒加载路由零改动获得保护。
+// 详见 utils/chunkGuard.ts（重新部署后旧标签页引用已下线哈希 chunk 的自动恢复）。
+const lazy = lazyChunk;
 
 const UserManagement = lazy(() => import('@/pages/settings/UserManagement'));
 const ContentManagement = lazy(() => import('@/pages/content/ContentManagement'));
@@ -58,6 +64,9 @@ const ServerManagement = lazy(() => import('@/pages/servers/ServerManagement'));
 const ServerSystemsPage = lazy(() => import('@/pages/servers/ServerSystemsPage'));
 const SystemDetail = lazy(() => import('@/pages/servers/SystemDetail'));
 const TestPage = lazy(() => import('@/pages/dev/TestPage'));
+const MeetingList = lazy(() => import('@/pages/meetings/MeetingList'));
+const MeetingRoom = lazy(() => import('@/pages/meetings/MeetingRoom'));
+const ThirdPartyConfigPage = lazy(() => import('@/pages/settings/ThirdPartyConfigPage'));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -71,18 +80,22 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+    errorElement: <RouteErrorElement />,
   },
   {
     path: '/welcome',
     element: <Welcome />,
+    errorElement: <RouteErrorElement />,
   },
   {
     path: '/lock',
     element: <LockPage />,
+    errorElement: <RouteErrorElement />,
   },
   {
     path: '/debug-mode',
     element: <DebugModePage />,
+    errorElement: <RouteErrorElement />,
   },
   {
     path: '/stream/watch/:roomId',
@@ -91,17 +104,21 @@ export const router = createBrowserRouter([
         <StreamWatch />
       </LazyPage>
     ),
+    errorElement: <RouteErrorElement />,
   },
   {
     path: 'share/:code',
     element: <ShareDownloadPage />,
+    errorElement: <RouteErrorElement />,
   },
   {
     path: 'forms/:id/fill',
     element: <FormFill />,
+    errorElement: <RouteErrorElement />,
   },
   {
     element: <AuthGuard />,
+    errorElement: <RouteErrorElement />,
     children: [
       {
         element: <LockGuard />,
@@ -175,6 +192,22 @@ export const router = createBrowserRouter([
                 element: (
                   <LazyPage>
                     <MeetingDetailPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'meetings',
+                element: (
+                  <LazyPage>
+                    <MeetingList />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'meetings/:id',
+                element: (
+                  <LazyPage>
+                    <MeetingRoom />
                   </LazyPage>
                 ),
               },
@@ -387,6 +420,14 @@ export const router = createBrowserRouter([
                 element: (
                   <LazyPage>
                     <SystemSettings />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/third-party',
+                element: (
+                  <LazyPage>
+                    <ThirdPartyConfigPage />
                   </LazyPage>
                 ),
               },

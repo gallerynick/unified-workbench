@@ -5,16 +5,16 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 VALID_TYPES = {"customer", "supplier", "partner", "other"}
 
 
 class ContactCreate(BaseModel):
-    name: str
-    company: str | None = None
-    email: str | None = None
-    phone: str | None = None
+    name: str = Field(max_length=200)
+    company: str | None = Field(default=None, max_length=200)
+    email: str | None = Field(default=None, max_length=200)
+    phone: str | None = Field(default=None, max_length=50)
     address: str | None = None
     contact_type: str = "customer"
     tags: list[str] | None = None
@@ -29,10 +29,10 @@ class ContactCreate(BaseModel):
 
 
 class ContactUpdate(BaseModel):
-    name: str | None = None
-    company: str | None = None
-    email: str | None = None
-    phone: str | None = None
+    name: str | None = Field(default=None, max_length=200)
+    company: str | None = Field(default=None, max_length=200)
+    email: str | None = Field(default=None, max_length=200)
+    phone: str | None = Field(default=None, max_length=50)
     address: str | None = None
     contact_type: str | None = None
     tags: list[str] | None = None

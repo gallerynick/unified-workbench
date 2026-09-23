@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProjectMemberCreate(BaseModel):
@@ -13,7 +13,7 @@ class ProjectMemberCreate(BaseModel):
 
     project_id: uuid.UUID
     user_id: uuid.UUID
-    role_title: str | None = None
+    role_title: str | None = Field(default=None, max_length=100)
     notes: str | None = None
     is_owner: bool = False
     is_active: bool = True
@@ -24,7 +24,7 @@ class ProjectMemberCreate(BaseModel):
 class ProjectMemberUpdate(BaseModel):
     """更新项目成员请求"""
 
-    role_title: str | None = None
+    role_title: str | None = Field(default=None, max_length=100)
     notes: str | None = None
     is_owner: bool | None = None
     is_active: bool | None = None

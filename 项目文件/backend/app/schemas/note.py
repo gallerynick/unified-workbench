@@ -6,15 +6,15 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class NoteCreate(BaseModel):
-    title: str
+    title: str = Field(max_length=200)
     content: str | None = None
     # Tiptap 文档树；plain_text 由服务端从 body 派生，不接受客户端传入
     body: dict[str, Any] | None = None
-    category: str | None = None
+    category: str | None = Field(default=None, max_length=100)
     tags: list[str] | None = None
     restricted_tags: list[str] | None = None
     is_pinned: bool = False
@@ -22,10 +22,10 @@ class NoteCreate(BaseModel):
 
 
 class NoteUpdate(BaseModel):
-    title: str | None = None
+    title: str | None = Field(default=None, max_length=200)
     content: str | None = None
     body: dict[str, Any] | None = None
-    category: str | None = None
+    category: str | None = Field(default=None, max_length=100)
     tags: list[str] | None = None
     restricted_tags: list[str] | None = None
     is_pinned: bool | None = None

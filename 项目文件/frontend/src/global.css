@@ -407,9 +407,11 @@ a:hover {
   border-radius: var(--rounded-sm) !important;
 }
 
-/* 登录页面 Card 圆角也应为 sm (8px) */
-.login-page .ant-card {
-  border-radius: var(--rounded-sm) !important;
+/* Card 内的 small 列表：antd 的 .ant-list-sm .ant-list-item 默认 padding: 8px 16px，
+   其 16px 水平内边距叠加 .ant-card-body 的内边距后，会使列表内容相对标题向右缩进 16px。
+   水平归零交由卡片正文统一控制；垂直绑定 --spacing-xs 并沿用 antd 小列表原有密度。 */
+.ant-card-body .ant-list-sm .ant-list-item {
+  padding: var(--spacing-xs) 0 !important;
 }
 
 /* 浮窗/模态框/抽屉按钮：pill 圆角 (9999px)，区别于工作台普通按钮(8px)

@@ -5,18 +5,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SecretCreate(BaseModel):
     """创建密钥请求"""
 
-    name: str
-    secret_type: str = "other"
+    name: str = Field(max_length=100)
+    secret_type: str = Field(default="other", max_length=20)
     category_id: uuid.UUID | None = None
-    sub_category: str = ""
+    sub_category: str = Field(default="", max_length=100)
     data: dict
-    note: str = ""
+    note: str = Field(default="", max_length=500)
 
 
 class SecretResponse(BaseModel):

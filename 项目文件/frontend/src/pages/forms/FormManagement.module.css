@@ -22,6 +22,166 @@
   flex: 1;
 }
 
+/* ── 表单字段编辑器 ─────────────────────────── */
+.fieldsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.sectionTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  font-weight: 600;
+  font-size: var(--text-body-sm-size, 14px);
+  color: var(--text-primary);
+}
+
+.sectionHint {
+  margin: 0;
+  font-size: var(--text-body-xs-size, 12px);
+  color: var(--text-secondary);
+}
+
+.fieldsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: var(--spacing-xxs);
+}
+
+.fieldCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--bg-secondary);
+  border: var(--card-border);
+  border-radius: var(--rounded-sm);
+  transition: border-color var(--anim-fast) var(--anim-ease);
+}
+
+.fieldCard:hover {
+  border-color: var(--border-primary);
+}
+
+.fieldCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.fieldIndex {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--rounded-circular);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: var(--text-body-xs-size, 12px);
+}
+
+.fieldType {
+  width: 132px;
+  flex-shrink: 0;
+}
+
+.fieldLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldActions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+}
+
+.fieldSub {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding-left: calc(24px + var(--spacing-sm));
+}
+
+.fieldSubLabel {
+  flex-shrink: 0;
+  font-size: var(--text-body-xs-size, 12px);
+  color: var(--text-secondary);
+}
+
+.optionsRow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xxs);
+  align-items: center;
+}
+
+.optionItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-xxs) var(--spacing-xs);
+  background: var(--bg-primary);
+  border: var(--card-border);
+  border-radius: var(--tag-rounded);
+  font-size: var(--text-body-xs-size, 12px);
+}
+
+.optionInput {
+  width: 96px;
+}
+
+.addFieldButton {
+  border-style: dashed;
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+
+.addFieldButton:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ── 编辑态的只读字段回显 ─────────────────────── */
+.readonlyFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-sm);
+  background: var(--bg-tertiary);
+  border-radius: var(--rounded-sm);
+}
+
+.readonlyFieldItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--text-body-xs-size, 12px);
+  color: var(--text-secondary);
+}
+
+/* ── 设置区块 ───────────────────────────────── */
+.settingsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+}
+
 .permissionList {
   margin: var(--spacing-xxs) 0 var(--spacing-xs) 0;
   padding-left: var(--spacing-md);
@@ -65,5 +225,17 @@
 
   .table {
     overflow-x: auto;
+  }
+
+  .fieldCardHeader {
+    flex-wrap: wrap;
+  }
+
+  .fieldType {
+    width: 100%;
+  }
+
+  .fieldLabel {
+    flex-basis: 100%;
   }
 }

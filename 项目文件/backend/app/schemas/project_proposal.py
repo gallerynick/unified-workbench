@@ -6,19 +6,19 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProjectProposalCreate(BaseModel):
     """创建项目提案请求"""
 
     project_id: uuid.UUID
-    number: str
-    title: str
-    type: str = "feature"
-    priority: str = "P2"
+    number: str = Field(max_length=50)
+    title: str = Field(max_length=200)
+    type: str = Field(default="feature", max_length=50)
+    priority: str = Field(default="P2", max_length=10)
     description: str | None = None
-    status: str = "pending"
+    status: str = Field(default="pending", max_length=20)
     reject_reason: str | None = None
     attachment_links: list[dict[str, Any]] = []
     assignee_id: uuid.UUID | None = None
@@ -28,12 +28,12 @@ class ProjectProposalCreate(BaseModel):
 class ProjectProposalUpdate(BaseModel):
     """更新项目提案请求"""
 
-    number: str | None = None
-    title: str | None = None
-    type: str | None = None
-    priority: str | None = None
+    number: str | None = Field(default=None, max_length=50)
+    title: str | None = Field(default=None, max_length=200)
+    type: str | None = Field(default=None, max_length=50)
+    priority: str | None = Field(default=None, max_length=10)
     description: str | None = None
-    status: str | None = None
+    status: str | None = Field(default=None, max_length=20)
     reject_reason: str | None = None
     attachment_links: list[dict[str, Any]] | None = None
     assignee_id: uuid.UUID | None = None

@@ -18,6 +18,10 @@ interface VisibilitySettingProps {
   onRestrictedUsersChange?: (users: string[]) => void;
   onRestrictedTagsChange?: (tags: string[]) => void;
   hideRestricted?: boolean;
+  /** 隐藏「私有」选项：表单收集仅提供公开 / 受限两态 */
+  hidePrivate?: boolean;
+  /** 指定标签选项的值形态。'id' 为默认（历史行为）；'name' 与后端 restricted_tags 基定一致 */
+  tagValueMode?: 'id' | 'name';
   showRestrictedTags?: boolean;
 }
 
@@ -30,10 +34,14 @@ export default function VisibilitySetting({
   onRestrictedUsersChange,
   onRestrictedTagsChange,
   hideRestricted = false,
+  hidePrivate = false,
+  tagValueMode = 'id',
   showRestrictedTags = true,
 }: VisibilitySettingProps) {
   const allOptions = getVisibilityOptions();
-  const options = hideRestricted ? allOptions.filter((o) => o.value !== 'restricted') : allOptions;
+  const options = allOptions.filter(
+    (o) => (!hideRestricted || o.value !== 'restricted') && (!hidePrivate || o.value !== 'private')
+  );
   const { tags } = useTagContext();
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -94,23 +102,23 @@ export default function VisibilitySetting({
             />
           </div>
 
-            {showRestrictedTags && (
-              <div>
-                <p className={styles.sectionLabel ?? ''}>指定标签</p>
-                <Select
-                  className={styles.userSelect ?? ''}
-                  mode="multiple"
-                  placeholder="选择可访问的标签"
-                  value={restrictedTags}
-                  onChange={(v) => onRestrictedTagsChange?.(v)}
-                  allowClear
-                  options={tags.map((t) => ({
-                    value: t.id,
-                    label: t.name,
-                  }))}
-                />
-              </div>
-            )}
+          {showRestrictedTags && (
+            <div>
+              <p className={styles.sectionLabel ?? ''}>指定标签</p>
+              <Select
+                className={styles.userSelect ?? ''}
+                mode="multiple"
+                placeholder="选择可访问的标签"
+                value={restrictedTags}
+                onChange={(v) => onRestrictedTagsChange?.(v)}
+                allowClear
+                options={tags.map((t) => ({
+                  value: tagValueMode === 'name' ? t.name : t.id,
+                  label: t.name,
+                }))}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getToken } from '../utils/auth';
 import { request } from '../utils/request';
+import { emitConcurrentChange } from './useStatusProbes';
 
 export interface Notification {
   id: string;
@@ -99,6 +100,10 @@ export function useWebSocket() {
             roomId: data.room_id || '',
             nickname: data.nickname || '',
           });
+        } else if (data.type === 'session_alert') {
+          // 并发会话集合变化（他端登录 / 登出 / 注销设备）。
+          // 通知状态指示立即重算 F1，不必等下一个轮询周期。
+          emitConcurrentChange();
         }
       } catch {
         // 忽略非 JSON 消息

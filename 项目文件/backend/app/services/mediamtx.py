@@ -26,6 +26,19 @@ async def get_active_paths() -> list[str]:
         return []
 
 
+async def ping() -> bool:
+    """探测 MediaMTX API 是否可达（用于系统状态指示）"""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{MEDIAMTX_API}/v3/paths/list",
+                timeout=_REQUEST_TIMEOUT,
+            )
+            return resp.status_code == 200
+    except Exception:
+        return False
+
+
 async def is_path_active(room_id: str) -> bool:
     """检查指定 room_id 是否正在推流"""
     return room_id in await get_active_paths()

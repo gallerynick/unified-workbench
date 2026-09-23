@@ -37,6 +37,10 @@ export interface LoginResponse {
   token_type: string;
   pending_2fa: boolean;
   pending_token: string | null;
+  /** 登录前该账号已有的其他在线会话数（不含本次） */
+  other_session_count?: number;
+  /** 因关闭「允许多处同时登录」而被本次登录下线的会话数 */
+  revoked_session_count?: number;
 }
 
 /** 当前用户 2FA 状态。 */

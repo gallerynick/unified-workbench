@@ -7,11 +7,15 @@ import styles from './Home.module.css';
 
 interface SortableWidgetProps {
   id: string;
+  /** 标题节点（图标 + 文本），由 Home.tsx 的 WIDGET_META 提供 */
+  title?: ReactNode;
+  /** 标题行右侧动作（如「查看全部」），由 Home.tsx 的 WIDGET_META 提供 */
+  extra?: ReactNode;
   children: ReactNode;
   onRemove?: () => void;
 }
 
-export default function SortableWidget({ id, children, onRemove }: SortableWidgetProps) {
+export default function SortableWidget({ id, title, extra, children, onRemove }: SortableWidgetProps) {
   const {
     attributes,
     listeners,
@@ -50,6 +54,10 @@ export default function SortableWidget({ id, children, onRemove }: SortableWidge
             aria-label="隐藏组件"
           />
         )}
+      </div>
+      <div className={styles.widgetTitle}>
+        {title && <span className={styles.widgetTitleMain}>{title}</span>}
+        {extra && <span className={styles.widgetTitleExtra}>{extra}</span>}
       </div>
       <div className={styles.widgetBody}>{children}</div>
     </div>

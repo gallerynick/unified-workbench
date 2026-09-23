@@ -279,22 +279,9 @@
   overflow: hidden;
 }
 
-/* sync-table 宽高覆盖：FullCalendar 用 getBoundingClientRect().width/height 量
-   scroller（受 MainLayout 的 transform: scale 缩放影响，取到的是视觉尺寸），却把它
-   当作布局尺寸写进表格的 width/height。缩放 ≠ 100% 时表格比滚动区窄 1/k、矮 1/k，
-   右下留白。改由 --cal-grid-w / --cal-grid-h 下发——见 CalendarPage.tsx 的测量 effect，
-   用不受 transform 影响的 clientWidth/clientHeight 实测。 */
-.calendar :global(.fc-daygrid) :global(.fc-daygrid-body),
-.calendar :global(.fc-daygrid) :global(.fc-scrollgrid-sync-table),
-.calendar :global(.fc-daygrid) :global(.fc-col-header) {
-  /* 三处都会被 FC 写入同样的内联 width，需同时覆盖：漏掉表头节会让星期行
-     与下方日期列宽不一致、列错位（表头表类名是 fc-col-header，不带 sync-table） */
-  width: var(--cal-grid-w, auto) !important;
-}
-
-.calendar :global(.fc-daygrid) :global(.fc-scrollgrid-sync-table) {
-  height: var(--cal-grid-h, auto) !important;
-}
+/* 注：页面缩放改用 documentElement 上的 CSS zoom 后，getBoundingClientRect 与
+   clientWidth 单位一致，FullCalendar 内部布局自洽，无需再覆盖 sync-table 宽高。
+   原 --cal-grid-w / --cal-grid-h 补偿逻辑已移除（见 CalendarPage.tsx）。 */
 
 /* 去掉 FullCalendar 日程条左侧的默认色条：它本身用 3px 左边框做颜色指示，
    和详情面板里的 eventRow 重复了。这里清零边框，颜色信息靠背景色承载。

@@ -103,6 +103,7 @@ async def get_user_preferences_endpoint(
         data=UserPreferenceResponse(
             page_zoom=prefs.get("page_zoom", "100"),
             theme_mode=prefs.get("theme_mode", "system"),
+            allow_multiple_logins=prefs.get("allow_multiple_logins", True),
         )
     )
 
@@ -114,16 +115,26 @@ async def update_user_preferences_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """更新当前用户的偏好设置。"""
-    from sqlalchemy import text
+    from sqlalchemy.orm.attributes import flag_modified
 
-    stmt = text(
-        'UPDATE "user" SET preferences = COALESCE(preferences, \'{}\'::jsonb) '
-        f'|| \'{{"page_zoom": "{body.page_zoom}", "theme_mode": "{body.theme_mode}"}}\'::jsonb '
-        f'WHERE id = :user_id'
-    )
-    await db.execute(stmt, {"user_id": current_user.id})
+    # 直接改 ORM 属性而非拼 jsonb SQL：`:patch::jsonb` 里的 `::` 会被 SQLAlchemy
+    # 识别为 PostgreSQL 类型转换符，导致 `:patch` 不被当作绑定参数，UPDATE 直接
+    # 语法错误 500。用 flag_modified 标记 JSONB 列已变更，让 ORM 发整列 UPDATE。
+    prefs = dict(current_user.preferences or {})
+    prefs["page_zoom"] = body.page_zoom
+    prefs["theme_mode"] = body.theme_mode
+    # allow_multiple_logins 为 None 表示调用方不关心它（个性化页只改缩放与主题），
+    # 不能写回默认值，否则改一次缩放就会把「单设备登录」悄悄打开。
+    if body.allow_multiple_logins is not None:
+        prefs["allow_multiple_logins"] = body.allow_multiple_logins
+    current_user.preferences = prefs
+    flag_modified(current_user, "preferences")
     await db.commit()
 
     return UnifiedResponse(
-        data=UserPreferenceResponse(page_zoom=body.page_zoom, theme_mode=body.theme_mode)
+        data=UserPreferenceResponse(
+            page_zoom=prefs.get("page_zoom"),
+            theme_mode=prefs.get("theme_mode"),
+            allow_multiple_logins=prefs.get("allow_multiple_logins", True),
+        )
     )

@@ -1,0 +1,121 @@
+/* 状态指示：圆点 + 文案。
+ * 圆点为纯 CSS 实现，不使用 Emoji 图标（《开发基准文档》5.3）。
+ * 颜色全部走 design token，深浅色模式自动适配。 */
+
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+/* header 内嵌的零宽占位容器。
+ * 宽度为 0 且不参与 flex 布局，因此指示器出现/消失都不会挤压模块标题
+ * 与右侧按钮组；真正的指示器以 position:absolute 叠在其左侧空白上。 */
+.anchor {
+  position: relative;
+  width: 0;
+  flex-shrink: 0;
+}
+
+/* header 内嵌的指示器本体：叠在右侧按钮组左侧，与按钮组保持 16px 间距 */
+.inline {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 240px;
+}
+
+/* 登录页 / 锁定页右下角浮层：无外框，圆点与文字直接叠在页面背景上。
+ * 两页背景均为整屏纯色或渐变（锁定页 --canvas-parchment、
+ * 登录页 --color-info-bg 渐变），次级文字在其上可直接阅读，
+ * 不需要再套一层卡片容器。 */
+.floating {
+  position: fixed;
+  right: var(--spacing-lg);
+  bottom: var(--spacing-lg);
+  z-index: var(--z-fixed);
+  max-width: min(340px, calc(100vw - var(--spacing-xl)));
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* 严重：红色 + 缓慢呼吸，仅在非减少动态偏好时生效 */
+.critical {
+  background: var(--color-error);
+  animation: status-pulse 2s var(--anim-ease-in-out) infinite;
+}
+
+/* 警告：黄色，静止不闪 */
+.warning {
+  background: var(--color-warning);
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.text {
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* 轮播切换时的淡入（配合 key 强制重挂载以重播） */
+.swap {
+  animation: status-swap var(--anim-normal) var(--anim-ease);
+}
+
+@keyframes status-swap {
+  /* 从 0.35 起淡入而非从 0：key 变更会卸载旧节点，从完全透明起跳
+     看起来像闪一下；保留残余可见度能让轮播更平滑 */
+  from {
+    opacity: 0.35;
+    transform: translateY(1px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 悬停弹出的完整异常列表 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  max-width: 320px;
+}
+
+.panelItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .critical {
+    animation: none;
+  }
+  .swap {
+    animation: none;
+  }
+}

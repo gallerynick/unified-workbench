@@ -1,0 +1,4 @@
+=== 2. 新 entry 包可访问（应为 200）===
+curl -sk -o /dev/null -w index-CZMAmsME.js - %{http_code}n https://localhost/assets/index-CZMAmsME.js
+echo
+echo === 3. 旧 chunk 已下线（应为 404，这就是根因）===

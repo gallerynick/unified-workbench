@@ -8,7 +8,10 @@ import { setTokens, isAuthenticated } from '../utils/auth';
 import { HttpError } from '../utils/request';
 import { useCustomization } from '../hooks/useCustomization';
 import { useUser } from '../contexts/UserContext';
+import { useLockContext } from '../contexts/LockContext';
 import type { LoginRequest, LoginResponse, TokenResponse } from '../types/user';
+import StatusIndicator from '../components/StatusIndicator';
+import { useStatusProbes } from '../hooks/useStatusProbes';
 import styles from './Login.module.css';
 
 
@@ -26,6 +29,9 @@ export default function Login() {
   const [code, setCode] = useState('');
   const customization = useCustomization();
   const { refreshUser } = useUser();
+  const { unlock } = useLockContext();
+  // 登录页只跑登录前可判定的探测项（authed=false 跳过需登录态的服务级探测）
+  const statusIssues = useStatusProbes({ authed: false, wsConnected: true });
 
   // ── OTP 6 输入框 ──
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -85,7 +91,21 @@ export default function Login() {
   const finishLogin = async (data: LoginResponse) => {
     setTokens(data as TokenResponse);
     await refreshUser();
-    message.success('登录成功');
+    // 重新登录成功 = 全新会话开始，清除锁屏残留状态，
+    // 否则 LockGuard 会把用户拦回 /lock（锁定期间 token 过期跳登录再登录的场景）。
+    unlock();
+    // 多设备登录提示：other_session_count 仅统计「其他设备」（device_token 不同）
+    // 的在线会话；revoked_session_count 是本次下线的会话总数。
+    // 同一浏览器遗留的旧会话被下线时不打扰（不算其他设备）。
+    const others = data.other_session_count ?? 0;
+    const revoked = data.revoked_session_count ?? 0;
+    if (revoked > 0 && others > 0) {
+      message.warning(`该账号已在其他 ${others} 个设备登录，已按「仅允许一处登录」下线这些设备`, 5);
+    } else if (others > 0) {
+      message.info(`该账号已在其他 ${others} 个设备登录`, 4);
+    } else {
+      message.success('登录成功');
+    }
     setTransitioning(true);
     setTimeout(() => navigate('/', { replace: true }), 500);
   };
@@ -396,6 +416,7 @@ const handleBackToLogin = () => {
           </div>
         )}
       </Card>
+      <StatusIndicator issues={statusIssues} layout="floating" />
     </div>
   );
 }

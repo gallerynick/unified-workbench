@@ -30,6 +30,11 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     pending_2fa: bool = False
     pending_token: str | None = None
+    # 除本次登录外，「其他设备」（device_token 不同）当前在线的会话数。0 表示没有其他设备登录。
+    other_session_count: int = 0
+    # 因「允许多处登录」关闭而被本次登录下线的会话总数（含同一浏览器遗留的旧会话）。
+    # 0 表示未触发单设备策略。
+    revoked_session_count: int = 0
 
 
 class Verify2FARequest(BaseModel):

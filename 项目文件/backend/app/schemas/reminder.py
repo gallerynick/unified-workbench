@@ -5,13 +5,13 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ReminderCreate(BaseModel):
     """创建提醒请求"""
 
-    title: str
+    title: str = Field(max_length=200)
     content: str | None = None
     trigger_time: datetime | None = None
     target_users: list[str] | None = None  # user IDs
@@ -20,11 +20,11 @@ class ReminderCreate(BaseModel):
 class ReminderUpdate(BaseModel):
     """更新提醒请求"""
 
-    title: str | None = None
+    title: str | None = Field(default=None, max_length=200)
     content: str | None = None
     trigger_time: datetime | None = None
     target_users: list[str] | None = None
-    status: str | None = None
+    status: str | None = Field(default=None, max_length=20)
 
 
 class ReminderResponse(BaseModel):

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, Input, List, Modal, Space, Tag, Typography, message, Spin } from 'antd';
+import { Alert, Button, Card, Input, List, Modal, Space, Switch, Tag, Typography, message, Spin } from 'antd';
 import {
   MobileOutlined,
   SafetyOutlined,
@@ -23,6 +23,8 @@ import {
 } from '../../api/security';
 import type { TwoFAStatus, TwoFADevice } from '../../types/user';
 import { useCustomization } from '../../hooks/useCustomization';
+import { getUserPreferences, updateUserPreferences } from '../../api/user-preferences';
+import type { UserPreferences } from '../../api/user-preferences';
 import styles from './SecuritySettings.module.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -53,6 +55,11 @@ export default function SecuritySettings() {
   // WebAuthn 注册弹窗
   const [waModalOpen, setWaModalOpen] = useState(false);
 
+  // 登录策略：允许多处同时登录
+  const [prefs, setPrefs] = useState<UserPreferences | null>(null);
+  const [allowMultipleLogins, setAllowMultipleLogins] = useState(true);
+  const [savingLoginPolicy, setSavingLoginPolicy] = useState(false);
+
   const customization = useCustomization();
   const appLogo = customization.branding.logoCollapsed || customization.branding.logoExpanded || '/favicon.svg';
 
@@ -68,6 +75,43 @@ export default function SecuritySettings() {
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  // 登录策略：读取「允许多处同时登录」偏好。整份偏好缓存起来，
+  // 切换开关时原样回传缩放与主题，避免顺带把别人的字段重置成默认值。
+  const loadLoginPolicy = useCallback(async () => {
+    try {
+      const res = await getUserPreferences();
+      if (res.code === 0 && res.data) {
+        setPrefs(res.data);
+        setAllowMultipleLogins(res.data.allow_multiple_logins ?? true);
+      }
+    } catch {
+      /* 忽略：保持默认开启 */
+    }
+  }, []);
+
+  useEffect(() => { void loadLoginPolicy(); }, [loadLoginPolicy]);
+
+  const handleToggleLoginPolicy = async (next: boolean) => {
+    const prev = allowMultipleLogins;
+    setAllowMultipleLogins(next);
+    setSavingLoginPolicy(true);
+    try {
+      await updateUserPreferences({
+        page_zoom: prefs?.page_zoom ?? '100',
+        theme_mode: prefs?.theme_mode ?? 'system',
+        allow_multiple_logins: next,
+      });
+      message.success(
+        next ? '已允许多处同时登录' : '已关闭多处登录，新登录将下线该账号的其他设备',
+      );
+    } catch {
+      setAllowMultipleLogins(prev);
+      message.error('保存失败');
+    } finally {
+      setSavingLoginPolicy(false);
+    }
+  };
 
   const closePwd = () => {
     setPwdAction(null);
@@ -279,6 +323,27 @@ export default function SecuritySettings() {
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>安全设置</Title>
       </div>
+
+      {/* 登录策略 */}
+      <Card title="登录策略" className={styles.card ?? ''}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <Text>允许多处同时登录</Text>
+            <Paragraph type="secondary" style={{ margin: '4px 0 0' }}>
+              {allowMultipleLogins
+                ? '开启时同一账号可在多台设备同时在线，互不影响。'
+                : '关闭时新登录会下线该账号的其他全部设备，即仅允许一处登录。'}
+            </Paragraph>
+          </div>
+          <Switch
+            checked={allowMultipleLogins}
+            loading={savingLoginPolicy}
+            onChange={handleToggleLoginPolicy}
+            checkedChildren="开启"
+            unCheckedChildren="关闭"
+          />
+        </div>
+      </Card>
 
       {!enabled ? (
         <Alert

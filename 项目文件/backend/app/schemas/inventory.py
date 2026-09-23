@@ -7,17 +7,19 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.common import INT4_MAX
+
 VALID_STATUSES = {"available", "in_use", "maintenance", "retired"}
 
 
 class InventoryCreate(BaseModel):
     """创建物品请求"""
 
-    name: str
-    category: str | None = None
-    quantity: int = Field(default=0, ge=0)
-    location: str | None = None
-    description: str | None = None
+    name: str = Field(max_length=200)
+    category: str | None = Field(default=None, max_length=100)
+    quantity: int = Field(default=0, ge=0, le=INT4_MAX)
+    location: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
     status: str = "available"
     tags: list[str] | None = None
 
@@ -32,11 +34,11 @@ class InventoryCreate(BaseModel):
 class InventoryUpdate(BaseModel):
     """更新物品请求"""
 
-    name: str | None = None
-    category: str | None = None
-    quantity: int | None = Field(default=None, ge=0)
-    location: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, max_length=200)
+    category: str | None = Field(default=None, max_length=100)
+    quantity: int | None = Field(default=None, ge=0, le=INT4_MAX)
+    location: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
     status: str | None = None
     tags: list[str] | None = None
 

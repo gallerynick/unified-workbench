@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 # 需要在其后插入空行的块级节点类型
 _BLOCK_TYPES = frozenset(
     {
@@ -17,7 +19,7 @@ _BLOCK_TYPES = frozenset(
 )
 
 
-def extract_plain_text(body: dict | None) -> str | None:
+def extract_plain_text(body: dict[str, Any] | None) -> str | None:
     """从 Tiptap JSON 提取纯文本，段落间以双换行分隔。
 
     body 为空或结构不符时返回 None；提取结果为空白时也返回 None，
@@ -28,7 +30,7 @@ def extract_plain_text(body: dict | None) -> str | None:
 
     buf: list[str] = []
 
-    def walk(node: dict) -> None:
+    def walk(node: dict[str, Any]) -> None:
         ntype = node.get("type")
         if ntype == "text":
             buf.append(node.get("text") or "")

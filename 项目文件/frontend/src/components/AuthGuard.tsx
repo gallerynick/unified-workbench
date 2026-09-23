@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { Result, Button } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
-import { isAuthenticated, isAdmin, clearTokens, tryRefreshAuth } from '@/utils/auth';
+import { isAuthenticated, isAdmin, logout, tryRefreshAuth } from '@/utils/auth';
 import { isMaintenanceModeEnabled } from '@/pages/settings/SiteSettings';
 
 export default function AuthGuard() {
@@ -74,7 +74,12 @@ export default function AuthGuard() {
           subTitle={<span style={{ color: 'var(--text-secondary)' }}>系统当前处于维护模式，仅管理员可以访问。</span>}
           icon={<LockOutlined style={{ fontSize: 72, color: 'var(--color-info)' }} />}
           extra={
-            <Button type="primary" onClick={() => { clearTokens(); navigate('/login', { replace: true }); }}>
+            <Button
+              type="primary"
+              onClick={() => {
+                void logout().then(() => navigate('/login', { replace: true }));
+              }}
+            >
               退出登录
             </Button>
           }

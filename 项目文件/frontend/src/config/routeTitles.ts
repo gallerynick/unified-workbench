@@ -24,7 +24,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/settings/personalization': '用户个性化',
   '/settings': '系统设置',
   '/settings/users': '用户账号',
-  '/settings/tags': '标签分类',
+  '/settings/tags': '用户标签分类',
   '/settings/templates': '模板库',
   '/settings/site': '站点配置',
   '/settings/backups': '数据备份',

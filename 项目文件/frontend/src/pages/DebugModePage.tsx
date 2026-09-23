@@ -1,13 +1,12 @@
 import { Result, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { clearTokens } from '../utils/auth';
+import { logout } from '../utils/auth';
 
 export default function DebugModePage() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    clearTokens();
-    navigate('/login', { replace: true });
+    void logout().then(() => navigate('/login', { replace: true }));
   };
 
   return (

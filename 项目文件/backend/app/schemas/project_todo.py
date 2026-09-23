@@ -5,18 +5,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProjectTodoCreate(BaseModel):
     """创建项目待办请求"""
 
     project_id: uuid.UUID
-    number: str
-    title: str
+    number: str = Field(max_length=50)
+    title: str = Field(max_length=200)
     description: str | None = None
-    priority: str = "P2"
-    status: str = "pending"
+    priority: str = Field(default="P2", max_length=10)
+    status: str = Field(default="pending", max_length=20)
     assignee_id: uuid.UUID | None = None
     proposal_id: uuid.UUID | None = None
     meeting_id: uuid.UUID | None = None
@@ -26,11 +26,11 @@ class ProjectTodoCreate(BaseModel):
 class ProjectTodoUpdate(BaseModel):
     """更新项目待办请求"""
 
-    number: str | None = None
-    title: str | None = None
+    number: str | None = Field(default=None, max_length=50)
+    title: str | None = Field(default=None, max_length=200)
     description: str | None = None
-    priority: str | None = None
-    status: str | None = None
+    priority: str | None = Field(default=None, max_length=10)
+    status: str | None = Field(default=None, max_length=20)
     assignee_id: uuid.UUID | None = None
     proposal_id: uuid.UUID | None = None
     meeting_id: uuid.UUID | None = None

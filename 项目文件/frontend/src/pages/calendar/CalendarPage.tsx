@@ -296,67 +296,9 @@ export default function CalendarPage() {
     requestAnimationFrame(apply);
   }, [selectedDay, activeView]);
 
-  // ── 实测网格可用尺寸，下发为 --cal-grid-h / --cal-grid-w（见 module.css） ─
-  // MainLayout 的页面缩放用 transform: scale 实现。FullCalendar 量 scroller 尺寸
-  // 用的是 getBoundingClientRect().width/height（SimpleScrollGrid.computeScrollerDims）
-  // ——那受 transform 影响，取到的是视觉尺寸——却被当作布局尺寸写进 sync-table 的
-  // width/height。缩放 ≠ 1 时两个单位混用：表格比滚动区窄 1/k、矮 1/k，
-  // 右下留出一片空白。这里改用不受 transform 影响的 clientWidth/clientHeight 自行测量。
-  // 缩放不触发 window.resize，故另监听 zoom-changed。
-  // 该 effect 只在挂载时跑一次，RO 观测的是日历容器。切视图时容器尺寸不变、RO 不触发，
-  // 而 FullCalendar 已换掉整套表格（周视图 1 行 / 月视图 6 行），--cal-grid-h 就停在
-  // 上一个视图的旧值上；配合 module.css 里的 !important 覆盖，会把新视图本来正确的
-  // 高度压掉（月视图 6 行被压成 419px，最底一排整排往上缩）。故额外暴露 measure 供切视图补测。
-  const measureRef = useRef<() => void>(() => {});
-  useEffect(() => {
-    const el = calRootRef.current;
-    if (!el) return;
-    let raf = 0;
-    let tries = 0;
-    const tick = () => {
-      raf = 0;
-      // 月网格滚动区；FC 出网格是异步的，可能还没渲染出来
-      const scroller = el
-        .querySelector<HTMLElement>('.fc-daygrid-body')
-        ?.closest<HTMLElement>('.fc-scroller');
-      if (!scroller || scroller.clientHeight <= 0) {
-        if (tries < 40) {
-          tries += 1;
-          raf = requestAnimationFrame(tick);
-        }
-        return;
-      }
-      tries = 0;
-      el.style.setProperty('--cal-grid-h', scroller.clientHeight + 'px');
-      el.style.setProperty('--cal-grid-w', scroller.clientWidth + 'px');
-    };
-    const measure = () => {
-      if (raf) cancelAnimationFrame(raf);
-      tries = 0;
-      raf = requestAnimationFrame(tick);
-    };
-    measureRef.current = measure;
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    const onZoom = () => measure();
-    window.addEventListener('zoom-changed', onZoom);
-    window.addEventListener('resize', measure);
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      ro.disconnect();
-      window.removeEventListener('zoom-changed', onZoom);
-      window.removeEventListener('resize', measure);
-    };
-  }, []);
-
-  // ── 切换视图后补测一次：日历容器尺寸没变，上面的 RO 不会触发 ──
-  // 新视图的网格是异步出来的，故退两帧再量（与选中高亮的重建兜底同一节奏）。
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => measureRef.current());
-    });
-  }, [activeView]);
+  // 注：页面缩放已改用 documentElement 上的 CSS zoom（见 hooks/usePageZoom.ts）。
+  // zoom 下 getBoundingClientRect 与 clientWidth 单位一致，FullCalendar 内部布局自洽，
+  // 无需再用 --cal-grid-h / --cal-grid-w 补偿。原补偿逻辑（scroller 测量 + 切视图补测）已移除。
 
   // ── 下发 --avail：日历与详情面板共享的可用高度，开合分配交给 CSS 计算 ──
   // 该区域自身是 flex: 1 1 0，高度只取决于表头与筛选条，不随开合变化，
@@ -366,7 +308,7 @@ export default function CalendarPage() {
     if (!el) return;
     let raf = 0;
     const apply = () => {
-      const h = el.offsetHeight; // offsetHeight 不受 transform 缩放影响
+      const h = el.offsetHeight; // zoom 下 offsetHeight 返回缩放后的值，与布局一致
       if (h > 0) el.style.setProperty('--avail', h + 'px');
     };
     const measure = () => {

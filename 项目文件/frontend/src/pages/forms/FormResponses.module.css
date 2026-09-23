@@ -3,19 +3,193 @@
   flex-direction: column;
   gap: var(--spacing-card-gap);
 }
+
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-card-gap);
+  flex-wrap: wrap;
   min-height: var(--spacing-xxl);
 }
-.header h4 { margin: 0; }
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-card-gap);
+}
+
+.overviewItem {
+  padding: var(--spacing-md);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--rounded-sm);
+}
+
+.overviewLabel {
+  margin-bottom: var(--spacing-xxs);
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+}
+
+.overviewValue {
+  font-size: var(--text-title-sm-size);
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.statsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.fieldCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--rounded-sm);
+}
+
+.fieldCardHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.fieldCardTitle {
+  font-weight: 600;
+  font-size: var(--text-body-sm-size);
+  color: var(--text-primary);
+}
+
+.fieldCardMeta {
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+}
+
+.chartRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-card-gap);
+  align-items: start;
+}
+
+.chartPane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  min-width: 0;
+}
+
+.chartCaption {
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+}
+
+.chartEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 240px;
+  padding: var(--spacing-md);
+  font-size: var(--text-body-xs-size);
+  color: var(--text-secondary);
+  text-align: center;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-secondary);
+  border-radius: var(--rounded-sm);
+}
+
+.pieSingle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  height: 240px;
+}
+
+.pieSingleLegend {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-body-xs-size);
+  color: var(--text-primary);
+}
+
+.pieSwatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--rounded-sm);
+}
+
+.pieSingleName {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pieSingleValue {
+  color: var(--text-secondary);
+}
+
 .table {
   flex: 1;
   overflow-x: auto;
 }
+
+@media (max-width: 991px) {
+  .overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .chartRow {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 767px) {
+  .overview {
+    grid-template-columns: 1fr;
+  }
+
   .table {
     overflow-x: auto;
   }
