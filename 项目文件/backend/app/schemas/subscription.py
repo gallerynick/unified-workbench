@@ -5,18 +5,17 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.subscription import BillingCycle, SubscriptionStatus
-
 
 VALID_CYCLES = {"monthly", "yearly"}
 VALID_STATUSES = {"active", "cancelled", "paused"}
 
 
 class SubscriptionCreate(BaseModel):
-    name: str
-    provider: str
+    name: str = Field(max_length=100)
+    provider: str = Field(max_length=100)
     amount: float
     billing_cycle: BillingCycle = BillingCycle.MONTHLY
     next_billing: str | None = None
@@ -30,8 +29,8 @@ class SubscriptionCreate(BaseModel):
 
 
 class SubscriptionUpdate(BaseModel):
-    name: str | None = None
-    provider: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    provider: str | None = Field(default=None, max_length=100)
     amount: float | None = None
     billing_cycle: BillingCycle | None = None
     next_billing: str | None = None

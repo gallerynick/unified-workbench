@@ -27,9 +27,9 @@ class ServiceCreate(BaseModel):
     system_id: uuid.UUID
     protocol: str | None = None
     status: str = "running"
-    health_check_url: str | None = None
+    health_check_url: str | None = Field(default=None, max_length=500)
     target_type: str | None = None
-    target_name: str | None = None
+    target_name: str | None = Field(default=None, max_length=200)
     port: int | None = None
     maintainer_ids: list[uuid.UUID] = Field(default_factory=list)
 
@@ -68,9 +68,9 @@ class ServiceUpdate(BaseModel):
     system_id: uuid.UUID | None = None
     protocol: str | None = None
     status: str | None = None
-    health_check_url: str | None = None
+    health_check_url: str | None = Field(default=None, max_length=500)
     target_type: str | None = None
-    target_name: str | None = None
+    target_name: str | None = Field(default=None, max_length=200)
     port: int | None = None
     maintainer_ids: list[uuid.UUID] | None = None
 

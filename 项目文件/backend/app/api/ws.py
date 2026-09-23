@@ -46,4 +46,5 @@ async def websocket_endpoint(
             if data == "ping":
                 await websocket.send_text("pong")
     except WebSocketDisconnect:
-        manager.disconnect(user_id)
+        # 只移除本条连接，保留该用户的其他连接（多标签页 / 多设备）
+        manager.disconnect(user_id, websocket)

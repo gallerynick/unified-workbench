@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from celery import shared_task
 from sqlalchemy import select
 
-from app.core.database import get_session_factory
+from app.core.database import isolated_session
 from app.models.calendar_event import CalendarEvent
 from app.services.notification.websocket_channel import WebSocketChannel
 
@@ -20,8 +20,7 @@ def check_calendar_reminders() -> None:
 
 
 async def _check_async() -> None:
-    sf = get_session_factory()
-    async with sf() as db:
+    async with isolated_session() as db:
         now = datetime.now()
         query = select(CalendarEvent).where(
             CalendarEvent.reminder_enabled == True,  # noqa: E712

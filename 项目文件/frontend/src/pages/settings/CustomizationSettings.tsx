@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, message, Space, Alert, Result, Upload, Radio, Modal } from 'antd';
+import { Card, Form, Input, Button, Typography, message, Space, Result, Upload, Radio, Modal } from 'antd';
 import { ReloadOutlined, SaveOutlined, PictureOutlined, FontSizeOutlined, LockOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import { useCustomization, saveAppSettings } from '../../hooks/useCustomization';
@@ -243,14 +243,6 @@ export default function CustomizationSettings() {
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>应用配置</Title>
       </div>
-      <Alert
-        message="管理员专属"
-        description="只有管理员可以修改应用配置。修改后需刷新页面才能看到效果。"
-        type="info"
-        showIcon
-        style={{ marginBottom: "var(--spacing-lg)" }}
-      />
-
       <Form form={form} layout="vertical">
         <Card title={<><FontSizeOutlined /> 应用信息</>} className={styles.card ?? ''}>
           <Form.Item label="应用名称" name="appName" rules={[{ required: true, message: '请输入应用名称' }]}>

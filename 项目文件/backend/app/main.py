@@ -1,13 +1,18 @@
 """一站式工作台 FastAPI 应用入口"""
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
+from app.schemas.common import UnifiedResponse
 from app.version import __version__
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -27,6 +32,27 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             app.title = app_name
 
     yield
+
+
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """未捕获异常统一返回 JSON。
+
+    FastAPI 默认对未捕获异常返回纯文本 ``Internal Server Error``，前端
+    ``request()`` 解析 JSON 失败后只能退化成笼统的 ``Request failed``，用户
+    无从得知失败原因。这里统一走 {code, msg, data} 契约，前端会取
+    ``error.msg`` 展示给调用方。
+
+    HTTPException（4xx 业务错误）与 RequestValidationError（422）由 FastAPI
+    自带的处理器优先处理，不受本函数影响。
+    """
+    settings = get_settings()
+    detail = f"{type(exc).__name__}: {exc}" if settings.DEBUG else "服务器内部错误"
+    logger.exception(
+        "未处理的请求异常 method=%s path=%s", request.method, request.url.path
+    )
+    return JSONResponse(
+        status_code=500, content=UnifiedResponse(code=500, msg=detail).model_dump()
+    )
 
 
 def create_app() -> FastAPI:
@@ -50,6 +76,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # 未捕获异常统一返回 JSON（见 unhandled_exception_handler）
+    app.add_exception_handler(Exception, unhandled_exception_handler)
 
     # 注册路由
     from app.api.router import api_router

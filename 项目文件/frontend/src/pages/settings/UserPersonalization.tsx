@@ -25,6 +25,8 @@ const ZOOM_OPTIONS = [
   { label: '90%', value: '90' },
   { label: '95%', value: '95' },
   { label: '标准 (100%)', value: '100' },
+  { label: '105%', value: '105' },
+  { label: '110%', value: '110' },
 ];
 
 export default function UserPersonalization() {
@@ -117,7 +119,7 @@ export default function UserPersonalization() {
         </div>
 
         <Paragraph type="secondary">
-          调整页面整体缩放比例，仅影响工作台页面。缩小后可在相同屏幕空间内展示更多内容。
+          调整页面整体缩放比例。
         </Paragraph>
       </Card>
 

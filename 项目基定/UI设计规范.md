@@ -385,7 +385,7 @@ components:
     border: 1px solid {colors.border-primary}
   card-grid:
     grid: "repeat(auto-fill, minmax(300px, 1fr))"
-    gap: "{spacing.sm}"
+    gap: "{spacing.card-gap}"
   # Modal
   modal:
     backgroundColor: "{colors.canvas}"
@@ -839,7 +839,7 @@ components:
 
 - **最大内容宽度：** 文本密集区约 980px（大段文字页面），内容网格约 1440px（工具/配件页面），全幅用于内容区块（主页）。
 - **列模式：** 工具卡片网格 3–5 列（工具/配件页面）；主页偶发分区使用 2 列并排区块；内容英雄区使用单列居中堆叠。
-- **间距：** 工具网格中卡片间距 20–24px。
+- **间距：** 工具网格中卡片间距 {spacing.lg}（24px）。
 
 ### 留白哲学
 

@@ -5,24 +5,25 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.calendar_event import EventRepeat
+from app.schemas.common import INT4_MAX
 
 VALID_REPEATS = {"none", "daily", "weekly", "monthly", "yearly"}
 
 
 class CalendarEventCreate(BaseModel):
-    title: str
+    title: str = Field(max_length=200)
     description: str | None = None
     start_time: str
     end_time: str | None = None
     all_day: bool = False
-    location: str | None = None
+    location: str | None = Field(default=None, max_length=200)
     repeat: EventRepeat = EventRepeat.NONE
-    color: str | None = None
+    color: str | None = Field(default=None, max_length=20)
     reminder_enabled: bool = False
-    reminder_minutes: int = 15
+    reminder_minutes: int = Field(default=15, le=INT4_MAX)
 
     @field_validator("repeat")
     @classmethod
@@ -33,16 +34,16 @@ class CalendarEventCreate(BaseModel):
 
 
 class CalendarEventUpdate(BaseModel):
-    title: str | None = None
+    title: str | None = Field(default=None, max_length=200)
     description: str | None = None
     start_time: str | None = None
     end_time: str | None = None
     all_day: bool | None = None
-    location: str | None = None
+    location: str | None = Field(default=None, max_length=200)
     repeat: EventRepeat | None = None
-    color: str | None = None
+    color: str | None = Field(default=None, max_length=20)
     reminder_enabled: bool | None = None
-    reminder_minutes: int | None = None
+    reminder_minutes: int | None = Field(default=None, le=INT4_MAX)
 
     @field_validator("repeat")
     @classmethod

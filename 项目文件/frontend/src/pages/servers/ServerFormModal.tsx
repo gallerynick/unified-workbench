@@ -52,6 +52,13 @@ const DISK_TYPE_OPTIONS: { value: string; label: string }[] = [
 
 const UNIT_OPTION_LIST = UNIT_OPTIONS.map((u) => ({ value: u, label: u }));
 
+// 取值上限须与后端 app/schemas/server.py 保持一致：数据库列为 int4，
+// 超界会触发 500，前端只看到笼统的 "Request failed"
+const MAX_CPU_CORES = 4096;
+// 与后端 app/schemas/common.py 对齐：容量上限取 PostgreSQL int4 上限，
+// 校验上限不得超过列存储上限，否则请求会被 asyncpg 拒绝并抛 500。
+const MAX_CAPACITY = 2_147_483_647;
+
 function formatHardwareSpec(spec: HardwareSpec): string {
   const parts: string[] = [];
   if (spec.type === 'cpu') parts.push('CPU');
@@ -255,12 +262,12 @@ export default function ServerFormModal({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入服务器名称' }]}>
-              <Input placeholder="请输入服务器名称" />
+              <Input placeholder="请输入服务器名称" maxLength={200} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="hostname" label="主机名">
-              <Input placeholder="例如 srv-01" />
+              <Input placeholder="例如 srv-01" maxLength={200} />
             </Form.Item>
           </Col>
         </Row>
@@ -280,7 +287,7 @@ export default function ServerFormModal({
           </Col>
           <Col span={12}>
             <Form.Item name="os" label="操作系统">
-              <Input placeholder="例如 Ubuntu 22.04 LTS" />
+              <Input placeholder="例如 Ubuntu 22.04 LTS" maxLength={100} />
             </Form.Item>
           </Col>
         </Row>
@@ -288,12 +295,12 @@ export default function ServerFormModal({
         <Row gutter={16}>
           <Col span={8}>
             <Form.Item name="cpu_cores" label="CPU 核心数">
-              <InputNumber min={1} style={{ width: '100%' }} placeholder="例如 8" />
+              <InputNumber min={1} max={MAX_CPU_CORES} style={{ width: '100%' }} placeholder="例如 8" />
             </Form.Item>
           </Col>
           <Col span={8}>
             <Form.Item name="ram_capacity" label="内存">
-              <InputNumber min={1} style={{ width: '100%' }} placeholder="例如 16" />
+              <InputNumber min={1} max={MAX_CAPACITY} style={{ width: '100%' }} placeholder="例如 16" />
             </Form.Item>
           </Col>
           <Col span={8}>
@@ -306,7 +313,7 @@ export default function ServerFormModal({
         <Row gutter={16}>
           <Col span={8}>
             <Form.Item name="disk_capacity" label="磁盘">
-              <InputNumber min={1} style={{ width: '100%' }} placeholder="例如 500" />
+              <InputNumber min={1} max={MAX_CAPACITY} style={{ width: '100%' }} placeholder="例如 500" />
             </Form.Item>
           </Col>
           <Col span={8}>
@@ -319,12 +326,12 @@ export default function ServerFormModal({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="model" label="设备型号">
-              <Input placeholder="例如 Dell PowerEdge R740" />
+              <Input placeholder="例如 Dell PowerEdge R740" maxLength={200} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="serial_number" label="序列号">
-              <Input placeholder="请输入序列号" />
+              <Input placeholder="请输入序列号" maxLength={100} />
             </Form.Item>
           </Col>
         </Row>
@@ -510,7 +517,7 @@ export default function ServerFormModal({
           </Col>
           <Col span={12}>
             <Form.Item name="location" label="位置">
-              <Input placeholder="请输入位置（可选）" />
+              <Input placeholder="请输入位置（可选）" maxLength={200} />
             </Form.Item>
           </Col>
         </Row>
@@ -525,7 +532,7 @@ export default function ServerFormModal({
         </Form.Item>
 
         <Form.Item name="purpose" label="用途">
-          <TextArea placeholder="请输入用途（可选）" rows={2} />
+          <TextArea placeholder="请输入用途（可选）" rows={2} maxLength={500} />
         </Form.Item>
 
         <Form.Item name="description" label="描述">

@@ -16,6 +16,7 @@ from app.core.security import (
     validate_password_strength,
     verify_password,
 )
+from app.core.websocket import SESSION_ALERT, manager
 from app.models.user import User, UserStatus
 from app.models.user_session import UserSession
 from app.schemas.auth import (
@@ -90,6 +91,46 @@ async def _clear_login_attempts(username: str) -> None:
         pass
 
 
+async def _enforce_single_device(
+    db: AsyncSession,
+    user: User,
+    allow_multiple_logins: bool,
+    device_token: str | None = None,
+) -> tuple[int, int]:
+    """按「允许多处同时登录」偏好处理已有会话，返回 (其他设备会话数, 已下线数)。
+
+    语义：返回的「其他设备会话数」只统计 device_token 与本次登录不同的会话
+    （即真正来自其他浏览器的登录；历史遗留的无 device_token 会话也计入，防漏报）。
+    同一浏览器（device_token 相同）的历史会话不算「其他设备」——
+    它们通常只是用户在本浏览器反复重新登录留下的幽灵会话，下线的确会发生，
+    但不该在前端被提示为「已在其他设备登录」。
+
+    关闭「允许多处同时登录」时全部下线（含同浏览器旧会话，保持严格单设备语义）；
+    开启时只统计不下线。本会话尚未落库，查询结果天然不含本次登录。
+    """
+    rows = (
+        await db.execute(
+            select(UserSession).where(
+                UserSession.user_id == user.id,
+                UserSession.is_revoked == False,  # noqa: E712
+            )
+        )
+    ).scalars().all()
+
+    # 本次登录的设备标识规范化：空串视为未携带
+    current_token = device_token or None
+    other_device_count = sum(
+        1 for s in rows if s.device_token != current_token
+    )
+    if allow_multiple_logins or not rows:
+        return other_device_count, 0
+
+    for s in rows:
+        s.is_revoked = True
+    await db.commit()
+    return other_device_count, len(rows)
+
+
 async def _issue_tokens(
     db: AsyncSession,
     user: User,
@@ -99,10 +140,21 @@ async def _issue_tokens(
 ) -> LoginResponse:
     """为已通过全部认证的用户签发令牌并创建登录会话。"""
     access_token = create_access_token(str(user.id), user.role.value)
-    refresh_token = create_refresh_token(str(user.id))
-
     payload = decode_token(access_token)
     jti = payload.get("jti", "")
+
+    # 单设备登录：用户关闭「允许多处同时登录」时，新登录下线其全部其他会话。
+    # 在这里做而不是在路由层：login / verify_2fa / WebAuthn 三条路径都汇聚到此，
+    # 放这里才能保证任何登录方式都遵守同一策略。
+    prefs = user.preferences or {}
+    other_session_count, revoked_session_count = await _enforce_single_device(
+        db, user, prefs.get("allow_multiple_logins", True), device_token
+    )
+
+    # 刷新令牌携带同一个 jti：刷新必须能回到这条会话行，否则换出来的新访问
+    # 令牌的 jti 在 user_session 里查不到，登出与单设备下线都会被一次刷新绕过。
+    refresh_token = create_refresh_token(str(user.id), jti)
+
     device_name, device_type = _parse_user_agent(user_agent or "")
     session = UserSession(
         user_id=user.id,
@@ -116,10 +168,20 @@ async def _issue_tokens(
     db.add(session)
     await db.commit()
 
+    # F1 并发登录提示的实时推送：本会话已落库，立刻通知该用户其余在线连接。
+    # 收端的 WebSocket 会在挂载时自行探测，不需要等推送，但先收到推送能省一次轮询等待。
+    # 推送只是体验优化，失败不影响发令牌（推送不成功的场景由 10s 轮询兜底）。
+    try:
+        await manager.send_to_user(user.id, SESSION_ALERT)
+    except Exception:  # noqa: BLE001
+        pass
+
     return LoginResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
+        other_session_count=other_session_count,
+        revoked_session_count=revoked_session_count,
     )
 
 
@@ -293,13 +355,28 @@ def _parse_user_agent(ua: str) -> tuple[str, str]:
 
 
 async def refresh_access_token(db: AsyncSession, request: RefreshRequest) -> TokenResponse:
-    """用刷新令牌换取新的访问令牌。"""
+    """用刷新令牌换取新的访问令牌。
+
+    新访问令牌复用刷新令牌里的 jti（即原登录会话的 jti），不新建会话行：
+    会话行是「一次登录」的唯一标识，登出与「仅允许一处登录」的强制下线都按它
+    生效；刷新只轮换凭证，不改变会话身份。
+
+    必须校验会话行仍存在且未被撤销，否则被登出 / 被下线的设备只要刷新一次就
+    能复活，is_revoked 形同虚设。
+    """
     try:
         payload = decode_token(request.refresh_token)
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="无效的刷新令牌")
 
         user_id = payload.get("sub")
+        jti = payload.get("jti")
+        if not user_id or not jti:
+            # 历史刷新令牌没有 jti，无法绑定会话行，只能重新登录。
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="请重新登录"
+            )
+
         result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
         user = result.scalar_one_or_none()
 
@@ -308,8 +385,23 @@ async def refresh_access_token(db: AsyncSession, request: RefreshRequest) -> Tok
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在或已禁用"
             )
 
-        access_token = create_access_token(str(user.id), user.role.value)
-        refresh_token = create_refresh_token(str(user.id))
+        session = (
+            await db.execute(
+                select(UserSession).where(
+                    UserSession.user_id == user.id,
+                    UserSession.jti == jti,
+                    UserSession.is_revoked == False,  # noqa: E712
+                )
+            )
+        ).scalar_one_or_none()
+
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="会话已失效，请重新登录"
+            )
+
+        access_token = create_access_token(str(user.id), user.role.value, jti)
+        refresh_token = create_refresh_token(str(user.id), jti)
 
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
     except HTTPException:

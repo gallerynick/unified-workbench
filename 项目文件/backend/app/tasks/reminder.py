@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from celery import shared_task
 from sqlalchemy import select
 
-from app.core.database import get_session_factory
+from app.core.database import isolated_session
 from app.models.reminder import Reminder, ReminderStatus
 from app.services.notification.dispatcher import dispatch_reminder
 
@@ -18,8 +18,7 @@ def check_due_reminders():
 
 
 async def _check_due_reminders_async():
-    session_factory = get_session_factory()
-    async with session_factory() as db:
+    async with isolated_session() as db:
         now = datetime.now(UTC)
         query = select(Reminder).where(
             Reminder.status == ReminderStatus.PENDING,

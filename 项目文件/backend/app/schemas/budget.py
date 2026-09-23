@@ -5,18 +5,17 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.budget import BudgetPeriod, BudgetStatus
-
 
 VALID_PERIODS = {"monthly", "quarterly", "yearly"}
 VALID_STATUSES = {"active", "exceeded", "completed"}
 
 
 class BudgetCreate(BaseModel):
-    name: str
-    category: str
+    name: str = Field(max_length=100)
+    category: str = Field(max_length=50)
     amount: float
     period: BudgetPeriod = BudgetPeriod.MONTHLY
 
@@ -29,8 +28,8 @@ class BudgetCreate(BaseModel):
 
 
 class BudgetUpdate(BaseModel):
-    name: str | None = None
-    category: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    category: str | None = Field(default=None, max_length=50)
     amount: float | None = None
     spent: float | None = None
     period: BudgetPeriod | None = None

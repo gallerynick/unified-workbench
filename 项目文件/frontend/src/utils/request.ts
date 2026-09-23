@@ -15,6 +15,8 @@ interface RequestOptions {
   method?: string;
   body?: unknown;
   headers?: Record<string, string>;
+  /** 401 时不自动跳转登录页，只抛 HttpError，由调用方就地提示并拦截 */
+  skipAuthRedirect?: boolean;
 }
 
 async function refreshAccessToken(): Promise<boolean> {
@@ -51,7 +53,7 @@ export async function request<T>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<UnifiedResponse<T>> {
-  const { method = 'GET', body, headers = {} } = options;
+  const { method = 'GET', body, headers = {}, skipAuthRedirect = false } = options;
   const token = getToken();
 
   const requestHeaders: Record<string, string> = {
@@ -76,26 +78,31 @@ export async function request<T>(
     redirect: 'follow',
   });
 
-  // Handle 401 - try to refresh token
-  if (response.status === 401 && token) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      const newToken = getToken();
-      if (newToken) {
-        requestHeaders['Authorization'] = `Bearer ${newToken}`;
-        const retryResponse = await fetch(`${BASE_URL}${endpoint}`, {
-          method,
-          headers: requestHeaders,
-          body: body ? JSON.stringify(body) : null,
-        });
-        if (retryResponse.ok) {
-          return retryResponse.json();
+  // 处理 401：持有 token 时先尝试刷新并重放请求
+  if (response.status === 401) {
+    if (token) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        const newToken = getToken();
+        if (newToken) {
+          requestHeaders['Authorization'] = `Bearer ${newToken}`;
+          const retryResponse = await fetch(`${BASE_URL}${endpoint}`, {
+            method,
+            headers: requestHeaders,
+            body: body ? JSON.stringify(body) : null,
+          });
+          if (retryResponse.ok) {
+            return retryResponse.json();
+          }
         }
       }
     }
-    // Refresh failed - redirect to login
-    window.location.href = '/login';
-    throw new Error('Authentication failed');
+    // 未登录或刷新失败：默认跳转登录页；登录页自身不自跳转，避免循环刷新。
+    // 调用方显式 skipAuthRedirect 时只抛错，由调用方就地提示并拦截
+    if (!skipAuthRedirect && window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+    throw new HttpError('登录状态已失效，请重新登录', 401);
   }
 
   if (!response.ok) {

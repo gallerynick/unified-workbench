@@ -16,6 +16,9 @@ from app.models.project import Project
 from app.models.project_change import ProjectChange
 from app.models.project_event import ProjectEvent
 from app.models.project_meeting import ProjectMeeting
+from app.models.meeting_record import MeetingRecord
+from app.models.meeting_transcript_segment import MeetingTranscriptSegment
+from app.models.meeting_minutes import MeetingMinutes
 from app.models.project_member import ProjectMember
 from app.models.project_proposal import ProjectProposal
 from app.models.project_proposal_comment import ProjectProposalComment
@@ -63,6 +66,9 @@ __all__ = [
     "ProjectChange",
     "ProjectEvent",
     "ProjectMeeting",
+    "MeetingRecord",
+    "MeetingTranscriptSegment",
+    "MeetingMinutes",
     "ProjectMember",
     "ProjectProposal",
     "ProjectProposalComment",

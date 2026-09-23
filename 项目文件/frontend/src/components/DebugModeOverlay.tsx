@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import type { PointerEvent as ReactPointerEvent } from 'react';
@@ -107,10 +107,72 @@ interface PickedElement {
   rect: RectState;
 }
 
+/**
+ * 当前页面缩放比例（CSS zoom），未缩放时返回 1。
+ *
+ * 页面缩放（见 hooks/usePageZoom.ts）作用在 documentElement 上，属布局时缩放：
+ * getBoundingClientRect() / clientX 返回的是【缩放后的视觉坐标】，
+ * 而 CSS 的 left/top/width 与 window.innerWidth 属于【未缩放的布局坐标】，
+ * 两者相差一个 zoom 因子。混用会导致面板拖不到边缘、高亮框与目标元素错位。
+ *
+ * 本文件所有 pos / rect 状态统一存【布局坐标】，在读取 getBoundingClientRect
+ * 与计算视口范围时换算，渲染处无需再转换。
+ */
+function pageZoomScale(): number {
+  const v = parseFloat(document.documentElement.style.zoom);
+  return Number.isFinite(v) && v > 0 ? v : 1;
+}
+
+/** 把 getBoundingClientRect() 的视觉坐标换算为 CSS 布局坐标 */
+function toLayoutRect(r: DOMRect): RectState {
+  const z = pageZoomScale();
+  return {
+    left: r.left / z,
+    top: r.top / z,
+    width: r.width / z,
+    height: r.height / z,
+  };
+}
+
 /* ====== 面板拖拽 / 收纳 ====== */
 const PANEL_WIDTH = 340;
 const EDGE = 16;
 const STORAGE_KEY = 'debug-panel-state';
+
+/** CSS width:340px 是 content-box，左右 padding 各 14px，border-box 布局宽 368px */
+const PANEL_BOX_WIDTH = PANEL_WIDTH + 28;
+
+/** 面板高度兜底值：仅用于首次测量完成前的渲染钳制，测到真实值后随即替换 */
+const PANEL_HEIGHT_FALLBACK = 240;
+
+/** 布局视口尺寸。缩放写在 documentElement 上，innerWidth 并不随之变化 */
+function viewportSize(): { w: number; h: number } {
+  const z = pageZoomScale();
+  return { w: window.innerWidth / z, h: window.innerHeight / z };
+}
+
+/**
+ * 把位置钳制进视口：上下左右四个方向都不允许越界。
+ * 入参 x/y/width/height 与返回值均为布局坐标，vp 为布局视口。
+ *
+ * width/height 必须传面板的【实测】布局尺寸，不能用固定常量——面板高度随
+ * 内容变化（进入选择模式、选择器文本换行、按钮行增减），用常量必然在一边
+ * 留缝或穿透边界。
+ *
+ * 纯函数、无副作用：只算出「该怎么放」，绝不回写意图位置 pos。
+ */
+function clampPos(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  vp: { w: number; h: number },
+): PanelPos {
+  return {
+    x: Math.min(Math.max(EDGE, x), Math.max(EDGE, vp.w - width - EDGE)),
+    y: Math.min(Math.max(EDGE, y), Math.max(EDGE, vp.h - height - EDGE)),
+  };
+}
 
 interface PanelPos {
   x: number;
@@ -143,10 +205,19 @@ export default function DebugModeOverlay() {
   const containerRef = useRef<HTMLDivElement>(null);
   const restoreBtnRef = useRef<HTMLButtonElement>(null);
   const [enabled, setEnabled] = useState<boolean>(false);
+  // 意图位置：用户拖到哪就记哪，只做持久化；边界钳制只作用于渲染位置，绝不回写这里
   const [pos, setPos] = useState<PanelPos | null>(() => loadPanelState().pos);
   const [minimized, setMinimized] = useState<boolean>(() => loadPanelState().minimized);
   const [dragging, setDragging] = useState<boolean>(false);
-  const dragRef = useRef({ startX: 0, startY: 0, offsetX: 0, offsetY: 0, width: PANEL_WIDTH, height: 0 });
+  const [pendingRestore, setPendingRestore] = useState<'left' | 'right' | null>(null);
+  const dragRef = useRef({ offsetX: 0, offsetY: 0 });
+  // 面板实测布局尺寸；首次测量完成前用 CSS 已知宽度 + 高度兜底值参与钳制
+  const [panelSize, setPanelSize] = useState<{ width: number; height: number }>({
+    width: PANEL_BOX_WIDTH,
+    height: PANEL_HEIGHT_FALLBACK,
+  });
+  // 布局视口；窗口尺寸或页面缩放比例变化时更新，驱动渲染位置重算
+  const [viewport, setViewport] = useState(() => viewportSize());
 
   useEffect(() => {
     let cancelled = false;
@@ -168,28 +239,69 @@ export default function DebugModeOverlay() {
     }
   }, [pos, minimized]);
 
-  // 恢复时把越界位置拉回视口内
-  useEffect(() => {
-    if (pos) {
-      const maxX = Math.max(EDGE, window.innerWidth - PANEL_WIDTH - EDGE);
-      const maxY = Math.max(EDGE, window.innerHeight - 120);
-      if (pos.x > maxX || pos.y > maxY) {
-        setPos({ x: Math.min(pos.x, maxX), y: Math.min(pos.y, maxY) });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // 量取面板实测布局尺寸与布局视口。钳制统一在渲染时做（见 renderPos），
+  // 这里只负责把两个量保持最新——内容高度变化、窗口尺寸变化、页面缩放比例
+  // 变化（含首屏异步下发的那次 zoom）都要覆盖。
+  useLayoutEffect(() => {
+    if (!enabled || minimized) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const refresh = () => {
+      const z = pageZoomScale();
+      const r = el.getBoundingClientRect();
+      const size = { width: r.width / z, height: r.height / z };
+      const vp = viewportSize();
+      setPanelSize((s) => (s.width === size.width && s.height === size.height ? s : size));
+      setViewport((v) => (v.w === vp.w && v.h === vp.h ? v : vp));
+    };
+
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(refresh);
+    };
+
+    const ro = new ResizeObserver(schedule);
+    ro.observe(el);
+    // 缩放写在 documentElement 的 style 上，观察它即可覆盖所有写入方——
+    // usePageZoom 首屏异步下发那次并不派发 zoom-changed 事件，只监听事件会漏
+    const mo = new MutationObserver(schedule);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+    window.addEventListener('resize', schedule);
+
+    refresh();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      mo.disconnect();
+      window.removeEventListener('resize', schedule);
+    };
+  }, [enabled, minimized]);
+
+  // 收纳按钮停在哪一角，点击后就把面板意图位置设为那一角
+  useLayoutEffect(() => {
+    if (!pendingRestore) return;
+    const el = containerRef.current;
+    const z = pageZoomScale();
+    const r = el?.getBoundingClientRect();
+    const width = r ? r.width / z : PANEL_BOX_WIDTH;
+    const height = r ? r.height / z : PANEL_HEIGHT_FALLBACK;
+    const vp = viewportSize();
+    setPos({
+      x: pendingRestore === 'left' ? EDGE : vp.w - width - EDGE,
+      y: vp.h - height - EDGE,
+    });
+    setPendingRestore(null);
+  }, [pendingRestore]);
 
   // 拖拽移动（仅按住拖拽柄按钮触发）
   const startDrag = (e: ReactPointerEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
     dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
       offsetX: rect ? e.clientX - rect.left : 0,
       offsetY: rect ? e.clientY - rect.top : 0,
-      width: rect?.width ?? PANEL_WIDTH,
-      height: rect?.height ?? 0,
     };
     setDragging(true);
     e.preventDefault();
@@ -198,12 +310,14 @@ export default function DebugModeOverlay() {
   useEffect(() => {
     if (!dragging) return;
     const onMove = (ev: PointerEvent) => {
-      const { offsetX, offsetY, width } = dragRef.current;
-      const maxX = Math.max(EDGE, window.innerWidth - width - EDGE);
-      const maxY = Math.max(EDGE, window.innerHeight - 60);
-      const x = Math.min(Math.max(EDGE, ev.clientX - offsetX), maxX);
-      const y = Math.min(Math.max(EDGE, ev.clientY - offsetY), maxY);
-      setPos({ x, y });
+      const z = pageZoomScale();
+      const { offsetX, offsetY } = dragRef.current;
+      // 记录意图位置（clientX / offsetX 是视觉坐标，除以 zoom 换算到布局坐标）。
+      // 这里不钳制：越界时渲染位置会被 clampPos 收住，内容变矮后自动归位。
+      setPos({
+        x: (ev.clientX - offsetX) / z,
+        y: (ev.clientY - offsetY) / z,
+      });
     };
     const onUp = () => setDragging(false);
     window.addEventListener('pointermove', onMove);
@@ -241,8 +355,7 @@ export default function DebugModeOverlay() {
     const handleMouseMove = (e: MouseEvent) => {
       const el = document.elementFromPoint(e.clientX, e.clientY);
       if (el && el !== document.documentElement && el !== document.body) {
-        const r = el.getBoundingClientRect();
-        setHoverRect({ left: r.left, top: r.top, width: r.width, height: r.height });
+        setHoverRect(toLayoutRect(el.getBoundingClientRect()));
       } else {
         setHoverRect(null);
       }
@@ -256,12 +369,11 @@ export default function DebugModeOverlay() {
       if (containerRef.current && containerRef.current.contains(el)) return;
       if (restoreBtnRef.current && restoreBtnRef.current.contains(el)) return;
 
-      const r = el.getBoundingClientRect();
       const selector = getUniqueSelector(el);
       setPicked({
         selector,
         tagName: el.tagName.toLowerCase(),
-        rect: { left: r.left, top: r.top, width: r.width, height: r.height },
+        rect: toLayoutRect(el.getBoundingClientRect()),
       });
       setMenuKey(getSelectedMenuKey());
       setPicking(false);
@@ -310,8 +422,14 @@ export default function DebugModeOverlay() {
 
   const highlightRect = hoverRect ?? picked?.rect ?? null;
 
-  // 收纳后小按钮停靠在哪一侧：按面板中心在左半屏还是右半屏决定；未拖拽过时默认停右下（与面板默认位一致）
-  const panelOnLeft = pos ? pos.x + PANEL_WIDTH / 2 < window.innerWidth / 2 : false;
+  // 意图位置 → 渲染位置：按面板实测尺寸与布局视口钳制，四条边都不越界。
+  // 关键在「只算不写」：内容变高时渲染位置被顶上来，内容变矮后同一个意图
+  // 位置不再需要上移，面板自动回到原位（回写 pos 的做法会把它永久卡在上位）。
+  const renderPos = pos ? clampPos(pos.x, pos.y, panelSize.width, panelSize.height, viewport) : null;
+
+  // 收纳后小按钮停靠在哪一侧：按面板渲染位置中心在左半屏还是右半屏决定；未拖拽过时默认停右下（与面板默认位一致）
+  const viewportCenter = viewport.w / 2;
+  const panelOnLeft = renderPos ? renderPos.x + PANEL_WIDTH / 2 < viewportCenter : false;
   const restoreStyle: React.CSSProperties = panelOnLeft
     ? { left: EDGE, bottom: EDGE }
     : { right: EDGE, bottom: EDGE };
@@ -335,7 +453,10 @@ export default function DebugModeOverlay() {
           type="button"
           className={styles.restoreBtn ?? ''}
           style={restoreStyle}
-          onClick={() => setMinimized(false)}
+          onClick={() => {
+            setPendingRestore(panelOnLeft ? 'left' : 'right');
+            setMinimized(false);
+          }}
           title="展开调试面板"
           aria-label="展开调试面板"
         >
@@ -345,7 +466,7 @@ export default function DebugModeOverlay() {
       ) : (
         <div
           className={styles.container ?? ''}
-          style={pos ? { left: pos.x, top: pos.y, bottom: 'auto' } : undefined}
+          style={renderPos ? { left: renderPos.x, top: renderPos.y, bottom: 'auto' } : undefined}
           ref={containerRef}
         >
           <div

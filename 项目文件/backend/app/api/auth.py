@@ -2,13 +2,17 @@
 
 
 from fastapi import APIRouter, Depends, Request, Response
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.core.security import verify_password
+from app.core.security import decode_token, verify_password
+from app.core.websocket import SESSION_ALERT, manager
 from app.models.user import User
+from app.models.user_session import UserSession
 from app.schemas.auth import (
     LoginRequest,
     LoginResponse,
@@ -26,11 +30,30 @@ from app.services.system_config import get_config, update_config
 
 router = APIRouter()
 
+# 与 deps.get_current_user 共用同一个 Bearer 解析器实例
+_bearer = HTTPBearer(auto_error=False)
+
+
+def _client_ip(req: Request) -> str | None:
+    """取客户端真实 IP。
+
+    经 nginx 反代时取 X-Real-IP（由 $remote_addr 写入，客户端无法伪造）；
+    直连 uvicorn 时退回 request.client.host。
+
+    不能直接用 request.client.host：uvicorn 未启用 --proxy-headers，
+    该值恒为容器网桥 IP（172.18.0.x），区分不出真实来源。
+    与 api/forms.py 的同名助手保持一致（实现相同，后续可抽到公共模块）。
+    """
+    real = req.headers.get("x-real-ip")
+    if real:
+        return real.strip()
+    return req.client.host if req.client else None
+
 
 @router.post("/login", response_model=UnifiedResponse[LoginResponse])
 async def login_endpoint(request: LoginRequest, req: Request, db: AsyncSession = Depends(get_db)):
     """用户登录。未启用 2FA 直接返回令牌；已启用则返回 pending 令牌进入二次验证。"""
-    ip = req.client.host if req.client else None
+    ip = _client_ip(req)
     user_agent = req.headers.get("User-Agent", "")
     device_token = req.headers.get("X-Device-Token", "")
     tokens = await login(db, request, ip, user_agent, device_token)
@@ -42,7 +65,7 @@ async def verify_2fa_endpoint(
     request: Verify2FARequest, req: Request, db: AsyncSession = Depends(get_db)
 ):
     """登录第二步：用动态码或恢复码完成二次验证并签发正式令牌。"""
-    ip = req.client.host if req.client else None
+    ip = _client_ip(req)
     user_agent = req.headers.get("User-Agent", "")
     device_token = req.headers.get("X-Device-Token", "")
     tokens = await verify_2fa(db, request, ip, user_agent, device_token)
@@ -54,6 +77,53 @@ async def refresh_endpoint(request: RefreshRequest, db: AsyncSession = Depends(g
     """刷新访问令牌。"""
     tokens = await refresh_access_token(db, request)
     return UnifiedResponse(data=tokens)
+
+
+@router.post("/logout", response_model=UnifiedResponse[dict])
+async def logout_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+):
+    """退出当前登录：撤销本次会话。
+
+    只清浏览器本地令牌是不够的——user_session.is_revoked 若保持 false，
+    后端仍会把它计入「其他在线会话」，F1 并发登录提示永远不会消失。
+    这里把当前会话标记为已撤销，deps.get_current_user 会按 jti 反查拦截
+    该令牌后续请求（即强制下线）。
+
+    幂等：会话不存在或已撤销时同样返回成功，登出不应因重试而报错。
+    """
+    jti: str | None = None
+    if credentials:
+        try:
+            jti = decode_token(credentials.credentials).get("jti")
+        except Exception:
+            jti = None
+
+    revoked = False
+    if jti:
+        result = await db.execute(
+            update(UserSession)
+            .where(
+                UserSession.user_id == current_user.id,
+                UserSession.jti == jti,
+                UserSession.is_revoked == False,  # noqa: E712
+            )
+            .values(is_revoked=True)
+        )
+        revoked = (result.rowcount or 0) > 0
+        await db.commit()
+
+        # F1 并发登录提示的实时推送：本会话已撤销，通知该用户其余在线连接
+        # 立即重算并发数。用户报障的「A 登出后 B 的提示不消失，刷新才消失」
+        # 根因就是这里缺了主动通知，只能等轮询周期。
+        try:
+            await manager.send_to_user(current_user.id, SESSION_ALERT)
+        except Exception:  # noqa: BLE001
+            pass
+
+    return UnifiedResponse(data={"revoked": revoked})
 
 
 @router.get("/me", response_model=UnifiedResponse[UserResponse])

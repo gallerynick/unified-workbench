@@ -14,7 +14,7 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from sqlalchemy import delete, select
 
-from app.core.database import get_session_factory
+from app.core.database import isolated_session
 from app.models.file_share import FileShare
 
 logger = get_task_logger(__name__)
@@ -26,8 +26,7 @@ def cleanup_expired_shares() -> dict:
 
 
 async def _cleanup_expired_shares_async() -> dict:
-    session_factory = get_session_factory()
-    async with session_factory() as db:
+    async with isolated_session() as db:
         now = datetime.now()
 
         # Phase 1：过期超过 10 分钟且未标记删除 → 删除物理文件 + 标记删除

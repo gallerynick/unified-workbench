@@ -17,24 +17,25 @@
   gap: var(--spacing-card-gap);
 }
 
+/* 768px 起 2 列，对齐规范「主页偶发分区使用 2 列并排区块」。
+ * 此前另有一段 @media (min-width: 1200px) 内容完全相同的死代码，已删除。 */
 @media (min-width: 768px) {
   .widgetGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (min-width: 1200px) {
-  .widgetGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
+/* ====== 首页小组件 ======
+ * .widgetWrapper 是小组件唯一视觉容器（UI 设计规范 {component.card}：
+ * rounded.sm 8px / 1px border-secondary / 16px padding），由 SortableWidget 渲染。
+ * 内部各小组件只提供内容，不再各自套 antd Card，避免「内外双圆角」冲突与重复的 :global() 覆盖。
+ */
 .widgetWrapper {
   position: relative;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--rounded-sm);
-  transition: box-shadow 0.2s ease;
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-rounded);
+  transition: box-shadow var(--anim-normal) var(--anim-ease);
 }
 
 .widgetWrapper:hover {
@@ -45,7 +46,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-xs) var(--spacing-sm) 0;
+  padding: var(--spacing-xxs) var(--card-padding) 0;
 }
 
 .dragHandle {
@@ -60,7 +61,7 @@
 .removeBtn {
   color: var(--text-secondary);
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--anim-normal) var(--anim-ease);
 }
 
 .widgetWrapper:hover .removeBtn {
@@ -68,7 +69,38 @@
 }
 
 .widgetBody {
-  padding: 0 var(--spacing-sm) var(--spacing-sm);
+  padding: var(--spacing-xs) var(--card-padding) var(--card-padding);
+}
+
+/* 标题行：由 SortableWidget 统一渲染，逐像素复刻原 antd Card size=small 头部
+ * （genCardHeadStyle + genCardSizeStyle 实测值：fontSize 14px / fontWeightStrong 600 /
+ * colorTextHeading / headerHeightSM 38px 被覆盖为 32px / borderBottom 与 margin-bottom 归零）。
+ * 现有字号 token 中与 14px + 600 完全匹配的是 caption-strong 一组，故沿用。 */
+.widgetTitle {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-xxs) var(--card-padding) 0;
+  min-height: 32px;
+  color: var(--text-primary);
+  font-size: var(--text-caption-strong-size);
+  font-weight: var(--text-caption-strong-weight);
+  background: transparent;
+}
+
+/* 标题主体：flex:1 + 省略号，等价于原 .ant-card-head-title 的 textEllipsis */
+.widgetTitleMain {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 标题右侧动作（如「查看全部」）：对应 .ant-card-head-extra 的 fontWeight normal + fontSize 14px */
+.widgetTitleExtra {
+  flex: none;
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-body-weight);
 }
 
 

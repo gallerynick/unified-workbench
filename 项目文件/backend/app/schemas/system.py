@@ -7,6 +7,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.common import INT4_MAX, MAX_CPU_CORES
+
 VALID_SYSTEM_STATUSES = {"running", "stopped", "paused", "error"}
 VALID_ENVIRONMENTS = {"production", "staging", "development", "testing"}
 
@@ -18,16 +20,16 @@ class SystemCreate(BaseModel):
     description: str | None = None
     server_id: uuid.UUID
     parent_system_id: uuid.UUID | None = None
-    ip: str | None = None
-    os_type: str | None = None
-    os_version: str | None = None
-    cpu_allocated: int | None = None
-    ram_allocated: int | None = None
-    disk_allocated: int | None = None
+    ip: str | None = Field(default=None, max_length=45)
+    os_type: str | None = Field(default=None, max_length=50)
+    os_version: str | None = Field(default=None, max_length=100)
+    cpu_allocated: int | None = Field(default=None, le=MAX_CPU_CORES)
+    ram_allocated: int | None = Field(default=None, le=INT4_MAX)
+    disk_allocated: int | None = Field(default=None, le=INT4_MAX)
     status: str = "running"
     environment: str = "production"
     tags: list[str] = Field(default_factory=list)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=1000)
     maintainer_ids: list[uuid.UUID] = Field(default_factory=list)
 
     @field_validator("status")
@@ -52,16 +54,16 @@ class SystemUpdate(BaseModel):
     description: str | None = None
     server_id: uuid.UUID | None = None
     parent_system_id: uuid.UUID | None = None
-    ip: str | None = None
-    os_type: str | None = None
-    os_version: str | None = None
-    cpu_allocated: int | None = None
-    ram_allocated: int | None = None
-    disk_allocated: int | None = None
+    ip: str | None = Field(default=None, max_length=45)
+    os_type: str | None = Field(default=None, max_length=50)
+    os_version: str | None = Field(default=None, max_length=100)
+    cpu_allocated: int | None = Field(default=None, le=MAX_CPU_CORES)
+    ram_allocated: int | None = Field(default=None, le=INT4_MAX)
+    disk_allocated: int | None = Field(default=None, le=INT4_MAX)
     status: str | None = None
     environment: str | None = None
     tags: list[str] | None = None
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=1000)
     maintainer_ids: list[uuid.UUID] | None = None
 
     @field_validator("status")

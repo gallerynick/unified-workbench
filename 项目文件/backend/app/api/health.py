@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.schemas.common import UnifiedResponse
+from app.utils.timeutil import now_shanghai_iso
 from app.version import __version__
 
 router = APIRouter(tags=["健康检查"])
@@ -18,6 +19,7 @@ async def health_check() -> UnifiedResponse[dict[str, str]]:
         data={
             "status": "healthy",
             "version": __version__,
+            "server_time": now_shanghai_iso(),
         }
     )
 
@@ -42,5 +44,5 @@ async def db_health_check(
             data={
                 "status": "unhealthy",
                 "database": "disconnected",
-            }
+            },
         )

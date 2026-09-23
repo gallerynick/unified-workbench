@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.visibility import Visibility
 
 
 class VoteCreate(BaseModel):
-    title: str
+    title: str = Field(max_length=200)
     description: str | None = None
     options: list[str]
     allow_multiple: bool = False

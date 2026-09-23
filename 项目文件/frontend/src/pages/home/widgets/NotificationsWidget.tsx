@@ -1,5 +1,4 @@
-import { Card, List, Typography, Badge } from 'antd';
-import { BellOutlined } from '@ant-design/icons';
+import { List, Typography, Badge } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocket } from '../../../hooks/useWebSocket';
 
@@ -19,6 +18,7 @@ function timeAgo(ts: number): string {
   return new Date(ts).toLocaleDateString('zh-CN');
 }
 
+// 外壳与标题行由 SortableWidget 统一渲染（标题与「查看全部」见 Home.tsx 的 WIDGET_META）
 export default function NotificationsWidget() {
   const { notifications, markAsRead } = useWebSocket();
   const navigate = useNavigate();
@@ -30,37 +30,26 @@ export default function NotificationsWidget() {
   };
 
   return (
-    <Card
-      title={
-        <span>
-          <BellOutlined style={{ marginRight: "var(--spacing-xs)" }} />
-          通知提醒
-        </span>
-      }
-      extra={<a onClick={() => navigate('/notifications')}>查看全部</a>}
+    <List
       size="small"
-    >
-      <List
-        size="small"
-        dataSource={displayList}
-        locale={{ emptyText: '暂无通知' }}
-        renderItem={(item) => (
-          <List.Item
-            style={{ cursor: 'pointer' }}
-            onClick={() => handleMarkAsRead(item.id)}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', width: '100%' }}>
-              {!item.read && <Badge status="processing" />}
-              <Text {...(item.read ? { type: 'secondary' } : {})} ellipsis style={{ flex: 1 }}>
-                {item.title || item.content}
-              </Text>
-              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', whiteSpace: 'nowrap' }}>
-                {timeAgo(item.timestamp)}
-              </Text>
-            </div>
-          </List.Item>
-        )}
-      />
-    </Card>
+      dataSource={displayList}
+      locale={{ emptyText: '暂无通知' }}
+      renderItem={(item) => (
+        <List.Item
+          style={{ cursor: 'pointer' }}
+          onClick={() => handleMarkAsRead(item.id)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', width: '100%' }}>
+            {!item.read && <Badge status="processing" />}
+            <Text {...(item.read ? { type: 'secondary' } : {})} ellipsis style={{ flex: 1 }}>
+              {item.title || item.content}
+            </Text>
+            <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', whiteSpace: 'nowrap' }}>
+              {timeAgo(item.timestamp)}
+            </Text>
+          </div>
+        </List.Item>
+      )}
+    />
   );
 }

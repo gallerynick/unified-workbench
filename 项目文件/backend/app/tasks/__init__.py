@@ -6,6 +6,7 @@ from app.core.config import get_settings
 from app.tasks.backup import scheduled_backup  # noqa: F401
 from app.tasks.calendar_reminder import check_calendar_reminders  # noqa: F401
 from app.tasks.file_share_cleanup import cleanup_expired_shares  # noqa: F401
+from app.tasks.heartbeat import beat_heartbeat  # noqa: F401
 from app.tasks.reminder import check_due_reminders  # noqa: F401
 from app.tasks.stream_room import (
     cleanup_temporary_rooms,  # noqa: F401
@@ -24,6 +25,7 @@ celery_app = Celery(
         "app.tasks.calendar_reminder",
         "app.tasks.stream_room",
         "app.tasks.file_share_cleanup",
+        "app.tasks.heartbeat",
     ],
 )
 
@@ -66,5 +68,9 @@ celery_app.conf.beat_schedule = {
     'cleanup-expired-shares': {
         'task': 'app.tasks.file_share_cleanup.cleanup_expired_shares',
         'schedule': 300.0,
+    },
+    'task-heartbeat': {
+        'task': 'app.tasks.heartbeat.beat_heartbeat',
+        'schedule': 60.0,
     },
 }

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Badge, List, Typography, Spin } from 'antd';
+import { Badge, List, Typography, Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { CalendarOutlined } from '@ant-design/icons';
 import { listCalendarEvents } from '../../../api/calendar';
 import type { CalendarEvent } from '../../../types/calendar';
 
@@ -17,6 +16,7 @@ function getEventType(event: CalendarEvent): 'success' | 'warning' | 'error' | '
   return 'processing';
 }
 
+// 外壳与标题行由 SortableWidget 统一渲染（标题与「查看全部」见 Home.tsx 的 WIDGET_META）
 export default function CalendarWidget() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,31 +46,20 @@ export default function CalendarWidget() {
   }, []);
 
   return (
-    <Card
-      title={
-        <span>
-          <CalendarOutlined style={{ marginRight: "var(--spacing-xs)" }} />
-          近期日程
-        </span>
-      }
-      size="small"
-      extra={<a onClick={() => navigate('/calendar')}>查看全部</a>}
-    >
-      {loading ? <Spin /> : (
-        <List
-          size="small"
-          dataSource={events}
-          locale={{ emptyText: '近期无日程' }}
-          renderItem={(item) => (
-            <List.Item style={{ cursor: 'pointer' }} onClick={() => navigate('/calendar')}>
-              <Badge status={getEventType(item)} text={item.title} />
-              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                {new Date(item.start_time).toLocaleDateString('zh-CN')}
-              </Text>
-            </List.Item>
-          )}
-        />
-      )}
-    </Card>
+    loading ? <Spin /> : (
+      <List
+        size="small"
+        dataSource={events}
+        locale={{ emptyText: '近期无日程' }}
+        renderItem={(item) => (
+          <List.Item style={{ cursor: 'pointer' }} onClick={() => navigate('/calendar')}>
+            <Badge status={getEventType(item)} text={item.title} />
+            <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+              {new Date(item.start_time).toLocaleDateString('zh-CN')}
+            </Text>
+          </List.Item>
+        )}
+      />
+    )
   );
 }

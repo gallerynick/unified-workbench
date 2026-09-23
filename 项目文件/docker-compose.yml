@@ -72,6 +72,14 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     command: celery -A app.tasks worker --loglevel=info --concurrency=2
+    # 健康检查：worker 不监听 8000 端口，继承自 backend 镜像的 curl :8000 检查恒为假阳性。
+    # 改用 inspect ping 做真实就绪探测（要求 broker 可达且 worker 在线响应）。
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks inspect ping --timeout 5 || exit 1"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
     depends_on:
@@ -99,6 +107,12 @@ services:
       - TZ=Asia/Shanghai
       - PYTHONPATH=/app
     command: celery -A app.tasks beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    # 健康检查：显式禁用。beat 无监听端口、无 ping 接口；调度文件仅在计划变更时写入
+    # （实测相邻两次采样 mtime 不变），不存在可靠探测手段。继承自 backend 镜像的
+    # curl :8000 检查在此恒为假阳性。进程存活由 restart: unless-stopped 兜底，
+    # broker 连通性由 celery worker 的 inspect ping 覆盖。
+    healthcheck:
+      disable: true
     env_file:
       - .env
     depends_on:
@@ -138,6 +152,17 @@ services:
     networks:
       - workbench
 
+  # Ollama - AI 模型推理
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - workbench
+
   # Nginx 反向代理
   nginx:
     build:
@@ -159,6 +184,8 @@ volumes:
   pg_data:
     driver: local
   redis_data:
+    driver: local
+  ollama_data:
     driver: local
 
 networks:

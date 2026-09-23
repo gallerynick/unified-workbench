@@ -3,7 +3,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: calc(100vh / var(--zoom-scale, 1));
   background: var(--canvas-parchment);
   padding: var(--spacing-lg);
   animation: lockPageFadeIn 200ms ease-out forwards;

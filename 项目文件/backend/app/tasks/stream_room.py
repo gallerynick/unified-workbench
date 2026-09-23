@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from celery import shared_task
 from sqlalchemy import String, cast, delete, update
 
-from app.core.database import get_session_factory
+from app.core.database import isolated_session
 from app.models.stream_room import StreamRoom, StreamRoomType
 from app.services import mediamtx
 
@@ -29,8 +29,7 @@ def sync_room_active_status() -> None:
 
 
 async def _sync_room_active_status_async() -> None:
-    session_factory = get_session_factory()
-    async with session_factory() as db:
+    async with isolated_session() as db:
         active_paths = await mediamtx.get_active_paths()
         now = datetime.now(UTC)
 
@@ -72,8 +71,7 @@ def cleanup_temporary_rooms() -> None:
 
 
 async def _cleanup_temporary_rooms_async() -> None:
-    session_factory = get_session_factory()
-    async with session_factory() as db:
+    async with isolated_session() as db:
         ttl_minutes = _get_temp_room_ttl()
         cutoff = datetime.now(UTC) - timedelta(minutes=ttl_minutes)
 

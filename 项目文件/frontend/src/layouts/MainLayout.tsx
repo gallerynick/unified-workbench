@@ -53,6 +53,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import DebugModeOverlay from '../components/DebugModeOverlay';
 import NotificationBell from '../components/NotificationBell';
 import NotificationDrawer from '../components/NotificationDrawer';
+import StatusIndicator from '../components/StatusIndicator';
 import VotePopup from '../components/VotePopup';
 import { getRouteTitle } from '../config/routeTitles';
 import { useLockContext } from '../contexts/LockContext';
@@ -62,9 +63,11 @@ import { useUser } from '../contexts/UserContext';
 import { getUserPreferences } from '../api/user-preferences';
 import { useResponsive } from '../hooks/useBreakpoint';
 import { useCustomization } from '../hooks/useCustomization';
+import { usePageZoom } from '../hooks/usePageZoom';
 import { pauseIdleTimer, resumeIdleTimer, useIdleTimer } from '../hooks/useIdleTimer';
+import { useStatusProbes } from '../hooks/useStatusProbes';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { clearTokens, isAdmin } from '../utils/auth';
+import { isAdmin, logout } from '../utils/auth';
 import styles from './MainLayout.module.css';
 
 const { Header, Sider, Content } = Layout;
@@ -114,13 +117,13 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { key: '/shares', label: '文件共享', icon: 'FileOutlined' },
   { key: '/content', label: '内容编辑', icon: 'FileTextOutlined' },
   { key: '/projects', label: '项目管理', icon: 'ProjectOutlined' },
+  { key: '/meetings', label: '会议记录', icon: 'SoundOutlined' },
   { key: '/inventory', label: '物品管理', icon: 'AppstoreOutlined' },
   { key: '/finance', label: '财务中心', icon: 'MoneyCollectOutlined' },
   { key: '/secrets', label: '密钥保险箱', icon: 'KeyOutlined' },
   { key: '/reminders', label: '提醒事项', icon: 'BellOutlined' },
   { key: '/topology', label: '拓扑结构', icon: 'ApartmentOutlined' },
   { key: '/servers', label: '服务器管理', icon: 'CloudServerOutlined' },
-  { key: '/members', label: '成员目录', icon: 'TeamOutlined' },
   { key: '/streaming', label: '直播工作室', icon: 'VideoCameraOutlined' },
 ];
 
@@ -169,7 +172,7 @@ function getMenuItems(): MenuProps['items'] {
       'data-menu-id': '/settings',
       children: [
         { key: '/settings/users', label: '用户账号', icon: <TeamOutlined /> },
-        { key: '/settings/tags', label: '标签分类', icon: <TagOutlined /> },
+        { key: '/settings/tags', label: '用户标签分类', icon: <TagOutlined /> },
         { key: '/settings/templates', label: '模板库', icon: <FormOutlined /> },
         { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
         {
@@ -196,6 +199,11 @@ function getMenuItems(): MenuProps['items'] {
           key: '/settings/storage',
           label: '存储设置',
           icon: <DatabaseOutlined />,
+        },
+        {
+          key: '/settings/third-party',
+          label: '第三方服务',
+          icon: <SoundOutlined />,
         },
       ],
     });
@@ -278,7 +286,7 @@ export default function MainLayout() {
     }
     return location.pathname;
   }, [location.pathname]);
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useWebSocket();
+  const { notifications, unreadCount, connected, markAsRead, markAllAsRead } = useWebSocket();
   const toggleIdlePause = useCallback(() => {
     setIdlePaused((prev) => {
       const next = !prev;
@@ -297,21 +305,20 @@ export default function MainLayout() {
   const { user } = useUser();
   const { isLocked, locking, lock } = useLockContext();
   useIdleTimer();
+  // 状态指示：登录后启用服务级探测（C3/C4/C5）与实时通道、锁定预警（A3/E1）
+  const statusIssues = useStatusProbes({ authed: user !== null, wsConnected: connected });
 
-  // 页面缩放 + 主题（从用户偏好加载）
-  const [pageZoom, setPageZoom] = useState<string>('100');
-  const zoomScale = useMemo(() => Number(pageZoom) / 100, [pageZoom]);
+  // 页面缩放：在 documentElement 上应用 CSS zoom（见 hooks/usePageZoom.ts）
+  usePageZoom();
 
+  // 主题（从用户偏好加载）
   useEffect(() => {
     if (!user) return;
     void (async () => {
       try {
         const res = await getUserPreferences();
-        if (res.code === 0 && res.data) {
-          setPageZoom(res.data.page_zoom || '100');
-          if (res.data.theme_mode) {
-            setTheme(res.data.theme_mode as ThemeMode);
-          }
+        if (res.code === 0 && res.data?.theme_mode) {
+          setTheme(res.data.theme_mode as ThemeMode);
         }
       } catch {
         // 忽略错误
@@ -320,12 +327,9 @@ export default function MainLayout() {
   }, [user, setTheme]);
 
   useEffect(() => {
-    const zoomHandler = (e: CustomEvent<string>) => setPageZoom(e.detail);
     const themeHandler = (e: CustomEvent<string>) => setTheme(e.detail as ThemeMode);
-    window.addEventListener('zoom-changed', zoomHandler as EventListener);
     window.addEventListener('theme-changed', themeHandler as EventListener);
     return () => {
-      window.removeEventListener('zoom-changed', zoomHandler as EventListener);
       window.removeEventListener('theme-changed', themeHandler as EventListener);
     };
   }, [setTheme]);
@@ -369,10 +373,6 @@ export default function MainLayout() {
         left: 0,
         right: 0,
         bottom: 0,
-        transform: `scale(${zoomScale})`,
-        transformOrigin: 'top left',
-        width: `${100 / zoomScale}%`,
-        height: `${100 / zoomScale}vh`,
         overflow: 'hidden',
       }}
     >
@@ -636,12 +636,15 @@ export default function MainLayout() {
             >
               {getRouteTitle(location.pathname)}
             </Text>
-            <Space size="middle">
+            <StatusIndicator issues={statusIssues} layout="inline" />
+            <div className={styles.headerActions}>
               <Tooltip title="手动锁定工作台">
                 <Button
                   type="text"
-                  size="small"
-                  icon={<LockOutlined />}
+                  className={styles.headerIconButton ?? ''}
+                  icon={
+                    <LockOutlined style={{ fontSize: 'var(--header-icon-size)' }} />
+                  }
                   aria-label="手动锁定工作台"
                   onClick={lock}
                 />
@@ -649,8 +652,14 @@ export default function MainLayout() {
               <Tooltip title={idlePaused ? '自动锁定已暂停' : '空闲 5 分钟自动锁定'}>
                 <Button
                   type="text"
-                  size="small"
-                  icon={idlePaused ? <PauseCircleOutlined /> : <ClockCircleOutlined />}
+                  className={styles.headerIconButton ?? ''}
+                  icon={
+                    idlePaused ? (
+                      <PauseCircleOutlined style={{ fontSize: 'var(--header-icon-size)' }} />
+                    ) : (
+                      <ClockCircleOutlined style={{ fontSize: 'var(--header-icon-size)' }} />
+                    )
+                  }
                   aria-label={idlePaused ? '恢复自动锁定' : '暂停自动锁定'}
                   onClick={toggleIdlePause}
                   style={{
@@ -659,6 +668,7 @@ export default function MainLayout() {
                 />
               </Tooltip>
               <NotificationBell
+                buttonClassName={styles.headerIconButton ?? ''}
                 notifications={notifications}
                 unreadCount={unreadCount}
                 onMarkAsRead={markAsRead}
@@ -671,24 +681,24 @@ export default function MainLayout() {
                     if (key === 'profile') navigate('/profile');
                     if (key === 'logout') {
                       setLoggingOut(true);
-                      setTimeout(() => {
-                        clearTokens();
-                        navigate('/login');
-                      }, 500);
+                      // 先撤销服务端会话再跳转：否则本次会话仍被计入
+                      // 「其他在线会话」，其他设备上的并发登录提示不会消失。
+                      void logout().then(() => navigate('/login'));
                     }
                   },
                 }}
                 placement="bottomRight"
               >
-                <Space style={{ cursor: 'pointer' }}>
+                <div className={styles.headerUser}>
                   <Avatar
+                    size="default"
                     src={user?.avatar || undefined}
                     icon={!user?.avatar ? <UserOutlined /> : undefined}
                   />
                   {!isMobile && <span>{user?.nickname || '管理员'}</span>}
-                </Space>
+                </div>
               </Dropdown>
-            </Space>
+            </div>
           </Header>
           <Content
             className={styles.content}

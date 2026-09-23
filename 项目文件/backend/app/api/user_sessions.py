@@ -5,17 +5,23 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.websocket import SESSION_ALERT, manager
 from app.models.user import User
 from app.models.user_session import UserSession
 from app.schemas.common import UnifiedResponse
 from app.schemas.user_session import DeviceResponse, SessionResponse
+from app.services.session_activity import count_concurrent, get_current_session
 
 router = APIRouter()
+
+# 与 deps.get_current_user 共用同一个 Bearer 解析器实例
+_bearer = HTTPBearer(auto_error=False)
 
 
 @router.get("/me/sessions", response_model=UnifiedResponse[list[SessionResponse]])
@@ -36,6 +42,22 @@ async def list_my_sessions(
     return UnifiedResponse(
         data=[SessionResponse.model_validate(s) for s in sessions]
     )
+
+
+@router.get("/me/concurrent", response_model=UnifiedResponse[dict])
+async def my_concurrent_sessions(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+):
+    """当前用户在其他设备 / 不同地址的在线会话统计（F1 并发登录提示专用）。
+
+    从 /system/status 拆出的轻量端点：全量状态端点还要做存储写入探针与
+    推流连通性探测，不适合高频调用。并发登录属安全语义，前端按 10s 轮询本端点，
+    而不是挂在 60s 的全量状态轮询上。
+    """
+    current = await get_current_session(db, current_user, credentials.credentials)
+    return UnifiedResponse(data=await count_concurrent(db, current_user, current))
 
 
 @router.delete("/me/sessions/{session_id}", response_model=UnifiedResponse[None])
@@ -62,6 +84,11 @@ async def revoke_session(
 
     session.is_revoked = True
     await db.commit()
+    # F1 实时推送：其余在线端应立刻重算并发会话数
+    try:
+        await manager.send_to_user(current_user.id, SESSION_ALERT)
+    except Exception:  # noqa: BLE001
+        pass
     return UnifiedResponse(data=None)
 
 
@@ -191,4 +218,10 @@ async def revoke_device(
         .values(is_revoked=True)
     )
     await db.commit()
+    if result.rowcount:
+        # F1 实时推送：设备整体注销后其余在线端应立刻重算并发会话数
+        try:
+            await manager.send_to_user(current_user.id, SESSION_ALERT)
+        except Exception:  # noqa: BLE001
+            pass
     return UnifiedResponse(data={"affected_count": result.rowcount})  # type: ignore[attr-defined]

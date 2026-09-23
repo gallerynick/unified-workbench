@@ -8,6 +8,8 @@ interface NotificationBellProps {
   unreadCount: number;
   onMarkAsRead: (id: string) => void;
   onMarkAllAsRead: () => void;
+  /** 铃铛按钮样式，用于与其它顶栏图标按钮保持同一规格 */
+  buttonClassName?: string;
 }
 
 export default function NotificationBell({
@@ -15,6 +17,7 @@ export default function NotificationBell({
   unreadCount,
   onMarkAsRead,
   onMarkAllAsRead,
+  buttonClassName,
 }: NotificationBellProps) {
   const navigate = useNavigate();
   const recentNotifications = notifications.slice(0, 10);
@@ -115,7 +118,14 @@ export default function NotificationBell({
       placement="bottomRight"
     >
       <Badge count={unreadCount} size="small">
-        <BellOutlined style={{ fontSize: 'var(--text-heading-3-size)', cursor: 'pointer' }} />
+        <Button
+          type="text"
+          className={buttonClassName ?? ''}
+          aria-label="通知"
+          icon={
+            <BellOutlined style={{ fontSize: 'var(--header-icon-size)' }} />
+          }
+        />
       </Badge>
     </Dropdown>
   );

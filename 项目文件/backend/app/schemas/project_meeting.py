@@ -6,17 +6,17 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProjectMeetingCreate(BaseModel):
     """创建项目会议请求"""
 
     project_id: uuid.UUID
-    number: str
-    type: str
+    number: str = Field(max_length=50)
+    type: str = Field(max_length=50)
     started_at: datetime
-    speaker: str | None = None
+    speaker: str | None = Field(default=None, max_length=100)
     participants: list[str] = []
     content: str | None = None
     notes: list[Any] = []
@@ -27,10 +27,10 @@ class ProjectMeetingCreate(BaseModel):
 class ProjectMeetingUpdate(BaseModel):
     """更新项目会议请求"""
 
-    number: str | None = None
-    type: str | None = None
+    number: str | None = Field(default=None, max_length=50)
+    type: str | None = Field(default=None, max_length=50)
     started_at: datetime | None = None
-    speaker: str | None = None
+    speaker: str | None = Field(default=None, max_length=100)
     participants: list[str] | None = None
     content: str | None = None
     notes: list[Any] | None = None

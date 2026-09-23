@@ -6,7 +6,7 @@ import asyncio
 
 from celery import shared_task
 
-from app.core.database import get_session_factory
+from app.core.database import isolated_session
 from app.services.backup import cleanup_old_backups, create_backup
 from app.services.system_config import get_config
 
@@ -18,8 +18,7 @@ def scheduled_backup():
 
 
 async def _scheduled_backup_async():
-    session_factory = get_session_factory()
-    async with session_factory() as db:
+    async with isolated_session() as db:
         config = await get_config(db, "backup_config") or {}
         if not config.get("enabled", False):
             return

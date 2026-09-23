@@ -7,6 +7,9 @@ import { useUser } from '../contexts/UserContext';
 import { useLockContext } from '../contexts/LockContext';
 import { request, HttpError } from '../utils/request';
 import { webauthnAuthStart, webauthnVerifyLock, listWebAuthnCredentials } from '../api/security';
+import StatusIndicator from '../components/StatusIndicator';
+import { useStatusProbes } from '../hooks/useStatusProbes';
+import { usePageZoom } from '../hooks/usePageZoom';
 import styles from './LockPage.module.css';
 
 /** Base64url 编码辅助函数 */
@@ -18,6 +21,10 @@ const { Title, Text } = Typography;
 export default function LockPage() {
   const { user, refreshUser } = useUser();
   const { unlock } = useLockContext();
+  // 页面缩放：与工作台一致，在 documentElement 上应用 CSS zoom
+  usePageZoom();
+  // 锁定页同登录页：只跑登录前可判定的探测项
+  const statusIssues = useStatusProbes({ authed: false, wsConnected: true });
   const [loading, setLoading] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [showInput, setShowInput] = useState(false);
@@ -263,6 +270,7 @@ const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
           </Text>
         </div>
       )}
+      <StatusIndicator issues={statusIssues} layout="floating" />
     </div>
   );
 }

@@ -154,7 +154,10 @@ export function getAntdThemeConfig(isDark: boolean) {
         colorText: isDark ? '#a6a6a6' : '#8c8c8c',
       },
       Card: {
-        borderRadiusLG: 18,
+        // 对齐 UI 设计规范 {component.card} 的 rounded.sm 8px；
+        // 此前为 18（{component.utility-card} 的值），但工作台无工具网格页，
+        // 导致全站 64 处 Card 全部渲染 18px，与 Modal 8px / 手写 CSS 8px 冲突。
+        borderRadiusLG: 8,
         paddingLG: 16,
         colorBorderSecondary: isDark ? '#303030' : '#f0f0f0',
         colorBgContainer: isDark ? '#141414' : '#ffffff',

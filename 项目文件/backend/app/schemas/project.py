@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.visibility import Visibility
 
@@ -14,56 +14,56 @@ from app.core.visibility import Visibility
 class ProjectCreate(BaseModel):
     """创建项目请求"""
 
-    number: str | None = None
+    number: str | None = Field(default=None, max_length=50)
     owner_id: uuid.UUID | None = None
-    title: str
+    title: str = Field(max_length=200)
     description: str | None = None
     content: dict[str, Any] = {}
-    status: str = "draft"
+    status: str = Field(default="draft", max_length=20)
     visibility: Visibility = Visibility.PRIVATE
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     member_ids: list[str] | None = None
     member_permissions: dict | None = None
-    department: str | None = None
-    language: str | None = None
+    department: str | None = Field(default=None, max_length=50)
+    language: str | None = Field(default=None, max_length=30)
     is_open_source: bool | None = None
-    priority: str | None = None
-    project_type: str | None = None
+    priority: str | None = Field(default=None, max_length=20)
+    project_type: str | None = Field(default=None, max_length=30)
     goals: str | None = None
     requirements: str | None = None
     additional_req: str | None = None
     modules: str | None = None
     related_projects: str | None = None
     dev_process: str | None = None
-    repo_url: str | None = None
+    repo_url: str | None = Field(default=None, max_length=500)
 
 
 class ProjectUpdate(BaseModel):
     """更新项目请求"""
 
-    number: str | None = None
-    title: str | None = None
+    number: str | None = Field(default=None, max_length=50)
+    title: str | None = Field(default=None, max_length=200)
     description: str | None = None
     content: dict[str, Any] | None = None
-    status: str | None = None
+    status: str | None = Field(default=None, max_length=20)
     visibility: Visibility | None = None
     restricted_users: list[str] | None = None
     restricted_tags: list[str] | None = None
     member_ids: list[str] | None = None
     member_permissions: dict | None = None
-    department: str | None = None
-    language: str | None = None
+    department: str | None = Field(default=None, max_length=50)
+    language: str | None = Field(default=None, max_length=30)
     is_open_source: bool | None = None
-    priority: str | None = None
-    project_type: str | None = None
+    priority: str | None = Field(default=None, max_length=20)
+    project_type: str | None = Field(default=None, max_length=30)
     goals: str | None = None
     requirements: str | None = None
     additional_req: str | None = None
     modules: str | None = None
     related_projects: str | None = None
     dev_process: str | None = None
-    repo_url: str | None = None
+    repo_url: str | None = Field(default=None, max_length=500)
 
 
 class ProjectResponse(BaseModel):

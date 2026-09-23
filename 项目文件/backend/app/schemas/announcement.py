@@ -5,18 +5,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AnnouncementCreate(BaseModel):
-    title: str
+    title: str = Field(max_length=200)
     content: str
     is_pinned: bool = False
     is_published: bool = True
 
 
 class AnnouncementUpdate(BaseModel):
-    title: str | None = None
+    title: str | None = Field(default=None, max_length=200)
     content: str | None = None
     is_pinned: bool | None = None
     is_published: bool | None = None

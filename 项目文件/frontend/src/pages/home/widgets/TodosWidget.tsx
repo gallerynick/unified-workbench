@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Card, List, Typography, Checkbox, Spin, message } from 'antd';
+import { List, Typography, Checkbox, Spin, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { CheckSquareOutlined } from '@ant-design/icons';
 import { listTasks, updateTask } from '../../../api/tasks';
 import type { Task } from '../../../types/task';
 
 const { Text } = Typography;
 
+// 外壳与标题行由 SortableWidget 统一渲染（标题与「查看全部」见 Home.tsx 的 WIDGET_META）
 export default function TodosWidget() {
   const [list, setList] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,36 +43,25 @@ export default function TodosWidget() {
   };
 
   return (
-    <Card
-      title={
-        <span>
-          <CheckSquareOutlined style={{ marginRight: "var(--spacing-xs)" }} />
-          待办事项
-        </span>
-      }
-      size="small"
-      extra={<a onClick={() => navigate('/tasks')}>查看全部</a>}
-    >
-      {loading ? <Spin /> : (
-        <List
-          size="small"
-          dataSource={list}
-          locale={{ emptyText: '暂无待办' }}
-          renderItem={(item) => (
-            <List.Item style={{ cursor: 'pointer' }} onClick={() => navigate('/tasks')}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", width: '100%' }}>
-                <Checkbox checked={item.status === 'done'} onChange={() => toggleDone(item)} onClick={(e) => e.stopPropagation()} />
-                <Text delete={item.status === 'done'} ellipsis style={{ flex: 1 }}>
-                  {item.title}
-                </Text>
-                <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', whiteSpace: 'nowrap' }}>
-                  {item.due_date ? new Date(item.due_date).toLocaleDateString('zh-CN') : ''}
-                </Text>
-              </div>
-            </List.Item>
-          )}
-        />
-      )}
-    </Card>
+    loading ? <Spin /> : (
+      <List
+        size="small"
+        dataSource={list}
+        locale={{ emptyText: '暂无待办' }}
+        renderItem={(item) => (
+          <List.Item style={{ cursor: 'pointer' }} onClick={() => navigate('/tasks')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)", width: '100%' }}>
+              <Checkbox checked={item.status === 'done'} onChange={() => toggleDone(item)} onClick={(e) => e.stopPropagation()} />
+              <Text delete={item.status === 'done'} ellipsis style={{ flex: 1 }}>
+                {item.title}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)', whiteSpace: 'nowrap' }}>
+                {item.due_date ? new Date(item.due_date).toLocaleDateString('zh-CN') : ''}
+              </Text>
+            </div>
+          </List.Item>
+        )}
+      />
+    )
   );
 }
