@@ -957,7 +957,19 @@ export default function ThirdPartyConfigPage() {
                                   : `${info.name}（未下载）`,
                               };
                             })}
-                            onChange={(value: string) => void checkOllamaStatus(value)}
+                            onChange={(value: string) => {
+                              // 直接查 localModels 判断是否已下载，避免额外 API 调用
+                              const model = localModels.find((m) => m.name === value);
+                              if (model) {
+                                setAiModelStatus('downloaded');
+                                setAiModelSize(model.size);
+                              } else if (!downloadTaskId) {
+                                setAiModelStatus('not_downloaded');
+                                setAiModelSize(null);
+                              }
+                              // 异步刷新 Ollama 健康状态（不影响即时显示）
+                              void checkOllamaStatus(value);
+                            }}
                           />
                         </Form.Item>
                         <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
