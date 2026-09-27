@@ -148,7 +148,7 @@ function isFormValidationError(err: unknown): err is { errorFields: unknown[] } 
 }
 export default function ThirdPartyConfigPage() {
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<{ ai: boolean; asr: boolean }>({ ai: false, asr: false });
   const [speedTesting, setSpeedTesting] = useState(false);
@@ -365,6 +365,8 @@ export default function ThirdPartyConfigPage() {
   };
 
   useEffect(() => {
+    // 先关闭全屏 loading——配置请求很快，不应阻塞页面渲染
+    setLoading(false);
     // 先检查是否有正在进行的下载任务，避免竞态条件
     checkExistingDownload().then((hasActiveDownload) => {
       // 检查完成，设置 checkingDownload=false
