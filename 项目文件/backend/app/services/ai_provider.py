@@ -98,11 +98,26 @@ async def _call_ai(config: dict[str, Any], transcript: str) -> dict[str, Any]:
         result = response.json()
     
     # 解析响应
-    content = result["choices"][0]["message"]["content"]
+    # 思考型模型（Qwen3、Qwen3.5 等）会把思考过程放在 reasoning_content 字段，
+    # 实际回答在 content 字段。非思考模型只有 content 字段。
+    message = result["choices"][0]["message"]
+    content = message.get("content") or ""
+    reasoning = message.get("reasoning_content") or message.get("thinking") or ""
+    
+    # 如果 content 为空但 reasoning 有内容，说明模型把回答放到了思考里
+    # 这时需要从 reasoning 里提取 JSON 部分
+    if not content and reasoning:
+        # 尝试从 reasoning 里找 JSON
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', reasoning)
+        if json_match:
+            content = json_match.group(0)
     
     try:
         minutes = json.loads(content)
         minutes["model_used"] = model
+        if reasoning:
+            minutes["thinking_chars"] = len(reasoning)
         return minutes
     except json.JSONDecodeError:
         # 如果解析失败，返回默认格式
@@ -111,4 +126,5 @@ async def _call_ai(config: dict[str, Any], transcript: str) -> dict[str, Any]:
             "key_points": [],
             "todos": [],
             "model_used": model,
+            "parse_error": "JSON 解析失败，模型可能输出了非 JSON 格式",
         }
