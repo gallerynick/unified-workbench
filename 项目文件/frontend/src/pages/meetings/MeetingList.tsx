@@ -107,16 +107,13 @@ export default function MeetingList() {
         </Button>
       </div>
 
-      {loading ? (
-        <div className={styles.empty}>
-          <Spin size="large" />
-        </div>
-      ) : meetings.length === 0 ? (
-        <div className={styles.empty}>
-          <Empty description="暂无会议，点击右上角「新建会议」开始记录" />
-        </div>
-      ) : (
-        <div className={styles.grid}>
+      <Spin spinning={loading}>
+        {meetings.length === 0 ? (
+          <div className={styles.empty}>
+            <Empty description="暂无会议，点击右上角「新建会议」开始记录" />
+          </div>
+        ) : (
+          <div className={styles.grid}>
           {meetings.map((meeting) => {
             const statusInfo = statusMap[meeting.status] || statusMap.not_started;
             const StatusIcon = statusInfo.icon;
@@ -148,8 +145,9 @@ export default function MeetingList() {
               </div>
             );
           })}
-        </div>
-      )}
+          </div>
+        )}
+      </Spin>
 
       <Modal
         title="新建会议"
