@@ -26,7 +26,7 @@ import {
   ExclamationCircleOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import {
   deleteProjectMeeting,
   getProjectMeeting,
@@ -400,7 +400,7 @@ export default function MeetingDetailPage() {
     }
     setSaving(true);
     try {
-      const { title, body } = splitTitleContent(meeting.content);
+      const { body } = splitTitleContent(meeting.content);
       const newTitle = values.title?.trim() ?? '';
       const content = body ? `${newTitle}\n\n${body}` : newTitle;
       const payload = {
@@ -882,7 +882,7 @@ export default function MeetingDetailPage() {
         <TextArea
           rows={10}
           value={editContentBody}
-          onChange={(e) => setContentBody(e.target.value)}
+          onChange={(e) => setEditContentBody(e.target.value)}
           placeholder="请输入交流正文（换行保留）"
           maxLength={5000}
           showCount
@@ -920,6 +920,7 @@ export default function MeetingDetailPage() {
         open={false}
         onClose={() => {}}
         onSaved={() => {}}
+        existingMeetings={[]}
       />
 
       <Modal

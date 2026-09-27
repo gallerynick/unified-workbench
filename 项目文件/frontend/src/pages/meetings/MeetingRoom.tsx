@@ -505,38 +505,106 @@ export default function MeetingRoom() {
               style={{ margin: 0, width: '100%' }}
             />
           </div>
-          <div className={styles.toolbar}>
-            <Button size="small" type="text"><Text strong>B</Text></Button>
-            <Button size="small" type="text"><Text italic>I</Text></Button>
-            <Button size="small" type="text"><Text underline>U</Text></Button>
-            <Button size="small" type="text">H1</Button>
-            <Button size="small" type="text">H2</Button>
-          </div>
-          <textarea
-            className={styles.editor}
-            value={noteContent}
-            onChange={handleNoteChange}
-            placeholder="开始记录你的笔记..."
-            style={{ outline: 'none', resize: 'none' }}
-          />
-          <div className={styles.editorFooter}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {noteSaveState === 'saving' && (
-                <span><LoadingOutlined style={{ marginRight: 4 }} />保存中</span>
+          {activeTab === 'notes' && (
+            <>
+              <div className={styles.toolbar}>
+                <Button size='small' type='text'><Text strong>B</Text></Button>
+                <Button size='small' type='text'><Text italic>I</Text></Button>
+                <Button size='small' type='text'><Text underline>U</Text></Button>
+                <Button size='small' type='text'>H1</Button>
+                <Button size='small' type='text'>H2</Button>
+              </div>
+              <textarea
+                className={styles.editor}
+                value={noteContent}
+                onChange={handleNoteChange}
+                placeholder='开始记录你的笔记...'
+                style={{ outline: 'none', resize: 'none' }}
+              />
+              <div className={styles.editorFooter}>
+                <Text type='secondary' style={{ fontSize: 12 }}>
+                  {noteSaveState === 'saving' && (
+                    <span><LoadingOutlined style={{ marginRight: 4 }} />保存中</span>
+                  )}
+                  {noteSaveState === 'saved' && (
+                    <span>
+                      <CheckCircleOutlined style={{ marginRight: 4, color: 'var(--color-success)' }} />
+                      已保存 {noteSavedAt}
+                    </span>
+                  )}
+                  {noteSaveState === 'failed' && '自动保存失败，继续编辑后重试'}
+                  {noteSaveState === 'idle' && (noteContent ? '自动保存' : '未开始记录')}
+                </Text>
+                <Text type='secondary' style={{ fontSize: 12 }}>
+                  字数 {charCount}
+                </Text>
+              </div>
+            </>
+          )}
+          {activeTab === 'summary' && (
+            <div className={styles.editor} style={{ padding: 16, overflowY: 'auto' }}>
+              {meeting?.minutes?.summary ? (
+                <Paragraph style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8' }}>
+                  {meeting.minutes.summary}
+                </Paragraph>
+              ) : (
+                <Empty description='会议结束后将自动生成总结' image={Empty.PRESENTED_IMAGE_SIMPLE} />
               )}
-              {noteSaveState === 'saved' && (
-                <span>
-                  <CheckCircleOutlined style={{ marginRight: 4, color: 'var(--color-success)' }} />
-                  已保存 {noteSavedAt}
-                </span>
+            </div>
+          )}
+          {activeTab === 'highlights' && (
+            <div className={styles.editor} style={{ padding: 16, overflowY: 'auto' }}>
+              {meeting?.minutes?.key_points && meeting.minutes.key_points.length > 0 ? (
+                <ul style={{ paddingLeft: 20, lineHeight: '2' }}>
+                  {meeting.minutes.key_points.map((point, i) => (
+                    <li key={i} style={{ marginBottom: 8 }}>
+                      <Text>{point}</Text>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Empty description='会议结束后将自动生成重点摘要' image={Empty.PRESENTED_IMAGE_SIMPLE} />
               )}
-              {noteSaveState === 'failed' && '自动保存失败，继续编辑后重试'}
-              {noteSaveState === 'idle' && (noteContent ? '自动保存' : '未开始记录')}
-            </Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              字数 {charCount}
-            </Text>
-          </div>
+            </div>
+          )}
+          {activeTab === 'todos' && (
+            <div className={styles.editor} style={{ padding: 16, overflowY: 'auto' }}>
+              {meeting?.minutes?.todos && meeting.minutes.todos.length > 0 ? (
+                <ul style={{ paddingLeft: 20, lineHeight: '2' }}>
+                  {meeting.minutes.todos.map((todo, i) => (
+                    <li key={i} style={{ marginBottom: 8 }}>
+                      <Text>{todo}</Text>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Empty description='会议结束后将自动生成待办事项' image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              )}
+            </div>
+          )}
+          {activeTab === 'recording' && (
+            <div className={styles.editor} style={{ padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+              <PlayCircleOutlined style={{ fontSize: 48, color: 'var(--color-info)' }} />
+              {meeting?.audio_file_path ? (
+                <>
+                  <Text style={{ fontSize: 14 }}>录音文件已保存</Text>
+                  <Button
+                    type='primary'
+                    icon={<DownloadOutlined />}
+                    onClick={() => {
+                      if (meeting?.audio_file_path) {
+                        window.open('/' + meeting.audio_file_path, '_blank');
+                      }
+                    }}
+                  >
+                    下载录音
+                  </Button>
+                </>
+              ) : (
+                <Text type='secondary'>暂无录音文件</Text>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
