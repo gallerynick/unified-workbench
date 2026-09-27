@@ -23,6 +23,7 @@ from app.api.project_changes import router as project_changes_router
 from app.api.project_events import router as project_events_router
 from app.api.project_meetings import router as project_meetings_router
 from app.api.meeting_records import router as meeting_records_router
+from app.api.monitor import router as monitor_router
 # meeting_ws_router 直接在 app 上注册（WebSocket 不走 /api/v1 前缀）
 from app.api.third_party_config import router as third_party_config_router
 from app.api.project_members import router as project_members_router
@@ -96,6 +97,7 @@ api_router.include_router(topology_router, prefix="/topologies", tags=["拓扑�
 api_router.include_router(notifications_router, prefix="/notifications", tags=["通知"])
 api_router.include_router(system_router)
 api_router.include_router(status_router)
+api_router.include_router(monitor_router)
 api_router.include_router(servers_router, prefix="/servers", tags=["服务器管理"])
 api_router.include_router(systems_router, prefix="/systems", tags=["系统管理"])
 api_router.include_router(services_router, prefix="/services", tags=["服务管理"])

@@ -25,6 +25,7 @@ dependencies = [
     "pyzipper>=0.4",
     "pyotp>=2.9",
     "webauthn>=2.0",
+    "psutil>=5.9",
     # ASR 语音识别（torch/torchaudio 在 Dockerfile 中单独安装 CPU-only 版）
     "funasr>=1.0",
     "soundfile>=0.12",

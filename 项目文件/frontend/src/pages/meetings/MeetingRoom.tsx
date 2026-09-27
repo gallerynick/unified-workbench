@@ -78,8 +78,8 @@ export default function MeetingRoom() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-      // 不在此处停止音频采集，让 WebSocket 保持录音状态
-      // stopAudioCapture();  // 注释掉，保持后台录音
+      // 组件卸载时停止音频采集，避免后台占用麦克风
+      stopAudioCapture();
     };
   }, [id]);
 
