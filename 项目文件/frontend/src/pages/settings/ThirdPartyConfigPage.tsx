@@ -937,12 +937,12 @@ export default function ThirdPartyConfigPage() {
                       style={{ marginBottom: 16 }}
                     />
 
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <Form.Item
                           name={['ai_provider', 'local', 'model']}
                           label="模型"
-                          style={{ marginBottom: 8 }}
+                          style={{ marginBottom: 'var(--spacing-xs)' }}
                         >
                           <Select
                             showSearch
@@ -972,7 +972,7 @@ export default function ThirdPartyConfigPage() {
                             }}
                           />
                         </Form.Item>
-                        <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
+                        <Paragraph type="secondary" style={{ margin: 'var(--spacing-xxs) 0 0', fontSize: 12 }}>
                           {(() => {
                             const selected = form.getFieldValue(['ai_provider', 'local', 'model']);
                             if (!selected) return '选择模型后自动检测状态';
@@ -980,30 +980,27 @@ export default function ThirdPartyConfigPage() {
                           })()}
                         </Paragraph>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 30, minWidth: 120 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xxs)', paddingTop: 'var(--spacing-lg)', minWidth: 100 }}>
                         {!checkingDownload && aiModelStatus === 'not_downloaded' && (
-                          <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownloadAIModel}>
+                          <Button type="primary" size="small" icon={<DownloadOutlined />} onClick={handleDownloadAIModel}>
                             下载模型
                           </Button>
                         )}
                         {aiModelStatus === 'downloading' && (
-                          <Tag color="processing">
-                            <LoadingOutlined />
+                          <Tag color="processing" icon={<LoadingOutlined />} style={{ margin: 0, fontSize: 12 }}>
                             下载中
                           </Tag>
                         )}
                         {aiModelStatus === 'downloaded' && (
-                          <Tag color="success">
-                            <CheckCircleOutlined />
+                          <Tag color="success" icon={<CheckCircleOutlined />} style={{ margin: 0, fontSize: 12 }}>
                             已就绪
                           </Tag>
                         )}
                         {aiModelStatus === 'error' && (
-                          <Tag color="error">错误</Tag>
+                          <Tag color="error" style={{ margin: 0, fontSize: 12 }}>错误</Tag>
                         )}
                         {checkingDownload && (
-                          <Tag color="default">
-                            <LoadingOutlined />
+                          <Tag icon={<LoadingOutlined />} style={{ margin: 0, fontSize: 12 }}>
                             检查中...
                           </Tag>
                         )}
