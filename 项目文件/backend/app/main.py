@@ -42,7 +42,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception:
         logger.exception("启动清理孤儿下载任务失败")
 
+    # 启动资源采样器：进程内单例 + 内存环形缓冲，1 秒一次。
+    # 采样只读 /proc 与 cgroup，失败仅影响监视页数据，不阻止应用启动。
+    from app.services.monitor.sampler import get_sampler
+
+    try:
+        await get_sampler().start()
+    except Exception:
+        logger.exception("启动资源采样器失败")
+
     yield
+
+    try:
+        await get_sampler().stop()
+    except Exception:
+        logger.exception("停止资源采样器失败")
 
 
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:

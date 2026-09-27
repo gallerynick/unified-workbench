@@ -474,7 +474,7 @@ async def meeting_audio_ws(
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for meeting {meeting_id}")
-        # 断开连接时保存音频文件
+        # 断开连接时保存音频文件并更新会议状态
         try:
             update_wav_header(audio_file_path, num_samples)
             logger.info(
@@ -483,6 +483,26 @@ async def meeting_audio_ws(
             )
         except Exception as e:
             logger.error(f"Failed to save audio file on disconnect: {e}")
+        
+        # 更新会议状态为暂停（用户离开但会议未正式结束）
+        try:
+            async with factory() as db:
+                result = await db.execute(
+                    __import__("sqlalchemy").select(MeetingRecord)
+                    .where(MeetingRecord.id == meeting_id)
+                )
+                meeting = result.scalar_one_or_none()
+                if meeting and meeting.status == "recording":
+                    meeting.status = "paused"
+                    meeting.paused_reason = "client_left"
+                    meeting.duration_seconds = int(round(total_duration))
+                    await db.commit()
+                    logger.info(
+                        f"Meeting {meeting_id} status updated to paused "
+                        f"(client left), duration: {total_duration:.1f}s"
+                    )
+        except Exception as e:
+            logger.error(f"Failed to update meeting status on disconnect: {e}")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         try:
