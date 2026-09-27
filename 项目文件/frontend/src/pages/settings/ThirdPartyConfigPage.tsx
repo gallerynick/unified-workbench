@@ -14,7 +14,7 @@ const DEFAULT_CONFIG: ThirdPartyConfig = {
     mode: 'local',
     local: {
       base_url: 'http://ollama:11434/v1',
-      model: 'qwen2.5:3b',
+      model: '',
     },
     online: {
       base_url: '',
@@ -229,25 +229,37 @@ export default function ThirdPartyConfigPage() {
       setOllamaHealthDetail(null);
 
       // 拉取本机已下载的模型列表，供模型选择器使用
-      getOllamaModels()
-        .then((r) => {
-          if (r.code === 0 && Array.isArray(r.data?.models)) {
-            setLocalModels(r.data.models.map((m) => ({ name: m.name, size: m.size ?? 0 })));
-          }
-        })
-        .catch(() => undefined);
+      const modelsRes = await getOllamaModels();
+      if (modelsRes.code === 0 && Array.isArray(modelsRes.data?.models)) {
+        const models = modelsRes.data.models.map((m) => ({ name: m.name, size: m.size ?? 0 }));
+        setLocalModels(models);
 
-      // 用传入的模型名或表单里选中的模型查状态，而不是写死的预设模型
-      const selectedModel =
-        modelOverride || form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.ollamaName;
-      const modelRes = await getOllamaModelStatus(selectedModel);
-      if (modelRes.code === 0 && modelRes.data?.downloaded) {
-        setAiModelStatus('downloaded');
-        setAiModelSize(modelRes.data.size ?? null);
-      } else if (!downloadTaskId) {
-        // 只有在没有正在进行的下载任务时，才设置为 'not_downloaded'
-        setAiModelStatus('not_downloaded');
-        setAiModelSize(null);
+        // 没有显式传入模型名时，看表单里有没有选中
+        let targetModel: string | undefined = modelOverride || form.getFieldValue(['ai_provider', 'local', 'model']);
+
+        // 表单里没选中模型时，默认选第一个已下载的
+        if (!targetModel && models.length > 0) {
+          // 优先选预设模型，否则选第一个
+          const presetModel = models.find((m) => m.name === PRESET_AI_MODEL.ollamaName);
+          targetModel = presetModel?.name || models[0]!.name;
+          form.setFieldValue(['ai_provider', 'local', 'model'], targetModel);
+        }
+
+        // 没有选中任何模型就不查状态、不显示「已就绪」
+        if (!targetModel) {
+          setAiModelStatus('not_downloaded');
+          setAiModelSize(null);
+          return;
+        }
+
+        const modelRes = await getOllamaModelStatus(targetModel);
+        if (modelRes.code === 0 && modelRes.data?.downloaded) {
+          setAiModelStatus('downloaded');
+          setAiModelSize(modelRes.data.size ?? null);
+        } else if (!downloadTaskId) {
+          setAiModelStatus('not_downloaded');
+          setAiModelSize(null);
+        }
       }
       return;
     }
@@ -869,9 +881,14 @@ export default function ThirdPartyConfigPage() {
                           />
                         </Form.Item>
                         <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
-                          {aiModelStatus === 'downloaded' && aiModelSize != null
-                            ? `已下载 ${formatBytes(aiModelSize)} · `
-                            : ''}{MODEL_INFO[form.getFieldValue(['ai_provider', 'local', 'model']) || '']?.description || PRESET_AI_MODEL.description}
+                          {(() => {
+                            const selected = form.getFieldValue(['ai_provider', 'local', 'model']);
+                            if (!selected) return '选择模型后自动检测状态';
+                            const desc = MODEL_INFO[selected]?.description || '';
+                            const size = aiModelStatus === 'downloaded' && aiModelSize != null
+                              ? `已下载 ${formatBytes(aiModelSize)} · ` : '';
+                            return size + desc;
+                          })()}
                         </Paragraph>
                       </div>
                       <Space>
