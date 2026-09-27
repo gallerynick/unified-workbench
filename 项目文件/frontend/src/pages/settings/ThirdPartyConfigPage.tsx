@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SaveOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, CheckCircleOutlined, LoadingOutlined, ThunderboltOutlined, PauseCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Spin, Space, Alert, Typography, Tag, Modal, Progress, Statistic, Row, Col } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Space, Alert, Typography, Tag, Modal, Progress, Statistic, Row, Col } from 'antd';
 import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels, getMemoryInfo, unloadASRModel } from '../../api/third-party-config';
 import { getOllamaModelStatus, getOllamaModels, deleteOllamaModel, getOllamaHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/ollama';
 import type { ThirdPartyConfig, TestConnectionResponse, MemoryInfo } from '../../types/third-party-config';
@@ -152,7 +152,6 @@ function isFormValidationError(err: unknown): err is { errorFields: unknown[] } 
 }
 export default function ThirdPartyConfigPage() {
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<{ ai: boolean; asr: boolean }>({ ai: false, asr: false });
   const [speedTesting, setSpeedTesting] = useState(false);
@@ -308,7 +307,6 @@ export default function ThirdPartyConfigPage() {
   };
 
   const fetchConfig = async (skipOllamaCheck = false) => {
-    setLoading(true);
     setError(null);
     try {
       const res = await getThirdPartyConfig();
@@ -320,8 +318,6 @@ export default function ThirdPartyConfigPage() {
     } catch (err: unknown) {
       console.error('获取配置失败:', err);
       form.setFieldsValue(DEFAULT_CONFIG);
-    } finally {
-      setLoading(false);
     }
     
     // 异步检查 Ollama 状态，不阻塞页面显示
@@ -826,14 +822,6 @@ export default function ThirdPartyConfigPage() {
           description="只有管理员可以访问第三方服务配置"
           showIcon
         />
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div style={{ padding: 24, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <Spin size="large" />
       </div>
     );
   }
