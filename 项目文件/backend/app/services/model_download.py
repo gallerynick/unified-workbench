@@ -272,6 +272,7 @@ class _ProgressState:
         "downloaded",
         "phase",
         "error",
+        "success",
         "samples",
         "last_write",
         "last_recorded",
@@ -283,6 +284,7 @@ class _ProgressState:
         self.downloaded = 0
         self.phase = "连接中"
         self.error = ""
+        self.success = False
         self.samples: deque[tuple[float, int]] = deque()
         self.last_write = 0.0
         self.last_recorded = -1
@@ -294,7 +296,12 @@ async def _apply_lines(
     """把一批 Ollama 进度行应用到状态，并按节流写回 Redis"""
     for obj in objs:
         if "status" in obj:
-            p.phase = _map_phase(str(obj["status"]))
+            status_text = str(obj["status"])
+            p.phase = _map_phase(status_text)
+            # Ollama 只在真正下载完成后才发 {"status": "success"}；
+            # 流提前结束（CDN 断连、重试耗尽）时不会发这一行，必须以此为准判定成功
+            if "success" in status_text.lower():
+                p.success = True
         # Ollama 失败时以 HTTP 200 + {"error": ...} 正常结束流，必须捕获，否则会误判为下载完成
         if "error" in obj:
             p.error = str(obj["error"])
@@ -378,7 +385,8 @@ class _ControlFlag:
 async def _run_pull(redis: aioredis.Redis, task_key: str, model_name: str) -> str:
     """执行一次 pull 流并跟踪进度。
 
-    返回结果：completed / http_error / pull_error / cancelled / paused / timeout。
+    返回结果：completed / interrupted / http_error / pull_error / cancelled / paused / timeout。
+    interrupted 表示流正常结束但未收到 Ollama 的 success 信号，模型并未真正下载完成。
     连接级异常（EOF、断连等）向外抛出，由上层决定重试。
     """
     started_at = time.time()
@@ -462,6 +470,11 @@ async def _run_pull(redis: aioredis.Redis, task_key: str, model_name: str) -> st
         })
         return "pull_error"
 
+    # 流结束了但没收到 success：上游提前断流（CDN EOF、重试耗尽）。此时模型并未真正下载完，
+    # 若在此置为 completed，前端会反复弹「下载完成」且模型不可用（测速 0 tokens/s）
+    if not p.success:
+        return "interrupted"
+
     await _update_status(redis, task_key, {
         "status": DownloadStatus.COMPLETED,
         "progress": 100.0,
@@ -504,6 +517,9 @@ async def _do_download(task_id: str, model_name: str) -> None:
 
             try:
                 outcome = await _run_pull(redis, task_key, model_name)
+                if outcome == "interrupted":
+                    # 走连接级重试：Ollama 会复用已缓存分片，重拉代价很低
+                    raise RuntimeError("下载流提前结束，未收到完成信号")
             except Exception as exc:
                 last_error = str(exc) or exc.__class__.__name__
                 retry_count += 1

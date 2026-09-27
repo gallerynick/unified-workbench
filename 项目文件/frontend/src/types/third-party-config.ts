@@ -55,11 +55,16 @@ export interface ThirdPartyConfigUpdate {
 export interface TestConnectionResponse {
   success: boolean;
   message: string;
-  details: Record<string, unknown> | null;
-  /** 测速模式下返回 */
-  tokens_per_second?: number;
-  total_tokens?: number;
-  total_latency_ms?: number;
+  /** 后端把所有指标放在 details 里，不在响应顶层：
+   *  测速模式 → tokens_per_second / total_tokens / total_latency_ms；
+   *  普通连接测试 → model / model_count */
+  details?: {
+    model?: string;
+    model_count?: number;
+    tokens_per_second?: number;
+    total_tokens?: number;
+    total_latency_ms?: number;
+  } | null;
 }
 
 export interface TestAIConnectionRequest {
