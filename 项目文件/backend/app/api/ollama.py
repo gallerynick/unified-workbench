@@ -56,11 +56,16 @@ async def _ollama_request(
             elif method == "POST":
                 response = await client.post(url, json=data)
             elif method == "DELETE":
-                response = await client.delete(url, json=data)
+                # Ollama 的 DELETE 接口要求 JSON body 传模型名
+                response = await client.request("DELETE", url, json=data)
             else:
                 raise ValueError(f"Unsupported method: {method}")
 
             response.raise_for_status()
+            # DELETE 等接口可能返回空响应体
+            body = response.text.strip()
+            if not body:
+                return {"status": "ok"}
             return response.json()
     except httpx.ConnectError:
         raise HTTPException(
@@ -119,7 +124,7 @@ async def delete_model(
 ) -> UnifiedResponse[dict[str, Any]]:
     """删除模型"""
     result = await _ollama_request(
-        "DELETE", f"/api/delete?name={model_name}"
+        "DELETE", "/api/delete", data={"name": model_name}
     )
     return UnifiedResponse(data=result)
 

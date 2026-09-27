@@ -14,7 +14,7 @@ const DEFAULT_CONFIG: ThirdPartyConfig = {
     mode: 'local',
     local: {
       base_url: 'http://ollama:11434/v1',
-      model: 'qwen3.5:4b',
+      model: 'qwen2.5:3b',
     },
     online: {
       base_url: '',
@@ -52,10 +52,26 @@ const DEFAULT_CONFIG: ThirdPartyConfig = {
 
 // 预置模型信息
 const PRESET_AI_MODEL = {
-  name: 'Qwen3.5-4B Q4',
-  ollamaName: 'qwen3.5:4b',
-  size: '约 2.5 GB',
-  description: '阿里云通义千问 3.5 系列 4B 参数模型，Q4 量化版本，支持 32K 上下文',
+  name: 'Qwen2.5-3B Q4',
+  ollamaName: 'qwen2.5:3b',
+  size: '约 2.2 GB',
+  description: '阿里云通义千问 2.5 系列 3B 参数模型，Q4 量化版本，支持 32K 上下文，适合会议摘要',
+};
+
+/** 已知模型的描述信息，用于选择器下方展示 */
+const MODEL_INFO: Record<string, { name: string; description: string }> = {
+  'qwen2.5:3b': {
+    name: 'Qwen2.5-3B Q4',
+    description: '阿里云通义千问 2.5 系列 3B 参数模型，Q4 量化版本，支持 32K 上下文，适合会议摘要',
+  },
+  'qwen2.5:7b': {
+    name: 'Qwen2.5-7B Q4',
+    description: '阿里云通义千问 2.5 系列 7B 参数模型，Q4 量化版本，支持 128K 上下文，摘要质量最好',
+  },
+  'qwen3.5:4b': {
+    name: 'Qwen3.5-4B Q4',
+    description: '阿里云通义千问 3.5 系列 4B 参数模型，思考型模型，支持 32K 上下文',
+  },
 };
 
 const PRESET_ASR_MODELS = {
@@ -180,7 +196,7 @@ export default function ThirdPartyConfigPage() {
   // 检查 Ollama 健康状态和模型状态。
   // 单次失败就报「不可用」太激进：ollama 在忙于加载模型时 /api/tags 会超时，
   // 所以先重试两次、每次间隔 1 秒，再下结论
-  const checkOllamaStatus = async () => {
+  const checkOllamaStatus = async (modelOverride?: string) => {
     let healthRes: Awaited<ReturnType<typeof getOllamaHealth>> | null = null;
     let lastErr: unknown = null;
 
@@ -221,9 +237,9 @@ export default function ThirdPartyConfigPage() {
         })
         .catch(() => undefined);
 
-      // 用表单里选中的模型查状态，而不是写死的预设模型
+      // 用传入的模型名或表单里选中的模型查状态，而不是写死的预设模型
       const selectedModel =
-        form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.ollamaName;
+        modelOverride || form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.ollamaName;
       const modelRes = await getOllamaModelStatus(selectedModel);
       if (modelRes.code === 0 && modelRes.data?.downloaded) {
         setAiModelStatus('downloaded');
@@ -849,13 +865,13 @@ export default function ThirdPartyConfigPage() {
                                 label: `${m.name}（${formatBytes(m.size)}）`,
                               })),
                             ]}
-                            onChange={() => void checkOllamaStatus()}
+                            onChange={(value: string) => void checkOllamaStatus(value)}
                           />
                         </Form.Item>
                         <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
                           {aiModelStatus === 'downloaded' && aiModelSize != null
                             ? `已下载 ${formatBytes(aiModelSize)} · `
-                            : ''}{PRESET_AI_MODEL.description}
+                            : ''}{MODEL_INFO[form.getFieldValue(['ai_provider', 'local', 'model']) || '']?.description || PRESET_AI_MODEL.description}
                         </Paragraph>
                       </div>
                       <Space>
