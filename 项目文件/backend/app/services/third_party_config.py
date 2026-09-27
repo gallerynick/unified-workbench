@@ -411,12 +411,21 @@ def _local_asr_model_names(config: ThirdPartyConfig) -> list[str]:
 
 
 async def _test_local_asr(asr_config: ASRConfig) -> TestConnectionResponse:
-    """真的加载模型并跑一段音频，而不是只回一句「配置正常」。"""
+    """真的加载模型并跑一段音频，而不是只回一句「配置正常」。
+
+    ASR 引擎是同步阻塞的（PyTorch 推理 + 模型加载），直接 await 会卡死
+    asyncio 事件循环，导致 WebSocket 心跳和并发请求全部挂起。用 to_thread
+    丢到线程池执行，主事件循环保持空闲。
+    """
+    import asyncio
+
     from app.services import asr_engine
 
     local = asr_config.local or {}
+
     try:
-        asr_engine.init_asr_model(
+        await asyncio.to_thread(
+            asr_engine.init_asr_model,
             asr_model=local.get("model", "paraformer-zh"),
             vad_model="fsmn-vad",
             punc_model=local.get("punc_model", "ct-punc"),
@@ -431,8 +440,9 @@ async def _test_local_asr(asr_config: ASRConfig) -> TestConnectionResponse:
 
     t = np.arange(16000) / 16000.0
     tone = (np.sin(2 * np.pi * 440.0 * t) * 16000).astype(np.int16)
+
     try:
-        asr_engine.transcribe_audio_array(tone.tobytes())
+        await asyncio.to_thread(asr_engine.transcribe_audio_array, tone.tobytes())
     except Exception as e:
         return TestConnectionResponse(success=False, message=f"ASR 转录失败：{e}")
 
