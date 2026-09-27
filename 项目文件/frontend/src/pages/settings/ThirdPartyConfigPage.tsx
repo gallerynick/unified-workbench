@@ -150,6 +150,21 @@ function errorMessage(err: unknown, fallback: string): string {
 function isFormValidationError(err: unknown): err is { errorFields: unknown[] } {
   return typeof err === 'object' && err !== null && 'errorFields' in err;
 }
+
+/** 深合并配置：后端存的旧值/空对象不会覆盖默认值 */
+function deepMergeConfig(base: unknown, override: unknown): unknown {
+  if (Array.isArray(base) || Array.isArray(override)) return override ?? base;
+  if (base && override && typeof base === 'object' && typeof override === 'object') {
+    const result: Record<string, unknown> = { ...(base as Record<string, unknown>), ...(override as Record<string, unknown>) };
+    for (const key of Object.keys(result)) {
+      if (key in (base as Record<string, unknown>) && key in (override as Record<string, unknown>)) {
+        result[key] = deepMergeConfig((base as Record<string, unknown>)[key], (override as Record<string, unknown>)[key]);
+      }
+    }
+    return result;
+  }
+  return override ?? base;
+}
 export default function ThirdPartyConfigPage() {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
@@ -192,6 +207,7 @@ export default function ThirdPartyConfigPage() {
   // ASR 卸载中
   const [asrUnloading, setAsrUnloading] = useState(false);
   const [aiUnloading, setAiUnloading] = useState(false);
+  const [recheckingOllama, setRecheckingOllama] = useState(false);
   // 轮询定时器句柄。必须用 ref 而不是 state 持有：
   // poll 闭包捕获的是创建时的 stopPolling，若 stopPolling 读 state，
   // 它拿到的永远是上一次渲染的值（首次为 null），clearInterval 会变成空操作，
@@ -312,7 +328,7 @@ export default function ThirdPartyConfigPage() {
     try {
       const res = await getThirdPartyConfig();
       if (res.code === 0 && res.data) {
-        form.setFieldsValue(res.data);
+        form.setFieldsValue(deepMergeConfig(DEFAULT_CONFIG, res.data));
       } else {
         form.setFieldsValue(DEFAULT_CONFIG);
       }
@@ -370,6 +386,8 @@ export default function ThirdPartyConfigPage() {
   };
 
   useEffect(() => {
+    // 先填默认值，保证页面一进来就不是空白；API 回来后再合并真实配置
+    form.setFieldsValue(DEFAULT_CONFIG);
     // 立即获取配置，不要等下载检查完成——否则用户会先看到默认值（看起来像「配置为零」）
     // 再看到实际配置，体感很差。配置请求本身很快（<100ms），直接并行跑
     fetchConfig();
@@ -862,7 +880,7 @@ export default function ThirdPartyConfigPage() {
         />
       )}
 
-      <Form form={form} layout="vertical">
+      <Form form={form} layout="vertical" initialValues={DEFAULT_CONFIG}>
         {/* AI 模型配置 */}
         <Card 
           title="AI 模型配置" 
@@ -896,7 +914,19 @@ export default function ThirdPartyConfigPage() {
                       description={ollamaHealthDetail || undefined}
                       showIcon
                       action={
-                        <Button size="small" type="link" onClick={() => void checkOllamaStatus()}>
+                        <Button
+                          size="small"
+                          type="link"
+                          loading={recheckingOllama}
+                          onClick={async () => {
+                            setRecheckingOllama(true);
+                            try {
+                              await checkOllamaStatus();
+                            } finally {
+                              setRecheckingOllama(false);
+                            }
+                          }}
+                        >
                           重新检查
                         </Button>
                       }

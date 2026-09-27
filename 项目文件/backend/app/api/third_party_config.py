@@ -120,6 +120,9 @@ async def unload_ai_model_endpoint(
     model_name = request.get("model") if request else None
     result = await unload_ai_model(model_name)
     return UnifiedResponse(data=result)
+
+
+@router.get("/asr/status", response_model=UnifiedResponse[dict[str, Any]])
 async def get_asr_model_status(
     current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
