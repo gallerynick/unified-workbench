@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Empty,
@@ -79,6 +80,7 @@ function formatDate(iso: string): string {
 
 export default function ProjectEventTab({ project }: { project: Project }) {
   const { user } = useUser();
+  const navigate = useNavigate();
 
   // ── 数据状态 ──
   const [events, setEvents] = useState<ProjectEvent[]>([]);
@@ -205,7 +207,16 @@ export default function ProjectEventTab({ project }: { project: Project }) {
         dataIndex: 'number',
         key: 'number',
         width: 200,
-        render: (number: string) => <Text strong>{number}</Text>,
+        render: (number: string, record: ProjectEvent) => (
+          <a
+            onClick={() => {
+              if (project) navigate(`/projects/${project.id}/event/${record.id}`);
+            }}
+            style={{ fontFamily: 'var(--font-mono)', cursor: 'pointer', fontWeight: 600 }}
+          >
+            {number}
+          </a>
+        ),
       },
       {
         title: '标题',
