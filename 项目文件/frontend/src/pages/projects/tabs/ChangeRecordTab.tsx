@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   Button,
@@ -81,6 +82,7 @@ function formatDateOnly(dateStr: string): string {
 
 export default function ChangeRecordTab({ project }: { project: Project }) {
   const { user } = useUser();
+  const navigate = useNavigate();
   const [items, setItems] = useState<ProjectChange[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -188,8 +190,15 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
       dataIndex: 'number',
       key: 'number',
       width: 140,
-      render: (text: string) => (
-        <span style={{ fontFamily: 'var(--font-mono)' }}>{text}</span>
+      render: (text: string, record: ProjectChange) => (
+        <a
+          onClick={() => {
+            if (project) navigate(`/projects/${project.id}/change/${record.id}`);
+          }}
+          style={{ fontFamily: 'var(--font-mono)', cursor: 'pointer' }}
+        >
+          {text}
+        </a>
       ),
     },
     {
