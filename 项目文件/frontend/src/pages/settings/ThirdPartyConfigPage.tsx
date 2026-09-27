@@ -373,14 +373,13 @@ export default function ThirdPartyConfigPage() {
   };
 
   useEffect(() => {
-    // 先关闭全屏 loading——配置请求很快，不应阻塞页面渲染
-    setLoading(false);
-    // 先检查是否有正在进行的下载任务，避免竞态条件
-    checkExistingDownload().then((hasActiveDownload) => {
-      // 检查完成，设置 checkingDownload=false
+    // 立即获取配置，不要等下载检查完成——否则用户会先看到默认值（看起来像「配置为零」）
+    // 再看到实际配置，体感很差。配置请求本身很快（<100ms），直接并行跑
+    fetchConfig();
+    // 下载检查并行跑，只影响 aiModelStatus 的显示，不阻塞配置加载
+    checkExistingDownload().then(() => {
       setCheckingDownload(false);
-      // 如果有正在进行的下载任务，跳过 Ollama 状态检查，避免覆盖下载状态
-      fetchConfig(hasActiveDownload);
+      // 下载检查完成，不影响配置显示
     });
     checkASRStatus();
     getMemoryInfo().then((res) => {
