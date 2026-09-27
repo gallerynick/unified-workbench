@@ -886,10 +886,7 @@ export default function ThirdPartyConfigPage() {
                           {(() => {
                             const selected = form.getFieldValue(['ai_provider', 'local', 'model']);
                             if (!selected) return '选择模型后自动检测状态';
-                            const desc = MODEL_INFO[selected]?.description || '';
-                            const size = aiModelStatus === 'downloaded' && aiModelSize != null
-                              ? `已下载 ${formatBytes(aiModelSize)} · ` : '';
-                            return size + desc;
+                            return MODEL_INFO[selected]?.description || '';
                           })()}
                         </Paragraph>
                       </div>
@@ -908,7 +905,7 @@ export default function ThirdPartyConfigPage() {
                         {aiModelStatus === 'downloaded' && (
                           <Tag color="success">
                             <CheckCircleOutlined />
-                            已就绪{aiModelSize != null ? ` · ${formatBytes(aiModelSize)}` : ''}
+                            已就绪
                           </Tag>
                         )}
                         {aiModelStatus === 'error' && (
