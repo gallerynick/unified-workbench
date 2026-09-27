@@ -38,3 +38,8 @@ export async function deleteASRModel(): Promise<UnifiedResponse<TestConnectionRe
 export async function getASRModelStatus(): Promise<UnifiedResponse<ASRModelStatus>> {
   return request<ASRModelStatus>('/config/third-party/asr/status');
 }
+
+/** 预热本地 ASR 模型：缓存里没有的从 ModelScope 下载，后台执行 */
+export async function preloadASRModels(): Promise<UnifiedResponse<TestConnectionResponse>> {
+  return request<TestConnectionResponse>('/config/third-party/asr/preload', { method: 'POST' });
+}

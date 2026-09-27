@@ -119,3 +119,14 @@ async def get_asr_model_status(
     from app.services.third_party_config import get_asr_model_status
     result = await get_asr_model_status(db)
     return UnifiedResponse(data=result)
+
+
+@router.post("/asr/preload", response_model=UnifiedResponse[TestConnectionResponse])
+async def preload_asr_models_endpoint(
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """预热（必要时下载并加载）本地 ASR 模型，后台执行"""
+    from app.services.third_party_config import preload_asr_models
+    result = await preload_asr_models(db)
+    return UnifiedResponse(data=result)

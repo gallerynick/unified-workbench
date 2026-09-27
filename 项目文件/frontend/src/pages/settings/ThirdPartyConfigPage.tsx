@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SaveOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, CheckCircleOutlined, LoadingOutlined, ThunderboltOutlined, PauseCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Spin, Space, Alert, Typography, Tag, Modal, Progress } from 'antd';
-import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus } from '../../api/third-party-config';
+import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels } from '../../api/third-party-config';
 import { getOllamaModelStatus, deleteOllamaModel, getOllamaHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/ollama';
 import type { ThirdPartyConfig } from '../../types/third-party-config';
 import { isAdmin } from '../../utils/auth';
@@ -105,6 +105,8 @@ export default function ThirdPartyConfigPage() {
   // 模型下载状态
   const [aiModelStatus, setAiModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'error'>('not_downloaded');
   const [asrModelStatus, setAsrModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'error'>('not_downloaded');
+  const [asrModelDetails, setAsrModelDetails] = useState<{ models: { name: string; repo_id: string; ready: boolean; size_mb: number }[]; downloaded: number; total: number } | null>(null);
+  const [asrPreloading, setAsrPreloading] = useState(false);
   const [ollamaHealth, setOllamaHealth] = useState<'unknown' | 'ok' | 'error'>('unknown');
   const [checkingDownload, setCheckingDownload] = useState(true);
   
@@ -125,6 +127,9 @@ export default function ThirdPartyConfigPage() {
   // 它拿到的永远是上一次渲染的值（首次为 null），clearInterval 会变成空操作，
   // 轮询永远停不下来 —— 这就是「模型下载完成」提示反复弹出的原因
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // ASR 模型预热轮询。预热在后台线程里跑，接口立即返回，
+  // 所以只能靠轮询 /asr/status 看缓存里的模型有没有齐
+  const asrPreloadTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 检查 Ollama 健康状态和模型状态
   const checkOllamaStatus = async () => {
@@ -163,10 +168,10 @@ export default function ThirdPartyConfigPage() {
     try {
       const res = await getASRModelStatus();
       if (res.code === 0 && res.data) {
-        const status = res.data.status;
-        if (status === 'downloaded') {
+        setAsrModelDetails(res.data.details ?? null);
+        if (res.data.status === 'downloaded') {
           setAsrModelStatus('downloaded');
-        } else if (status === 'partial') {
+        } else if (res.data.status === 'partial') {
           setAsrModelStatus('not_downloaded');
         } else {
           setAsrModelStatus('not_downloaded');
@@ -260,6 +265,10 @@ export default function ThirdPartyConfigPage() {
         clearInterval(pollingTimerRef.current);
         pollingTimerRef.current = null;
       }
+      if (asrPreloadTimerRef.current !== null) {
+        clearInterval(asrPreloadTimerRef.current);
+        asrPreloadTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -327,8 +336,12 @@ export default function ThirdPartyConfigPage() {
   const handleReloadASR = async () => {
     try {
       const res = await reloadASRModel();
-      if (res.code === 0) {
-        message.success(res.data?.message || '已重载');
+      if (res.code === 0 && res.data) {
+        if (res.data.success) {
+          message.success(res.data.message || '已重载');
+        } else {
+          message.error(res.data.message || '重载失败');
+        }
       }
     } catch (err: unknown) {
       message.error(errorMessage(err, '重载失败'));
@@ -336,14 +349,20 @@ export default function ThirdPartyConfigPage() {
   };
 
   const handleDeleteASRModel = async () => {
+    const models = asrModelDetails?.models ?? [];
+    const total = asrModelDetails?.total ?? 0;
+    const sizeGb = models.reduce((sum, m) => sum + (m.ready ? m.size_mb : 0), 0) / 1024;
     Modal.confirm({
-      title: '删除模型',
-      content: '删除后将需要重新下载，确定要删除吗？',
+      title: '删除 ASR 模型',
+      content: `将删除 ${total} 个模型的本地缓存（约 ${sizeGb.toFixed(1)} GB），下次使用需要重新下载。确定要删除吗？`,
+      okText: '删除',
+      okButtonProps: { danger: true },
       onOk: async () => {
         try {
           const res = await deleteASRModel();
-          if (res.code === 0) {
-            message.success(res.data?.message || '模型已删除');
+          if (res.code === 0 && res.data) {
+            message.success(res.data.message || '模型已删除');
+            setAsrModelDetails(null);
             setAsrModelStatus('not_downloaded');
           }
         } catch (err: unknown) {
@@ -351,6 +370,49 @@ export default function ThirdPartyConfigPage() {
         }
       },
     });
+  };
+
+  // 预热（必要时下载）本地 ASR 模型。
+  // 后端在后台线程里跑，接口立即返回，这里只能轮询 /asr/status 看缓存有没有齐
+  const handlePreloadASR = async () => {
+    setAsrPreloading(true);
+    try {
+      const res = await preloadASRModels();
+      if (res.code === 0 && res.data) {
+        if (res.data.success) {
+          message.info(res.data.message || '模型预热已开始');
+        } else {
+          message.warning(res.data.message || '无法开始预热');
+        }
+      }
+    } catch (err: unknown) {
+      message.error(errorMessage(err, '预热失败'));
+      setAsrPreloading(false);
+      return;
+    }
+
+    let waited = 0;
+    asrPreloadTimerRef.current = setInterval(async () => {
+      const r = await getASRModelStatus();
+      if (r.code === 0 && r.data) {
+        setAsrModelDetails(r.data.details ?? null);
+      }
+      waited += 5;
+      const done = r.data?.status === 'downloaded';
+      if (done || waited >= 180) {
+        if (asrPreloadTimerRef.current !== null) {
+          clearInterval(asrPreloadTimerRef.current);
+          asrPreloadTimerRef.current = null;
+        }
+        setAsrPreloading(false);
+        if (done) {
+          setAsrModelStatus('downloaded');
+          message.success('ASR 模型已就绪');
+        } else {
+          message.warning('预热超时，请检查网络后重试');
+        }
+      }
+    }, 5000);
   };
 
   // 测速功能 - 测量模型生成速度 (tokens/s)
@@ -867,16 +929,15 @@ export default function ThirdPartyConfigPage() {
                         </Paragraph>
                       </div>
                       <Space>
-                        {asrModelStatus === 'not_downloaded' && (
-                          <Button type="primary" icon={<DownloadOutlined />} disabled>
-                            下载模型
+                        {(asrModelStatus === 'not_downloaded' || asrPreloading) && (
+                          <Button
+                            type="primary"
+                            icon={<DownloadOutlined />}
+                            loading={asrPreloading}
+                            onClick={handlePreloadASR}
+                          >
+                            {asrPreloading ? '下载中…' : '下载模型'}
                           </Button>
-                        )}
-                        {asrModelStatus === 'downloading' && (
-                          <Tag color="processing">
-                            <LoadingOutlined />
-                            下载中
-                          </Tag>
                         )}
                         {asrModelStatus === 'downloaded' && (
                           <Tag color="success">
@@ -886,6 +947,34 @@ export default function ThirdPartyConfigPage() {
                         )}
                       </Space>
                     </div>
+
+                    {asrModelDetails && asrModelDetails.total > 0 && (
+                      <div style={{ marginBottom: 12 }}>
+                        <Progress
+                          percent={Math.round(
+                            (asrModelDetails.downloaded / Math.max(1, asrModelDetails.total)) * 100,
+                          )}
+                          format={() => `${asrModelDetails.downloaded} / ${asrModelDetails.total} 个模型已就绪`}
+                          size="small"
+                        />
+                        {asrModelDetails.models.map((m) => (
+                          <div
+                            key={m.name}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              fontSize: 12,
+                              padding: '2px 0',
+                            }}
+                          >
+                            <Text type="secondary">{m.name}</Text>
+                            <Text type={m.ready ? 'success' : 'secondary'}>
+                              {m.ready ? `${m.size_mb.toFixed(1)} MB` : '未下载'}
+                            </Text>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {asrModelStatus === 'downloaded' && (
                       <Space style={{ marginTop: 12 }}>
