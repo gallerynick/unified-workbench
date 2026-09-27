@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusOutlined, ClockCircleOutlined, CheckCircleOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
-import { Button, Input, Modal, Form, Select, Tag, Empty, message, Spin, Typography } from 'antd';
+import { Button, Input, Modal, Form, Empty, message, Spin, Typography } from 'antd';
 import { listMeetingRecords, createMeetingRecord } from '../../api/meeting-records';
-import type { MeetingRecord, MeetingRecordCreate, MeetingStatus } from '../../types/meeting-record';
-import { getVisibilityConfig, getVisibilityOptions } from '../../utils/visibility';
+import type { MeetingRecord, MeetingRecordCreate, MeetingStatus, MeetingVisibility } from '../../types/meeting-record';
+import VisibilitySetting from '../../components/VisibilitySetting/VisibilitySetting';
+import { getVisibilityConfig } from '../../utils/visibility';
 import styles from './MeetingList.module.css';
 
 const { Title, Text } = Typography;
@@ -22,8 +23,6 @@ const statusMap: Record<MeetingStatus, { label: string; color: string; icon: Rea
   processing: { label: '处理中', color: 'blue', icon: ClockCircleOutlined },
   completed: { label: '已完成', color: 'success', icon: CheckCircleOutlined },
 };
-
-const visibilityOptions = getVisibilityOptions();
 
 export default function MeetingList() {
   const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
@@ -171,26 +170,11 @@ export default function MeetingList() {
           >
             <Input placeholder="请输入会议标题" />
           </Form.Item>
-          <Form.Item
-            name="visibility"
-            label="可见性"
-            tooltip={{
-              title: '选择会议可见范围',
-              icon: <PlusOutlined />,
-            }}
-          >
-            <Select
-              options={visibilityOptions.map(opt => ({
-                value: opt.value,
-                label: (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Tag color={getVisibilityConfig(opt.value).color} style={{ margin: 0 }}>
-                      {opt.label}
-                    </Tag>
-                    <span style={{ color: 'var(--text-secondary)' }}>{opt.description}</span>
-                  </div>
-                ),
-              }))}
+          <Form.Item label="可见性">
+            <VisibilitySetting
+              value={createForm.getFieldValue('visibility')}
+              onChange={(val) => createForm.setFieldsValue({ visibility: val })}
+              label=""
             />
           </Form.Item>
           <div style={{ marginTop: 8, padding: 12, background: 'var(--fill-tertiary)', borderRadius: 8 }}>
