@@ -150,6 +150,7 @@ export default function ThirdPartyConfigPage() {
   const [asrModelStatus, setAsrModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'error'>('not_downloaded');
   const [asrModelDetails, setAsrModelDetails] = useState<{ models: { name: string; repo_id: string; ready: boolean; size_mb: number }[]; downloaded: number; total: number } | null>(null);
   const [asrPreloading, setAsrPreloading] = useState(false);
+  const [asrReloading, setAsrReloading] = useState(false);
   const [ollamaHealth, setOllamaHealth] = useState<'unknown' | 'ok' | 'error'>('unknown');
   // 后端回的具体失败原因（超时 / 连不上 / API 错误），展示给用户看
   const [ollamaHealthDetail, setOllamaHealthDetail] = useState<string | null>(null);
@@ -261,7 +262,12 @@ export default function ThirdPartyConfigPage() {
       }
     } catch (err) {
       console.error('检查 ASR 模型状态失败:', err);
-      setAsrModelStatus('not_downloaded');
+      // 后端可能正在重启（内存紧张时容器会被 OOM 杀掉），
+      // 不能直接判成 not_downloaded，否则下载按钮会出现，
+      // 用户一点又被告知「已就绪」
+      if (asrModelStatus !== 'downloaded') {
+        setAsrModelStatus('not_downloaded');
+      }
     }
   };
 
@@ -416,17 +422,29 @@ export default function ThirdPartyConfigPage() {
   };
 
   const handleReloadASR = async () => {
+    setAsrReloading(true);
     try {
       const res = await reloadASRModel();
       if (res.code === 0 && res.data) {
         if (res.data.success) {
-          message.success(res.data.message || '已重载');
+          message.success(res.data.message || 'ASR 模型已重载');
+          void checkASRStatus();
         } else {
           message.error(res.data.message || '重载失败');
         }
+      } else {
+        message.error(res.msg || '重载失败');
       }
     } catch (err: unknown) {
-      message.error(errorMessage(err, '重载失败'));
+      // 后端容器可能被 OOM 杀掉重启中，返回 502
+      const msg = errorMessage(err, '重载失败');
+      if (msg.includes('502') || msg.includes('Bad Gateway')) {
+        message.error('后端正在重启，请稍后重试');
+      } else {
+        message.error(msg);
+      }
+    } finally {
+      setAsrReloading(false);
     }
   };
 
@@ -462,10 +480,23 @@ export default function ThirdPartyConfigPage() {
       const res = await preloadASRModels();
       if (res.code === 0 && res.data) {
         if (res.data.success) {
+          // 后端发现缓存已经齐了，不用下载——直接刷新状态，
+          // 不要让用户看到「下载模型」按钮点了却被告知已就绪
+          if (res.data.details && res.data.details.downloaded === res.data.details.total) {
+            setAsrPreloading(false);
+            void checkASRStatus();
+            message.info('ASR 模型已就绪');
+            return;
+          }
           message.info(res.data.message || '模型预热已开始');
         } else {
           message.warning(res.data.message || '无法开始预热');
+          setAsrPreloading(false);
+          return;
         }
+      } else {
+        setAsrPreloading(false);
+        return;
       }
     } catch (err: unknown) {
       message.error(errorMessage(err, '预热失败'));
@@ -765,21 +796,6 @@ export default function ThirdPartyConfigPage() {
         <Card 
           title="AI 模型配置" 
           style={{ marginBottom: "var(--spacing-lg)" }}
-          extra={
-            <Space>
-              <Button 
-                size="small" 
-                icon={<ThunderboltOutlined />} 
-                onClick={handleSpeedTest} 
-                loading={speedTesting}
-              >
-                测速
-              </Button>
-              {speedResult !== null && (
-                <Tag color="blue">{speedResult.toFixed(1)} tokens/s</Tag>
-              )}
-            </Space>
-          }
         >
           <Form.Item name={['ai_provider', 'mode']} label="模式">
             <Radio.Group>
@@ -1110,7 +1126,7 @@ export default function ThirdPartyConfigPage() {
                         <Button onClick={handleTestASR} loading={testing.asr}>
                           测试识别
                         </Button>
-                        <Button icon={<ReloadOutlined />} onClick={handleReloadASR}>
+                        <Button icon={<ReloadOutlined />} loading={asrReloading} onClick={handleReloadASR}>
                           重载模型
                         </Button>
                         <Button danger icon={<DeleteOutlined />} onClick={handleDeleteASRModel}>
