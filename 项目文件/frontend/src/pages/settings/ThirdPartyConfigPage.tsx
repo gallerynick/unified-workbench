@@ -937,12 +937,12 @@ export default function ThirdPartyConfigPage() {
                       style={{ marginBottom: 16 }}
                     />
 
-                    <div style={{ display: 'flex', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ marginBottom: 'var(--spacing-sm)' }}>
+                      <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'center' }}>
                         <Form.Item
                           name={['ai_provider', 'local', 'model']}
                           label="模型"
-                          style={{ marginBottom: 'var(--spacing-xs)' }}
+                          style={{ marginBottom: 0, flex: 1, minWidth: 0 }}
                         >
                           <Select
                             showSearch
@@ -972,39 +972,39 @@ export default function ThirdPartyConfigPage() {
                             }}
                           />
                         </Form.Item>
-                        <Paragraph type="secondary" style={{ margin: 'var(--spacing-xxs) 0 0', fontSize: 12 }}>
-                          {(() => {
-                            const selected = form.getFieldValue(['ai_provider', 'local', 'model']);
-                            if (!selected) return '选择模型后自动检测状态';
-                            return MODEL_INFO[selected]?.description || '';
-                          })()}
-                        </Paragraph>
+                        <div style={{ minWidth: 100 }}>
+                          {!checkingDownload && aiModelStatus === 'not_downloaded' && (
+                            <Button type="primary" size="small" icon={<DownloadOutlined />} onClick={handleDownloadAIModel}>
+                              下载模型
+                            </Button>
+                          )}
+                          {aiModelStatus === 'downloading' && (
+                            <Tag color="processing" icon={<LoadingOutlined />} style={{ margin: 0, fontSize: 12, display: 'inline-flex', alignItems: 'center', height: 24 }}>
+                              下载中
+                            </Tag>
+                          )}
+                          {aiModelStatus === 'downloaded' && (
+                            <Tag color="success" icon={<CheckCircleOutlined />} style={{ margin: 0, fontSize: 12, display: 'inline-flex', alignItems: 'center', height: 24 }}>
+                              已就绪
+                            </Tag>
+                          )}
+                          {aiModelStatus === 'error' && (
+                            <Tag color="error" style={{ margin: 0, fontSize: 12, display: 'inline-flex', alignItems: 'center', height: 24 }}>错误</Tag>
+                          )}
+                          {checkingDownload && (
+                            <Tag icon={<LoadingOutlined />} style={{ margin: 0, fontSize: 12, display: 'inline-flex', alignItems: 'center', height: 24 }}>
+                              检查中...
+                            </Tag>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xxs)', paddingTop: 'var(--spacing-lg)', minWidth: 100 }}>
-                        {!checkingDownload && aiModelStatus === 'not_downloaded' && (
-                          <Button type="primary" size="small" icon={<DownloadOutlined />} onClick={handleDownloadAIModel}>
-                            下载模型
-                          </Button>
-                        )}
-                        {aiModelStatus === 'downloading' && (
-                          <Tag color="processing" icon={<LoadingOutlined />} style={{ margin: 0, fontSize: 12 }}>
-                            下载中
-                          </Tag>
-                        )}
-                        {aiModelStatus === 'downloaded' && (
-                          <Tag color="success" icon={<CheckCircleOutlined />} style={{ margin: 0, fontSize: 12 }}>
-                            已就绪
-                          </Tag>
-                        )}
-                        {aiModelStatus === 'error' && (
-                          <Tag color="error" style={{ margin: 0, fontSize: 12 }}>错误</Tag>
-                        )}
-                        {checkingDownload && (
-                          <Tag icon={<LoadingOutlined />} style={{ margin: 0, fontSize: 12 }}>
-                            检查中...
-                          </Tag>
-                        )}
-                      </div>
+                      <Paragraph type="secondary" style={{ margin: 'var(--spacing-xs) 0 0', fontSize: 12 }}>
+                        {(() => {
+                          const selected = form.getFieldValue(['ai_provider', 'local', 'model']);
+                          if (!selected) return '选择模型后自动检测状态';
+                          return MODEL_INFO[selected]?.description || '';
+                        })()}
+                      </Paragraph>
                     </div>
 
                     {/* 下载进度条 */}
