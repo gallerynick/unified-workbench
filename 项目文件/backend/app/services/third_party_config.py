@@ -57,10 +57,30 @@ DEFAULT_ASR_CONFIG = {
 }
 
 
+def _deep_merge_defaults(default: dict[str, Any], saved: dict[str, Any]) -> dict[str, Any]:
+    """合并默认配置和已保存配置：已保存的非空值优先，缺失项回落到默认值"""
+    result: dict[str, Any] = {}
+    for key, default_value in default.items():
+        saved_value = saved.get(key)
+        if saved_value is None or saved_value == {}:
+            result[key] = default_value
+        elif isinstance(default_value, dict) and isinstance(saved_value, dict):
+            result[key] = _deep_merge_defaults(default_value, saved_value)
+        else:
+            result[key] = saved_value
+    # 保留已保存的额外键，避免旧配置里有新字段被吞掉
+    for key, saved_value in saved.items():
+        if key not in result:
+            result[key] = saved_value
+    return result
+
+
 async def get_third_party_config(db: AsyncSession) -> ThirdPartyConfig:
     """获取第三方服务配置"""
-    ai_config = await _get_config_value(db, "ai_provider", DEFAULT_AI_CONFIG)
-    asr_config = await _get_config_value(db, "asr_config", DEFAULT_ASR_CONFIG)
+    saved_ai = await _get_config_value(db, "ai_provider", DEFAULT_AI_CONFIG)
+    saved_asr = await _get_config_value(db, "asr_config", DEFAULT_ASR_CONFIG)
+    ai_config = _deep_merge_defaults(DEFAULT_AI_CONFIG, saved_ai)
+    asr_config = _deep_merge_defaults(DEFAULT_ASR_CONFIG, saved_asr)
 
     return ThirdPartyConfig(
         ai_provider=AIProviderConfig(**ai_config),
