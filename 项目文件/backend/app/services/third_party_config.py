@@ -28,8 +28,8 @@ DEFAULT_AI_CONFIG = {
         "api_key": None,
     },
     "parameters": {
-        "temperature": 0.1,
-        "max_tokens": 4000,
+        "temperature": 0.2,
+        "max_tokens": 3000,
         "response_format": "json",
     },
 }
@@ -317,7 +317,7 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                             "prompt": test_prompt,
                             "stream": False,
                             "options": {
-                                "temperature": ai_config.parameters.get("temperature", 0.7),
+                                "temperature": ai_config.parameters.get("temperature", 0.2),
                                 # 200 个 token 才够测出稳定速率；100 个太短，
                                 # 单次抖动就能让数字差出几十个百分点
                                 "num_predict": 200
