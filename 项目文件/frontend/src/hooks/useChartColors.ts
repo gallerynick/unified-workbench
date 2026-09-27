@@ -103,7 +103,7 @@ export function useMonitorChartColors(): MonitorChartColors {
   return useMemo(() => {
     const out = Object.fromEntries(
       Object.entries(COLOR_SOURCES).map(([k, v]) => [k, resolveCssVar(v)])
-    ) as MonitorChartColors;
+    ) as unknown as MonitorChartColors;
     return {
       ...out,
       // antd token 优先：与 antd 组件同源的次级文字与边框色
