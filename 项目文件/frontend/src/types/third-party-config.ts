@@ -55,5 +55,24 @@ export interface ThirdPartyConfigUpdate {
 export interface TestConnectionResponse {
   success: boolean;
   message: string;
-  details: Record<string, any> | null;
+  details: Record<string, unknown> | null;
+  /** 测速模式下返回 */
+  tokens_per_second?: number;
+  total_tokens?: number;
+  total_latency_ms?: number;
+}
+
+export interface TestAIConnectionRequest {
+  ai_provider: AIProviderConfig;
+  test_prompt?: string;
+  measure_speed?: boolean;
+}
+
+export interface TestASRServiceRequest {
+  asr_config: ASRConfig;
+}
+
+export interface ASRModelStatus {
+  status: 'downloaded' | 'partial' | 'not_downloaded' | string;
+  message?: string;
 }

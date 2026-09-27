@@ -31,6 +31,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if app_name:
             app.title = app_name
 
+    # 清理上一进程遗留的下载任务：下载由 asyncio.create_task 驱动，
+    # 进程重启后协程消失但 Redis 状态仍是 downloading，会变成永久卡住的僵尸任务
+    from app.services.model_download import reap_orphaned_downloads
+
+    try:
+        reaped = await reap_orphaned_downloads()
+        if reaped:
+            logger.info("启动清理孤儿下载任务 %d 个", reaped)
+    except Exception:
+        logger.exception("启动清理孤儿下载任务失败")
+
     yield
 
 
@@ -83,9 +94,11 @@ def create_app() -> FastAPI:
     # 注册路由
     from app.api.router import api_router
     from app.api.ws import router as ws_router
+    from app.api.meeting_ws import router as meeting_ws_router
 
     app.include_router(api_router, prefix="/api/v1")
     app.include_router(ws_router)
+    app.include_router(meeting_ws_router)
 
     return app
 

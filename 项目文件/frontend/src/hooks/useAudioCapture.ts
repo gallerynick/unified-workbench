@@ -24,11 +24,11 @@ export function useAudioCapture(options: AudioCaptureOptions = {}) {
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const startTimeRef = useRef<number>(0);
   const pausedTimeRef = useRef<number>(0);
-  const [onAudioChunk, setOnAudioChunk] = useState(options.onAudioChunk);
+  const onAudioChunkRef = useRef(options.onAudioChunk);
   const sampleRate = options.sampleRate || 16000;
 
   useEffect(() => {
-    setOnAudioChunk(options.onAudioChunk);
+    onAudioChunkRef.current = options.onAudioChunk;
   }, [options.onAudioChunk]);
 
   const start = useCallback(async () => {
@@ -57,7 +57,8 @@ export function useAudioCapture(options: AudioCaptureOptions = {}) {
         // Convert Float32 to Int16
         const int16Array = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
-          const s = Math.max(-1, Math.min(1, inputData[i]));
+          const sample = inputData[i] ?? 0;
+          const s = Math.max(-1, Math.min(1, sample));
           int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
         }
 
@@ -65,8 +66,8 @@ export function useAudioCapture(options: AudioCaptureOptions = {}) {
         const duration = Date.now() - startTimeRef.current - pausedTimeRef.current;
         
         // Send audio chunk
-        if (onAudioChunk) {
-          onAudioChunk(int16Array.buffer, duration / 1000);
+        if (onAudioChunkRef.current) {
+          onAudioChunkRef.current(int16Array.buffer, duration / 1000);
         }
       };
 
@@ -89,7 +90,7 @@ export function useAudioCapture(options: AudioCaptureOptions = {}) {
         error: error instanceof Error ? error.message : 'Failed to start audio capture',
       }));
     }
-  }, [onAudioChunk, sampleRate]);
+  }, [sampleRate]);
 
   const pause = useCallback(() => {
     if (!audioContextRef.current || !state.isRecording || state.isPaused) return;

@@ -176,6 +176,11 @@ function getMenuItems(): MenuProps['items'] {
         { key: '/settings/templates', label: '模板库', icon: <FormOutlined /> },
         { key: '/settings/site', label: '站点配置', icon: <GlobalOutlined /> },
         {
+          key: '/settings/third-party',
+          label: '第三方服务',
+          icon: <SoundOutlined />,
+        },
+        {
           key: '/settings/backups',
           label: '数据备份',
           icon: <CloudServerOutlined />,
@@ -199,11 +204,6 @@ function getMenuItems(): MenuProps['items'] {
           key: '/settings/storage',
           label: '存储设置',
           icon: <DatabaseOutlined />,
-        },
-        {
-          key: '/settings/third-party',
-          label: '第三方服务',
-          icon: <SoundOutlined />,
         },
       ],
     });
@@ -249,6 +249,11 @@ export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
+  const [openKeys, setOpenKeys] = useState<string[]>(() => {
+    // 从 localStorage 恢复菜单展开状态
+    const stored = localStorage.getItem('workbench_menu_open_keys');
+    return stored ? JSON.parse(stored) : [];
+  });
   const [idlePaused, setIdlePaused] = useState(() => {
     const stored = sessionStorage.getItem('workbench_idle_paused');
     if (stored === 'true') {
@@ -286,6 +291,22 @@ export default function MainLayout() {
     }
     return location.pathname;
   }, [location.pathname]);
+
+  // 路由变化时自动展开对应菜单，并持久化到 localStorage
+  useEffect(() => {
+    const pathname = location.pathname;
+    const newOpenKeys = [...openKeys];
+    
+    // 如果是系统设置子页面，自动展开系统设置菜单
+    if (pathname.startsWith('/settings') && !newOpenKeys.includes('/settings')) {
+      newOpenKeys.push('/settings');
+    }
+    
+    if (JSON.stringify(newOpenKeys) !== JSON.stringify(openKeys)) {
+      setOpenKeys(newOpenKeys);
+      localStorage.setItem('workbench_menu_open_keys', JSON.stringify(newOpenKeys));
+    }
+  }, [location.pathname, openKeys]);
   const { notifications, unreadCount, connected, markAsRead, markAllAsRead } = useWebSocket();
   const toggleIdlePause = useCallback(() => {
     setIdlePaused((prev) => {
@@ -354,8 +375,11 @@ export default function MainLayout() {
     }
   }, [isLocked, navigate]);
 
-  const handleMenuOpenChange = useCallback((openKeys: string[]) => {
-    if (openKeys.includes('/settings')) {
+  const handleMenuOpenChange = useCallback((newOpenKeys: string[]) => {
+    setOpenKeys(newOpenKeys);
+    localStorage.setItem('workbench_menu_open_keys', JSON.stringify(newOpenKeys));
+    
+    if (newOpenKeys.includes('/settings')) {
       setTimeout(() => {
         const settingsItem = document.querySelector('[data-menu-id="/settings"]');
         if (settingsItem) {
@@ -501,6 +525,7 @@ export default function MainLayout() {
                   <Menu
                     mode="inline"
                     selectedKeys={[selectedKey]}
+                    openKeys={openKeys}
                     items={getMenuItems() ?? []}
                     onClick={({ key }) => navigate(key)}
                     onOpenChange={handleMenuOpenChange}

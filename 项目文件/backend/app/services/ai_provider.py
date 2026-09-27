@@ -38,7 +38,7 @@ async def generate_minutes(transcript: str, meeting_id: uuid.UUID) -> dict[str, 
         },
         "online": {
             "base_url": "https://api.openai.com/v1",
-            "model": "gpt-4o",
+            "model": "",
             "api_key": None,
         },
         "parameters": {
@@ -61,7 +61,7 @@ async def _call_ai(config: dict[str, Any], transcript: str) -> dict[str, Any]:
         api_key = None
     else:
         base_url = config["online"].get("base_url", "https://api.openai.com/v1")
-        model = config["online"].get("model", "gpt-4o")
+        model = config["online"].get("model", "")
         api_key = config["online"].get("api_key")
     
     parameters = config.get("parameters", {})

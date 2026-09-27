@@ -705,8 +705,8 @@ const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.sta
                     >
                       <div className={styles.linkedContent ?? ''}>
                         <Space className={styles.linkedLink ?? ''}>
-                          <Text strong>{meeting.number}</Text>
-                          <Text>{meeting.type} {formatDate(meeting.started_at)}</Text>
+                          <Text strong>{meeting.type}</Text>
+                          <Text>{formatDate(meeting.started_at)}</Text>
                         </Space>
                         {(meeting.speaker || meeting.content) && (
                           <div style={{ marginTop: 'var(--spacing-xxs)' }}>

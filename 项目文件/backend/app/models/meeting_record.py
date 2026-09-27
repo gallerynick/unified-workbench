@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -85,6 +85,9 @@ class MeetingRecord(Base):
     )
     minutes_reviewed: Mapped[bool] = mapped_column(
         Boolean, default=False, comment="纪要是否已审核"
+    )
+    notes: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="会议笔记内容"
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

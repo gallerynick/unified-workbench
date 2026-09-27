@@ -24,8 +24,8 @@ from app.services.mediamtx import get_active_paths
 def get_room_urls(room_id: str, host: str) -> dict:
     """生成房间推流/观看地址"""
     return {
-        "push_url": f"http://{host}:8889/{room_id}/whip",
-        "watch_url": f"http://{host}:8889/{room_id}",
+        "push_url": f"/live/{room_id}/whip",
+        "watch_url": f"/live/{room_id}",
         "rtmp_url": f"rtmp://{host}:1935/{room_id}",
     }
 

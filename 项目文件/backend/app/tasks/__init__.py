@@ -6,6 +6,7 @@ from app.core.config import get_settings
 from app.tasks.backup import scheduled_backup  # noqa: F401
 from app.tasks.calendar_reminder import check_calendar_reminders  # noqa: F401
 from app.tasks.file_share_cleanup import cleanup_expired_shares  # noqa: F401
+from app.tasks.meeting_process import process_meeting  # noqa: F401
 from app.tasks.heartbeat import beat_heartbeat  # noqa: F401
 from app.tasks.reminder import check_due_reminders  # noqa: F401
 from app.tasks.stream_room import (
@@ -26,6 +27,7 @@ celery_app = Celery(
         "app.tasks.stream_room",
         "app.tasks.file_share_cleanup",
         "app.tasks.heartbeat",
+        "app.tasks.meeting_process",
     ],
 )
 

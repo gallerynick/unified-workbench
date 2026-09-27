@@ -25,6 +25,7 @@ class MeetingRecordUpdate(BaseModel):
     visibility: str | None = Field(default=None, max_length=20)
     restricted_users: list[uuid.UUID] | None = None
     restricted_tags: list[uuid.UUID] | None = None
+    notes: str | None = None
 
 
 class MeetingTranscriptSegmentResponse(BaseModel):
@@ -79,6 +80,7 @@ class MeetingRecordResponse(BaseModel):
     diarization_status: str
     minutes_status: str
     minutes_reviewed: bool
+    notes: str | None = None
     created_at: datetime
     updated_at: datetime
     segments: list[MeetingTranscriptSegmentResponse] = []

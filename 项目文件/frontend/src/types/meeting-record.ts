@@ -45,6 +45,7 @@ export interface MeetingRecord {
   diarization_status: DiarizationStatus;
   minutes_status: MinutesStatus;
   minutes_reviewed: boolean;
+  notes: string | null;
   created_at: string;
   updated_at: string;
   segments: MeetingTranscriptSegment[];
@@ -63,6 +64,7 @@ export interface MeetingRecordUpdate {
   visibility?: MeetingVisibility;
   restricted_users?: string[];
   restricted_tags?: string[];
+  notes?: string;
 }
 
 export interface MeetingRecordList {
@@ -73,7 +75,7 @@ export interface MeetingRecordList {
 // WebSocket 消息类型
 export interface WebSocketMessage {
   type: string;
-  data: any;
+  data: unknown;
 }
 
 export interface AudioChunkMessage extends WebSocketMessage {
@@ -86,23 +88,27 @@ export interface AudioChunkMessage extends WebSocketMessage {
   };
 }
 
+export interface TranscriptSegmentData {
+  seq: number;
+  text: string;
+  audio_start_ms: number;
+  audio_end_ms: number;
+}
+
 export interface TranscriptSegmentMessage extends WebSocketMessage {
   type: 'transcript_segment';
-  data: {
-    seq: number;
-    text: string;
-    audio_start_ms: number;
-    audio_end_ms: number;
-  };
+  data: TranscriptSegmentData;
+}
+
+export interface StatusUpdateData {
+  status: MeetingStatus;
+  duration_seconds: number;
+  segment_count: number;
 }
 
 export interface StatusUpdateMessage extends WebSocketMessage {
   type: 'status_update';
-  data: {
-    status: MeetingStatus;
-    duration_seconds: number;
-    segment_count: number;
-  };
+  data: StatusUpdateData;
 }
 
 export interface ProcessingUpdateMessage extends WebSocketMessage {
@@ -122,9 +128,17 @@ export interface ErrorMessage extends WebSocketMessage {
   };
 }
 
+export interface WarningMessage extends WebSocketMessage {
+  type: 'warning';
+  data: {
+    message: string;
+  };
+}
+
 export type MeetingWebSocketMessage =
   | AudioChunkMessage
   | TranscriptSegmentMessage
   | StatusUpdateMessage
   | ProcessingUpdateMessage
-  | ErrorMessage;
+  | ErrorMessage
+  | WarningMessage;

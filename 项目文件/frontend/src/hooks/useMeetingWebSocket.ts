@@ -1,20 +1,28 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getToken } from '../utils/auth';
-import type { MeetingWebSocketMessage } from '../types/meeting-record';
+import type { MeetingWebSocketMessage, TranscriptSegmentData } from '../types/meeting-record';
 
 export interface MeetingWebSocketState {
   connected: boolean;
   status: string | null;
   durationSeconds: number;
   segmentCount: number;
-  segments: any[];
+  segments: TranscriptSegmentData[];
   processingStage: string | null;
   processingProgress: number;
   processingMessage: string;
   error: string | null;
 }
 
-export function useMeetingWebSocket(meetingId: string | undefined) {
+/**
+ * 会议 WebSocket 连接 Hook
+ * @param meetingId 会议 ID
+ * @param shouldConnect 是否应该连接（由外部根据会议状态控制）
+ */
+export function useMeetingWebSocket(
+  meetingId: string | undefined,
+  shouldConnect = false,
+) {
   const [state, setState] = useState<MeetingWebSocketState>({
     connected: false,
     status: null,
@@ -28,13 +36,21 @@ export function useMeetingWebSocket(meetingId: string | undefined) {
   });
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [shouldConnect, setShouldConnect] = useState(true);
+  const shouldConnectRef = useRef(shouldConnect);
+
+  // 同步 shouldConnect 到 ref，避免闭包问题
+  useEffect(() => {
+    shouldConnectRef.current = shouldConnect;
+  }, [shouldConnect]);
 
   const connect = useCallback(() => {
-    if (!meetingId || !shouldConnect) return;
-    
+    if (!meetingId || !shouldConnectRef.current) return;
+
     const token = getToken();
     if (!token) return;
+
+    // 避免重复连接
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = protocol + '//' + window.location.host + '/ws/meetings/' + meetingId + '?token=' + token;
@@ -49,7 +65,7 @@ export function useMeetingWebSocket(meetingId: string | undefined) {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data) as MeetingWebSocketMessage;
-        
+
         switch (msg.type) {
           case 'transcript_segment':
             setState((prev) => ({
@@ -61,23 +77,26 @@ export function useMeetingWebSocket(meetingId: string | undefined) {
           case 'status_update':
             setState((prev) => ({
               ...prev,
-              status: (msg.data as any).status,
-              durationSeconds: (msg.data as any).duration_seconds,
-              segmentCount: (msg.data as any).segment_count,
+              status: msg.data.status,
+              durationSeconds: msg.data.duration_seconds,
+              segmentCount: msg.data.segment_count,
             }));
             break;
           case 'processing_update':
             setState((prev) => ({
               ...prev,
-              processingStage: (msg.data as any).stage,
-              processingProgress: (msg.data as any).progress,
-              processingMessage: (msg.data as any).message,
+              processingStage: msg.data.stage,
+              processingProgress: msg.data.progress,
+              processingMessage: msg.data.message,
             }));
+            break;
+          case 'warning':
+            console.warn('WebSocket warning:', msg.data.message);
             break;
           case 'error':
             setState((prev) => ({
               ...prev,
-              error: (msg.data as any).message,
+              error: msg.data.message,
             }));
             break;
         }
@@ -88,28 +107,46 @@ export function useMeetingWebSocket(meetingId: string | undefined) {
 
     ws.onclose = () => {
       setState((prev) => ({ ...prev, connected: false }));
-      if (shouldConnect) {
-        reconnectTimer.current = setTimeout(connect, 3000);
+      // 只有在应该连接的情况下才重连
+      if (shouldConnectRef.current) {
+        reconnectTimer.current = setTimeout(() => {
+          connect();
+        }, 3000);
       }
     };
 
     ws.onerror = () => {
-      setState((prev) => ({ ...prev, error: 'Connection error' }));
+      setState((prev) => ({ ...prev, error: '连接失败' }));
     };
-  }, [meetingId, shouldConnect]);
+  }, [meetingId]);
 
+  // 当 shouldConnect 变化时，建立或断开连接
   useEffect(() => {
-    connect();
+    if (shouldConnect && meetingId) {
+      connect();
+    } else {
+      // 断开连接
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+        reconnectTimer.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      setState((prev) => ({ ...prev, connected: false }));
+    }
+
     return () => {
-      setShouldConnect(false);
       if (reconnectTimer.current) {
         clearTimeout(reconnectTimer.current);
       }
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
     };
-  }, [connect]);
+  }, [shouldConnect, meetingId, connect]);
 
   const sendMessage = useCallback((message: object) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -117,18 +154,9 @@ export function useMeetingWebSocket(meetingId: string | undefined) {
     }
   }, []);
 
-  const disconnect = useCallback(() => {
-    setShouldConnect(false);
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-  }, []);
-
   return {
     ...state,
     sendMessage,
-    disconnect,
-    reconnect: connect,
+    connect,
   };
 }

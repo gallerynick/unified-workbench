@@ -142,6 +142,9 @@ def run() -> None:
             )
         )
 
+        # meeting_record.notes 列（会议笔记）
+        conn.execute(sa.text("ALTER TABLE meeting_record ADD COLUMN IF NOT EXISTS notes TEXT"))
+
         # 删除 link_relation 通用关联表（零消费者，项目内部关联已由外键覆盖）
         conn.execute(sa.text("DROP INDEX IF EXISTS ix_link_relation_source_type_source_id"))
         conn.execute(sa.text("DROP TABLE IF EXISTS link_relation"))
