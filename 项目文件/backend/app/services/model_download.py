@@ -57,6 +57,8 @@ RETRY_DELAY = 5                        # 重试间隔（秒）
 HEARTBEAT_INTERVAL = 5.0               # 心跳间隔：无新数据也刷新 updated_at，证明协程存活
 PROGRESS_WRITE_INTERVAL = 0.5          # 进度写 Redis 的最小间隔（节流）
 SPEED_WINDOW = 15.0                    # 速度计算滑动窗口（秒）
+MIN_SPEED_WINDOW = 2.0                 # 速度计算的最小窗口跨度（秒），跨度不足时不报速度
+MAX_PLAUSIBLE_SPEED = 250 * 1024 * 1024  # 单段隐含速率上限（字节/秒），剔除缓存复用跳变
 STALE_AFTER_SECONDS = 120.0            # 心跳缺失超过该秒数 → 任务已丢失
 PROGRESS_STALL_AFTER_SECONDS = 600.0   # 零字节增长超过该秒数 → 上游网络卡死
 MAX_DURATION_SECONDS = 6 * 3600        # 单个下载任务最长存活时间
@@ -163,6 +165,13 @@ async def _get_status(redis: aioredis.Redis, task_key: str) -> dict | None:
     return None
 
 
+def _with_elapsed(info: dict) -> dict:
+    """补上实时耗时（秒）。由服务端 started_at 推导，避免客户端与服务端时钟偏差。"""
+    started = float(info.get("started_at") or 0)
+    info["elapsed_seconds"] = max(0.0, time.time() - started) if started > 0 else 0.0
+    return info
+
+
 async def _update_status(redis: aioredis.Redis, task_key: str, updates: dict) -> None:
     """把 updates 合并进任务状态并写回 Redis"""
     current = await _get_status(redis, task_key)
@@ -214,12 +223,62 @@ async def _find_active_task(
     return candidates[0][1]
 
 
+async def _last_incomplete_started_at(
+    redis: aioredis.Redis, user_id: str, model_name: str
+) -> float:
+    """同用户同模型最近一次未完成任务（取消 / 出错）的 started_at。
+
+    取消或中断后重新下载时，Ollama 会复用本地已缓存的分片，
+    「已下载」并非全部由本次任务产生，若不沿用上一次任务的起始时间，
+    会出现「用时 34 秒、已下载 3 GB」这类互相矛盾的数字。
+    返回 0.0 表示没有可继承的历史。
+    """
+    best = 0.0
+    keys = await redis.keys(f"{DOWNLOAD_KEY_PREFIX}*")
+    for key in keys:
+        info = await _get_status(redis, key.decode() if isinstance(key, bytes) else key)
+        if not info or info.get("user_id") != user_id or info.get("model_name") != model_name:
+            continue
+        if info.get("status") not in (DownloadStatus.CANCELLED, DownloadStatus.ERROR):
+            continue
+        started = float(info.get("started_at") or 0)
+        if started > best:
+            best = started
+    return best
+
+
+def _blob_id_from_status(status: str) -> str:
+    """从 Ollama 的 status 文本中提取 blob 标识，用于按 blob 聚合进度。
+
+    Ollama 的 `total` / `completed` 是针对**单个 blob** 上报的，不是整个模型：
+    一个模型由 manifest、system、template、license 等多个 blob 组成，逐个下载，
+    每个 blob 有自己的 total，且 completed 从 0 重新开始。若按「最后一条覆盖」，
+    进度会退化成最后一个 blob 的进度，导致百分比爆炸或停滞。
+
+    形如 ``downloading 58d1e17ffe51 3.2%`` → ``58d1e17ffe51``；
+    无 blob 标识的行（``pulling manifest``、``verifying sha256 digest``、``success``）
+    不携带 total / completed，用什么键都不影响聚合结果。
+    """
+    parts = status.split()
+    return parts[1] if len(parts) >= 2 else status
+
+
 class _ProgressState:
     """一次 pull 流内的进度聚合状态"""
 
-    __slots__ = ("total", "downloaded", "phase", "error", "samples", "last_write", "last_recorded")
+    __slots__ = (
+        "blobs",
+        "total",
+        "downloaded",
+        "phase",
+        "error",
+        "samples",
+        "last_write",
+        "last_recorded",
+    )
 
     def __init__(self) -> None:
+        self.blobs: dict[str, dict[str, int]] = {}
         self.total = 0
         self.downloaded = 0
         self.phase = "连接中"
@@ -234,22 +293,48 @@ async def _apply_lines(
 ) -> None:
     """把一批 Ollama 进度行应用到状态，并按节流写回 Redis"""
     for obj in objs:
-        if "total" in obj:
-            p.total = int(obj["total"])
-        if "completed" in obj:
-            p.downloaded = int(obj["completed"])
         if "status" in obj:
             p.phase = _map_phase(str(obj["status"]))
         # Ollama 失败时以 HTTP 200 + {"error": ...} 正常结束流，必须捕获，否则会误判为下载完成
         if "error" in obj:
             p.error = str(obj["error"])
+        blob = p.blobs.setdefault(_blob_id_from_status(str(obj.get("status") or "")), {
+            "total": 0,
+            "completed": 0,
+        })
+        if "total" in obj:
+            blob["total"] = max(blob["total"], int(obj["total"]))
+        if "completed" in obj:
+            blob["completed"] = max(blob["completed"], int(obj["completed"]))
+        # 只报了 total 没报 completed 的分片视为已就位（本地缓存命中），
+        # 否则已缓存模型的进度会一直停在 0%
+        if "completed" not in obj and blob["completed"] == 0:
+            blob["completed"] = blob["total"]
+
+    p.total = sum(v["total"] for v in p.blobs.values())
+    p.downloaded = sum(v["completed"] for v in p.blobs.values())
 
     now = time.time()
-    p.samples.append((now, p.downloaded))
+
+    # completed 未变化时不重复入样，避免空样本把窗口无谓拉长
+    if not (p.samples and p.samples[-1][1] == p.downloaded):
+        p.samples.append((now, p.downloaded))
+
     while p.samples and now - p.samples[0][0] > SPEED_WINDOW:
         p.samples.popleft()
 
-    if len(p.samples) >= 2 and p.samples[-1][0] > p.samples[0][0]:
+    # 剔除窗口首段的「缓存复用跳变」：Ollama 复用本地已缓存分片时，completed 会在毫秒级
+    # 从 0 跳到接近 total，该跳变不属本窗口内的真实下载，需逐段前移锚点直到速率回落
+    while len(p.samples) >= 2:
+        dt_head = p.samples[1][0] - p.samples[0][0]
+        dd_head = p.samples[1][1] - p.samples[0][1]
+        head_rate = (dd_head / dt_head) if dt_head > 0 else float("inf")
+        if head_rate > MAX_PLAUSIBLE_SPEED:
+            p.samples.popleft()
+        else:
+            break
+
+    if len(p.samples) >= 2 and p.samples[-1][0] - p.samples[0][0] >= MIN_SPEED_WINDOW:
         dt = p.samples[-1][0] - p.samples[0][0]
         dd = p.samples[-1][1] - p.samples[0][1]
         speed = max(0.0, dd / dt)
@@ -260,7 +345,7 @@ async def _apply_lines(
         return
 
     p.last_write = now
-    progress = (p.downloaded / p.total * 100) if p.total > 0 else 0.0
+    progress = min(100.0, p.downloaded / p.total * 100) if p.total > 0 else 0.0
     updates: dict[str, Any] = {
         "progress": progress,
         "total": p.total,
@@ -494,10 +579,18 @@ async def start_model_download(model_name: str, user_id: str) -> str:
             "speed": 0,
             "phase": "排队中",
             "started_at": now,
+            "elapsed_seconds": 0.0,
             "updated_at": now,
             "progress_updated_at": now,
             "retry_count": 0,
         }
+        # 沿用上一次未完成任务的起始时间：已下载量含上一次留下的缓存分片，
+        # 重新计时会让「用时」与「已下载」互相矛盾
+        inherited = await _last_incomplete_started_at(redis, user_id, model_name)
+        if inherited and inherited < now:
+            download_info["started_at"] = inherited
+            download_info["elapsed_seconds"] = now - inherited
+            download_info["phase"] = "续传中"
         await redis.set(
             f"{DOWNLOAD_KEY_PREFIX}{task_id}",
             json.dumps(download_info),
@@ -556,7 +649,7 @@ async def get_download_status(task_id: str, user_id: str = "") -> dict | None:
         info = await _get_status(redis, task_key)
         if not info or not _is_owner(info, user_id):
             return None
-        return await _maybe_reap(redis, task_key, info)
+        return _with_elapsed(await _maybe_reap(redis, task_key, info))
     finally:
         await redis.close()
 
@@ -578,7 +671,7 @@ async def get_user_current_download(user_id: str) -> dict | None:
         if not candidates:
             return None
         candidates.sort(key=lambda item: item[0], reverse=True)
-        return candidates[0][1]
+        return _with_elapsed(candidates[0][1])
     finally:
         await redis.close()
 

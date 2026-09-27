@@ -119,7 +119,7 @@ export default function ThirdPartyConfigPage() {
   // Ollama 当前阶段（下载中/校验中/写入中…），用于区分「缓慢」与「卡死」
   const [downloadPhase, setDownloadPhase] = useState('');
   // 任务开始时间（Unix 秒），用于展示已运行时长
-  const [downloadStartedAt, setDownloadStartedAt] = useState<number | null>(null);
+  const [downloadElapsed, setDownloadElapsed] = useState(0);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // 检查 Ollama 健康状态和模型状态
@@ -219,7 +219,9 @@ export default function ThirdPartyConfigPage() {
         setDownloadTotal(total);
         setDownloadDownloaded(downloaded);
         setDownloadPhase(res.data.phase || '');
-        setDownloadStartedAt(typeof res.data.started_at === 'number' ? res.data.started_at : null);
+        setDownloadElapsed(
+          typeof res.data.elapsed_seconds === 'number' ? res.data.elapsed_seconds : 0,
+        );
         setAiModelStatus(
           status === 'completed' ? 'downloaded' : status === 'error' ? 'error' : 'downloading',
         );
@@ -394,7 +396,7 @@ export default function ThirdPartyConfigPage() {
         setDownloadStatus('downloading');
         setDownloadError(null);
         setDownloadPhase('连接中');
-        setDownloadStartedAt(Date.now() / 1000);
+        setDownloadElapsed(0);
         setAiModelStatus('downloading');
         
         // 开始轮询下载进度
@@ -429,8 +431,8 @@ export default function ThirdPartyConfigPage() {
           if (data.phase) {
             setDownloadPhase(data.phase);
           }
-          if (typeof data.started_at === 'number') {
-            setDownloadStartedAt(data.started_at);
+          if (typeof data.elapsed_seconds === 'number') {
+            setDownloadElapsed(data.elapsed_seconds);
           }
           
           if (data.status === 'completed') {
@@ -688,9 +690,9 @@ export default function ThirdPartyConfigPage() {
                           <span style={{ marginLeft: 16 }}>速度: {(downloadSpeed / 1024 / 1024).toFixed(2)} MB/s</span>
                           <span style={{ marginLeft: 16 }}>已下载: {(downloadDownloaded / 1024 / 1024).toFixed(1)} MB</span>
                           <span style={{ marginLeft: 16 }}>总计: {(downloadTotal / 1024 / 1024).toFixed(1)} MB</span>
-                          {downloadStartedAt && (
-                            <span style={{ marginLeft: 16 }}>用时: {formatDuration(Date.now() / 1000 - downloadStartedAt)}</span>
-                          )}
+                          <span style={{ marginLeft: 16 }}>
+                            用时: {formatDuration(downloadElapsed)}
+                          </span>
                         </div>
                         <Space style={{ marginTop: 8 }}>
                           {downloadStatus === 'downloading' && (
