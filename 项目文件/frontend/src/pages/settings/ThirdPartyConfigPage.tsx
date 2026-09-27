@@ -937,7 +937,7 @@ export default function ThirdPartyConfigPage() {
                       style={{ marginBottom: 16 }}
                     />
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <Form.Item
                           name={['ai_provider', 'local', 'model']}
@@ -948,12 +948,15 @@ export default function ThirdPartyConfigPage() {
                             showSearch
                             optionFilterProp="label"
                             placeholder="选择模型"
-                            options={[
-                              ...localModels.map((m) => ({
-                                value: m.name,
-                                label: `${m.name}（${formatBytes(m.size)}）`,
-                              })),
-                            ]}
+                            options={Object.entries(MODEL_INFO).map(([key, info]) => {
+                              const local = localModels.find((m) => m.name === key);
+                              return {
+                                value: key,
+                                label: local
+                                  ? `${info.name}（${formatBytes(local.size)}）`
+                                  : `${info.name}（未下载）`,
+                              };
+                            })}
                             onChange={(value: string) => void checkOllamaStatus(value)}
                           />
                         </Form.Item>
@@ -965,7 +968,7 @@ export default function ThirdPartyConfigPage() {
                           })()}
                         </Paragraph>
                       </div>
-                      <Space>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 30, minWidth: 120 }}>
                         {!checkingDownload && aiModelStatus === 'not_downloaded' && (
                           <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownloadAIModel}>
                             下载模型
@@ -992,7 +995,7 @@ export default function ThirdPartyConfigPage() {
                             检查中...
                           </Tag>
                         )}
-                      </Space>
+                      </div>
                     </div>
 
                     {/* 下载进度条 */}
