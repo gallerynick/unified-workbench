@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PlusOutlined, ClockCircleOutlined, CheckCircleOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
 import { Button, Input, Modal, Form, Tag, Empty, message, Spin, Typography } from 'antd';
 import { listMeetingRecords, createMeetingRecord } from '../../api/meeting-records';
-import type { MeetingRecord, MeetingRecordCreate, MeetingStatus, MeetingVisibility } from '../../types/meeting-record';
+import type { MeetingRecord, MeetingRecordCreate, MeetingStatus } from '../../types/meeting-record';
 import VisibilitySetting from '../../components/VisibilitySetting/VisibilitySetting';
 import { getVisibilityConfig } from '../../utils/visibility';
 import styles from './MeetingList.module.css';
