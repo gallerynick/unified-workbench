@@ -96,15 +96,17 @@ const COLOR_SOURCES: Record<keyof MonitorChartColors, string> = {
  * 返回资源监视页所需的图表配色。
  *
  * 依赖 antd token 与 isDark：antd token 本身随主题重建，isDark 用于
- * 触发 CSS 变量重算（--color-orange 无暗色变体，其余语义 token 均随
- * data-theme 切换）。两者任一变化都会重算，且每次渲染只解析一次。
+ * 触发 CSS 变量重算（全部语义 token 均随 data-theme 切换）。两者任一
+ * 变化都会重算，且每次渲染只解析一次。
  */
 export function useMonitorChartColors(): MonitorChartColors {
   const { isDark } = useTheme();
   const antdToken = theme.useToken().token;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- 颜色随主题切换重算
   return useMemo(() => {
+    // isDark 仅作失效信号：CSS 变量随 data-theme 切换而变化，
+    // 而 antdToken 的更新时机不保证早于 CSS 变量生效。
+    void isDark;
     const out = Object.fromEntries(
       Object.entries(COLOR_SOURCES).map(([k, v]) => [k, resolveCssVar(v)])
     ) as unknown as MonitorChartColors;
