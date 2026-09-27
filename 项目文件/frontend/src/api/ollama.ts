@@ -24,6 +24,8 @@ export interface DownloadStatus {
   phase?: string;
   /** 任务开始时间戳（秒），后端可能不返回 */
   started_at: number | null;
+  /** 任务已运行秒数（服务端按 started_at 推导，避免前后端时钟偏差） */
+  elapsed_seconds?: number;
   updated_at: number;
   error?: string;
 }
