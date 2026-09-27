@@ -24,6 +24,7 @@ export default function MeetingRoom() {
   const [charCount, setCharCount] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [activeTab, setActiveTab] = useState<string>('notes');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const [noteSaveState, setNoteSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
@@ -499,7 +500,8 @@ export default function MeetingRoom() {
                 { key: 'todos', label: '待办事项' },
                 { key: 'recording', label: '录音' },
               ]}
-              activeKey="notes"
+              activeKey={activeTab}
+              onChange={setActiveTab}
               style={{ margin: 0, width: '100%' }}
             />
           </div>

@@ -50,6 +50,8 @@ export interface MonitorChartColors {
   axis: string;
   grid: string;
   refLine: string;
+  /** 环形图分片间隙：与卡片背景同色，视觉上把扇区分开 */
+  cardBg: string;
 }
 
 /** CSS 变量名映射表：只允许 token.css 中已定义的 token，不写死 hex。 */
@@ -86,6 +88,8 @@ const COLOR_SOURCES: Record<keyof MonitorChartColors, string> = {
   axis: 'var(--text-secondary)',
   grid: 'var(--border-secondary)',
   refLine: 'var(--text-secondary)',
+
+  cardBg: 'var(--card-bg)',
 };
 
 /**
