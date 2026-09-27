@@ -54,3 +54,8 @@ export async function getMemoryInfo(): Promise<UnifiedResponse<MemoryInfo>> {
 export async function unloadASRModel(): Promise<UnifiedResponse<TestConnectionResponse>> {
   return request<TestConnectionResponse>('/config/third-party/asr/unload', { method: 'POST' });
 }
+
+/** 卸载已加载的 AI 模型，释放内存 */
+export async function unloadAIModel(model?: string): Promise<UnifiedResponse<TestConnectionResponse>> {
+  return request<TestConnectionResponse>('/config/third-party/ai/unload', { method: 'POST', body: { model } });
+}

@@ -797,3 +797,39 @@ async def unload_asr_model() -> TestConnectionResponse:
             success=False,
             message=f"卸载失败：{e}",
         )
+
+
+async def unload_ai_model(model_name: str | None = None) -> TestConnectionResponse:
+    """卸载已加载的 AI 模型（Ollama），释放内存。
+
+    Ollama 的 keep_alive: 0 告诉它在请求完成后立即卸载模型。
+    如果模型未加载，请求会先加载再卸载（等于空操作）。
+    """
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://ollama:11434/api/generate",
+                json={
+                    "model": model_name or "qwen2.5:3b",
+                    "prompt": "",
+                    "keep_alive": 0,
+                },
+            )
+            if response.status_code == 200:
+                return TestConnectionResponse(
+                    success=True,
+                    message="AI 模型已卸载，内存已释放",
+                )
+            else:
+                detail = response.text[:200]
+                return TestConnectionResponse(
+                    success=False,
+                    message=f"卸载失败：HTTP {response.status_code} {detail}",
+                )
+    except Exception as e:
+        return TestConnectionResponse(
+            success=False,
+            message=f"卸载失败：{e}",
+        )

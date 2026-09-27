@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SaveOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, CheckCircleOutlined, LoadingOutlined, ThunderboltOutlined, PauseCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Space, Alert, Typography, Tag, Modal, Progress, Statistic, Row, Col } from 'antd';
-import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels, getMemoryInfo, unloadASRModel } from '../../api/third-party-config';
+import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels, getMemoryInfo, unloadASRModel, unloadAIModel } from '../../api/third-party-config';
 import { getOllamaModelStatus, getOllamaModels, deleteOllamaModel, getOllamaHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/ollama';
 import type { ThirdPartyConfig, TestConnectionResponse, MemoryInfo } from '../../types/third-party-config';
 import { isAdmin } from '../../utils/auth';
@@ -191,6 +191,7 @@ export default function ThirdPartyConfigPage() {
   const [memoryInfo, setMemoryInfo] = useState<MemoryInfo | null>(null);
   // ASR 卸载中
   const [asrUnloading, setAsrUnloading] = useState(false);
+  const [aiUnloading, setAiUnloading] = useState(false);
   // 轮询定时器句柄。必须用 ref 而不是 state 持有：
   // poll 闭包捕获的是创建时的 stopPolling，若 stopPolling 读 state，
   // 它拿到的永远是上一次渲染的值（首次为 null），clearInterval 会变成空操作，
@@ -527,6 +528,23 @@ export default function ThirdPartyConfigPage() {
       message.error(errorMessage(err, '卸载失败'));
     } finally {
       setAsrUnloading(false);
+    }
+  };
+
+  const handleUnloadAI = async () => {
+    setAiUnloading(true);
+    try {
+      const model = form.getFieldValue(['ai_provider', 'local', 'model']);
+      const res = await unloadAIModel(model);
+      if (res.code === 0 && res.data) {
+        message.success(res.data.message || 'AI 模型已卸载');
+        const memRes = await getMemoryInfo();
+        if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
+      }
+    } catch (err: unknown) {
+      message.error(errorMessage(err, '卸载失败'));
+    } finally {
+      setAiUnloading(false);
     }
   };
 
@@ -991,6 +1009,9 @@ export default function ThirdPartyConfigPage() {
                             loading={speedTesting}
                           >
                             测速
+                          </Button>
+                          <Button loading={aiUnloading} onClick={handleUnloadAI}>
+                            卸载模型
                           </Button>
                           <Button danger icon={<DeleteOutlined />} onClick={handleDeleteAIModel}>
                             删除模型
