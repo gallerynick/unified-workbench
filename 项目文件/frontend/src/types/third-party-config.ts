@@ -57,13 +57,18 @@ export interface TestConnectionResponse {
   message: string;
   /** 后端把所有指标放在 details 里，不在响应顶层：
    *  测速模式 → tokens_per_second / total_tokens / total_latency_ms 等；
-   *  普通连接测试 → model / model_count */
+   *  普通连接测试 → model / model_count；
+   *  ASR 预热 → downloaded / total */
   details?: {
     model?: string;
     model_count?: number;
     tokens_per_second?: number;
     total_tokens?: number;
     total_latency_ms?: number;
+    /** 已就绪的 ASR 模型数 */
+    downloaded?: number;
+    /** ASR 模型总数 */
+    total?: number;
     /** 只算解码的 token 数（不含 prompt 前向） */
     eval_count?: number;
     /** prompt 前向的 token 数 */
