@@ -25,7 +25,8 @@ import time
 from collections import deque
 from typing import Any
 
-import psutil
+# psutil 未随附类型存根，与 app/services/form_export.py 的 openpyxl 处理一致
+import psutil  # type: ignore[import-untyped]
 
 from app.services.monitor.metrics import (
     compute_pressure,
@@ -35,6 +36,8 @@ from app.services.monitor.metrics import (
     parse_int,
     parse_keyed_stat,
     pressure_to_dict,
+    prev_counter,
+    rate_per_second,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,9 +63,6 @@ CGROUP_V1 = {
     "mem_limit": "/sys/fs/cgroup/memory/memory.limit_in_bytes",
     "mem_current": "/sys/fs/cgroup/memory/memory.usage_in_bytes",
 }
-
-DEFAULT_DISK = {"read_bytes": 0, "write_bytes": 0, "read_count": 0, "write_count": 0}
-DEFAULT_NET = {"bytes_sent": 0, "bytes_recv": 0, "packets_sent": 0, "packets_recv": 0}
 
 HISTORY_KEYS = (
     "ts",
@@ -93,20 +93,15 @@ def _read_file(path: str) -> str | None:
         return None
 
 
-def _mem_field(vm: psutil.svmem, name: str) -> int:
-    """读取 svmem 字段。
+def _opt_field(obj: object, name: str, default: float = 0.0) -> float:
+    """读取平台可选字段。
 
-    buffers / cached 只在 Linux 的 svmem 上存在（macOS 用 wired / compressed），
-    缺失时按 0 处理，保证同一份代码在开发机与容器内都不会因字段差异崩溃。
+    iowait / steal 只在 Linux 的 scputimes 上存在；
+    buffers / cached 只在 Linux 的 svmem 上存在（macOS 用 wired / compressed）。
+    缺失时返回默认值，保证同一份代码在开发机与容器内都不会因字段差异崩溃。
     """
-    return int(getattr(vm, name, 0) or 0)
-
-
-def _rate(current: int, previous: int, dt: float) -> int:
-    """由累计计数器计算每秒速率。计数器回退（容器重启）时返回 0。"""
-    if dt <= 0:
-        return 0
-    return max(current - previous, 0) // max(dt, 0.001)
+    value = getattr(obj, name, None)
+    return default if value is None else float(value)
 
 
 def _detect_container() -> bool:
@@ -146,8 +141,8 @@ class ResourceSampler:
         self._task: asyncio.Task[None] | None = None
         self._dt = interval
         self._last_mono: float | None = None
-        self._last_disk: dict[str, int] = dict(DEFAULT_DISK)
-        self._last_net: dict[str, int] = dict(DEFAULT_NET)
+        self._last_disk: dict[str, int] | None = None
+        self._last_net: dict[str, int] | None = None
         self._last_container_cpu_usec: int | None = None
         self._procs: dict[int, psutil.Process] = {}
 
@@ -174,8 +169,13 @@ class ResourceSampler:
                 pass
 
     async def _run(self) -> None:
-        """采样主循环。"""
+        """采样主循环。
+
+        先 sleep 再采集：_prime() 刚建立基线，若立刻采集则两次采样之间
+        /proc 计数器的差值近乎为 0，psutil 的 cpu_percent 会返回 0.0。
+        """
         while True:
+            await asyncio.sleep(self._interval)
             try:
                 now_mono = time.monotonic()
                 dt = now_mono - self._last_mono if self._last_mono else self._interval
@@ -187,7 +187,6 @@ class ResourceSampler:
                 raise
             except Exception:  # noqa: BLE001 - 单周期失败不应终止采样器
                 logger.exception("资源采样失败，跳过本周期")
-            await asyncio.sleep(self._interval)
 
     # ── 采集 ────────────────────────────────────────────────
 
@@ -222,9 +221,9 @@ class ResourceSampler:
             load1 = load5 = load15 = 0.0
 
         total = max(vm.total, 1)
-        buffers = _mem_field(vm, "buffers")
-        cached = _mem_field(vm, "cached")
-        used = max(vm.total - vm.free - buffers - cached, 0)
+        buffers = int(_opt_field(vm, "buffers"))
+        cached = int(_opt_field(vm, "cached"))
+        used = int(max(vm.total - vm.free - buffers - cached, 0))
         cpu_total = sum(cpu_percent) / max(len(cpu_percent), 1)
 
         disk_read = disk.read_bytes if disk else 0
@@ -248,13 +247,37 @@ class ResourceSampler:
             "packets_sent": net_sent_pkt,
             "packets_recv": net_recv_pkt,
         }
+        disk_read_rate = rate_per_second(
+            disk_read, prev_counter(prev_disk, "read_bytes"), self._dt
+        )
+        disk_write_rate = rate_per_second(
+            disk_write, prev_counter(prev_disk, "write_bytes"), self._dt
+        )
+        disk_read_ops = rate_per_second(
+            disk_read_count, prev_counter(prev_disk, "read_count"), self._dt
+        )
+        disk_write_ops = rate_per_second(
+            disk_write_count, prev_counter(prev_disk, "write_count"), self._dt
+        )
+        net_sent_rate = rate_per_second(
+            net_sent, prev_counter(prev_net, "bytes_sent"), self._dt
+        )
+        net_recv_rate = rate_per_second(
+            net_recv, prev_counter(prev_net, "bytes_recv"), self._dt
+        )
+        net_sent_ops = rate_per_second(
+            net_sent_pkt, prev_counter(prev_net, "packets_sent"), self._dt
+        )
+        net_recv_ops = rate_per_second(
+            net_recv_pkt, prev_counter(prev_net, "packets_recv"), self._dt
+        )
 
         self._refresh_procs()
         processes = self._collect_processes(20)
 
         pressure = compute_pressure(
             cpu_total=cpu_total,
-            cpu_iowait=agg_times.iowait,
+            cpu_iowait=_opt_field(agg_times, "iowait"),
             memory_total=vm.total,
             memory_available=vm.available,
             load1=load1,
@@ -273,8 +296,8 @@ class ResourceSampler:
                     "breakdown": {
                         "user": round(agg_times.user, 2),
                         "system": round(agg_times.system, 2),
-                        "iowait": round(agg_times.iowait, 2),
-                        "steal": round(agg_times.steal, 2),
+                        "iowait": round(_opt_field(agg_times, "iowait"), 2),
+                        "steal": round(_opt_field(agg_times, "steal"), 2),
                         "idle": round(agg_times.idle, 2),
                     },
                 },
@@ -295,24 +318,16 @@ class ResourceSampler:
                 },
                 "load": {"load1": load1, "load5": load5, "load15": load15},
                 "disk": {
-                    "read_bytes_per_sec": _rate(disk_read, prev_disk["read_bytes"], self._dt),
-                    "write_bytes_per_sec": _rate(disk_write, prev_disk["write_bytes"], self._dt),
-                    "read_count_per_sec": _rate(
-                        disk_read_count, prev_disk["read_count"], self._dt
-                    ),
-                    "write_count_per_sec": _rate(
-                        disk_write_count, prev_disk["write_count"], self._dt
-                    ),
+                    "read_bytes_per_sec": disk_read_rate,
+                    "write_bytes_per_sec": disk_write_rate,
+                    "read_count_per_sec": disk_read_ops,
+                    "write_count_per_sec": disk_write_ops,
                 },
                 "net": {
-                    "bytes_sent_per_sec": _rate(net_sent, prev_net["bytes_sent"], self._dt),
-                    "bytes_recv_per_sec": _rate(net_recv, prev_net["bytes_recv"], self._dt),
-                    "packets_sent_per_sec": _rate(
-                        net_sent_pkt, prev_net["packets_sent"], self._dt
-                    ),
-                    "packets_recv_per_sec": _rate(
-                        net_recv_pkt, prev_net["packets_recv"], self._dt
-                    ),
+                    "bytes_sent_per_sec": net_sent_rate,
+                    "bytes_recv_per_sec": net_recv_rate,
+                    "packets_sent_per_sec": net_sent_ops,
+                    "packets_recv_per_sec": net_recv_ops,
                 },
             },
             "container": self._collect_container(),
@@ -323,18 +338,18 @@ class ResourceSampler:
                 "cpu_total": round(cpu_total, 2),
                 "cpu_user": round(agg_times.user, 2),
                 "cpu_system": round(agg_times.system, 2),
-                "cpu_iowait": round(agg_times.iowait, 2),
+                "cpu_iowait": round(_opt_field(agg_times, "iowait"), 2),
                 "memory_used_percent": round(used / total * 100, 2),
-                "memory_cached_percent": round(vm.cached / total * 100, 2),
-                "memory_buffers_percent": round(vm.buffers / total * 100, 2),
+                "memory_cached_percent": round(cached / total * 100, 2),
+                "memory_buffers_percent": round(buffers / total * 100, 2),
                 "memory_free_percent": round(vm.free / total * 100, 2),
                 "load1": load1,
                 "load5": load5,
                 "load15": load15,
-                "disk_read_bps": _rate(disk_read, prev_disk["read_bytes"], self._dt),
-                "disk_write_bps": _rate(disk_write, prev_disk["write_bytes"], self._dt),
-                "net_sent_bps": _rate(net_sent, prev_net["bytes_sent"], self._dt),
-                "net_recv_bps": _rate(net_recv, prev_net["bytes_recv"], self._dt),
+                "disk_read_bps": disk_read_rate,
+                "disk_write_bps": disk_write_rate,
+                "net_sent_bps": net_sent_rate,
+                "net_recv_bps": net_recv_rate,
             },
         }
 

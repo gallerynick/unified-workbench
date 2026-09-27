@@ -189,3 +189,23 @@ def downsample_series(values: list[float], max_points: int) -> list[float]:
     picked = [values[int(round(i * step))] for i in range(max_points - 1)]
     picked.append(values[-1])
     return picked
+
+
+# ── 累计计数器速率 ────────────────────────────────────────
+
+
+def prev_counter(prior: dict[str, int] | None, key: str) -> int | None:
+    """取上一轮累计值；首样本无基准时返回 None（速率为 0）。"""
+    return prior[key] if prior else None
+
+
+def rate_per_second(current: int, previous: int | None, dt: float) -> int:
+    """由累计计数器计算每秒速率。
+
+    首个样本无基准（或计数器回退，如容器重启）时返回 0：累计值本身是
+    开机以来的总量，直接与 0 相除会得到天文数字。
+    """
+    if previous is None or dt <= 0:
+        return 0
+    # 分母是 float，// 会返回 float，这里强制转 int 保持响应为整型
+    return int(max(current - previous, 0) // max(dt, 0.001))

@@ -441,9 +441,19 @@ export default function MeetingRoom() {
           <div className={styles.controlBar}>
             <div className={styles.audioMeter}>
               <div className={styles.meterBars}>
-                {[...Array(10)].map((_, i) => (
-                  <div key={i} className={`${styles.meterBar} ${isRecording ? 'active' : ''}`} style={isRecording ? { height: `${Math.max(10, audioLevel * 100)}%` } : undefined} />
-                ))}
+                {[...Array(10)].map((_, i) => {
+                  // 根据音频电平和索引计算每个条的高度，创建视觉波动效果
+                  const baseHeight = Math.max(10, audioLevel * 100);
+                  const variation = Math.sin(Date.now() / 100 + i) * 20;
+                  const height = isRecording ? Math.max(10, Math.min(100, baseHeight + variation)) : 10;
+                  return (
+                    <div
+                      key={i}
+                      className={`${styles.meterBar} ${isRecording ? 'active' : ''}`}
+                      style={{ height: `${height}%` }}
+                    />
+                  );
+                })}
               </div>
             </div>
             

@@ -1,0 +1,199 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-card-gap);
+  min-height: var(--spacing-xxl);
+}
+
+.title {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.statCard {
+  height: 100%;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+.chart {
+  width: 100%;
+}
+
+.pressureLayout {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+  flex-wrap: wrap;
+}
+
+.pressureGauge {
+  flex-shrink: 0;
+}
+
+.pressureDims {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.dimRow {
+  display: grid;
+  grid-template-columns: 52px 1fr 56px;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.dimLabel,
+.dimValue {
+  white-space: nowrap;
+}
+
+.dimValue {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ringLayout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xl);
+  flex-wrap: wrap;
+}
+
+.ringLegend {
+  flex: 1;
+  min-width: 240px;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--rounded-sm);
+  flex-shrink: 0;
+}
+
+.legendLabel {
+  flex: 1;
+}
+
+.legendValue {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.coreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md) var(--spacing-xl);
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: var(--spacing-xxs);
+}
+
+.coreRow {
+  display: grid;
+  grid-template-columns: 56px 1fr 56px;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.coreIndex,
+.corePercent {
+  white-space: nowrap;
+}
+
+.corePercent {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.metaList {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.progressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.progressItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.progressHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.progressValue {
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  margin-top: var(--spacing-card-gap);
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding: var(--spacing-xs);
+  }
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+  .header > * {
+    width: 100%;
+  }
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
