@@ -10,6 +10,7 @@ import {
   CloudServerOutlined,
   ContactsOutlined,
   DatabaseOutlined,
+  DashboardOutlined,
   DesktopOutlined,
   SafetyOutlined,
   FileOutlined,
@@ -95,6 +96,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   VideoCameraOutlined: <VideoCameraOutlined />,
   CloudServerOutlined: <CloudServerOutlined />,
   DatabaseOutlined: <DatabaseOutlined />,
+  DashboardOutlined: <DashboardOutlined />,
 };
 
 interface SidebarItem {
@@ -204,6 +206,11 @@ function getMenuItems(): MenuProps['items'] {
           key: '/settings/storage',
           label: '存储设置',
           icon: <DatabaseOutlined />,
+        },
+        {
+          key: '/settings/monitor',
+          label: '资源监视',
+          icon: <DashboardOutlined />,
         },
       ],
     });

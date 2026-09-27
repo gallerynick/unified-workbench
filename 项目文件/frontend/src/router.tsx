@@ -21,6 +21,7 @@ const UserManagement = lazy(() => import('@/pages/settings/UserManagement'));
 const ContentManagement = lazy(() => import('@/pages/content/ContentManagement'));
 const FileSharePage = lazy(() => import('@/pages/file-share/FileSharePage'));
 const StorageSettings = lazy(() => import('@/pages/settings/StorageSettings'));
+const ResourceMonitor = lazy(() => import('@/pages/settings/ResourceMonitor'));
 const TemplateManagement = lazy(() => import('@/pages/templates/TemplateManagement'));
 const ProjectManagement = lazy(() => import('@/pages/projects/ProjectManagement'));
 const SecretManagement = lazy(() => import('@/pages/secrets/SecretManagement'));
@@ -436,6 +437,14 @@ export const router = createBrowserRouter([
                 element: (
                   <LazyPage>
                     <StorageSettings />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: 'settings/monitor',
+                element: (
+                  <LazyPage>
+                    <ResourceMonitor />
                   </LazyPage>
                 ),
               },

@@ -3,8 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
   Card,
+  DatePicker,
   Divider,
   Empty,
+  Form,
+  Input,
   List,
   message,
   Modal,
@@ -23,6 +26,7 @@ import {
   ExclamationCircleOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
+import dayjs, { type Dayjs } from 'dayjs';
 import {
   deleteProjectMeeting,
   getProjectMeeting,
@@ -53,6 +57,7 @@ import type { User } from '../../types/user';
 import styles from './MeetingDetailPage.module.css';
 
 const { Text, Title } = Typography;
+const { TextArea } = Input;
 
 const typeOptions: { value: string; label: string }[] = MEETING_TYPE_OPTIONS.map((o) => ({
   value: o.value,
@@ -71,7 +76,6 @@ function getLabel(
   return options.find((o) => o.value === value)?.label ?? value;
 }
 
-/** 格式化时间 */
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('zh-CN', {
     year: 'numeric',
@@ -82,7 +86,6 @@ function formatDate(iso: string): string {
   });
 }
 
-/** 备注对象的最小可用字段（从 unknown[] 中安全解析） */
 interface MeetingNote {
   content: string;
   author: string;
@@ -101,12 +104,29 @@ function parseNote(note: unknown): MeetingNote {
   return { content: String(note ?? ''), author: '', created_at: '' };
 }
 
-/**
- * 项目交流记录详情页
- *
- * 展示范式沿用提案详情页：定义列表 + 段落区块 + 关联内容元信息行。
- * 交流无状态字段，故不做状态流转 Steps；内容保持「标题+正文」纯文本结构。
- */
+/** 将备注数组序列化为纯文本（每条用换行分隔） */
+function serializeNotes(notes: MeetingNote[]): string {
+  return notes
+    .filter((n) => n.content.trim())
+    .map((n) => n.author ? `${n.author}: ${n.content}` : n.content)
+    .join('\n');
+}
+
+/** 将纯文本解析为备注数组（按行拆分，格式：作者: 内容 或 纯内容） */
+function parseNotesText(text: string): MeetingNote[] {
+  const now = new Date().toISOString();
+  return text
+    .split('\n')
+    .filter((line) => line.trim())
+    .map((line) => {
+      const colonIdx = line.indexOf(':');
+      if (colonIdx > 0 && colonIdx < 50) {
+        return { author: line.slice(0, colonIdx).trim(), content: line.slice(colonIdx + 1).trim(), created_at: now };
+      }
+      return { author: '', content: line.trim(), created_at: now };
+    });
+}
+
 export default function MeetingDetailPage() {
   const { id: projectId, meetingId } = useParams<{ id: string; meetingId: string }>();
   const navigate = useNavigate();
@@ -123,11 +143,20 @@ export default function MeetingDetailPage() {
   const [pendingProposalId, setPendingProposalId] = useState<string | null>(null);
   const [addTodoVisible, setAddTodoVisible] = useState(false);
   const [pendingTodoId, setPendingTodoId] = useState<string | null>(null);
-  // 编辑交流（共用组件 MeetingModal）
-  const [editVisible, setEditVisible] = useState(false);
-  // 新建并关联
   const [createTodoVisible, setCreateTodoVisible] = useState(false);
   const [createProposalVisible, setCreateProposalVisible] = useState(false);
+
+  // ── 分区编辑状态 ──
+  const [editBasicVisible, setEditBasicVisible] = useState(false);
+  const [editContentVisible, setEditContentVisible] = useState(false);
+  const [editNotesVisible, setEditNotesVisible] = useState(false);
+  const [basicForm] = Form.useForm();
+  const [editContentBody, setEditContentBody] = useState('');
+  const [notesText, setNotesText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // 用户列表（用于发言人/参与者下拉）
+  const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
 
   const fetchMeeting = useCallback(async () => {
     if (!projectId || !meetingId) return;
@@ -169,6 +198,17 @@ export default function MeetingDetailPage() {
     void fetchMeeting();
   }, [fetchMeeting]);
 
+  useEffect(() => {
+    if (users.length > 0) {
+      setUserOptions(
+        users.map((u) => ({
+          value: u.id,
+          label: u.username ? `${u.nickname} (${u.username})` : u.nickname,
+        })),
+      );
+    }
+  }, [users]);
+
   const userMap = useMemo(() => {
     const map: Record<string, User> = {};
     for (const u of users) map[u.id] = u;
@@ -198,7 +238,6 @@ export default function MeetingDetailPage() {
       : [];
   }, [meeting, todos]);
 
-  // 未关联的提案（排除已关联的）
   const unlinkedProposals = useMemo(() => {
     if (!meeting) return [];
     return meeting.proposal_id
@@ -243,7 +282,6 @@ export default function MeetingDetailPage() {
     });
   }, [meeting, projectId, navigate]);
 
-  // 断开关联提案（二次确认）
   const handleDisconnectProposal = useCallback(() => {
     if (!meeting) return;
     const proposal = proposals.find((p) => p.id === meeting.proposal_id);
@@ -291,7 +329,6 @@ export default function MeetingDetailPage() {
     }
   }, [meeting, pendingProposalId]);
 
-  // 断开关联待办（二次确认）
   const handleDisconnectTodo = useCallback(() => {
     if (!meeting) return;
     const todo = todos.find((t) => t.id === meeting.todo_id);
@@ -339,10 +376,112 @@ export default function MeetingDetailPage() {
     }
   }, [meeting, pendingTodoId]);
 
-  const openEdit = useCallback(() => {
+  // ── 分区编辑：打开基础信息弹窗 ──
+  const openEditBasic = useCallback(() => {
     if (!meeting) return;
-    setEditVisible(true);
+    const { title } = splitTitleContent(meeting.content);
+    basicForm.setFieldsValue({
+      type: meeting.type,
+      title,
+      started_at: meeting.started_at ? dayjs(meeting.started_at) : undefined,
+      speaker: meeting.speaker || '',
+      participants: meeting.participants || [],
+    });
+    setEditBasicVisible(true);
+  }, [meeting, basicForm]);
+
+  const handleSaveBasic = useCallback(async () => {
+    if (!meeting) return;
+    let values;
+    try {
+      values = await basicForm.validateFields();
+    } catch {
+      return;
+    }
+    setSaving(true);
+    try {
+      const { title, body } = splitTitleContent(meeting.content);
+      const newTitle = values.title?.trim() ?? '';
+      const content = body ? `${newTitle}\n\n${body}` : newTitle;
+      const payload = {
+        type: values.type,
+        started_at: values.started_at?.toISOString() ?? new Date().toISOString(),
+        content,
+        ...(values.speaker?.trim() ? { speaker: values.speaker.trim() } : { speaker: null }),
+        ...(values.participants?.length ? { participants: values.participants } : { participants: [] }),
+      };
+      const res = await updateProjectMeeting(meeting.id, payload);
+      if (res.code === 0) {
+        message.success('基础信息已更新');
+        setMeeting(res.data);
+        setEditBasicVisible(false);
+      } else {
+        message.error(res.msg || '更新失败');
+      }
+    } catch (err: unknown) {
+      message.error(err instanceof Error ? err.message : '更新失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [meeting, basicForm]);
+
+  // ── 分区编辑：打开交流正文弹窗 ──
+  const openEditContent = useCallback(() => {
+    if (!meeting) return;
+    const { body } = splitTitleContent(meeting.content);
+    setEditContentBody(body);
+    setEditContentVisible(true);
   }, [meeting]);
+
+  const handleSaveContent = useCallback(async () => {
+    if (!meeting) return;
+    setSaving(true);
+    try {
+      const { title } = splitTitleContent(meeting.content);
+      const body = editContentBody.trim();
+      const content = body ? `${title}\n\n${body}` : title;
+      const res = await updateProjectMeeting(meeting.id, { content });
+      if (res.code === 0) {
+        message.success('交流正文已更新');
+        setMeeting(res.data);
+        setEditContentVisible(false);
+      } else {
+        message.error(res.msg || '更新失败');
+      }
+    } catch (err: unknown) {
+      message.error(err instanceof Error ? err.message : '更新失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [meeting, editContentBody]);
+
+  // ── 分区编辑：打开备注弹窗 ──
+  const openEditNotes = useCallback(() => {
+    if (!meeting) return;
+    const notes = (Array.isArray(meeting.notes) ? meeting.notes : []).map(parseNote);
+    setNotesText(serializeNotes(notes));
+    setEditNotesVisible(true);
+  }, [meeting]);
+
+  const handleSaveNotes = useCallback(async () => {
+    if (!meeting) return;
+    setSaving(true);
+    try {
+      const notes = parseNotesText(notesText);
+      const res = await updateProjectMeeting(meeting.id, { notes });
+      if (res.code === 0) {
+        message.success('备注已更新');
+        setMeeting(res.data);
+        setEditNotesVisible(false);
+      } else {
+        message.error(res.msg || '更新失败');
+      }
+    } catch (err: unknown) {
+      message.error(err instanceof Error ? err.message : '更新失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [meeting, notesText]);
 
   if (!meeting && !loading) return null;
 
@@ -353,11 +492,22 @@ export default function MeetingDetailPage() {
   const linkedProposal = linkedProposals[0];
   const linkedTodo = linkedTodos[0];
 
-  // 定义列表项渲染辅助（短键值）
   const renderDefItem = (label: string, value: React.ReactNode) => (
     <div className={styles.defItem ?? ''}>
       <span className={styles.defLabel ?? ''}>{label}</span>
       <span className={styles.defValue ?? ''}>{value}</span>
+    </div>
+  );
+
+  /** 区块标题（带编辑按钮） */
+  const sectionHeader = (title: string, onEdit: () => void) => (
+    <div className={styles.sectionHeader ?? ''}>
+      <span className={styles.sectionTitle ?? ''}>{title}</span>
+      {canManageMeetings && (
+        <Button type="link" size="small" icon={<EditOutlined />} onClick={onEdit}>
+          编辑
+        </Button>
+      )}
     </div>
   );
 
@@ -367,57 +517,64 @@ export default function MeetingDetailPage() {
       label: '交流详情',
       children: (
         <div className={styles.tabContent ?? ''}>
-          {/* 基础信息（定义列表） */}
-          <div className={styles.definitionList ?? ''}>
-            {renderDefItem('类型', typeLabel)}
-            {renderDefItem('会议主题', contentTitle || '-')}
-            {renderDefItem('开始时间', meeting ? formatDate(meeting.started_at) : '-')}
-            {renderDefItem('发言人', meeting?.speaker || '-')}
-            {renderDefItem('参与人', participantNames || '-')}
-            {renderDefItem(
-              '关联提案',
-              linkedProposal ? (
-                <a
-                  onClick={() => {
-                    if (projectId) navigate(`/projects/${projectId}/proposal/${linkedProposal.id}`);
-                  }}
-                >
-                  {linkedProposal.number}
-                </a>
-              ) : (
-                '-'
-              ),
-            )}
-            {renderDefItem(
-              '关联待办',
-              linkedTodo ? (
-                <a
-                  onClick={() => {
-                    if (projectId) navigate(`/projects/${projectId}/todo/${linkedTodo.id}`);
-                  }}
-                >
-                  {linkedTodo.number}
-                </a>
-              ) : (
-                '-'
-              ),
-            )}
-            {renderDefItem('创建时间', meeting ? formatDate(meeting.created_at) : '-')}
-            {renderDefItem('更新时间', meeting ? formatDate(meeting.updated_at) : '-')}
+          {/* ── 基础信息 ── */}
+          <div className={styles.textBlock ?? ''}>
+            {sectionHeader('基础信息', openEditBasic)}
+            <div className={styles.definitionList ?? ''}>
+              {renderDefItem('类型', typeLabel)}
+              {renderDefItem('会议主题', contentTitle || '-')}
+              {renderDefItem('开始时间', meeting ? formatDate(meeting.started_at) : '-')}
+              {renderDefItem('发言人', meeting?.speaker || '-')}
+              {renderDefItem('参与人', participantNames || '-')}
+              {renderDefItem(
+                '关联提案',
+                linkedProposal ? (
+                  <a
+                    onClick={() => {
+                      if (projectId) navigate(`/projects/${projectId}/proposal/${linkedProposal.id}`);
+                    }}
+                  >
+                    {linkedProposal.number}
+                  </a>
+                ) : (
+                  '-'
+                ),
+              )}
+              {renderDefItem(
+                '关联待办',
+                linkedTodo ? (
+                  <a
+                    onClick={() => {
+                      if (projectId) navigate(`/projects/${projectId}/todo/${linkedTodo.id}`);
+                    }}
+                  >
+                    {linkedTodo.number}
+                  </a>
+                ) : (
+                  '-'
+                ),
+              )}
+              {renderDefItem('创建时间', meeting ? formatDate(meeting.created_at) : '-')}
+              {renderDefItem('更新时间', meeting ? formatDate(meeting.updated_at) : '-')}
+            </div>
           </div>
 
-          {/* 交流正文（段落区块） */}
-          {contentBody && (
-            <div className={styles.textBlock ?? ''}>
-              <div className={styles.textLabel ?? ''}>交流正文</div>
+          {/* ── 交流正文 ── */}
+          <div className={styles.textBlock ?? ''}>
+            {sectionHeader('交流正文', openEditContent)}
+            {contentBody ? (
               <div className={styles.textBody ?? ''}>{contentBody}</div>
-            </div>
-          )}
+            ) : (
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-sm-size)' }}>
+                暂无正文内容
+              </Text>
+            )}
+          </div>
 
-          {/* 备注（段落区块） */}
-          {notes.length > 0 && (
-            <div className={styles.textBlock ?? ''}>
-              <div className={styles.textLabel ?? ''}>备注（{notes.length}）</div>
+          {/* ── 备注 ── */}
+          <div className={styles.textBlock ?? ''}>
+            {sectionHeader(`备注（${notes.length}）`, openEditNotes)}
+            {notes.length > 0 ? (
               <Space direction="vertical" size="small" style={{ width: '100%' }}>
                 {notes.map((note, index) => (
                   <div key={`${note.author}-${note.created_at}-${index}`}>
@@ -433,8 +590,12 @@ export default function MeetingDetailPage() {
                   </div>
                 ))}
               </Space>
-            </div>
-          )}
+            ) : (
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-sm-size)' }}>
+                暂无备注
+              </Text>
+            )}
+          </div>
         </div>
       ),
     },
@@ -592,7 +753,8 @@ export default function MeetingDetailPage() {
                           }}
                         >
                           断开关联
-                        </Button>,
+                        </Button>
+                        ,
                       ]}
                     >
                       <div className={styles.linkedContent ?? ''}>
@@ -650,13 +812,6 @@ export default function MeetingDetailPage() {
           </Tooltip>
         </Space>
         <Space>
-          <Tooltip title="编辑">
-            <Button
-              icon={<EditOutlined />}
-              onClick={openEdit}
-              disabled={!canManageMeetings}
-            />
-          </Tooltip>
           {canManageMeetings ? (
             <Tooltip title="删除">
               <Button danger icon={<DeleteOutlined />} onClick={handleDeleteMeeting} />
@@ -673,14 +828,98 @@ export default function MeetingDetailPage() {
         <Tabs items={tabItems} />
       </Card>
 
-      {/* 编辑交流（共用组件 MeetingModal） */}
+      {/* ── 基础信息编辑弹窗 ── */}
+      <Modal
+        title="编辑基础信息"
+        open={editBasicVisible}
+        onOk={() => void handleSaveBasic()}
+        onCancel={() => setEditBasicVisible(false)}
+        confirmLoading={saving}
+        okText="保存"
+        cancelText="取消"
+        destroyOnClose
+        width={520}
+      >
+        <Form form={basicForm} layout="vertical">
+          <Form.Item name="type" label="类型" rules={[{ required: true }]}>
+            <Select options={[...MEETING_TYPE_OPTIONS]} />
+          </Form.Item>
+          <Form.Item name="title" label="主题" rules={[{ required: true, message: '请输入交流主题' }]}>
+            <TextArea rows={3} placeholder="请输入交流主题" maxLength={500} showCount />
+          </Form.Item>
+          <Form.Item name="started_at" label="时间" rules={[{ required: true }]}>
+            <DatePicker showTime style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="speaker" label="发言人">
+            <Input placeholder="请输入发言人（可选）" maxLength={100} />
+          </Form.Item>
+          <Form.Item name="participants" label="参与人">
+            <Select
+              mode="multiple"
+              placeholder="选择参与人（可选）"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              options={userOptions}
+              maxTagCount="responsive"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ── 交流正文编辑弹窗 ── */}
+      <Modal
+        title="编辑交流正文"
+        open={editContentVisible}
+        onOk={() => void handleSaveContent()}
+        onCancel={() => setEditContentVisible(false)}
+        confirmLoading={saving}
+        okText="保存"
+        cancelText="取消"
+        destroyOnClose
+        width={560}
+      >
+        <TextArea
+          rows={10}
+          value={editContentBody}
+          onChange={(e) => setContentBody(e.target.value)}
+          placeholder="请输入交流正文（换行保留）"
+          maxLength={5000}
+          showCount
+        />
+      </Modal>
+
+      {/* ── 备注编辑弹窗 ── */}
+      <Modal
+        title="编辑备注"
+        open={editNotesVisible}
+        onOk={() => void handleSaveNotes()}
+        onCancel={() => setEditNotesVisible(false)}
+        confirmLoading={saving}
+        okText="保存"
+        cancelText="取消"
+        destroyOnClose
+        width={560}
+      >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>
+          每行一条备注，格式：作者: 内容（或纯内容）
+        </Text>
+        <TextArea
+          rows={10}
+          value={notesText}
+          onChange={(e) => setNotesText(e.target.value)}
+          placeholder={'如：\n张三: 需要跟进客户需求\n李四: 已完成初步方案'}
+          maxLength={5000}
+          showCount
+        />
+      </Modal>
+
+      {/* ── 关联提案/待办弹窗 ── */}
       <MeetingModal
         project={project ?? ({} as Project)}
-        open={editVisible}
-        editingMeeting={meeting}
-        existingMeetings={meeting ? [meeting] : []}
-        onClose={() => setEditVisible(false)}
-        onSaved={() => void fetchMeeting()}
+        open={false}
+        onClose={() => {}}
+        onSaved={() => {}}
       />
 
       <Modal
@@ -747,24 +986,23 @@ export default function MeetingDetailPage() {
         />
       </Modal>
 
-      {/* 新建并关联待办（共用组件 TodoModal，预关联当前交流） */}
       <TodoModal
         project={project ?? ({} as Project)}
         open={createTodoVisible}
         existingTodos={todos}
-        initialMeetingId={meeting?.id ?? null}
         onClose={() => setCreateTodoVisible(false)}
-        onSaved={() => void fetchMeeting()}
+        onSaved={() => {
+          void fetchMeeting();
+        }}
       />
-
-      {/* 新建并关联提案（共用组件 ProposalModal，预关联当前交流） */}
       <ProposalModal
         project={project ?? ({} as Project)}
         open={createProposalVisible}
         existingProposals={proposals}
-        initialMeetingId={meeting?.id ?? null}
         onClose={() => setCreateProposalVisible(false)}
-        onSaved={() => void fetchMeeting()}
+        onSaved={() => {
+          void fetchMeeting();
+        }}
       />
     </div>
     </Spin>

@@ -32,6 +32,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/settings/customization': '应用配置',
   '/settings/system': '系统更新',
   '/settings/storage': '存储设置',
+  '/settings/monitor': '资源监视',
   '/profile': '个人资料',
   '/settings/notifications': '通知配置',
   '/settings/devices': '设备终端',

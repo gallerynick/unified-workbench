@@ -31,18 +31,16 @@
   gap: var(--spacing-lg);
 }
 
-.statCard {
-  height: 100%;
+.miniStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
 }
 
 .twoCol {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-lg);
-}
-
-.chart {
-  width: 100%;
 }
 
 .pressureLayout {
@@ -71,14 +69,17 @@
   gap: var(--spacing-md);
 }
 
-.dimLabel,
-.dimValue {
+.dimRow > span {
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-.dimValue {
+.dimRow > span:first-child {
+  font-variant-numeric: normal;
+}
+
+.dimRow > span:last-child {
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
 .ringLayout {
@@ -87,6 +88,24 @@
   justify-content: center;
   gap: var(--spacing-xl);
   flex-wrap: wrap;
+}
+
+.ringWrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+}
+
+.ringCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xxs);
+  pointer-events: none;
 }
 
 .ringLegend {
@@ -111,15 +130,6 @@
   flex-shrink: 0;
 }
 
-.legendLabel {
-  flex: 1;
-}
-
-.legendValue {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 .coreGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -136,14 +146,17 @@
   gap: var(--spacing-md);
 }
 
-.coreIndex,
-.corePercent {
+.coreRow > span {
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-.corePercent {
+.coreRow > span:first-child {
+  font-variant-numeric: normal;
+}
+
+.coreRow > span:last-child {
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
 .metaList {
@@ -158,6 +171,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-card-gap);
+  margin-top: var(--spacing-card-gap);
 }
 
 .progressItem {
@@ -171,10 +185,6 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--spacing-md);
-}
-
-.progressValue {
-  font-variant-numeric: tabular-nums;
 }
 
 .note {
@@ -195,5 +205,11 @@
   }
   .twoCol {
     grid-template-columns: 1fr;
+  }
+  .dimRow {
+    grid-template-columns: 52px 1fr 48px;
+  }
+  .coreRow {
+    grid-template-columns: 52px 1fr 48px;
   }
 }
