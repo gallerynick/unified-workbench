@@ -130,3 +130,23 @@ async def preload_asr_models_endpoint(
     from app.services.third_party_config import preload_asr_models
     result = await preload_asr_models(db)
     return UnifiedResponse(data=result)
+
+
+@router.get("/asr/memory", response_model=UnifiedResponse[dict[str, Any]])
+async def get_memory_info_endpoint(
+    current_user: User = Depends(require_admin),
+):
+    """获取系统内存信息和建议"""
+    from app.services.third_party_config import get_memory_info
+    result = await get_memory_info()
+    return UnifiedResponse(data=result)
+
+
+@router.post("/asr/unload", response_model=UnifiedResponse[TestConnectionResponse])
+async def unload_asr_model_endpoint(
+    current_user: User = Depends(require_admin),
+):
+    """卸载已加载的 ASR 模型，释放内存"""
+    from app.services.third_party_config import unload_asr_model
+    result = await unload_asr_model()
+    return UnifiedResponse(data=result)

@@ -83,6 +83,8 @@ export interface TestConnectionResponse {
     response_chars?: number;
     /** 思考过程字符数，思考型模型会把预算烧在这里 */
     thinking_chars?: number;
+    /** ASR 卸载后是否已卸载 */
+    loaded?: boolean;
   } | null;
 }
 
@@ -115,4 +117,26 @@ export interface ASRModelStatus {
     total: number;
     loaded: boolean;
   } | null;
+}
+
+/** 系统内存信息（后端从 /proc/meminfo 读取） */
+export interface MemoryInfo {
+  /** 总内存（MB） */
+  total_mb: number | null;
+  /** 已用内存（MB） */
+  used_mb: number | null;
+  /** 可用内存（MB） */
+  available_mb: number | null;
+  /** 推荐的 Docker VM 内存（MB） */
+  recommended_vm_mb: number;
+  /** 推荐的宿主机内存（GB） */
+  recommended_host_gb: number;
+  /** 操作系统 */
+  platform: string;
+  /** 内存不足警告 */
+  warning?: string;
+  /** ASR 内存不足警告 */
+  asr_warning?: string;
+  /** AI 内存不足警告 */
+  ai_warning?: string;
 }

@@ -640,3 +640,74 @@ async def get_asr_model_status(db: AsyncSession) -> dict:
             "loaded": asr_engine.is_available(),
         },
     }
+
+
+async def get_memory_info() -> dict[str, Any]:
+    """获取当前系统内存使用情况。
+
+    读取 /proc/meminfo（Linux 容器内），返回总量、已用、可用、推荐值。
+    前端用它展示内存建议和溢出预警。
+    """
+    import platform
+
+    info: dict[str, Any] = {
+        "total_mb": None,
+        "used_mb": None,
+        "available_mb": None,
+        "recommended_vm_mb": 8192,
+        "recommended_host_gb": 16,
+        "platform": platform.system(),
+    }
+
+    try:
+        with open("/proc/meminfo") as f:
+            meminfo = {}
+            for line in f:
+                parts = line.split(":")
+                if len(parts) == 2:
+                    key = parts[0].strip()
+                    val = parts[1].strip().split()[0]
+                    meminfo[key] = int(val)
+
+        total_kb = meminfo.get("MemTotal", 0)
+        available_kb = meminfo.get("MemAvailable", 0)
+        info["total_mb"] = round(total_kb / 1024)
+        info["used_mb"] = round((total_kb - available_kb) / 1024)
+        info["available_mb"] = round(available_kb / 1024)
+
+        # 根据实际内存调整推荐值
+        if info["total_mb"] and info["total_mb"] < 6000:
+            info["recommended_vm_mb"] = 8192
+            info["warning"] = "Docker VM 内存不足（建议 8 GB）"
+        elif info["total_mb"] and info["total_mb"] < 8000:
+            info["recommended_vm_mb"] = 10240
+            info["warning"] = "Docker VM 内存偏低（建议 10 GB）"
+
+        # ASR 模型加载后额外占用约 2.1 GB
+        if info["available_mb"] and info["available_mb"] < 3000:
+            info["asr_warning"] = "可用内存不足 3 GB，ASR 模型可能无法加载"
+        if info["available_mb"] and info["available_mb"] < 2000:
+            info["ai_warning"] = "可用内存不足 2 GB，AI 模型可能无法加载"
+
+    except (OSError, ValueError):
+        pass
+
+    return info
+
+
+async def unload_asr_model() -> TestConnectionResponse:
+    """卸载已加载的 ASR 模型，释放内存。"""
+    from app.services import asr_engine
+
+    try:
+        asr_engine.shutdown_asr_model()
+        return TestConnectionResponse(
+            success=True,
+            message="ASR 模型已卸载，内存已释放",
+            details={"loaded": asr_engine.is_available()},
+        )
+    except Exception as e:
+        return TestConnectionResponse(
+            success=False,
+            message=f"卸载失败：{e}",
+        )

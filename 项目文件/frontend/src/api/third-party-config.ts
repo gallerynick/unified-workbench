@@ -6,6 +6,7 @@ import type {
   TestConnectionResponse,
   ThirdPartyConfig,
   ThirdPartyConfigUpdate,
+  MemoryInfo,
 } from '../types/third-party-config';
 import type { UnifiedResponse } from '../types/user';
 
@@ -42,4 +43,14 @@ export async function getASRModelStatus(): Promise<UnifiedResponse<ASRModelStatu
 /** 预热本地 ASR 模型：缓存里没有的从 ModelScope 下载，后台执行 */
 export async function preloadASRModels(): Promise<UnifiedResponse<TestConnectionResponse>> {
   return request<TestConnectionResponse>('/config/third-party/asr/preload', { method: 'POST' });
+}
+
+/** 获取系统内存信息和建议 */
+export async function getMemoryInfo(): Promise<UnifiedResponse<MemoryInfo>> {
+  return request<MemoryInfo>('/config/third-party/asr/memory');
+}
+
+/** 卸载已加载的 ASR 模型，释放内存 */
+export async function unloadASRModel(): Promise<UnifiedResponse<TestConnectionResponse>> {
+  return request<TestConnectionResponse>('/config/third-party/asr/unload', { method: 'POST' });
 }
