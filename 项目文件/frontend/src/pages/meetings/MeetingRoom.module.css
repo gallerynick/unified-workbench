@@ -214,21 +214,12 @@
   background: var(--border-tertiary);
   border-radius: 1px;
   height: 20%;
-  transition: all 0.1s;
+  transition: all 0.05s ease-out;
 }
 
-/* 录音中电平表动画 */
+/* 录音中电平表 - 根据实时音频电平显示 */
 .meterBar.active {
   background: var(--color-info);
-  animation: meter 1s infinite;
-}
-
-.meterBar.active:nth-child(odd) { animation-delay: 0.1s; }
-.meterBar.active:nth-child(even) { animation-delay: 0.2s; }
-
-@keyframes meter {
-  0%, 100% { height: 20%; }
-  50% { height: 80%; }
 }
 
 /* 录音按钮 */
