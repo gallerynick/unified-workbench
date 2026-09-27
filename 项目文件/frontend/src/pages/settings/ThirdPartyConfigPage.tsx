@@ -938,41 +938,52 @@ export default function ThirdPartyConfigPage() {
                     />
 
                     <div style={{ marginBottom: 'var(--spacing-sm)' }}>
-                      <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'center' }}>
-                        <Form.Item
-                          name={['ai_provider', 'local', 'model']}
-                          label="模型"
-                          style={{ marginBottom: 0, flex: 1, minWidth: 0 }}
-                        >
-                          <Select
-                            showSearch
-                            optionFilterProp="label"
-                            placeholder="选择模型"
-                            options={Object.entries(MODEL_INFO).map(([key, info]) => {
-                              const local = localModels.find((m) => m.name === key);
-                              return {
-                                value: key,
-                                label: local
-                                  ? `${info.name}（${formatBytes(local.size)}）`
-                                  : `${info.name}（未下载）`,
-                              };
-                            })}
-                            onChange={(value: string) => {
-                              // 直接查 localModels 判断是否已下载，避免额外 API 调用
-                              const model = localModels.find((m) => m.name === value);
-                              if (model) {
-                                setAiModelStatus('downloaded');
-                                setAiModelSize(model.size);
-                              } else if (!downloadTaskId) {
-                                setAiModelStatus('not_downloaded');
-                                setAiModelSize(null);
-                              }
-                              // 异步刷新 Ollama 健康状态（不影响即时显示）
-                              void checkOllamaStatus(value);
-                            }}
-                          />
-                        </Form.Item>
-                        <div style={{ minWidth: 100 }}>
+                      <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 'var(--spacing-xxs)' }}>
+                            模型
+                          </div>
+                          <Form.Item
+                            name={['ai_provider', 'local', 'model']}
+                            style={{ marginBottom: 0 }}
+                          >
+                            <Select
+                              showSearch
+                              optionFilterProp="label"
+                              placeholder="选择模型"
+                              options={Object.entries(MODEL_INFO).map(([key, info]) => {
+                                const local = localModels.find((m) => m.name === key);
+                                return {
+                                  value: key,
+                                  label: local
+                                    ? `${info.name}（${formatBytes(local.size)}）`
+                                    : `${info.name}（未下载）`,
+                                };
+                              })}
+                              onChange={(value: string) => {
+                                // 直接查 localModels 判断是否已下载，避免额外 API 调用
+                                const model = localModels.find((m) => m.name === value);
+                                if (model) {
+                                  setAiModelStatus('downloaded');
+                                  setAiModelSize(model.size);
+                                } else if (!downloadTaskId) {
+                                  setAiModelStatus('not_downloaded');
+                                  setAiModelSize(null);
+                                }
+                                // 异步刷新 Ollama 健康状态（不影响即时显示）
+                                void checkOllamaStatus(value);
+                              }}
+                            />
+                          </Form.Item>
+                          <Paragraph type="secondary" style={{ margin: 'var(--spacing-xs) 0 0', fontSize: 12 }}>
+                            {(() => {
+                              const selected = form.getFieldValue(['ai_provider', 'local', 'model']);
+                              if (!selected) return '选择模型后自动检测状态';
+                              return MODEL_INFO[selected]?.description || '';
+                            })()}
+                          </Paragraph>
+                        </div>
+                        <div style={{ paddingTop: 24 }}>
                           {!checkingDownload && aiModelStatus === 'not_downloaded' && (
                             <Button type="primary" size="small" icon={<DownloadOutlined />} onClick={handleDownloadAIModel}>
                               下载模型
@@ -998,13 +1009,6 @@ export default function ThirdPartyConfigPage() {
                           )}
                         </div>
                       </div>
-                      <Paragraph type="secondary" style={{ margin: 'var(--spacing-xs) 0 0', fontSize: 12 }}>
-                        {(() => {
-                          const selected = form.getFieldValue(['ai_provider', 'local', 'model']);
-                          if (!selected) return '选择模型后自动检测状态';
-                          return MODEL_INFO[selected]?.description || '';
-                        })()}
-                      </Paragraph>
                     </div>
 
                     {/* 下载进度条 */}
