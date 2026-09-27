@@ -22,8 +22,8 @@ const DEFAULT_CONFIG: ThirdPartyConfig = {
       api_key: null,
     },
     parameters: {
-      temperature: 0.7,
-      max_tokens: 2000,
+      temperature: 0.2,
+      max_tokens: 3000,
       response_format: 'json',
     },
   },
