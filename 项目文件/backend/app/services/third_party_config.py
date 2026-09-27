@@ -244,7 +244,24 @@ async def test_asr_service(db: AsyncSession) -> TestConnectionResponse:
 
 async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool = False, test_prompt: str = "Hi") -> TestConnectionResponse:
     """使用临时配置测试 AI 连接，支持测速"""
+    mem_msg = ""
     if ai_config.mode == "local":
+        # 智能内存调度：测速需要加载模型，先检查内存是否足够
+        if measure_speed:
+            model_name = ai_config.local.get("model", "qwen2.5:3b")
+            # qwen2.5:1.5b ~1GB, 3b ~1.9GB, 7b ~4.4GB
+            est_mb = {"qwen2.5:1.5b": 1200, "qwen2.5:3b": 2200, "qwen2.5:7b": 4700}.get(model_name, 2200)
+            mem_result = await prepare_memory_for_model(est_mb, "AI 测速")
+            if mem_result["action"] == "insufficient":
+                return TestConnectionResponse(
+                    success=False,
+                    message=mem_result["message"],
+                    details={"available_mb": mem_result["available_mb"]},
+                )
+            mem_msg = mem_result["message"]
+            if mem_result["action"] == "unloaded":
+                pass  # 卸载消息会在测试完成后一起返回
+        
         import httpx
         try:
             # 超时给足 3 分钟：冷启动要先加载权重，qwen3.5:4b 光加载就 5 秒左右
@@ -331,9 +348,12 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                             message="模型未产生任何 token，请检查模型是否正常",
                         )
 
+                    msg = f"测速完成：{tokens_per_second:.1f} tokens/s"
+                    if 'mem_msg' in dir() and mem_msg:
+                        msg += f"（{mem_msg}）"
                     return TestConnectionResponse(
                         success=True,
-                        message=f"测速完成：{tokens_per_second:.1f} tokens/s",
+                        message=msg,
                         details={
                             "model": model_name,
                             "tokens_per_second": round(tokens_per_second, 2),
@@ -423,6 +443,16 @@ async def _test_local_asr(asr_config: ASRConfig) -> TestConnectionResponse:
 
     local = asr_config.local or {}
 
+    # 智能内存调度：ASR 模型约 2.1 GB，先检查内存是否足够
+    mem_result = await prepare_memory_for_model(2500, "ASR 测试")
+    if mem_result["action"] == "insufficient":
+        return TestConnectionResponse(
+            success=False,
+            message=mem_result["message"],
+            details={"available_mb": mem_result["available_mb"]},
+        )
+    mem_msg = mem_result["message"] if mem_result["action"] == "unloaded" else ""
+
     try:
         await asyncio.to_thread(
             asr_engine.init_asr_model,
@@ -446,9 +476,12 @@ async def _test_local_asr(asr_config: ASRConfig) -> TestConnectionResponse:
     except Exception as e:
         return TestConnectionResponse(success=False, message=f"ASR 转录失败：{e}")
 
+    msg = "本地 ASR 服务可用（模型已加载，流水线跑通）"
+    if mem_msg:
+        msg += f"（{mem_msg}）"
     return TestConnectionResponse(
         success=True,
-        message="本地 ASR 服务可用（模型已加载，流水线跑通）",
+        message=msg,
         details={"model": local.get("model"), "loaded": asr_engine.is_available()},
     )
 
@@ -693,6 +726,59 @@ async def get_memory_info() -> dict[str, Any]:
         pass
 
     return info
+
+
+async def prepare_memory_for_model(
+    required_mb: int,
+    purpose: str = "AI 模型",
+) -> dict[str, Any]:
+    """智能内存调度：检查可用内存是否足够，不足时自动卸载 ASR 模型腾空间。
+
+    Args:
+        required_mb: 预估需要的内存（MB）
+        purpose: 用途描述，用于日志和消息
+
+    Returns:
+        {"action": "ok"|"unloaded"|"insufficient", "message": str, "available_mb": int}
+    """
+    from app.services import asr_engine
+
+    info = await get_memory_info()
+    available = info.get("available_mb") or 0
+    asr_loaded = asr_engine.is_available()
+
+    # 内存充足，无需操作
+    if available >= required_mb:
+        return {
+            "action": "ok",
+            "message": f"内存充足（可用 {available} MB），无需卸载",
+            "available_mb": available,
+        }
+
+    # 内存不足，尝试卸载 ASR 模型
+    if asr_loaded:
+        asr_engine.shutdown_asr_model()
+        # 重新检查内存
+        info2 = await get_memory_info()
+        available2 = info2.get("available_mb") or 0
+        if available2 >= required_mb:
+            return {
+                "action": "unloaded",
+                "message": f"内存不足（可用 {available} MB），已自动卸载 ASR 模型，现可用 {available2} MB",
+                "available_mb": available2,
+            }
+        return {
+            "action": "insufficient",
+            "message": f"内存仍不足（卸载 ASR 后可用 {available2} MB，需要 {required_mb} MB）",
+            "available_mb": available2,
+        }
+
+    # ASR 未加载但内存仍不足
+    return {
+        "action": "insufficient",
+        "message": f"内存不足（可用 {available} MB，需要 {required_mb} MB），建议增大 Docker VM 内存",
+        "available_mb": available,
+    }
 
 
 async def unload_asr_model() -> TestConnectionResponse:
