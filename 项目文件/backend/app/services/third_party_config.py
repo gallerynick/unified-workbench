@@ -359,14 +359,54 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
             )
 
 
+def _local_asr_model_names(config: ThirdPartyConfig) -> list[str]:
+    """本地 ASR 需要缓存的全部模型：主模型 + VAD + 标点 + 声纹。"""
+    local = config.asr_config.local or {}
+    return [
+        local.get("model", "paraformer-zh"),
+        "fsmn-vad",
+        local.get("punc_model", "ct-punc"),
+        local.get("spk_model", "cam++"),
+    ]
+
+
+async def _test_local_asr(asr_config: ASRConfig) -> TestConnectionResponse:
+    """真的加载模型并跑一段音频，而不是只回一句「配置正常」。"""
+    from app.services import asr_engine
+
+    local = asr_config.local or {}
+    try:
+        asr_engine.init_asr_model(
+            asr_model=local.get("model", "paraformer-zh"),
+            vad_model="fsmn-vad",
+            punc_model=local.get("punc_model", "ct-punc"),
+            spk_model=local.get("spk_model", "cam++"),
+        )
+    except Exception as e:
+        return TestConnectionResponse(success=False, message=f"ASR 模型加载失败：{e}")
+
+    # 440Hz、0.5 秒的音调：走通 VAD → ASR → 标点 → 声纹整条流水线
+    # 音调本身不会识别出文字，所以这里验的是「流水线能跑」而不是「识别准」
+    import numpy as np
+
+    t = np.arange(16000) / 16000.0
+    tone = (np.sin(2 * np.pi * 440.0 * t) * 16000).astype(np.int16)
+    try:
+        asr_engine.transcribe_audio_array(tone.tobytes())
+    except Exception as e:
+        return TestConnectionResponse(success=False, message=f"ASR 转录失败：{e}")
+
+    return TestConnectionResponse(
+        success=True,
+        message="本地 ASR 服务可用（模型已加载，流水线跑通）",
+        details={"model": local.get("model"), "loaded": asr_engine.is_available()},
+    )
+
+
 async def test_asr_with_config(asr_config: ASRConfig) -> TestConnectionResponse:
     """使用临时配置测试 ASR 连接"""
     if asr_config.mode == "local":
-        return TestConnectionResponse(
-            success=True,
-            message="本地 ASR 服务配置正常",
-            details={"model": asr_config.local.get("model")},
-        )
+        return await _test_local_asr(asr_config)
     else:
         provider = asr_config.online.get("provider", "openai")
         api_key = asr_config.online.get("api_key", "")
@@ -408,119 +448,145 @@ async def test_asr_with_config(asr_config: ASRConfig) -> TestConnectionResponse:
             )
 
 
-async def reload_asr_model(db: AsyncSession) -> TestConnectionResponse:
-    """重载 ASR 模型"""
-    config = await get_third_party_config(db)
+async def preload_asr_models(db: AsyncSession) -> TestConnectionResponse:
+    """预热本地 ASR 模型：缓存里没有的从 ModelScope 下载，然后加载进内存。
 
-    if config.asr_config.mode == "local":
+    首次下载约 300 MB 权重，耗时可能几分钟，所以在后台线程里跑，
+    接口立即返回；进度通过 /asr/status 轮询查看。
+    """
+    from app.services import asr_engine
+
+    config = await get_third_party_config(db)
+    if config.asr_config.mode != "local":
+        return TestConnectionResponse(success=False, message="在线模式无需下载模型")
+
+    local = config.asr_config.local or {}
+    cached = asr_engine.get_cached_asr_models(_local_asr_model_names(config))
+    if cached["downloaded"] == cached["total"]:
         return TestConnectionResponse(
             success=True,
-            message="ASR 模型已重载",
-            details={"model": config.asr_config.local.get("model")},
+            message="ASR 模型已就绪，无需下载",
+            details={"downloaded": cached["downloaded"], "total": cached["total"]},
         )
 
+    import threading
+
+    def _run() -> None:
+        asr_engine.init_asr_model(
+            asr_model=local.get("model", "paraformer-zh"),
+            vad_model="fsmn-vad",
+            punc_model=local.get("punc_model", "ct-punc"),
+            spk_model=local.get("spk_model", "cam++"),
+        )
+
+    threading.Thread(target=_run, name="asr-preload", daemon=True).start()
     return TestConnectionResponse(
-        success=False,
-        message="在线模式无需重载",
+        success=True,
+        message="模型下载已开始，请稍后刷新查看进度",
+        details={"downloaded": cached["downloaded"], "total": cached["total"]},
+    )
+
+
+async def reload_asr_model(db: AsyncSession) -> TestConnectionResponse:
+    """重载 ASR 模型：先卸载内存里的实例，再按当前配置重新加载。
+
+    之前的实现只回一句「已重载」，什么都没做。
+    """
+    from app.services import asr_engine
+
+    config = await get_third_party_config(db)
+    if config.asr_config.mode != "local":
+        return TestConnectionResponse(success=False, message="在线模式无需重载")
+
+    local = config.asr_config.local or {}
+    try:
+        asr_engine.shutdown_asr_model()
+        asr_engine.init_asr_model(
+            asr_model=local.get("model", "paraformer-zh"),
+            vad_model="fsmn-vad",
+            punc_model=local.get("punc_model", "ct-punc"),
+            spk_model=local.get("spk_model", "cam++"),
+        )
+    except Exception as e:
+        return TestConnectionResponse(success=False, message=f"重载失败：{e}")
+
+    return TestConnectionResponse(
+        success=True,
+        message="ASR 模型已重载",
+        details={"model": local.get("model"), "loaded": asr_engine.is_available()},
     )
 
 
 async def delete_asr_model(db: AsyncSession) -> TestConnectionResponse:
-    """删除本地 ASR 模型"""
-    import os
-    import shutil
-    
+    """删除本地 ASR 模型的 ModelScope 缓存。
+
+    只删当前配置里这几个模型自己的 snapshots 目录。
+    之前的实现删的是 /data/asr-models——那个目录从来不存在；而且用
+    os.listdir 遍历删除，一旦路径写错就会把别的东西一起删掉。
+    """
+    from app.services import asr_engine
+
     config = await get_third_party_config(db)
-    
     if config.asr_config.mode != "local":
-        return TestConnectionResponse(
-            success=False,
-            message="仅本地模式支持删除模型",
-        )
-    
-    # ASR 模型存储目录
-    asr_model_dir = "/data/asr-models"
-    
+        return TestConnectionResponse(success=False, message="仅本地模式支持删除模型")
+
+    names = _local_asr_model_names(config)
     try:
-        # 检查目录是否存在
-        if not os.path.exists(asr_model_dir):
-            return TestConnectionResponse(
-                success=True,
-                message="模型目录不存在，无需删除",
-            )
-        
-        # 删除模型目录下的所有文件
-        for item in os.listdir(asr_model_dir):
-            item_path = os.path.join(asr_model_dir, item)
-            if os.path.isfile(item_path):
-                os.remove(item_path)
-            elif os.path.isdir(item_path):
-                shutil.rmtree(item_path)
-        
-        return TestConnectionResponse(
-            success=True,
-            message="ASR 模型已删除",
-            details={"deleted_path": asr_model_dir},
-        )
+        asr_engine.shutdown_asr_model()
+        result = asr_engine.delete_asr_cache_models(names)
     except Exception as e:
+        return TestConnectionResponse(success=False, message=f"删除失败：{e}")
+
+    deleted = result["deleted"]
+    if not deleted:
         return TestConnectionResponse(
-            success=False,
-            message=f"删除模型失败：{str(e)}",
+            success=True, message="模型缓存不存在，无需删除", details=result
         )
+
+    message = f"已删除 {len(deleted)} 个模型，释放 {result['freed_mb']:.0f} MB"
+    if result["missing"]:
+        message += f"（{len(result['missing'])} 个原本就不存在）"
+    return TestConnectionResponse(success=True, message=message, details=result)
 
 
 async def get_asr_model_status(db: AsyncSession) -> dict:
-    """获取本地 ASR 模型状态"""
-    import os
-    
+    """获取本地 ASR 模型状态，以 ModelScope 缓存目录为准。
+
+    之前的实现查的是 /data/asr-models，那个目录从头到尾不存在，
+    于是状态永远是 not_downloaded，前端的「测试识别 / 删除模型」
+    按钮也因为 gated 在 downloaded 上而永远不出现。
+    """
+    from app.services import asr_engine
+
     config = await get_third_party_config(db)
-    
     if config.asr_config.mode != "local":
-        return {
-            "status": "not_available",
-            "message": "当前为在线模式",
-        }
-    
-    # ASR 模型存储目录
-    asr_model_dir = "/data/asr-models"
-    
+        return {"status": "not_available", "message": "当前为在线模式", "details": {}}
+
+    names = _local_asr_model_names(config)
     try:
-        # 检查目录是否存在
-        if not os.path.exists(asr_model_dir):
-            return {
-                "status": "not_downloaded",
-                "message": "ASR 模型未下载",
-            }
-        
-        # 检查模型文件是否存在
-        main_model = os.path.join(asr_model_dir, "paraformer-zh")
-        punc_model = os.path.join(asr_model_dir, "ct-punc")
-        spk_model = os.path.join(asr_model_dir, "campplus")
-        
-        main_exists = os.path.exists(main_model)
-        punc_exists = os.path.exists(punc_model)
-        spk_exists = os.path.exists(spk_model)
-        
-        if main_exists and punc_exists and spk_exists:
-            return {
-                "status": "downloaded",
-                "message": "ASR 模型已就绪",
-            }
-        elif main_exists:
-            return {
-                "status": "partial",
-                "message": "ASR 模型部分下载",
-                "main_model": main_exists,
-                "punc_model": punc_exists,
-                "spk_model": spk_exists,
-            }
-        else:
-            return {
-                "status": "not_downloaded",
-                "message": "ASR 模型未下载",
-            }
+        cached = asr_engine.get_cached_asr_models(names)
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"检查模型状态失败：{str(e)}",
-        }
+        return {"status": "error", "message": f"检查模型状态失败：{e}", "details": {}}
+
+    done = cached["downloaded"]
+    total = cached["total"]
+    if done == total:
+        status = "downloaded"
+        message = f"ASR 模型已就绪（{done}/{total}）"
+    elif done > 0:
+        status = "partial"
+        message = f"ASR 模型部分就绪（{done}/{total}）"
+    else:
+        status = "not_downloaded"
+        message = "ASR 模型未下载"
+
+    return {
+        "status": status,
+        "message": message,
+        "details": {
+            "models": cached["models"],
+            "downloaded": done,
+            "total": total,
+            "loaded": asr_engine.is_available(),
+        },
+    }

@@ -77,7 +77,23 @@ export interface TestASRServiceRequest {
   asr_config: ASRConfig;
 }
 
+/** ASR 模型缓存明细：name 是配置里填的名字，repo_id 是 ModelScope 上的仓库 */
+export interface ASRCachedModel {
+  name: string;
+  repo_id: string;
+  ready: boolean;
+  size_mb: number;
+}
+
 export interface ASRModelStatus {
-  status: 'downloaded' | 'partial' | 'not_downloaded' | string;
+  /** downloaded 全部就绪 / partial 部分就绪 / not_downloaded 未下载 /
+   *  not_available 当前是在线模式 / error 检查失败 */
+  status: 'downloaded' | 'partial' | 'not_downloaded' | 'not_available' | 'error' | string;
   message?: string;
+  details?: {
+    models: ASRCachedModel[];
+    downloaded: number;
+    total: number;
+    loaded: boolean;
+  } | null;
 }
