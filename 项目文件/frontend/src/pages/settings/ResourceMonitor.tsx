@@ -195,7 +195,7 @@ function SeriesChart({
             type="monotone"
             dataKey={s.key}
             name={s.name}
-            stackId={stacked ? 'total' : undefined}
+            {...(stacked ? { stackId: 'total' } : {})}
             stroke={s.color}
             strokeWidth={1.5}
             fill={s.color}
@@ -292,7 +292,7 @@ export default function ResourceMonitor() {
         status="403"
         title="权限不足"
         subTitle="只有管理员可以查看资源监视"
-        icon={<LockOutlined />}
+        icon={<LockOutlined />} 
       />
     );
   }
@@ -312,6 +312,11 @@ export default function ResourceMonitor() {
     );
   }
 
+  return <MonitorContent data={data} colors={colors} failed={failed} lastUpdate={lastUpdate} />;
+}
+
+
+function MonitorContent({ data, colors, failed, lastUpdate }: { data: MonitorData; colors: MonitorChartColors; failed: boolean; lastUpdate: number | null }) {
   const { host, container, pressure, processes, history, meta } = data;
   const rings = useMemo(() => buildCpuRing(host.cpu.breakdown, colors), [host, colors]);
 
@@ -414,7 +419,7 @@ export default function ResourceMonitor() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <Title level={4} className={styles.title}>
+        <Title level={4} className={styles.title ?? ''}>
           资源监视
         </Title>
         <div className={styles.headerMeta}>
@@ -542,7 +547,7 @@ export default function ResourceMonitor() {
         </div>
         {pressure.causes.length > 0 ? (
           <Alert
-            className={styles.note}
+            className={styles.note ?? ''}
             type={pressure.level === 'critical' ? 'error' : 'warning'}
             showIcon
             message="当前压力成因"
@@ -550,7 +555,7 @@ export default function ResourceMonitor() {
           />
         ) : (
           <Alert
-            className={styles.note}
+            className={styles.note ?? ''}
             type="success"
             showIcon
             message="各维度均未达阈值（60%），运行平稳"
@@ -571,7 +576,7 @@ export default function ResourceMonitor() {
           </ul>
           {meta.in_container ? (
             <Alert
-              className={styles.note}
+              className={styles.note ?? ''}
               type="info"
               showIcon
               message="后端运行在容器内"
@@ -639,7 +644,7 @@ export default function ResourceMonitor() {
           </ul>
           {!container.cpu.has_limit || !container.memory.has_limit ? (
             <Alert
-              className={styles.note}
+              className={styles.note ?? ''}
               type="info"
               showIcon
               message="当前 compose 未配置 deploy.resources.limits"
@@ -662,8 +667,8 @@ export default function ResourceMonitor() {
                     nameKey="name"
                     innerRadius="66%"
                     outerRadius="94%"
-                    startAngle="90"
-                    endAngle="-270"
+                    startAngle={90}
+                    endAngle={-270}
                     paddingAngle={1}
                     stroke={colors.cardBg}
                     strokeWidth={2}
@@ -686,7 +691,7 @@ export default function ResourceMonitor() {
                   r="41"
                   fill="none"
                   stroke={rings[0]?.color ?? colors.idle}
-                  strokeWidth="16"
+                  strokeWidth={16}
                 />
               </svg>
             )}
@@ -823,3 +828,4 @@ export default function ResourceMonitor() {
     </div>
   );
 }
+
