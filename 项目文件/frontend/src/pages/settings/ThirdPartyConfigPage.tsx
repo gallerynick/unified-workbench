@@ -60,6 +60,10 @@ const PRESET_AI_MODEL = {
 
 /** 已知模型的描述信息，用于选择器下方展示 */
 const MODEL_INFO: Record<string, { name: string; description: string }> = {
+  'qwen3:1.7b': {
+    name: 'Qwen3-1.7B Q4',
+    description: '阿里云通义千问 3 系列 1.7B 参数模型，Q4 量化版本，思考型模型，支持 32K 上下文，低负载高速（约 1.2 GB），中文质量优于 Qwen2.5-1.5B',
+  },
   'qwen2.5:1.5b': {
     name: 'Qwen2.5-1.5B Q4',
     description: '阿里云通义千问 2.5 系列 1.5B 参数模型，Q4 量化版本，支持 32K 上下文，速度最快（约 1 GB），适合轻量摘要',

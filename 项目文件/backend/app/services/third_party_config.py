@@ -270,7 +270,9 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
         if measure_speed:
             model_name = ai_config.local.get("model", "qwen2.5:3b")
             # qwen2.5:1.5b ~1GB, 3b ~1.9GB, 7b ~4.4GB
-            est_mb = {"qwen2.5:1.5b": 1200, "qwen2.5:3b": 2200, "qwen2.5:7b": 4700}.get(model_name, 2200)
+            # qwen2.5:1.5b ~1GB, 3b ~1.9GB, 7b ~4.4GB, qwen3:1.7b ~1.2GB, qwen3.5:4b ~3GB
+            est_mb = {"qwen2.5:1.5b": 1200, "qwen2.5:3b": 2200, "qwen2.5:7b": 4700,
+                      "qwen3:1.7b": 1400, "qwen3.5:4b": 3000}.get(model_name, 2200)
             mem_result = await prepare_memory_for_model(est_mb, "AI 测速")
             if mem_result["action"] == "insufficient":
                 return TestConnectionResponse(
