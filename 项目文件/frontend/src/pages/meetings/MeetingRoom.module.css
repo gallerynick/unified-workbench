@@ -1,0 +1,315 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--meeting-canvas);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--meeting-surface);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: var(--meeting-canvas);
+}
+
+/* 左侧转录面板 */
+.transcriptPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--meeting-surface);
+  border-right: 1px solid var(--border-secondary);
+  overflow: hidden;
+}
+
+/* 右侧笔记面板 */
+.notesPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--meeting-surface);
+  overflow: hidden;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--meeting-surface);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+/* 转录列表 - 限制高度并启用滚动 */
+.transcriptList {
+  flex: 1;
+  min-height: 0; /* 允许 flex 子项收缩，关键属性 */
+  overflow-y: auto;
+  padding: 12px 16px;
+  background: var(--canvas);
+}
+
+.transcriptItem {
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  background: var(--canvas);
+  color: var(--text-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border-secondary);
+  transition: all 0.2s;
+}
+
+.transcriptItem:hover {
+  background: var(--meeting-hover);
+  border-color: var(--border-primary);
+}
+
+.transcriptMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.timestamp {
+  font-family: 'monospace';
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 录音指示器 */
+.recordingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-error);
+  font-size: 12px;
+}
+
+.recordingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-error);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* 工具栏 */
+.toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px;
+  background: var(--meeting-surface);
+  border-bottom: 1px solid var(--border-secondary);
+  flex-wrap: wrap;
+}
+
+/* 编辑器 */
+.editor {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.8;
+  background: var(--canvas);
+  color: var(--text-primary);
+  border: none;
+  resize: none;
+  font-family: inherit;
+  width: 100%;
+}
+
+.editorPlaceholder {
+  color: var(--text-tertiary);
+}
+
+.editor::placeholder {
+  color: var(--text-tertiary);
+}
+
+.editorFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--meeting-inset);
+  border-top: 1px solid var(--border-secondary);
+}
+
+/* 底部控制栏 */
+.controlBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--meeting-action-bar);
+  border-top: 1px solid var(--border-secondary);
+  position: relative;
+}
+
+/* 控制栏时间显示 */
+.controlBarTime {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* 录音按钮容器 - 绝对居中 */
+.recordButtonWrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 底部状态栏 */
+.statusBar {
+  display: flex;
+  gap: 24px;
+  padding: 8px 16px;
+  background: var(--meeting-action-bar);
+  border-top: 1px solid var(--border-secondary);
+}
+
+/* 电平表 */
+.audioMeter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meterBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+  padding: 2px 6px;
+  background: var(--meeting-inset);
+  border-radius: 4px;
+}
+
+.meterBar {
+  width: 2px;
+  background: var(--border-tertiary);
+  border-radius: 1px;
+  height: 20%;
+  transition: all 0.1s;
+}
+
+/* 录音中电平表动画 */
+.meterBar.active {
+  background: var(--color-info);
+  animation: meter 1s infinite;
+}
+
+.meterBar.active:nth-child(odd) { animation-delay: 0.1s; }
+.meterBar.active:nth-child(even) { animation-delay: 0.2s; }
+
+@keyframes meter {
+  0%, 100% { height: 20%; }
+  50% { height: 80%; }
+}
+
+/* 录音按钮 */
+.recordButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--meeting-record);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.recordButton:hover {
+  background: var(--meeting-record-hover);
+}
+
+.recordButtonActive {
+  background: var(--meeting-record);
+}
+
+.recordButtonActive:hover {
+  background: var(--meeting-record-hover);
+}
+
+.recordButtonPaused {
+  background: var(--meeting-record-paused);
+}
+
+.recordButtonPaused:hover {
+  background: var(--meeting-record-paused-hover);
+}
+
+/* 按钮内的小圆点 */
+.recordDot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--meeting-record-icon);
+}
+
+/* 暂停图标 */
+.pauseIcon {
+  display: flex;
+  gap: 4px;
+}
+
+.pauseBar {
+  width: 5px;
+  height: 20px;
+  background: var(--meeting-record-icon);
+  border-radius: 2px;
+}
+
+/* 播放图标 */
+.playIcon {
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 16px solid var(--meeting-record-icon);
+  margin-left: 4px;
+}
+
+/* 响应式 */
+@media (max-width: 767px) {
+  .mainContent {
+    flex-direction: column;
+  }
+  
+  .transcriptPanel,
+  .notesPanel {
+    height: 50%;
+    border-right: none;
+  }
+  
+  .transcriptPanel {
+    border-bottom: 1px solid var(--border-secondary);
+  }
+}

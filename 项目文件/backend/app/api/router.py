@@ -18,10 +18,12 @@ from app.api.health import router as health_router
 from app.api.inventory import router as inventory_router
 from app.api.notes import router as notes_router
 from app.api.notifications import router as notifications_router
+from app.api.ollama import router as ollama_router
 from app.api.project_changes import router as project_changes_router
 from app.api.project_events import router as project_events_router
 from app.api.project_meetings import router as project_meetings_router
 from app.api.meeting_records import router as meeting_records_router
+# meeting_ws_router 直接在 app 上注册（WebSocket 不走 /api/v1 前缀）
 from app.api.third_party_config import router as third_party_config_router
 from app.api.project_members import router as project_members_router
 from app.api.project_proposal_comments import router as project_proposal_comments_router
@@ -82,7 +84,9 @@ api_router.include_router(project_proposals_router, prefix="/project-proposals",
 api_router.include_router(project_proposal_comments_router, prefix="/project-proposal-comments", tags=["项目提案评论"])
 api_router.include_router(project_meetings_router, prefix="/project-meetings", tags=["项目会议"])
 api_router.include_router(meeting_records_router, prefix="/meetings", tags=["会议记录"])
+
 api_router.include_router(third_party_config_router, prefix="/config/third-party", tags=["第三方服务配置"])
+api_router.include_router(ollama_router, prefix="/config/ollama", tags=["Ollama 模型管理"])
 api_router.include_router(project_changes_router, prefix="/project-changes", tags=["项目变更"])
 api_router.include_router(project_todos_router, prefix="/project-todos", tags=["项目待办"])
 api_router.include_router(project_events_router, prefix="/project-events", tags=["项目事件"])

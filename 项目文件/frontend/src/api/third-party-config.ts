@@ -1,8 +1,11 @@
 import { request } from '../utils/request';
 import type {
+  ASRModelStatus,
+  TestASRServiceRequest,
+  TestAIConnectionRequest,
+  TestConnectionResponse,
   ThirdPartyConfig,
   ThirdPartyConfigUpdate,
-  TestConnectionResponse,
 } from '../types/third-party-config';
 import type { UnifiedResponse } from '../types/user';
 
@@ -16,14 +19,22 @@ export async function updateThirdPartyConfig(
   return request<ThirdPartyConfig>('/config/third-party/', { method: 'PUT', body: data });
 }
 
-export async function testAIConnection(): Promise<UnifiedResponse<TestConnectionResponse>> {
-  return request<TestConnectionResponse>('/config/third-party/ai/test', { method: 'POST' });
+export async function testAIConnection(config?: TestAIConnectionRequest): Promise<UnifiedResponse<TestConnectionResponse>> {
+  return request<TestConnectionResponse>('/config/third-party/ai/test', { method: 'POST', body: config });
 }
 
-export async function testASRService(): Promise<UnifiedResponse<TestConnectionResponse>> {
-  return request<TestConnectionResponse>('/config/third-party/asr/test', { method: 'POST' });
+export async function testASRService(config?: TestASRServiceRequest): Promise<UnifiedResponse<TestConnectionResponse>> {
+  return request<TestConnectionResponse>('/config/third-party/asr/test', { method: 'POST', body: config });
 }
 
 export async function reloadASRModel(): Promise<UnifiedResponse<TestConnectionResponse>> {
   return request<TestConnectionResponse>('/config/third-party/asr/reload', { method: 'POST' });
+}
+
+export async function deleteASRModel(): Promise<UnifiedResponse<TestConnectionResponse>> {
+  return request<TestConnectionResponse>('/config/third-party/asr/delete', { method: 'POST' });
+}
+
+export async function getASRModelStatus(): Promise<UnifiedResponse<ASRModelStatus>> {
+  return request<ASRModelStatus>('/config/third-party/asr/status');
 }

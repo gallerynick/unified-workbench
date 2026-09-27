@@ -73,6 +73,6 @@ export async function reviewMinutes(id: string): Promise<UnifiedResponse<Meeting
 export async function exportMeeting(
   id: string,
   exportType: 'transcript' | 'audio' | 'minutes',
-): Promise<UnifiedResponse<any>> {
-  return request<any>('/meetings/' + id + '/export?export_type=' + exportType, { method: 'POST' });
+): Promise<UnifiedResponse<unknown>> {
+  return request<unknown>('/meetings/' + id + '/export?export_type=' + exportType, { method: 'POST' });
 }

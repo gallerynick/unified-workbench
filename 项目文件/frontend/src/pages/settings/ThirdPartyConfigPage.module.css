@@ -1,0 +1,39 @@
+/* 第三方服务配置 */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-card-gap);
+  min-height: var(--spacing-xxl);
+}
+
+.title {
+  margin: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.card {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-md, 8px);
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding: var(--spacing-xs);
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

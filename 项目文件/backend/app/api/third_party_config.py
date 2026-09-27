@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -50,21 +52,40 @@ async def update_third_party_config_endpoint(
 
 @router.post("/ai/test", response_model=UnifiedResponse[TestConnectionResponse])
 async def test_ai_connection_endpoint(
+    request: dict = None,
     current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """测试 AI 服务连接"""
-    result = await test_ai_service(db)
+    """测试 AI 服务连接，支持测速"""
+    # 如果请求中带有配置，使用临时配置测试
+    if request and request.get("ai_provider"):
+        # 使用请求中的配置测试
+        from app.schemas.third_party_config import AIProviderConfig
+        ai_config = AIProviderConfig(**request["ai_provider"])
+        from app.services.third_party_config import test_ai_with_config
+        # 传递测速参数
+        measure_speed = request.get("measure_speed", False)
+        test_prompt = request.get("test_prompt", "Hi")
+        result = await test_ai_with_config(ai_config, measure_speed=measure_speed, test_prompt=test_prompt)
+    else:
+        result = await test_ai_service(db)
     return UnifiedResponse(data=result)
 
 
 @router.post("/asr/test", response_model=UnifiedResponse[TestConnectionResponse])
 async def test_asr_service_endpoint(
+    request: dict = None,
     current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     """测试 ASR 服务"""
-    result = await test_asr_api_service(db)
+    if request and request.get("asr_config"):
+        from app.schemas.third_party_config import ASRConfig
+        asr_config = ASRConfig(**request["asr_config"])
+        from app.services.third_party_config import test_asr_with_config
+        result = await test_asr_with_config(asr_config)
+    else:
+        result = await test_asr_api_service(db)
     return UnifiedResponse(data=result)
 
 
@@ -75,4 +96,26 @@ async def reload_asr_model_endpoint(
 ):
     """重载 ASR 模型"""
     result = await reload_asr_service(db)
+    return UnifiedResponse(data=result)
+
+
+@router.post("/asr/delete", response_model=UnifiedResponse[TestConnectionResponse])
+async def delete_asr_model_endpoint(
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """删除本地 ASR 模型"""
+    from app.services.third_party_config import delete_asr_model
+    result = await delete_asr_model(db)
+    return UnifiedResponse(data=result)
+
+
+@router.get("/asr/status", response_model=UnifiedResponse[dict[str, Any]])
+async def get_asr_model_status(
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """获取本地 ASR 模型状态"""
+    from app.services.third_party_config import get_asr_model_status
+    result = await get_asr_model_status(db)
     return UnifiedResponse(data=result)

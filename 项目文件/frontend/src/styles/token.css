@@ -67,6 +67,18 @@
   --border-secondary: #f0f0f0;
   --border-tertiary: #e8e8e8;
 
+  /* === 会议页专用背景 token === */
+  --meeting-canvas: #F2F3F5;          /* 页面底 — 最外层背景 */
+  --meeting-surface: #FBFBFC;         /* 功能区底 — 左右两区同色 */
+  --meeting-inset: #F7F8FA;           /* 内凹区 — 空状态、电平槽、引用块 */
+  --meeting-hover: #F0F1F3;           /* 悬停状态 */
+  --meeting-action-bar: #F7F8FA;      /* 底部操作条 — 比上方可读区深半档 */
+  --meeting-record: #ff0000;           /* 录音按钮 — 录制中 */
+  --meeting-record-hover: #cc0000;     /* 录音按钮悬浮 */
+  --meeting-record-paused: #ff6600;    /* 录音按钮 — 已暂停 */
+  --meeting-record-paused-hover: #cc5200; /* 已暂停态悬浮 */
+  --meeting-record-icon: #ffffff;      /* 按钮内白点 / 暂停条 / 播放三角 */
+
   /* === 边框宽度 === */
   --border-width-thin: 1px;
 
@@ -303,6 +315,18 @@
   --border-primary: #434343;
   --border-secondary: #303030;
   --border-tertiary: #303030;
+
+  /* === 会议页专用背景 token（深色） === */
+  --meeting-canvas: #1a1a1a;
+  --meeting-surface: #262626;
+  --meeting-inset: #1f1f1f;
+  --meeting-hover: #303030;
+  --meeting-action-bar: #1f1f1f;
+  --meeting-record: #ff3b3b;
+  --meeting-record-hover: #e60000;
+  --meeting-record-paused: #ff8a3d;
+  --meeting-record-paused-hover: #e06a1f;
+  /* --meeting-record-icon 深色下仍为白色，无需覆盖 */
 
   /* === 阴影（深色变体） === */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);

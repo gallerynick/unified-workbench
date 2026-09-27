@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
-from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from fastapi import HTTPException
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.visibility import Visibility
 from app.models.meeting_record import MeetingRecord
 from app.models.meeting_transcript_segment import MeetingTranscriptSegment
+from app.models.tag import Tag
 from app.models.user import User
+from app.tasks.meeting_process import process_meeting
 from app.utils.timeutil import now_shanghai
+
+logger = logging.getLogger(__name__)
 
 
 def _check_visibility(
@@ -22,11 +27,9 @@ def _check_visibility(
     owner_id: uuid.UUID,
     restricted_users: list[uuid.UUID] | None,
     restricted_tags: list[uuid.UUID] | None,
+    user_tag_ids: list[uuid.UUID] | None = None,
 ) -> bool:
-    """检查用户对会议记录的可见性。
-
-    restricted_tags 存储标签 ID（UUID），需检查用户是否拥有任意一个。
-    """
+    """检查用户对会议记录的可见性。"""
     if visibility == Visibility.PUBLIC:
         return True
 
@@ -38,9 +41,9 @@ def _check_visibility(
             return True
         if restricted_users and user.id in restricted_users:
             return True
-        if restricted_tags and user.tags:
-            user_tag_ids = {tag.id for tag in user.tags}
-            if user_tag_ids & set(restricted_tags):
+        if restricted_tags and user_tag_ids:
+            user_tag_set = set(user_tag_ids)
+            if user_tag_set & set(restricted_tags):
                 return True
         return False
 
@@ -51,6 +54,7 @@ async def _get_meeting_or_404(
     db: AsyncSession,
     meeting_id: uuid.UUID,
     current_user: User,
+    user_tag_ids: list[uuid.UUID] | None = None,
 ) -> MeetingRecord:
     """获取会议记录，不存在或无权访问则抛异常。"""
     result = await db.execute(
@@ -66,10 +70,19 @@ async def _get_meeting_or_404(
         item.owner_id,
         item.restricted_users or [],
         item.restricted_tags or [],
+        user_tag_ids,
     ):
         raise HTTPException(status_code=403, detail="无权访问此会议记录")
 
     return item
+
+
+async def _get_user_tag_ids(db: AsyncSession, user: User) -> list[uuid.UUID]:
+    """获取用户的标签 ID 列表。"""
+    result = await db.execute(
+        select(Tag.id).where(Tag.users.any(User.id == user.id))
+    )
+    return [row[0] for row in result.all()]
 
 
 async def list_meeting_records(
@@ -80,44 +93,42 @@ async def list_meeting_records(
     status_filter: str | None = None,
 ) -> tuple[list[MeetingRecord], int]:
     """列出会议记录，按状态筛选，按可见性过滤。"""
-    # 获取用户拥有的标签 ID
-    user_tag_ids: set[uuid.UUID] = set()
-    if user.tags:
-        user_tag_ids = {tag.id for tag in user.tags}
+    # 预加载用户标签 ID
+    user_tag_ids = await _get_user_tag_ids(db, user)
 
-    # 基础查询：自己拥有的记录 + public 可见的记录
-    query = select(MeetingRecord).where(
-        (MeetingRecord.owner_id == user.id)
-        | (MeetingRecord.visibility == Visibility.PUBLIC)
-    )
+    # 构建可见性条件
+    # 将 user.id 和 tag_ids 转换为字符串列表，用于 JSONB 包含查询
+    user_id_str = str(user.id)
+    tag_ids_str = [str(tag_id) for tag_id in user_tag_ids]
 
-    # 追加 restricted 可见性：restricted 且 restricted_users 包含自己
-    # 使用 JSONB 包含运算符（SQLAlchemy contains）
-    query = query.where(
-        (MeetingRecord.visibility == Visibility.RESTRICTED)
-        & (
-            func.cast(MeetingRecord.restricted_users, type_=str).contains(
-                str(user.id)
-            )
+    conditions = [
+        # 自己拥有的
+        MeetingRecord.owner_id == user.id,
+        # 公开可见的
+        MeetingRecord.visibility == Visibility.PUBLIC,
+    ]
+
+    # restricted 且 restricted_users 包含自己
+    # 使用 JSONB 包含运算符
+    conditions.append(
+        and_(
+            MeetingRecord.visibility == Visibility.RESTRICTED,
+            MeetingRecord.restricted_users.contains([user_id_str])
         )
     )
 
     # 追加 restricted 可见性：restricted 且 restricted_tags 包含用户的任一标签
-    if user_tag_ids:
-        tag_conditions = []
-        for tag_id in user_tag_ids:
-            tag_conditions.append(
-                func.cast(
-                    MeetingRecord.restricted_tags, type_=str
-                ).contains(str(tag_id))
+    if tag_ids_str:
+        for tag_id_str in tag_ids_str:
+            conditions.append(
+                and_(
+                    MeetingRecord.visibility == Visibility.RESTRICTED,
+                    MeetingRecord.restricted_tags.contains([tag_id_str])
+                )
             )
-        if tag_conditions:
-            from sqlalchemy import or_
 
-            query = query.where(
-                (MeetingRecord.visibility == Visibility.RESTRICTED)
-                & or_(*tag_conditions)
-            )
+    # 基础查询：可见的记录
+    query = select(MeetingRecord).where(or_(*conditions))
 
     if status_filter:
         query = query.where(MeetingRecord.status == status_filter)
@@ -131,19 +142,7 @@ async def list_meeting_records(
     result = await db.execute(query)
     items = list(result.scalars().all())
 
-    # 二次 Python 过滤，确保 restricted_tags 的 UUID 匹配准确
-    filtered_items = []
-    for item in items:
-        if _check_visibility(
-            user,
-            item.visibility,
-            item.owner_id,
-            item.restricted_users or [],
-            item.restricted_tags or [],
-        ):
-            filtered_items.append(item)
-
-    return filtered_items, total
+    return items, total
 
 
 async def create_meeting_record(
@@ -194,8 +193,9 @@ async def get_meeting_record(
     user: User,
 ) -> MeetingRecord | None:
     """获取会议详情，不存在或无权访问返回 None。"""
+    user_tag_ids = await _get_user_tag_ids(db, user)
     try:
-        return await _get_meeting_or_404(db, meeting_id, user)
+        return await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
     except HTTPException:
         return None
 
@@ -207,14 +207,15 @@ async def update_meeting_record(
     data: dict[str, Any],
 ) -> MeetingRecord | None:
     """更新会议记录（标题、可见性等）。"""
-    item = await _get_meeting_or_404(db, meeting_id, user)
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
     if item.owner_id != user.id:
         raise HTTPException(
             status_code=403, detail="仅创建者可以更新会议"
         )
 
-    for field in ("title", "visibility", "restricted_users", "restricted_tags"):
+    for field in ("title", "visibility", "restricted_users", "restricted_tags", "notes"):
         if field in data and data[field] is not None:
             setattr(item, field, data[field])
 
@@ -229,7 +230,8 @@ async def delete_meeting_record(
     user: User,
 ) -> bool:
     """删除会议记录。"""
-    item = await _get_meeting_or_404(db, meeting_id, user)
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
     if item.owner_id != user.id:
         raise HTTPException(
@@ -247,7 +249,8 @@ async def start_meeting_record(
     user: User,
 ) -> MeetingRecord | None:
     """开始转录。"""
-    item = await _get_meeting_or_404(db, meeting_id, user)
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
     if item.owner_id != user.id:
         raise HTTPException(
@@ -275,7 +278,8 @@ async def pause_meeting_record(
     reason: str = "manual",
 ) -> MeetingRecord | None:
     """暂停转录。"""
-    item = await _get_meeting_or_404(db, meeting_id, user)
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
     if item.owner_id != user.id:
         raise HTTPException(
@@ -301,7 +305,8 @@ async def resume_meeting_record(
     user: User,
 ) -> MeetingRecord | None:
     """恢复转录。"""
-    item = await _get_meeting_or_404(db, meeting_id, user)
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
     if item.owner_id != user.id:
         raise HTTPException(
@@ -327,7 +332,8 @@ async def end_meeting_record(
     user: User,
 ) -> MeetingRecord | None:
     """结束会议，触发会后处理。"""
-    item = await _get_meeting_or_404(db, meeting_id, user)
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
     if item.owner_id != user.id:
         raise HTTPException(
@@ -348,6 +354,21 @@ async def end_meeting_record(
 
     await db.flush()
     await db.refresh(item)
+
+    # 先提交本次会议状态变更，再入队会后处理任务。
+    # 任务用独立连接重新读取 MeetingRecord，若在事务提交前入队，
+    # 理论上可能读不到刚写入的 status / ended_at / audio_file_path。
+    await db.commit()
+
+    # 触发会后处理 Celery 任务（转录 + 纪要生成）
+    try:
+        process_meeting.delay(str(item.id))
+    except Exception as e:
+        logger.error(f"Failed to enqueue meeting processing task for {item.id}: {e}")
+        item.status = "completed"
+        item.minutes_status = "failed"
+        await db.flush()
+
     return item
 
 
@@ -357,7 +378,8 @@ async def get_transcript_segments(
     user: User,
 ) -> list[MeetingTranscriptSegment]:
     """获取转录句子。"""
-    await _get_meeting_or_404(db, meeting_id, user)
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
     result = await db.execute(
         select(MeetingTranscriptSegment)
@@ -373,7 +395,8 @@ async def review_meeting_minutes(
     user: User,
 ) -> MeetingRecord | None:
     """确认纪要审核。"""
-    item = await _get_meeting_or_404(db, meeting_id, user)
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
     if item.owner_id != user.id:
         raise HTTPException(
@@ -399,7 +422,8 @@ async def export_meeting_data(
     export_type: str,
 ) -> dict[str, Any] | None:
     """导出会议内容（转录/音频/纪要）。"""
-    item = await _get_meeting_or_404(db, meeting_id, user)
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
     if export_type == "transcript":
         segments = await get_transcript_segments(db, meeting_id, user)

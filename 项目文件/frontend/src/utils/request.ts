@@ -3,6 +3,9 @@ import type { UnifiedResponse } from '../types/user';
 
 const BASE_URL = '/api/v1';
 
+// 刷新锁：防止多个请求同时触发刷新
+let refreshPromise: Promise<boolean> | null = null;
+
 export class HttpError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -49,6 +52,18 @@ async function refreshAccessToken(): Promise<boolean> {
   }
 }
 
+/**
+ * 带锁的刷新：多个并发 401 共享同一次刷新，避免重复调用
+ */
+function refreshWithLock(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
 export async function request<T>(
   endpoint: string,
   options: RequestOptions = {}
@@ -81,7 +96,7 @@ export async function request<T>(
   // 处理 401：持有 token 时先尝试刷新并重放请求
   if (response.status === 401) {
     if (token) {
-      const refreshed = await refreshAccessToken();
+      const refreshed = await refreshWithLock();
       if (refreshed) {
         const newToken = getToken();
         if (newToken) {

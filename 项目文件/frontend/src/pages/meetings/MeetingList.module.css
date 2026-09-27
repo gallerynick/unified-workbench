@@ -1,0 +1,85 @@
+/* 会议记录列表 */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-card-gap);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-card-gap);
+  min-height: var(--spacing-xxl);
+}
+
+.title {
+  margin: 0 !important;
+  font-weight: 600;
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--spacing-card-gap);
+}
+
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-md);
+  padding: var(--spacing-lg);
+  cursor: pointer;
+  transition: border-color var(--anim-fast) var(--anim-ease),
+    box-shadow var(--anim-fast) var(--anim-ease);
+}
+
+.card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.cardTitle {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.empty {
+  padding: var(--spacing-xxl) 0;
+  text-align: center;
+}

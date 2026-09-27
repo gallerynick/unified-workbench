@@ -379,7 +379,6 @@ export default function MeetingDetailPage() {
         <div className={styles.tabContent ?? ''}>
           {/* 基础信息（定义列表） */}
           <div className={styles.definitionList ?? ''}>
-            {renderDefItem('编号', meeting.number)}
             {renderDefItem('类型', typeLabel)}
             {renderDefItem('会议主题', contentTitle || '-')}
             {renderDefItem('开始时间', formatDate(meeting.started_at))}
@@ -653,9 +652,9 @@ export default function MeetingDetailPage() {
           <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
             返回
           </Button>
-          <Tooltip title={meeting.number + ' ' + (contentTitle || typeLabel)}>
+          <Tooltip title={contentTitle || typeLabel}>
             <Title level={4} className={styles.title ?? ''}>
-              {meeting.number} {typeLabel}（{formatDate(meeting.started_at)}）
+              {typeLabel}（{formatDate(meeting.started_at)}）
             </Title>
           </Tooltip>
         </Space>

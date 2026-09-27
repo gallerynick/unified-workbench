@@ -613,8 +613,8 @@ export default function TodoDetailPage() {
                     >
                       <div className={styles.linkedContent ?? ''}>
                         <Space className={styles.linkedLink ?? ''} wrap>
-                          <Text strong>{meeting.number}</Text>
-                          <Text>{meeting.type} {formatDate(meeting.started_at)}</Text>
+                          <Text strong>{meeting.type}</Text>
+                          <Text>{formatDate(meeting.started_at)}</Text>
                         </Space>
                         {(meeting.speaker || meeting.content) && (
                           <div style={{ marginTop: 'var(--spacing-xxs)' }}>
