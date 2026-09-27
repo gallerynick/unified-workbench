@@ -455,6 +455,9 @@ export default function ThirdPartyConfigPage() {
           message.error(res.data.message);
         }
       }
+      // 刷新内存信息
+      const memRes = await getMemoryInfo();
+      if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
     } catch (err: unknown) {
       message.error(errorMessage(err, '测试失败'));
     } finally {
@@ -623,6 +626,9 @@ export default function ThirdPartyConfigPage() {
       } else {
         message.error(res.data?.message || '测速失败');
       }
+      // 刷新内存信息
+      const memRes = await getMemoryInfo();
+      if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
     } catch (err: unknown) {
       message.error(errorMessage(err, '测速失败'));
     } finally {
