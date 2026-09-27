@@ -346,10 +346,10 @@ export default function MeetingRoom() {
     }
   };
 
-  if (loading || !meeting) {
+  if (!meeting) {
     return (
       <div style={{ padding: 24, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <Spin size="large" />
+        {loading ? <Spin size="large" /> : <Empty description="会议不存在或已删除" />}
       </div>
     );
   }

@@ -344,22 +344,12 @@ export default function MeetingDetailPage() {
     setEditVisible(true);
   }, [meeting]);
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
+  if (!meeting && !loading) return null;
 
-  if (!meeting) return null;
-
-  const typeLabel = getLabel(typeOptions, meeting.type);
-  const { title: contentTitle, body: contentBody } = splitTitleContent(meeting.content);
-  const participantNames = (meeting.participants ?? [])
-    .map((id) => displayName(id))
-    .join('、');
-  const notes = (Array.isArray(meeting.notes) ? meeting.notes : []).map(parseNote);
+  const typeLabel = meeting ? getLabel(typeOptions, meeting.type) : '';
+  const { title: contentTitle, body: contentBody } = meeting ? splitTitleContent(meeting.content) : { title: '', body: '' };
+  const participantNames = meeting ? (meeting.participants ?? []).map((id) => displayName(id)).join('、') : '';
+  const notes = meeting ? (Array.isArray(meeting.notes) ? meeting.notes : []).map(parseNote) : [];
   const linkedProposal = linkedProposals[0];
   const linkedTodo = linkedTodos[0];
 
@@ -381,8 +371,8 @@ export default function MeetingDetailPage() {
           <div className={styles.definitionList ?? ''}>
             {renderDefItem('类型', typeLabel)}
             {renderDefItem('会议主题', contentTitle || '-')}
-            {renderDefItem('开始时间', formatDate(meeting.started_at))}
-            {renderDefItem('发言人', meeting.speaker || '-')}
+            {renderDefItem('开始时间', meeting ? formatDate(meeting.started_at) : '-')}
+            {renderDefItem('发言人', meeting?.speaker || '-')}
             {renderDefItem('参与人', participantNames || '-')}
             {renderDefItem(
               '关联提案',
@@ -412,8 +402,8 @@ export default function MeetingDetailPage() {
                 '-'
               ),
             )}
-            {renderDefItem('创建时间', formatDate(meeting.created_at))}
-            {renderDefItem('更新时间', formatDate(meeting.updated_at))}
+            {renderDefItem('创建时间', meeting ? formatDate(meeting.created_at) : '-')}
+            {renderDefItem('更新时间', meeting ? formatDate(meeting.updated_at) : '-')}
           </div>
 
           {/* 交流正文（段落区块） */}
@@ -646,6 +636,7 @@ export default function MeetingDetailPage() {
   ];
 
   return (
+    <Spin spinning={loading}>
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Space>
@@ -654,7 +645,7 @@ export default function MeetingDetailPage() {
           </Button>
           <Tooltip title={contentTitle || typeLabel}>
             <Title level={4} className={styles.title ?? ''}>
-              {typeLabel}（{formatDate(meeting.started_at)}）
+              {typeLabel}（{meeting ? formatDate(meeting.started_at) : '-'}）
             </Title>
           </Tooltip>
         </Space>
@@ -776,5 +767,6 @@ export default function MeetingDetailPage() {
         onSaved={() => void fetchMeeting()}
       />
     </div>
+    </Spin>
   );
 }
