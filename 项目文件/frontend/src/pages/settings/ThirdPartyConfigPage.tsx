@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SaveOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, CheckCircleOutlined, LoadingOutlined, ThunderboltOutlined, PauseCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Spin, Space, Alert, Typography, Tag, Modal, Progress } from 'antd';
-import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels } from '../../api/third-party-config';
+import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Spin, Space, Alert, Typography, Tag, Modal, Progress, Statistic, Row, Col } from 'antd';
+import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels, getMemoryInfo, unloadASRModel } from '../../api/third-party-config';
 import { getOllamaModelStatus, getOllamaModels, deleteOllamaModel, getOllamaHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/ollama';
-import type { ThirdPartyConfig, TestConnectionResponse } from '../../types/third-party-config';
+import type { ThirdPartyConfig, TestConnectionResponse, MemoryInfo } from '../../types/third-party-config';
 import { isAdmin } from '../../utils/auth';
 import styles from './ThirdPartyConfigPage.module.css';
 
@@ -60,6 +60,10 @@ const PRESET_AI_MODEL = {
 
 /** 已知模型的描述信息，用于选择器下方展示 */
 const MODEL_INFO: Record<string, { name: string; description: string }> = {
+  'qwen2.5:1.5b': {
+    name: 'Qwen2.5-1.5B Q4',
+    description: '阿里云通义千问 2.5 系列 1.5B 参数模型，Q4 量化版本，支持 32K 上下文，速度最快（约 1 GB），适合轻量摘要',
+  },
   'qwen2.5:3b': {
     name: 'Qwen2.5-3B Q4',
     description: '阿里云通义千问 2.5 系列 3B 参数模型，Q4 量化版本，支持 32K 上下文，适合会议摘要',
@@ -184,6 +188,10 @@ export default function ThirdPartyConfigPage() {
   const [downloadPhase, setDownloadPhase] = useState('');
   // 任务开始时间（Unix 秒），用于展示已运行时长
   const [downloadElapsed, setDownloadElapsed] = useState(0);
+  // 系统内存信息
+  const [memoryInfo, setMemoryInfo] = useState<MemoryInfo | null>(null);
+  // ASR 卸载中
+  const [asrUnloading, setAsrUnloading] = useState(false);
   // 轮询定时器句柄。必须用 ref 而不是 state 持有：
   // poll 闭包捕获的是创建时的 stopPolling，若 stopPolling 读 state，
   // 它拿到的永远是上一次渲染的值（首次为 null），clearInterval 会变成空操作，
@@ -375,6 +383,9 @@ export default function ThirdPartyConfigPage() {
       fetchConfig(hasActiveDownload);
     });
     checkASRStatus();
+    getMemoryInfo().then((res) => {
+      if (res.code === 0 && res.data) setMemoryInfo(res.data);
+    }).catch(() => undefined);
     
     // 清理轮询。直接清 ref：stopPolling 定义在本 effect 之后，
     // 在此引用会触发 block-scoped 变量未声明即使用
@@ -500,6 +511,25 @@ export default function ThirdPartyConfigPage() {
         }
       },
     });
+  };
+
+  const handleUnloadASR = async () => {
+    setAsrUnloading(true);
+    try {
+      const res = await unloadASRModel();
+      if (res.code === 0 && res.data) {
+        message.success(res.data.message || 'ASR 模型已卸载');
+        if (res.data.details?.loaded === false) {
+          setAsrModelStatus('not_downloaded');
+        }
+        const memRes = await getMemoryInfo();
+        if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
+      }
+    } catch (err: unknown) {
+      message.error(errorMessage(err, '卸载失败'));
+    } finally {
+      setAsrUnloading(false);
+    }
   };
 
   // 预热（必要时下载）本地 ASR 模型。
@@ -1161,6 +1191,9 @@ export default function ThirdPartyConfigPage() {
                         <Button icon={<ReloadOutlined />} loading={asrReloading} onClick={handleReloadASR}>
                           重载模型
                         </Button>
+                        <Button loading={asrUnloading} onClick={handleUnloadASR}>
+                          卸载模型
+                        </Button>
                         <Button danger icon={<DeleteOutlined />} onClick={handleDeleteASRModel}>
                           删除模型
                         </Button>
@@ -1241,6 +1274,66 @@ export default function ThirdPartyConfigPage() {
           </div>
         </Card>
       </Form>
+
+      {/* 系统资源建议 */}
+      {memoryInfo && (
+        <Card
+          title="系统资源建议"
+          style={{ marginBottom: 'var(--spacing-lg)' }}
+        >
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={8}>
+              <Statistic
+                title="Docker VM 内存"
+                value={memoryInfo.total_mb ? `${(memoryInfo.total_mb / 1024).toFixed(1)} GB` : 'N/A'}
+                suffix={memoryInfo.total_mb ? `/ ${memoryInfo.used_mb ? (memoryInfo.used_mb / 1024).toFixed(1) : '?'} GB 已用` : ''}
+              />
+              <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
+                建议 {memoryInfo.recommended_vm_mb ? `${(memoryInfo.recommended_vm_mb / 1024).toFixed(1)} GB` : '8 GB'}
+                （Docker Desktop → Settings → Resources → Memory）
+              </Paragraph>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Statistic
+                title="可用内存"
+                value={memoryInfo.available_mb ? `${(memoryInfo.available_mb / 1024).toFixed(1)} GB` : 'N/A'}
+                valueStyle={{ color: memoryInfo.available_mb && memoryInfo.available_mb < 3000 ? '#ff4d4f' : undefined }}
+              />
+              <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
+                ASR 模型约 2.1 GB · AI 模型约 1-2.2 GB
+              </Paragraph>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Statistic
+                title="宿主机建议"
+                value={`${memoryInfo.recommended_host_gb} GB`}
+              />
+              <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
+                macOS / Windows / Linux 均需 ≥ 此值
+              </Paragraph>
+            </Col>
+          </Row>
+
+          {(memoryInfo.warning || memoryInfo.asr_warning || memoryInfo.ai_warning) && (
+            <div style={{ marginTop: 12 }}>
+              {memoryInfo.warning && (
+                <Alert type="warning" message={memoryInfo.warning} showIcon style={{ marginBottom: 8 }} />
+              )}
+              {memoryInfo.asr_warning && (
+                <Alert type="error" message={memoryInfo.asr_warning} showIcon style={{ marginBottom: 8 }} />
+              )}
+              {memoryInfo.ai_warning && (
+                <Alert type="error" message={memoryInfo.ai_warning} showIcon />
+              )}
+            </div>
+          )}
+
+          <Paragraph type="secondary" style={{ margin: '12px 0 0', fontSize: 12 }}>
+            提示：ASR 和 AI 模型共用 Docker VM 内存。如果内存不足，可以先卸载 ASR 模型释放空间，
+            再加载 AI 模型。两者通常不会同时使用。
+          </Paragraph>
+        </Card>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving}>
