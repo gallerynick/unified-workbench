@@ -701,9 +701,11 @@ async def get_memory_info() -> dict[str, Any]:
     """获取当前系统内存使用情况。
 
     读取 /proc/meminfo（Linux 容器内），返回总量、已用、可用、推荐值。
-    前端用它展示内存建议和溢出预警。
+    智能判断警告：只在模型未加载时发出加载警告，已加载则视为正常占用。
+    推荐值动态计算：基于当前已加载模型 + 系统开销。
     """
     import platform
+    from app.services import asr_engine
 
     info: dict[str, Any] = {
         "total_mb": None,
@@ -712,6 +714,9 @@ async def get_memory_info() -> dict[str, Any]:
         "recommended_vm_mb": 8192,
         "recommended_host_gb": 16,
         "platform": platform.system(),
+        "asr_loaded": False,
+        "ai_loaded": False,
+        "loaded_mb": 0,
     }
 
     try:
@@ -730,18 +735,64 @@ async def get_memory_info() -> dict[str, Any]:
         info["used_mb"] = round((total_kb - available_kb) / 1024)
         info["available_mb"] = round(available_kb / 1024)
 
-        # 根据实际内存调整推荐值
-        if info["total_mb"] and info["total_mb"] < 6000:
-            info["recommended_vm_mb"] = 8192
-            info["warning"] = "Docker VM 内存不足（建议 8 GB）"
-        elif info["total_mb"] and info["total_mb"] < 8000:
-            info["recommended_vm_mb"] = 10240
-            info["warning"] = "Docker VM 内存偏低（建议 10 GB）"
+        # 检查 ASR 是否已加载
+        asr_loaded = asr_engine.is_available()
+        info["asr_loaded"] = asr_loaded
 
-        # ASR 模型加载后额外占用约 2.1 GB
-        if info["available_mb"] and info["available_mb"] < 3000:
+        # 检查 AI 模型是否已加载（通过 Ollama API）
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get("http://ollama:11434/api/ps")
+                if resp.status_code == 200:
+                    running = resp.json().get("models", [])
+                    if running:
+                        info["ai_loaded"] = True
+                        info["ai_model_name"] = running[0].get("name", "")
+        except Exception:
+            pass
+
+        # 计算已加载模型占用的内存
+        loaded_mb = 0
+        if asr_loaded:
+            loaded_mb += 2100  # ASR 模型约 2.1 GB
+        if info["ai_loaded"]:
+            model_name = info.get("ai_model_name", "")
+            model_sizes = {
+                "qwen2.5:1.5b": 1200, "qwen2.5:3b": 2200, "qwen2.5:7b": 4700,
+                "qwen3:1.7b": 1400, "qwen3.5:4b": 3000,
+            }
+            # 尝试匹配模型大小
+            for key, size in model_sizes.items():
+                if key in model_name:
+                    loaded_mb += size
+                    break
+            else:
+                loaded_mb += 2200  # 默认估算
+        info["loaded_mb"] = loaded_mb
+
+        # 系统开销（backend, postgres, redis, celery 等）
+        system_overhead = 900  # 约 900 MB
+
+        # 动态计算推荐内存
+        # 基础开销 + 已加载模型 + 预留空间（给下一个模型）
+        recommended = system_overhead + loaded_mb + 2000  # 预留 2 GB 给新模型
+        info["recommended_vm_mb"] = max(8192, round(recommended / 1024) * 1024)
+        info["recommended_host_gb"] = max(16, info["recommended_vm_mb"] // 1024 + 4)
+
+        # VM 内存警告（只在总内存不足时）
+        if info["total_mb"] and info["total_mb"] < info["recommended_vm_mb"]:
+            info["warning"] = (
+                f"Docker VM 内存不足（当前 {info['total_mb']} MB，"
+                f"建议 {info['recommended_vm_mb']} MB）"
+            )
+
+        # ASR 警告：只在 ASR 未加载且可用内存不足时
+        if not asr_loaded and info["available_mb"] and info["available_mb"] < 3000:
             info["asr_warning"] = "可用内存不足 3 GB，ASR 模型可能无法加载"
-        if info["available_mb"] and info["available_mb"] < 2000:
+
+        # AI 警告：只在 AI 未加载且可用内存不足时
+        if not info["ai_loaded"] and info["available_mb"] and info["available_mb"] < 2000:
             info["ai_warning"] = "可用内存不足 2 GB，AI 模型可能无法加载"
 
     except (OSError, ValueError):
@@ -756,6 +807,9 @@ async def prepare_memory_for_model(
 ) -> dict[str, Any]:
     """智能内存调度：检查可用内存是否足够，不足时自动卸载 ASR 模型腾空间。
 
+    如果 AI 模型正在运行，不会尝试卸载（Ollama 管理生命周期）。
+    如果 ASR 已加载且内存不足，会卸载 ASR 释放空间。
+
     Args:
         required_mb: 预估需要的内存（MB）
         purpose: 用途描述，用于日志和消息
@@ -768,6 +822,7 @@ async def prepare_memory_for_model(
     info = await get_memory_info()
     available = info.get("available_mb") or 0
     asr_loaded = asr_engine.is_available()
+    ai_loaded = info.get("ai_loaded", False)
 
     # 内存充足，无需操作
     if available >= required_mb:
@@ -789,13 +844,32 @@ async def prepare_memory_for_model(
                 "message": f"内存不足（可用 {available} MB），已自动卸载 ASR 模型，现可用 {available2} MB",
                 "available_mb": available2,
             }
+        # 卸载 ASR 后仍不足
+        if ai_loaded:
+            return {
+                "action": "insufficient",
+                "message": (
+                    f"内存不足（卸载 ASR 后可用 {available2} MB，需要 {required_mb} MB）。"
+                    f"AI 模型正在运行，请等待 AI 任务完成或手动卸载 AI 模型"
+                ),
+                "available_mb": available2,
+            }
         return {
             "action": "insufficient",
-            "message": f"内存仍不足（卸载 ASR 后可用 {available2} MB，需要 {required_mb} MB）",
+            "message": f"内存仍不足（卸载 ASR 后可用 {available2} MB，需要 {required_mb} MB），建议增大 Docker VM 内存",
             "available_mb": available2,
         }
 
     # ASR 未加载但内存仍不足
+    if ai_loaded:
+        return {
+            "action": "insufficient",
+            "message": (
+                f"内存不足（可用 {available} MB，需要 {required_mb} MB）。"
+                f"AI 模型正在运行，请等待 AI 任务完成或手动卸载 AI 模型"
+            ),
+            "available_mb": available,
+        }
     return {
         "action": "insufficient",
         "message": f"内存不足（可用 {available} MB，需要 {required_mb} MB），建议增大 Docker VM 内存",
