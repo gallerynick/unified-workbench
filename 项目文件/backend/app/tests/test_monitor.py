@@ -379,41 +379,42 @@ async def test_api_monitor_passes_payload_through_schema(monkeypatch):
     assert body["meta"]["in_container"] is True
 
 
-def test_api_monitor_requires_admin(client, member_token):
+async def test_api_monitor_requires_admin(client, member_token):
     """普通成员访问返回 403：资源明细属管理员视角。"""
-    resp = client.get(
+    resp = await client.get(
         "/api/v1/system/monitor",
         headers={"Authorization": f"Bearer {member_token}"},
     )
     assert resp.status_code == 403
 
 
-def test_api_monitor_requires_auth(client):
+async def test_api_monitor_requires_auth(client):
     """未携带令牌被拒绝，不泄露任何指标。"""
-    assert client.get("/api/v1/system/monitor").status_code in (401, 403)
+    resp = await client.get("/api/v1/system/monitor")
+    assert resp.status_code in (401, 403)
 
 
-def test_api_monitor_admin_not_blocked_by_role_gate(client, admin_token):
+async def test_api_monitor_admin_not_blocked_by_role_gate(client, admin_token):
     """管理员通过角色门禁（此处验证鉴权，不依赖真实采样数据）。"""
-    resp = client.get(
+    resp = await client.get(
         "/api/v1/system/monitor",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert resp.status_code != 403
 
 
-def test_api_monitor_rejects_out_of_range_window(client, admin_token):
+async def test_api_monitor_rejects_out_of_range_window(client, admin_token):
     """历史窗口超过环形缓冲上限被 Query(le=10) 拒绝为 422。"""
-    resp = client.get(
+    resp = await client.get(
         "/api/v1/system/monitor?minutes=99",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert resp.status_code == 422
 
 
-def test_api_monitor_accepts_trailing_slash_via_redirect(client, admin_token):
+async def test_api_monitor_accepts_trailing_slash_via_redirect(client, admin_token):
     """尾部斜杠兼容：与 /system/status 同一套路由风格。"""
-    resp = client.get(
+    resp = await client.get(
         "/api/v1/system/monitor/",
         headers={"Authorization": f"Bearer {admin_token}"},
         follow_redirects=False,

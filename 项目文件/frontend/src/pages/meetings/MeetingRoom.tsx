@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftOutlined, CheckCircleOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CheckCircleOutlined, DownloadOutlined, LoadingOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { Button, Tag, Space, message, Spin, Typography, Empty, Tabs } from 'antd';
 import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingTranscriptSegment, TranscriptSegmentData} from '../../types/meeting-record';
@@ -93,6 +93,23 @@ export default function MeetingRoom() {
       // 组件卸载时停止音频采集
     };
   }, [wsConnected, isRecording]);
+
+  // 会议结束后轮询纪要生成状态（处理中→完成）
+  useEffect(() => {
+    if (meeting?.status !== 'processing' && meeting?.status !== 'completed') return;
+    if (meeting?.minutes_status === 'done') return;
+    const interval = setInterval(async () => {
+      if (!id) return;
+      const res = await getMeetingRecord(id);
+      if (res.code === 0 && res.data) {
+        setMeeting(res.data);
+        if (res.data.minutes_status === 'done') {
+          clearInterval(interval);
+        }
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [id, meeting?.status, meeting?.minutes_status]);
 
 
 
@@ -573,7 +590,7 @@ export default function MeetingRoom() {
                 <ul style={{ paddingLeft: 20, lineHeight: '2' }}>
                   {meeting.minutes.todos.map((todo, i) => (
                     <li key={i} style={{ marginBottom: 8 }}>
-                      <Text>{todo}</Text>
+                      <Text>{todo.content}</Text>
                     </li>
                   ))}
                 </ul>

@@ -254,7 +254,7 @@ export default function EventDetailPage() {
                   <Descriptions.Item label="监督方">{details.supervisor ? displayName(details.supervisor as string) : '-'}</Descriptions.Item>
                   <Descriptions.Item label="交接类型">{HANDOVER_TYPE_LABEL[details.handover_type as string] ?? '-'}</Descriptions.Item>
                   <Descriptions.Item label="交接日期">{formatDateOnly(details.handover_date as string)}</Descriptions.Item>
-                  <Descriptions.Item label="过渡期（天）">{details.transition_days ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="过渡期（天）">{(details.transition_days as number | string | undefined) ?? '-'}</Descriptions.Item>
                 </Descriptions>
               </div>
 
