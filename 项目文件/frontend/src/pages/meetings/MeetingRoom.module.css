@@ -259,11 +259,11 @@
 }
 
 .recordButtonPaused {
-  background: var(--meeting-record-paused);
+  background: var(--meeting-record);
 }
 
 .recordButtonPaused:hover {
-  background: var(--meeting-record-paused-hover);
+  background: var(--meeting-record-hover);
 }
 
 /* 按钮内的小圆点 */
