@@ -81,6 +81,21 @@ function formatDuration(seconds: number): string {
   return `${s}秒`;
 }
 
+/** 把字节数格式化成人类可读体积，用于展示模型实际占用 */
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return '0 B';
+  }
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  let value = bytes;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i += 1;
+  }
+  return `${value >= 100 || i === 0 ? Math.round(value) : value.toFixed(1)} ${units[i]}`;
+}
+
 
 /** 从未知异常中取出可展示的信息，避免对 unknown 做断言 */
 function errorMessage(err: unknown, fallback: string): string {
@@ -104,10 +119,14 @@ export default function ThirdPartyConfigPage() {
   
   // 模型下载状态
   const [aiModelStatus, setAiModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'error'>('not_downloaded');
+  // 已下载模型的实测体积（字节），来自 Ollama，比 PRESET_AI_MODEL 里的估算值准确
+  const [aiModelSize, setAiModelSize] = useState<number | null>(null);
   const [asrModelStatus, setAsrModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'error'>('not_downloaded');
   const [asrModelDetails, setAsrModelDetails] = useState<{ models: { name: string; repo_id: string; ready: boolean; size_mb: number }[]; downloaded: number; total: number } | null>(null);
   const [asrPreloading, setAsrPreloading] = useState(false);
   const [ollamaHealth, setOllamaHealth] = useState<'unknown' | 'ok' | 'error'>('unknown');
+  // 后端回的具体失败原因（超时 / 连不上 / API 错误），展示给用户看
+  const [ollamaHealthDetail, setOllamaHealthDetail] = useState<string | null>(null);
   const [checkingDownload, setCheckingDownload] = useState(true);
   
   // 下载任务状态
@@ -131,35 +150,61 @@ export default function ThirdPartyConfigPage() {
   // 所以只能靠轮询 /asr/status 看缓存里的模型有没有齐
   const asrPreloadTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 检查 Ollama 健康状态和模型状态
+  // 检查 Ollama 健康状态和模型状态。
+  // 单次失败就报「不可用」太激进：ollama 在忙于加载模型时 /api/tags 会超时，
+  // 所以先重试两次、每次间隔 1 秒，再下结论
   const checkOllamaStatus = async () => {
-    try {
-      const healthRes = await getOllamaHealth();
-      if (healthRes.code === 0 && healthRes.data?.status === 'ok') {
-        setOllamaHealth('ok');
-        
-        // 检查模型是否已下载
-        const modelRes = await getOllamaModelStatus(PRESET_AI_MODEL.ollamaName);
-        if (modelRes.code === 0 && modelRes.data?.downloaded) {
-          setAiModelStatus('downloaded');
-        } else if (!downloadTaskId) {
-          // 只有在没有正在进行的下载任务时，才设置为 'not_downloaded'
-          setAiModelStatus('not_downloaded');
-        }
-      } else {
-        setOllamaHealth('error');
-        // 只有在没有正在进行的下载任务时，才设置为 'not_downloaded'
-        if (!downloadTaskId) {
-          setAiModelStatus('not_downloaded');
-        }
+    let healthRes: Awaited<ReturnType<typeof getOllamaHealth>> | null = null;
+    let lastErr: unknown = null;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        healthRes = await getOllamaHealth();
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
       }
-    } catch (err) {
-      console.error('检查 Ollama 状态失败:', err);
+      if (attempt < 2) {
+        await new Promise((resolve) => { setTimeout(resolve, 1000); });
+      }
+    }
+
+    // 后端本身没连上（页面到后端这一跳断了）
+    if (lastErr !== null) {
+      console.error('检查 Ollama 状态失败:', lastErr);
       setOllamaHealth('error');
-      // 只有在没有正在进行的下载任务时，才设置为 'not_downloaded'
+      setOllamaHealthDetail('无法请求后端，请检查页面与后端之间的网络');
       if (!downloadTaskId) {
         setAiModelStatus('not_downloaded');
       }
+      return;
+    }
+
+    if (healthRes?.code === 0 && healthRes.data?.status === 'ok') {
+      setOllamaHealth('ok');
+      setOllamaHealthDetail(null);
+
+      // 检查模型是否已下载
+      const modelRes = await getOllamaModelStatus(PRESET_AI_MODEL.ollamaName);
+      if (modelRes.code === 0 && modelRes.data?.downloaded) {
+        setAiModelStatus('downloaded');
+        setAiModelSize(modelRes.data.size ?? null);
+      } else if (!downloadTaskId) {
+        // 只有在没有正在进行的下载任务时，才设置为 'not_downloaded'
+        setAiModelStatus('not_downloaded');
+        setAiModelSize(null);
+      }
+      return;
+    }
+
+    setOllamaHealth('error');
+    setOllamaHealthDetail(
+      healthRes?.data?.message || '无法连接到 Ollama 服务，请检查容器是否已启动并暴露 11434 端口',
+    );
+    // 只有在没有正在进行的下载任务时，才设置为 'not_downloaded'
+    if (!downloadTaskId) {
+      setAiModelStatus('not_downloaded');
     }
   };
 
@@ -606,14 +651,16 @@ export default function ThirdPartyConfigPage() {
   };
 
   const handleDeleteAIModel = async () => {
+    const sizeText = aiModelSize != null ? `（已占 ${formatBytes(aiModelSize)}）` : '';
     Modal.confirm({
       title: '删除模型',
-      content: '删除后将需要重新下载，确定要删除吗？',
+      content: `将删除 ${PRESET_AI_MODEL.ollamaName}${sizeText}，删除后需要重新下载。确定要删除吗？`,
       onOk: async () => {
         try {
           const res = await deleteOllamaModel(PRESET_AI_MODEL.ollamaName);
           if (res.code === 0) {
             setAiModelStatus('not_downloaded');
+            setAiModelSize(null);
             message.success('模型已删除');
           }
         } catch (err: unknown) {
@@ -705,13 +752,16 @@ export default function ThirdPartyConfigPage() {
                     <Alert
                       type={ollamaHealth === 'ok' ? 'success' : ollamaHealth === 'error' ? 'error' : 'info'}
                       message={
-                        ollamaHealth === 'ok' ? 'Ollama 服务正常' : 
-                        ollamaHealth === 'error' ? 'Ollama 服务不可用' : '正在检查 Ollama 状态...'
+                        ollamaHealth === 'ok' ? 'Ollama 服务正常' :
+                        ollamaHealth === 'error' ? 'Ollama 服务异常' : '正在检查 Ollama 状态…'
                       }
-                      description={
-                        ollamaHealth === 'error' ? '请确保 Ollama 容器已启动' : undefined
-                      }
+                      description={ollamaHealthDetail || undefined}
                       showIcon
+                      action={
+                        <Button size="small" type="link" onClick={() => void checkOllamaStatus()}>
+                          重新检查
+                        </Button>
+                      }
                       style={{ marginBottom: 16 }}
                     />
 
@@ -721,7 +771,9 @@ export default function ThirdPartyConfigPage() {
                           {PRESET_AI_MODEL.name}
                         </Text>
                         <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
-                          {PRESET_AI_MODEL.description}
+                          {aiModelStatus === 'downloaded' && aiModelSize != null
+                            ? `已下载 ${formatBytes(aiModelSize)} · `
+                            : ''}{PRESET_AI_MODEL.description}
                         </Paragraph>
                       </div>
                       <Space>
@@ -739,7 +791,7 @@ export default function ThirdPartyConfigPage() {
                         {aiModelStatus === 'downloaded' && (
                           <Tag color="success">
                             <CheckCircleOutlined />
-                            已就绪
+                            已就绪{aiModelSize != null ? ` · ${formatBytes(aiModelSize)}` : ''}
                           </Tag>
                         )}
                         {aiModelStatus === 'error' && (
