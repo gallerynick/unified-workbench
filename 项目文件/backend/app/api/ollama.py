@@ -33,7 +33,9 @@ class ModelStatusResponse(BaseModel):
     """模型状态响应"""
     name: str
     downloaded: bool
-    size: str | None = None
+    # Ollama 返回的是字节数（int）。之前声明成 str，一旦模型已下载，
+    # 校验就抛 ValidationError 让整个接口 500，「模型未下载」判断因此永远失效
+    size: int | None = None
     modified_at: str | None = None
 
 
@@ -90,8 +92,8 @@ async def list_models(
             ModelStatusResponse(
                 name=model.get("name", ""),
                 downloaded=True,
-                size=model.get("size", ""),
-                modified_at=model.get("modified_at", ""),
+                size=model.get("size"),
+                modified_at=model.get("modified_at"),
             )
         )
 
@@ -136,8 +138,8 @@ async def get_model_status(
                 data=ModelStatusResponse(
                     name=model_name,
                     downloaded=True,
-                    size=model.get("size", ""),
-                    modified_at=model.get("modified_at", ""),
+                    size=model.get("size"),
+                    modified_at=model.get("modified_at"),
                 )
             )
 
@@ -153,12 +155,28 @@ async def get_model_status(
 async def check_health(
     current_user: User = Depends(get_current_user),
 ) -> UnifiedResponse[dict[str, Any]]:
-    """检查 Ollama 服务健康状态"""
+    """检查 Ollama 服务健康状态。
+
+    返回具体原因（timeout / unreachable / api_error），让前端能给出可操作的提示，
+    而不是笼统一句「容器没启动」——容器明明在跑，真正的原因往往是 ollama
+    正忙于其他请求导致 /api/tags 超时。
+    """
     try:
         result = await _ollama_request("GET", "/api/tags", timeout=5.0)
         return UnifiedResponse(data={"status": "ok", "model_count": len(result.get("models", []))})
-    except HTTPException:
-        return UnifiedResponse(data={"status": "error", "message": "Ollama 服务不可用"})
+    except HTTPException as e:
+        if e.status_code == status.HTTP_408_REQUEST_TIMEOUT:
+            reason = "timeout"
+            message = "Ollama 响应超时，服务可能正忙于其他请求"
+        elif e.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+            reason = "unreachable"
+            message = "无法连接到 Ollama 服务"
+        else:
+            reason = "api_error"
+            message = f"Ollama API 返回错误：{e.detail}"
+        return UnifiedResponse(
+            data={"status": "error", "reason": reason, "message": message}
+        )
 
 
 @router.post("/download/start", response_model=UnifiedResponse[dict[str, Any]])

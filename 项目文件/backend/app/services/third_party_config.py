@@ -253,7 +253,8 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                 if response.status_code != 200:
                     return TestConnectionResponse(
                         success=False,
-                        message="Ollama 服务不可用",
+                        message=f"Ollama 服务响应异常（HTTP {response.status_code}）",
+                        details={"status_code": response.status_code},
                     )
                 
                 models = response.json().get("models", [])

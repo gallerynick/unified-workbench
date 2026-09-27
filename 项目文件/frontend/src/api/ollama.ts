@@ -4,7 +4,8 @@ import type { UnifiedResponse } from '../types/user';
 export interface OllamaModelStatus {
   name: string;
   downloaded: boolean;
-  size: string | null;
+  /** Ollama 返回的字节数 */
+  size: number | null;
   modified_at: string | null;
 }
 
@@ -32,6 +33,8 @@ export interface DownloadStatus {
 
 export interface OllamaHealthStatus {
   status: 'ok' | 'error' | string;
+  /** 失败原因：timeout 超时 / unreachable 连不上 / api_error API 返回错误 */
+  reason?: 'timeout' | 'unreachable' | 'api_error' | string;
   message?: string;
 }
 
