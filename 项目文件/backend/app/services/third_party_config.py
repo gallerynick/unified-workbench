@@ -20,7 +20,7 @@ DEFAULT_AI_CONFIG = {
     "mode": "local",
     "local": {
         "base_url": "http://ollama:11434/v1",
-        "model": "qwen3.5:4b",
+        "model": "qwen2.5:3b",
     },
     "online": {
         "base_url": "https://api.openai.com/v1",
@@ -132,7 +132,7 @@ async def test_ai_connection(db: AsyncSession) -> TestConnectionResponse:
                 response = await client.get("http://ollama:11434/api/tags")
                 if response.status_code == 200:
                     models = response.json().get("models", [])
-                    model_name = config.ai_provider.local.get("model", "qwen3.5:4b")
+                    model_name = config.ai_provider.local.get("model", "qwen2.5:3b")
                     model_found = any(m.get("name") == model_name for m in models)
                     return TestConnectionResponse(
                         success=model_found,
@@ -259,7 +259,7 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                     )
                 
                 models = response.json().get("models", [])
-                model_name = ai_config.local.get("model", "qwen3.5:4b")
+                model_name = ai_config.local.get("model", "qwen2.5:3b")
                 model_found = any(m.get("name") == model_name for m in models)
                 
                 if not model_found:

@@ -73,7 +73,7 @@ async def process_meeting_after_end(db: AsyncSession, meeting_id: uuid.UUID):
             summary=minutes["summary"],
             key_points=minutes.get("key_points", []),
             todos=minutes.get("todos", []),
-            model_used=minutes.get("model_used", "qwen3.5:4b"),
+            model_used=minutes.get("model_used", "qwen2.5:3b"),
         )
         db.add(meeting_minutes)
         

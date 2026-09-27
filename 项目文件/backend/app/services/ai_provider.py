@@ -34,7 +34,7 @@ async def generate_minutes(transcript: str, meeting_id: uuid.UUID) -> dict[str, 
         "mode": "local",
         "local": {
             "base_url": "http://ollama:11434/v1",
-            "model": "qwen3.5:4b",
+            "model": "qwen2.5:3b",
         },
         "online": {
             "base_url": "https://api.openai.com/v1",
@@ -57,7 +57,7 @@ async def _call_ai(config: dict[str, Any], transcript: str) -> dict[str, Any]:
     
     if mode == "local":
         base_url = config["local"].get("base_url", "http://ollama:11434/v1")
-        model = config["local"].get("model", "qwen3.5:4b")
+        model = config["local"].get("model", "qwen2.5:3b")
         api_key = None
     else:
         base_url = config["online"].get("base_url", "https://api.openai.com/v1")
