@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { SaveOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, CheckCircleOutlined, LoadingOutlined, ThunderboltOutlined, PauseCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Spin, Space, Alert, Typography, Tag, Modal, Progress } from 'antd';
 import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels } from '../../api/third-party-config';
-import { getOllamaModelStatus, deleteOllamaModel, getOllamaHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/ollama';
-import type { ThirdPartyConfig } from '../../types/third-party-config';
+import { getOllamaModelStatus, getOllamaModels, deleteOllamaModel, getOllamaHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/ollama';
+import type { ThirdPartyConfig, TestConnectionResponse } from '../../types/third-party-config';
 import { isAdmin } from '../../utils/auth';
 import styles from './ThirdPartyConfigPage.module.css';
 
@@ -96,6 +96,28 @@ function formatBytes(bytes: number): string {
   return `${value >= 100 || i === 0 ? Math.round(value) : value.toFixed(1)} ${units[i]}`;
 }
 
+/** 把测速明细翻译成一行人话，用来解释速度为什么偏低 */
+function formatSpeedNotes(
+  detail: NonNullable<TestConnectionResponse['details']>,
+): string {
+  const notes: string[] = [];
+  if (detail.load_seconds != null && detail.load_seconds >= 1) {
+    notes.push(`加载权重 ${detail.load_seconds}s`);
+  }
+  if (detail.prompt_tokens_per_second != null) {
+    notes.push(`prompt 前向 ${detail.prompt_tokens_per_second.toFixed(0)} tok/s`);
+  }
+  if (detail.done_reason === 'length') {
+    notes.push('撞到生成上限');
+  }
+  if (detail.thinking_chars && detail.response_chars != null && detail.thinking_chars > detail.response_chars) {
+    notes.push(
+      `思考过程 ${detail.thinking_chars} 字，可见输出仅 ${detail.response_chars} 字`,
+    );
+  }
+  return notes.join(' · ');
+}
+
 
 /** 从未知异常中取出可展示的信息，避免对 unknown 做断言 */
 function errorMessage(err: unknown, fallback: string): string {
@@ -115,12 +137,16 @@ export default function ThirdPartyConfigPage() {
   const [testing, setTesting] = useState<{ ai: boolean; asr: boolean }>({ ai: false, asr: false });
   const [speedTesting, setSpeedTesting] = useState(false);
   const [speedResult, setSpeedResult] = useState<number | null>(null);
+  // 测速明细（加载耗时、prompt 速率、思考/可见输出占比），用于解释速度为什么偏低
+  const [speedDetail, setSpeedDetail] = useState<NonNullable<TestConnectionResponse['details']> | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   // 模型下载状态
   const [aiModelStatus, setAiModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'error'>('not_downloaded');
   // 已下载模型的实测体积（字节），来自 Ollama，比 PRESET_AI_MODEL 里的估算值准确
   const [aiModelSize, setAiModelSize] = useState<number | null>(null);
+  // 本机 ollama 已下载的全部模型，用于模型选择器
+  const [localModels, setLocalModels] = useState<{ name: string; size: number }[]>([]);
   const [asrModelStatus, setAsrModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'error'>('not_downloaded');
   const [asrModelDetails, setAsrModelDetails] = useState<{ models: { name: string; repo_id: string; ready: boolean; size_mb: number }[]; downloaded: number; total: number } | null>(null);
   const [asrPreloading, setAsrPreloading] = useState(false);
@@ -185,8 +211,19 @@ export default function ThirdPartyConfigPage() {
       setOllamaHealth('ok');
       setOllamaHealthDetail(null);
 
-      // 检查模型是否已下载
-      const modelRes = await getOllamaModelStatus(PRESET_AI_MODEL.ollamaName);
+      // 拉取本机已下载的模型列表，供模型选择器使用
+      getOllamaModels()
+        .then((r) => {
+          if (r.code === 0 && Array.isArray(r.data?.models)) {
+            setLocalModels(r.data.models.map((m) => ({ name: m.name, size: m.size ?? 0 })));
+          }
+        })
+        .catch(() => undefined);
+
+      // 用表单里选中的模型查状态，而不是写死的预设模型
+      const selectedModel =
+        form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.ollamaName;
+      const modelRes = await getOllamaModelStatus(selectedModel);
       if (modelRes.code === 0 && modelRes.data?.downloaded) {
         setAiModelStatus('downloaded');
         setAiModelSize(modelRes.data.size ?? null);
@@ -464,26 +501,34 @@ export default function ThirdPartyConfigPage() {
   const handleSpeedTest = async () => {
     setSpeedTesting(true);
     setSpeedResult(null);
-    
+    setSpeedDetail(null);
+
     try {
-      // 发送一个生成请求来测量 tokens/s
       const values = form.getFieldsValue();
-      const res = await testAIConnection({ 
+      const res = await testAIConnection({
         ai_provider: values.ai_provider,
         test_prompt: '请生成一段测试文本，用于测量生成速度。',
-        measure_speed: true
+        measure_speed: true,
       });
-      
+
       if (res.code === 0 && res.data?.success) {
-        // 后端把测速指标放在 details 里，不在响应顶层；
-        // 之前直接读 res.data.tokens_per_second 恒为 undefined，导致永远显示 0.0 tokens/s
+        // 后端把测速指标放在 details 里，不在响应顶层
         const details = res.data.details;
         const tokensPerSecond = details?.tokens_per_second || 0;
-        const totalTokens = details?.total_tokens || 0;
+        const totalTokens = details?.eval_count || details?.total_tokens || 0;
         const totalLatency = details?.total_latency_ms || 0;
-        
+        const loadSeconds = details?.load_seconds;
+
         setSpeedResult(tokensPerSecond);
-        message.success(`测速完成：${tokensPerSecond.toFixed(1)} tokens/s (${totalTokens} tokens, ${totalLatency}ms)`);
+        setSpeedDetail(details ?? null);
+
+        // 加载耗时单独说明：冷启动第一次测速，时间主要花在加载权重上
+        const loadNote = loadSeconds != null && loadSeconds >= 1
+          ? `，其中加载权重 ${loadSeconds}s`
+          : '';
+        message.success(
+          `测速完成：${tokensPerSecond.toFixed(1)} tokens/s（${totalTokens} 个生成 token，总耗时 ${totalLatency}ms${loadNote}）`,
+        );
       } else {
         message.error(res.data?.message || '测速失败');
       }
@@ -499,8 +544,10 @@ export default function ThirdPartyConfigPage() {
     try {
       // 先停止旧的轮询，防止多个轮询同时运行
       stopPolling();
-      
-      const res = await startModelDownload(PRESET_AI_MODEL.ollamaName);
+
+      const targetModel =
+        form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.ollamaName;
+      const res = await startModelDownload(targetModel);
       if (res.code === 0 && res.data?.task_id) {
         const taskId = res.data.task_id;
         // 重置所有下载状态
@@ -651,16 +698,20 @@ export default function ThirdPartyConfigPage() {
   };
 
   const handleDeleteAIModel = async () => {
+    const targetModel =
+      form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.ollamaName;
     const sizeText = aiModelSize != null ? `（已占 ${formatBytes(aiModelSize)}）` : '';
     Modal.confirm({
       title: '删除模型',
-      content: `将删除 ${PRESET_AI_MODEL.ollamaName}${sizeText}，删除后需要重新下载。确定要删除吗？`,
+      content: `将删除 ${targetModel}${sizeText}，删除后需要重新下载。确定要删除吗？`,
       onOk: async () => {
         try {
-          const res = await deleteOllamaModel(PRESET_AI_MODEL.ollamaName);
+          const res = await deleteOllamaModel(targetModel);
           if (res.code === 0) {
             setAiModelStatus('not_downloaded');
             setAiModelSize(null);
+            // 重新拉取模型列表，选择器里的选项要同步更新
+            void checkOllamaStatus();
             message.success('模型已删除');
           }
         } catch (err: unknown) {
@@ -766,10 +817,25 @@ export default function ThirdPartyConfigPage() {
                     />
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <div>
-                        <Text strong style={{ fontSize: 14 }}>
-                          {PRESET_AI_MODEL.name}
-                        </Text>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Form.Item
+                          name={['ai_provider', 'local', 'model']}
+                          label="模型"
+                          style={{ marginBottom: 8 }}
+                        >
+                          <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="选择模型"
+                            options={[
+                              ...localModels.map((m) => ({
+                                value: m.name,
+                                label: `${m.name}（${formatBytes(m.size)}）`,
+                              })),
+                            ]}
+                            onChange={() => void checkOllamaStatus()}
+                          />
+                        </Form.Item>
                         <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
                           {aiModelStatus === 'downloaded' && aiModelSize != null
                             ? `已下载 ${formatBytes(aiModelSize)} · `
@@ -861,11 +927,22 @@ export default function ThirdPartyConfigPage() {
                         </Space>
                         {speedResult !== null && (
                           <div style={{ marginTop: 12 }}>
-                            <Progress 
-                              percent={Math.min(100, Math.round(speedResult / 2))} 
+                            <Progress
+                              percent={Math.min(100, Math.round(speedResult / 2))}
                               status="success"
                               format={() => `${speedResult.toFixed(1)} tokens/s`}
                             />
+                            {speedDetail && (() => {
+                              const notes = formatSpeedNotes(speedDetail);
+                              return notes ? (
+                                <Paragraph
+                                  type="secondary"
+                                  style={{ margin: '8px 0 0', fontSize: 12 }}
+                                >
+                                  {notes}
+                                </Paragraph>
+                              ) : null;
+                            })()}
                           </div>
                         )}
                       </div>

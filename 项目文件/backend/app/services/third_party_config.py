@@ -247,7 +247,8 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
     if ai_config.mode == "local":
         import httpx
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            # 超时给足 3 分钟：冷启动要先加载权重，qwen3.5:4b 光加载就 5 秒左右
+            async with httpx.AsyncClient(timeout=180.0) as client:
                 # 检查模型是否已下载
                 response = await client.get("http://ollama:11434/api/tags")
                 if response.status_code != 200:
@@ -270,9 +271,8 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                 # 测速模式：发送生成请求并测量 tokens/s
                 if measure_speed:
                     import time
+
                     start_time = time.time()
-                    
-                    # 发送生成请求
                     generate_response = await client.post(
                         "http://ollama:11434/api/generate",
                         json={
@@ -281,35 +281,74 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                             "stream": False,
                             "options": {
                                 "temperature": ai_config.parameters.get("temperature", 0.7),
-                                "num_predict": 100  # 生成 100 个 token 用于测速
-                            }
-                        },
-                        timeout=60.0
-                    )
-                    
-                    end_time = time.time()
-                    total_time = end_time - start_time
-                    
-                    if generate_response.status_code == 200:
-                        result = generate_response.json()
-                        total_tokens = result.get("prompt_eval_count", 0) + result.get("eval_count", 0)
-                        tokens_per_second = total_tokens / total_time if total_time > 0 else 0
-                        
-                        return TestConnectionResponse(
-                            success=True,
-                            message=f"测速完成：{tokens_per_second:.1f} tokens/s",
-                            details={
-                                "model": model_name,
-                                "tokens_per_second": round(tokens_per_second, 2),
-                                "total_tokens": total_tokens,
-                                "total_latency_ms": int(total_time * 1000),
+                                # 200 个 token 才够测出稳定速率；100 个太短，
+                                # 单次抖动就能让数字差出几十个百分点
+                                "num_predict": 200
                             },
-                        )
-                    else:
+                        },
+                        timeout=180.0,
+                    )
+                    total_time = time.time() - start_time
+
+                    if generate_response.status_code != 200:
+                        # ollama 会把错误原因写在响应体里，一定要读出来，
+                        # 否则只会得到一句「生成请求失败：500」这种无从下手的信息
+                        detail = ""
+                        try:
+                            detail = generate_response.json().get("error", "")
+                        except Exception:
+                            detail = generate_response.text[:300]
+                        low = (detail or "").lower()
+                        if "killed" in low or "out of memory" in low:
+                            message = (
+                                "模型加载失败（进程被系统杀掉，通常是内存不足）："
+                                f"{detail or 'signal: killed'}"
+                            )
+                        else:
+                            message = f"生成请求失败：{detail or generate_response.status_code}"
+                        return TestConnectionResponse(success=False, message=message)
+
+                    result = generate_response.json()
+                    eval_count = result.get("eval_count", 0)
+                    eval_duration = result.get("eval_duration", 0) or 0
+                    # 纯生成速率 = 只算解码时间，不含加载和 prompt 前向。
+                    # 旧算法是 (prompt_eval_count + eval_count) / 总墙钟时间，
+                    # 把权重加载时间和 prompt 前向也算进去，实测会比真实生成速率低一半
+                    tokens_per_second = (
+                        eval_count / (eval_duration / 1e9) if eval_duration > 0 else 0
+                    )
+                    load_seconds = (result.get("load_duration") or 0) / 1e9
+                    prompt_rate = (
+                        result.get("prompt_eval_count", 0)
+                        / ((result.get("prompt_eval_duration") or 1) / 1e9)
+                    ) if result.get("prompt_eval_duration") else 0
+                    visible = len(result.get("response") or "")
+                    thinking = len(result.get("thinking") or "")
+
+                    if eval_count == 0:
                         return TestConnectionResponse(
                             success=False,
-                            message=f"生成请求失败：{generate_response.status_code}",
+                            message="模型未产生任何 token，请检查模型是否正常",
                         )
+
+                    return TestConnectionResponse(
+                        success=True,
+                        message=f"测速完成：{tokens_per_second:.1f} tokens/s",
+                        details={
+                            "model": model_name,
+                            "tokens_per_second": round(tokens_per_second, 2),
+                            "total_tokens": eval_count,
+                            "total_latency_ms": int(total_time * 1000),
+                            # 额外指标，前端和日志用得上
+                            "eval_count": eval_count,
+                            "prompt_eval_count": result.get("prompt_eval_count", 0),
+                            "prompt_tokens_per_second": round(prompt_rate, 2),
+                            "load_seconds": round(load_seconds, 2),
+                            "done_reason": result.get("done_reason"),
+                            "response_chars": visible,
+                            "thinking_chars": thinking,
+                        },
+                    )
                 
                 # 普通连接测试
                 return TestConnectionResponse(

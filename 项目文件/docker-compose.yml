@@ -161,6 +161,21 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    # GPU 加速说明（默认不开，因为 Docker Desktop 不支持，会导致整个 compose 起不来）：
+    #   - Linux + NVIDIA：在本服务下加
+    #       deploy:
+    #         resources:
+    #           reservations:
+    #             devices:
+    #               - driver: nvidia
+    #                 device_ids: ["0"]
+    #                 capabilities: [gpu]
+    #   - macOS / Windows 的 Docker Desktop 实测不支持 GPU 透传
+    #     （`docker run --gpus all` 报 "no known GPU vendor found"），ollama 只能跑 CPU。
+    #   - Apple Silicon 想要 Metal GPU 加速：在宿主机原生装 ollama（brew install ollama），
+    #     不要放容器里；原生 ollama 会自动走 GPU。
+    # 容器内 CPU 实测速率（本机 M5 / 10 核 / 16 GB / Docker VM 5.8 GB）：
+    #   qwen2.5:0.5b 约 130 tok/s；qwen3.5:4b 约 24 tok/s 且容易因内存不足被系统杀掉。
     networks:
       - workbench
 

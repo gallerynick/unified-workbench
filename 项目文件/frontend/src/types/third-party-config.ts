@@ -56,7 +56,7 @@ export interface TestConnectionResponse {
   success: boolean;
   message: string;
   /** 后端把所有指标放在 details 里，不在响应顶层：
-   *  测速模式 → tokens_per_second / total_tokens / total_latency_ms；
+   *  测速模式 → tokens_per_second / total_tokens / total_latency_ms 等；
    *  普通连接测试 → model / model_count */
   details?: {
     model?: string;
@@ -64,6 +64,20 @@ export interface TestConnectionResponse {
     tokens_per_second?: number;
     total_tokens?: number;
     total_latency_ms?: number;
+    /** 只算解码的 token 数（不含 prompt 前向） */
+    eval_count?: number;
+    /** prompt 前向的 token 数 */
+    prompt_eval_count?: number;
+    /** prompt 前向速率，和生成速率是两个数 */
+    prompt_tokens_per_second?: number;
+    /** 权重加载耗时（秒），冷启动时很大 */
+    load_seconds?: number;
+    /** length = 撞到 num_predict 上限；stop = 自然结束 */
+    done_reason?: string;
+    /** 可见输出字符数；思考型模型这里可能很小 */
+    response_chars?: number;
+    /** 思考过程字符数，思考型模型会把预算烧在这里 */
+    thinking_chars?: number;
   } | null;
 }
 
