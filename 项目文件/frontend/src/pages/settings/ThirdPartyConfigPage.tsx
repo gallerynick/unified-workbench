@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { SaveOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, CheckCircleOutlined, LoadingOutlined, ThunderboltOutlined, PauseCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Spin, Space, Alert, Typography, Tag, Modal, Progress } from 'antd';
 import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus } from '../../api/third-party-config';
@@ -120,7 +120,11 @@ export default function ThirdPartyConfigPage() {
   const [downloadPhase, setDownloadPhase] = useState('');
   // 任务开始时间（Unix 秒），用于展示已运行时长
   const [downloadElapsed, setDownloadElapsed] = useState(0);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  // 轮询定时器句柄。必须用 ref 而不是 state 持有：
+  // poll 闭包捕获的是创建时的 stopPolling，若 stopPolling 读 state，
+  // 它拿到的永远是上一次渲染的值（首次为 null），clearInterval 会变成空操作，
+  // 轮询永远停不下来 —— 这就是「模型下载完成」提示反复弹出的原因
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 检查 Ollama 健康状态和模型状态
   const checkOllamaStatus = async () => {
@@ -249,10 +253,12 @@ export default function ThirdPartyConfigPage() {
     });
     checkASRStatus();
     
-    // 清理轮询
+    // 清理轮询。直接清 ref：stopPolling 定义在本 effect 之后，
+    // 在此引用会触发 block-scoped 变量未声明即使用
     return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
+      if (pollingTimerRef.current !== null) {
+        clearInterval(pollingTimerRef.current);
+        pollingTimerRef.current = null;
       }
     };
   }, []);
@@ -362,9 +368,12 @@ export default function ThirdPartyConfigPage() {
       });
       
       if (res.code === 0 && res.data?.success) {
-        const tokensPerSecond = res.data?.tokens_per_second || 0;
-        const totalTokens = res.data?.total_tokens || 0;
-        const totalLatency = res.data?.total_latency_ms || 0;
+        // 后端把测速指标放在 details 里，不在响应顶层；
+        // 之前直接读 res.data.tokens_per_second 恒为 undefined，导致永远显示 0.0 tokens/s
+        const details = res.data.details;
+        const tokensPerSecond = details?.tokens_per_second || 0;
+        const totalTokens = details?.total_tokens || 0;
+        const totalLatency = details?.total_latency_ms || 0;
         
         setSpeedResult(tokensPerSecond);
         message.success(`测速完成：${tokensPerSecond.toFixed(1)} tokens/s (${totalTokens} tokens, ${totalLatency}ms)`);
@@ -417,8 +426,12 @@ export default function ThirdPartyConfigPage() {
     stopPolling();
     
     let lastErrorShown = false;
-    
+    // 终态只处理一次：上一次 poll 的网络请求尚未返回时 setInterval 仍会再次触发，
+    // 不加保护会重复弹「模型下载完成」
+    let settled = false;
+
     const poll = async () => {
+      if (settled) return;
       try {
         const res = await getDownloadStatus(taskId);
         if (res.code === 0 && res.data) {
@@ -436,10 +449,12 @@ export default function ThirdPartyConfigPage() {
           }
           
           if (data.status === 'completed') {
+            settled = true;
             setAiModelStatus('downloaded');
             message.success('模型下载完成');
             stopPolling();
           } else if (data.status === 'error') {
+            settled = true;
             setAiModelStatus('error');
             setDownloadError(data.error || '下载出错');
             
@@ -451,6 +466,7 @@ export default function ThirdPartyConfigPage() {
             
             stopPolling();
           } else if (data.status === 'cancelled') {
+            settled = true;
             setAiModelStatus('not_downloaded');
             message.info('下载已取消');
             stopPolling();
@@ -462,8 +478,7 @@ export default function ThirdPartyConfigPage() {
     };
     
     poll();
-    const interval = setInterval(poll, 1000);
-    setPollingInterval(interval);
+    pollingTimerRef.current = setInterval(poll, 1000);
   };
   
   // 重试下载
@@ -476,12 +491,12 @@ export default function ThirdPartyConfigPage() {
   };
   
   // 停止轮询
-  const stopPolling = () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      setPollingInterval(null);
+  const stopPolling = useCallback(() => {
+    if (pollingTimerRef.current !== null) {
+      clearInterval(pollingTimerRef.current);
+      pollingTimerRef.current = null;
     }
-  };
+  }, []);
   
   // 暂停下载
   const handlePauseDownload = async () => {
