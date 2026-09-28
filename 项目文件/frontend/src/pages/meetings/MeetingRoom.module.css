@@ -40,6 +40,8 @@
   flex-direction: column;
   background: var(--meeting-surface);
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .panelHeader {
@@ -49,6 +51,31 @@
   padding: 10px 16px;
   background: var(--meeting-surface);
   border-bottom: 1px solid var(--border-secondary);
+  position: relative;
+  z-index: 2;
+}
+
+/* 右侧笔记面板标签按钮 */
+.tabRow {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+.tabBtn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 28px;
+}
+
+.tabBtnActive {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 28px;
 }
 
 /* 转录列表 - 限制高度并启用滚动 */
