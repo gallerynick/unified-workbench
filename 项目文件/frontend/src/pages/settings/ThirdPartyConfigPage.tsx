@@ -1003,9 +1003,14 @@ export default function ThirdPartyConfigPage() {
                           </Paragraph>
                         </div>
                         <div style={{ paddingTop: 24 }}>
-                          {!checkingDownload && aiModelStatus === 'not_downloaded' && (
+                          {aiModelStatus === 'not_downloaded' && !checkingDownload && (
                             <Button type="primary" size="small" icon={<DownloadOutlined />} onClick={handleDownloadAIModel}>
                               下载模型
+                            </Button>
+                          )}
+                          {aiModelStatus === 'downloaded' && !checkingDownload && false && (
+                            <Button type="primary" size="small" icon={<ThunderboltOutlined />} onClick={handleSpeedTest} loading={speedTesting}>
+                              载入
                             </Button>
                           )}
                           {aiModelStatus === 'downloading' && (
@@ -1070,28 +1075,39 @@ export default function ThirdPartyConfigPage() {
                       </div>
                     )}
 
-                    {aiModelStatus === 'downloaded' && (
+                    {(aiModelStatus === 'downloaded' || aiModelStatus === 'ready') && (
                       <div style={{ marginTop: 12 }}>
                         <Space>
-                          <Button onClick={handleTestAI} loading={testing.ai}>
-                            测试连接
-                          </Button>
-                          <Button 
-                            type="primary" 
-                            icon={<ThunderboltOutlined />} 
-                            onClick={handleSpeedTest} 
-                            loading={speedTesting}
-                          >
-                            测速
-                          </Button>
-                          <Button loading={aiUnloading} onClick={handleUnloadAI}>
-                            卸载模型
-                          </Button>
+                          {aiModelStatus === 'ready' && (
+                            <Button onClick={handleTestAI} loading={testing.ai}>
+                              测试连接
+                            </Button>
+                          )}
+                          {aiModelStatus === 'ready' && (
+                            <Button
+                              type="primary"
+                              icon={<ThunderboltOutlined />}
+                              onClick={handleSpeedTest}
+                              loading={speedTesting}
+                            >
+                              测速
+                            </Button>
+                          )}
+                          {aiModelStatus === 'ready' && (
+                            <Button loading={aiUnloading} onClick={handleUnloadAI}>
+                              卸载模型
+                            </Button>
+                          )}
+                          {aiModelStatus === 'downloaded' && (
+                            <Button type="primary" icon={<ThunderboltOutlined />} onClick={handleSpeedTest} loading={speedTesting}>
+                              载入
+                            </Button>
+                          )}
                           <Button danger icon={<DeleteOutlined />} onClick={handleDeleteAIModel}>
                             删除模型
                           </Button>
                         </Space>
-                        {speedResult !== null && (
+                        {aiModelStatus === 'ready' && speedResult !== null && (
                           <div style={{ marginTop: 12 }}>
                             <Progress
                               percent={Math.min(100, Math.round(speedResult / 2))}
@@ -1277,17 +1293,28 @@ export default function ThirdPartyConfigPage() {
                       </div>
                     )}
 
-                    {asrModelStatus === 'downloaded' && (
+                    {(asrModelStatus === 'downloaded' || asrModelStatus === 'ready') && (
                       <Space style={{ marginTop: 12 }}>
-                        <Button onClick={handleTestASR} loading={testing.asr}>
-                          测试识别
-                        </Button>
-                        <Button icon={<ReloadOutlined />} loading={asrReloading} onClick={handleReloadASR}>
-                          重载模型
-                        </Button>
-                        <Button loading={asrUnloading} onClick={handleUnloadASR}>
-                          卸载模型
-                        </Button>
+                        {asrModelStatus === 'ready' && (
+                          <Button onClick={handleTestASR} loading={testing.asr}>
+                            测试识别
+                          </Button>
+                        )}
+                        {asrModelStatus === 'ready' && (
+                          <Button icon={<ReloadOutlined />} loading={asrReloading} onClick={handleReloadASR}>
+                            重载模型
+                          </Button>
+                        )}
+                        {asrModelStatus === 'ready' && (
+                          <Button loading={asrUnloading} onClick={handleUnloadASR}>
+                            卸载模型
+                          </Button>
+                        )}
+                        {asrModelStatus === 'downloaded' && (
+                          <Button type="primary" icon={<ReloadOutlined />} loading={asrPreloading} onClick={handlePreloadASR}>
+                            载入
+                          </Button>
+                        )}
                         <Button danger icon={<DeleteOutlined />} onClick={handleDeleteASRModel}>
                           删除模型
                         </Button>

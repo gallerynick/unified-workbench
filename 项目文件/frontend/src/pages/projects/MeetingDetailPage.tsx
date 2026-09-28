@@ -513,53 +513,57 @@ export default function MeetingDetailPage() {
 
   const tabItems = [
     {
-      key: 'detail',
-      label: '交流详情',
+      key: 'basic',
+      label: '基础信息',
       children: (
         <div className={styles.tabContent ?? ''}>
-          {/* ── 基础信息 ── */}
-          <div className={styles.textBlock ?? ''}>
-            {sectionHeader('基础信息', openEditBasic)}
-            <div className={styles.definitionList ?? ''}>
-              {renderDefItem('类型', typeLabel)}
-              {renderDefItem('会议主题', contentTitle || '-')}
-              {renderDefItem('开始时间', meeting ? formatDate(meeting.started_at) : '-')}
-              {renderDefItem('发言人', meeting?.speaker || '-')}
-              {renderDefItem('参与人', participantNames || '-')}
-              {renderDefItem(
-                '关联提案',
-                linkedProposal ? (
-                  <a
-                    onClick={() => {
-                      if (projectId) navigate(`/projects/${projectId}/proposal/${linkedProposal.id}`);
-                    }}
-                  >
-                    {linkedProposal.number}
-                  </a>
-                ) : (
-                  '-'
-                ),
-              )}
-              {renderDefItem(
-                '关联待办',
-                linkedTodo ? (
-                  <a
-                    onClick={() => {
-                      if (projectId) navigate(`/projects/${projectId}/todo/${linkedTodo.id}`);
-                    }}
-                  >
-                    {linkedTodo.number}
-                  </a>
-                ) : (
-                  '-'
-                ),
-              )}
-              {renderDefItem('创建时间', meeting ? formatDate(meeting.created_at) : '-')}
-              {renderDefItem('更新时间', meeting ? formatDate(meeting.updated_at) : '-')}
-            </div>
+          {sectionHeader('基础信息', openEditBasic)}
+          <div className={styles.definitionList ?? ''}>
+            {renderDefItem('类型', typeLabel)}
+            {renderDefItem('会议主题', contentTitle || '-')}
+            {renderDefItem('开始时间', meeting ? formatDate(meeting.started_at) : '-')}
+            {renderDefItem('发言人', meeting?.speaker || '-')}
+            {renderDefItem('参与人', participantNames || '-')}
+            {renderDefItem(
+              '关联提案',
+              linkedProposal ? (
+                <a
+                  onClick={() => {
+                    if (projectId) navigate(`/projects/${projectId}/proposal/${linkedProposal.id}`);
+                  }}
+                >
+                  {linkedProposal.number}
+                </a>
+              ) : (
+                '-'
+              ),
+            )}
+            {renderDefItem(
+              '关联待办',
+              linkedTodo ? (
+                <a
+                  onClick={() => {
+                    if (projectId) navigate(`/projects/${projectId}/todo/${linkedTodo.id}`);
+                  }}
+                >
+                  {linkedTodo.number}
+                </a>
+              ) : (
+                '-'
+              ),
+            )}
+            {renderDefItem('创建时间', meeting ? formatDate(meeting.created_at) : '-')}
+            {renderDefItem('更新时间', meeting ? formatDate(meeting.updated_at) : '-')}
           </div>
-
-          {/* ── 交流正文 ── */}
+        </div>
+      ),
+    },
+    {
+      key: 'content',
+      label: '交流内容',
+      children: (
+        <div className={styles.tabContent ?? ''}>
+          {/* 交流正文 */}
           <div className={styles.textBlock ?? ''}>
             {sectionHeader('交流正文', openEditContent)}
             {contentBody ? (
@@ -571,9 +575,9 @@ export default function MeetingDetailPage() {
             )}
           </div>
 
-          {/* ── 备注 ── */}
+          {/* 备注/讨论 */}
           <div className={styles.textBlock ?? ''}>
-            {sectionHeader(`备注（${notes.length}）`, openEditNotes)}
+            {sectionHeader(`备注/讨论（${notes.length}）`, openEditNotes)}
             {notes.length > 0 ? (
               <Space direction="vertical" size="small" style={{ width: '100%' }}>
                 {notes.map((note, index) => (
@@ -592,7 +596,7 @@ export default function MeetingDetailPage() {
               </Space>
             ) : (
               <Text type="secondary" style={{ fontSize: 'var(--text-body-sm-size)' }}>
-                暂无备注
+                暂无备注/讨论
               </Text>
             )}
           </div>
