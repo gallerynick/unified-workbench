@@ -14,6 +14,7 @@ from app.schemas.third_party_config import (
     ASRConfig,
     TestConnectionResponse,
     ThirdPartyConfig,
+    WarmupConfig,
 )
 
 DEFAULT_AI_CONFIG = {
@@ -32,6 +33,10 @@ DEFAULT_AI_CONFIG = {
         "max_tokens": 3000,
         "response_format": "json",
     },
+}
+
+DEFAULT_WARMUP_CONFIG = {
+    "auto_start": False,
 }
 
 DEFAULT_ASR_CONFIG = {
@@ -79,12 +84,15 @@ async def get_third_party_config(db: AsyncSession) -> ThirdPartyConfig:
     """获取第三方服务配置"""
     saved_ai = await _get_config_value(db, "ai_provider", DEFAULT_AI_CONFIG)
     saved_asr = await _get_config_value(db, "asr_config", DEFAULT_ASR_CONFIG)
+    saved_warmup = await _get_config_value(db, "warmup", DEFAULT_WARMUP_CONFIG)
     ai_config = _deep_merge_defaults(DEFAULT_AI_CONFIG, saved_ai)
     asr_config = _deep_merge_defaults(DEFAULT_ASR_CONFIG, saved_asr)
+    warmup_config = _deep_merge_defaults(DEFAULT_WARMUP_CONFIG, saved_warmup)
 
     return ThirdPartyConfig(
         ai_provider=AIProviderConfig(**ai_config),
         asr_config=ASRConfig(**asr_config),
+        warmup=WarmupConfig(**warmup_config),
     )
 
 
@@ -100,6 +108,11 @@ async def update_third_party_config(
     if "asr_config" in data:
         await _save_config_value(
             db, "asr_config", data["asr_config"]
+        )
+
+    if "warmup" in data:
+        await _save_config_value(
+            db, "warmup", data["warmup"]
         )
 
     return await get_third_party_config(db)
@@ -697,6 +710,92 @@ async def get_asr_model_status(db: AsyncSession) -> dict:
     }
 
 
+async def warmup_ai_model(db: AsyncSession | None = None) -> TestConnectionResponse:
+    """按配置预热本地 AI 模型。
+
+    仅当资源充足且模型可用时执行，避免启动阶段直接抢内存。
+    预热采用轻量生成请求，多次调用以触发加载路径并稳定缓存。
+    """
+    import httpx
+
+    config = await get_third_party_config(db)
+    if config.ai_provider.mode != "local":
+        return TestConnectionResponse(success=False, message="在线模式无需预热")
+
+    local = config.ai_provider.local or {}
+    model_name = local.get("model") or "qwen2.5:3b"
+    est_mb = {
+        "qwen2.5:1.5b": 1200,
+        "qwen2.5:3b": 2200,
+        "qwen2.5:7b": 4700,
+        "qwen3:1.7b": 1400,
+        "qwen3.5:4b": 3000,
+    }.get(model_name, 2200)
+
+    mem_result = await prepare_memory_for_model(est_mb, "AI 自启动预热")
+    if mem_result["action"] == "insufficient":
+        return TestConnectionResponse(
+            success=False,
+            message=mem_result["message"],
+            details={"available_mb": mem_result["available_mb"]},
+        )
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            tags = await client.get("http://ollama:11434/api/tags")
+            if tags.status_code != 200:
+                return TestConnectionResponse(
+                    success=False,
+                    message=f"Ollama 服务响应异常（HTTP {tags.status_code}）",
+                )
+            models = tags.json().get("models", [])
+            if not any(m.get("name") == model_name for m in models):
+                return TestConnectionResponse(
+                    success=False,
+                    message=f"模型 {model_name} 未下载",
+                )
+
+            for _ in range(3):
+                resp = await client.post(
+                    "http://ollama:11434/api/generate",
+                    json={
+                        "model": model_name,
+                        "prompt": "Hi",
+                        "stream": False,
+                        "options": {"num_predict": 2},
+                    },
+                    timeout=180.0,
+                )
+                if resp.status_code != 200:
+                    detail = ""
+                    try:
+                        detail = resp.json().get("error", "")
+                    except Exception:
+                        detail = resp.text[:200]
+                    return TestConnectionResponse(
+                        success=False,
+                        message=f"模型预热失败：{detail or resp.status_code}",
+                    )
+        except Exception as e:
+            return TestConnectionResponse(success=False, message=f"模型预热失败：{e}")
+
+    return TestConnectionResponse(
+        success=True,
+        message="AI 模型已预热",
+        details={"model": model_name, "warmup_runs": 3},
+    )
+
+
+async def auto_start_ai_warmup(db: AsyncSession) -> TestConnectionResponse:
+    """自启动预热入口：只在本地模式且开启全局开关时执行。"""
+    config = await get_third_party_config(db)
+    if config.ai_provider.mode != "local":
+        return TestConnectionResponse(success=False, message="在线模式无需自启动预热")
+    if not config.warmup.auto_start:
+        return TestConnectionResponse(success=False, message="未开启自启动预热")
+    return await warmup_ai_model(db)
+
+
 async def get_memory_info() -> dict[str, Any]:
     """获取当前系统内存使用情况。
 
@@ -804,6 +903,7 @@ async def get_memory_info() -> dict[str, Any]:
 async def prepare_memory_for_model(
     required_mb: int,
     purpose: str = "AI 模型",
+    model_name: str | None = None,
 ) -> dict[str, Any]:
     """智能内存调度：检查可用内存是否足够，不足时自动卸载 ASR 模型腾空间。
 
@@ -823,6 +923,14 @@ async def prepare_memory_for_model(
     available = info.get("available_mb") or 0
     asr_loaded = asr_engine.is_available()
     ai_loaded = info.get("ai_loaded", False)
+
+    # 如果 AI 模型已经在运行，测速/预热属于复用当前模型，不应重复按冷启动内存预算去卡
+    if ai_loaded and purpose.startswith("AI "):
+        return {
+            "action": "ok",
+            "message": f"AI 模型已加载，可复用当前实例（可用 {available} MB）",
+            "available_mb": available,
+        }
 
     # 内存充足，无需操作
     if available >= required_mb:

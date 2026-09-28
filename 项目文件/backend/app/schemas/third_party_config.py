@@ -7,6 +7,12 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
+class WarmupConfig(BaseModel):
+    """模型自启动预热配置"""
+
+    auto_start: bool = False
+
+
 class AIProviderConfig(BaseModel):
     """AI 提供商配置"""
 
@@ -40,6 +46,7 @@ class ThirdPartyConfig(BaseModel):
 
     ai_provider: AIProviderConfig
     asr_config: ASRConfig
+    warmup: WarmupConfig = Field(default_factory=WarmupConfig)
 
 
 class ThirdPartyConfigUpdate(BaseModel):
@@ -47,6 +54,7 @@ class ThirdPartyConfigUpdate(BaseModel):
 
     ai_provider: AIProviderConfig | None = None
     asr_config: ASRConfig | None = None
+    warmup: WarmupConfig | None = None
 
 
 class TestConnectionResponse(BaseModel):

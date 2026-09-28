@@ -191,6 +191,21 @@
   margin-top: var(--spacing-card-gap);
 }
 
+/* recharts 内部元素的背景与文字色是组件内硬编码默认值，不随主题切换。
+   把画布与图层背景改为透明，让卡片底色透出来；提示框颜色已由 Tooltip 的
+   contentStyle 显式指定，此处仅作兜底。 */
+.container :global(.recharts-wrapper),
+.container :global(.recharts-surface),
+.container :global(.recharts-tooltip-wrapper),
+.container :global(.recharts-wrapper) svg {
+  background: transparent;
+}
+
+.container :global(.recharts-default-tooltip) {
+  background-color: var(--card-bg);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+}
 @media (max-width: 767px) {
   .container {
     padding: var(--spacing-xs);

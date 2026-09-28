@@ -51,6 +51,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception:
         logger.exception("启动资源采样器失败")
 
+    # 模型侧自启动预热：仅在本地模式且配置开启时执行，资源不足则跳过。
+    from app.services.third_party_config import auto_start_ai_warmup
+
+    factory = get_session_factory()
+    async with factory() as db:
+        try:
+            warmup_result = await auto_start_ai_warmup(db)
+            if warmup_result.success:
+                logger.info("启动后 AI 模型预热完成")
+            else:
+                logger.info("启动后 AI 模型预热跳过：%s", warmup_result.message)
+        except Exception:
+            logger.exception("启动后 AI 模型预热失败")
+
     yield
 
     try:

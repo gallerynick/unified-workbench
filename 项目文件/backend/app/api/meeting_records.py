@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import uuid
-from typing import Literal
+from typing import Callable, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.security import decode_token
 from app.models.user import User
 from app.schemas.common import UnifiedResponse
 from app.schemas.meeting_record import (
@@ -37,6 +40,39 @@ from app.services.meeting_record import (
 )
 
 router = APIRouter()
+
+
+async def _get_current_user_from_bearer_or_query(
+    request: Request,
+    token: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return await _resolve_user_from_token(auth_header.removeprefix("Bearer ").strip(), db)
+
+    if token:
+        return await _resolve_user_from_token(token, db)
+
+    raise HTTPException(status_code=401, detail="未提供访问令牌")
+
+
+async def _resolve_user_from_token(token: str, db: AsyncSession) -> User:
+    try:
+        payload = decode_token(token)
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="无效的令牌")
+        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+        user = result.scalar_one_or_none()
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="无效的令牌")
+
+    if not user:
+        raise HTTPException(status_code=401, detail="用户不存在")
+    return user
 
 
 @router.get("/", response_model=UnifiedResponse[MeetingRecordListResponse])
@@ -183,7 +219,8 @@ async def get_transcript_endpoint(
 @router.get("/{meeting_id}/audio")
 async def download_audio_endpoint(
     meeting_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
+    token: str | None = Query(None),
+    current_user: User = Depends(_get_current_user_from_bearer_or_query),
     db: AsyncSession = Depends(get_db),
 ):
     """下载音频文件"""

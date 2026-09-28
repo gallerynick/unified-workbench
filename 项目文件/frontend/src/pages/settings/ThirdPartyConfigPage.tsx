@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SaveOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, CheckCircleOutlined, LoadingOutlined, ThunderboltOutlined, PauseCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Space, Alert, Typography, Tag, Modal, Progress, Statistic, Row, Col } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Space, Alert, Typography, Tag, Modal, Progress, Statistic, Row, Col, Switch } from 'antd';
 import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels, getMemoryInfo, unloadASRModel, unloadAIModel } from '../../api/third-party-config';
 import { getOllamaModelStatus, getOllamaModels, deleteOllamaModel, getOllamaHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/ollama';
 import type { ThirdPartyConfig, TestConnectionResponse, MemoryInfo } from '../../types/third-party-config';
@@ -10,6 +10,9 @@ import styles from './ThirdPartyConfigPage.module.css';
 const { Title, Text, Paragraph } = Typography;
 
 const DEFAULT_CONFIG: ThirdPartyConfig = {
+  warmup: {
+    auto_start: false,
+  },
   ai_provider: {
     mode: 'local',
     local: {
@@ -180,12 +183,12 @@ export default function ThirdPartyConfigPage() {
   const [error, setError] = useState<string | null>(null);
   
   // 模型下载状态
-  const [aiModelStatus, setAiModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'error'>('not_downloaded');
+  const [aiModelStatus, setAiModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'ready' | 'error'>('not_downloaded');
   // 已下载模型的实测体积（字节），来自 Ollama，比 PRESET_AI_MODEL 里的估算值准确
   const [aiModelSize, setAiModelSize] = useState<number | null>(null);
   // 本机 ollama 已下载的全部模型，用于模型选择器
   const [localModels, setLocalModels] = useState<{ name: string; size: number }[]>([]);
-  const [asrModelStatus, setAsrModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'error'>('not_downloaded');
+  const [asrModelStatus, setAsrModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'ready' | 'error'>('not_downloaded');
   const [asrModelDetails, setAsrModelDetails] = useState<{ models: { name: string; repo_id: string; ready: boolean; size_mb: number }[]; downloaded: number; total: number } | null>(null);
   const [asrPreloading, setAsrPreloading] = useState(false);
   const [asrReloading, setAsrReloading] = useState(false);
@@ -885,6 +888,22 @@ export default function ThirdPartyConfigPage() {
       )}
 
       <Form form={form} layout="vertical" initialValues={DEFAULT_CONFIG}>
+        <Card
+          title="模型自启动预热"
+          style={{ marginBottom: "var(--spacing-lg)" }}
+        >
+          <Form.Item
+            name={['warmup', 'auto_start']}
+            valuePropName="checked"
+            style={{ marginBottom: 0 }}
+          >
+            <Switch checkedChildren="开" unCheckedChildren="关" />
+          </Form.Item>
+          <Paragraph type="secondary" style={{ margin: 'var(--spacing-xs) 0 0', fontSize: 12 }}>
+            系统启动后若资源充足，会自动载入本地模型并做几次轻量预热；资源不足或模型未下载时会跳过。此开关为全局开关，不再绑定到单个 AI 模型。
+          </Paragraph>
+        </Card>
+
         {/* AI 模型配置 */}
         <Card 
           title="AI 模型配置" 
@@ -995,6 +1014,11 @@ export default function ThirdPartyConfigPage() {
                             </Tag>
                           )}
                           {aiModelStatus === 'downloaded' && (
+                            <Tag color="success" icon={<CheckCircleOutlined />} style={{ margin: 0, fontSize: 12, display: 'inline-flex', alignItems: 'center', height: 24 }}>
+                              已下载
+                            </Tag>
+                          )}
+                          {aiModelStatus === 'ready' && (
                             <Tag color="success" icon={<CheckCircleOutlined />} style={{ margin: 0, fontSize: 12, display: 'inline-flex', alignItems: 'center', height: 24 }}>
                               已就绪
                             </Tag>
@@ -1200,17 +1224,23 @@ export default function ThirdPartyConfigPage() {
                         </Paragraph>
                       </div>
                       <Space>
-                        {(asrModelStatus === 'not_downloaded' || asrPreloading) && (
+                        {(asrModelStatus === 'not_downloaded' || asrModelStatus === 'downloaded' || asrPreloading) && (
                           <Button
                             type="primary"
-                            icon={<DownloadOutlined />}
+                            icon=<DownloadOutlined />
                             loading={asrPreloading}
                             onClick={handlePreloadASR}
                           >
-                            {asrPreloading ? '下载中…' : '下载模型'}
+                            {asrModelStatus === 'downloaded' ? '载入' : asrPreloading ? '载入中…' : '下载模型'}
                           </Button>
                         )}
                         {asrModelStatus === 'downloaded' && (
+                          <Tag color="success">
+                            <CheckCircleOutlined />
+                            已下载
+                          </Tag>
+                        )}
+                        {asrModelStatus === 'ready' && (
                           <Tag color="success">
                             <CheckCircleOutlined />
                             已就绪

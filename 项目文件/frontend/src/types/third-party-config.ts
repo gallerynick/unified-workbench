@@ -20,6 +20,10 @@ export interface AIProviderConfig {
   };
 }
 
+export interface WarmupConfig {
+  auto_start: boolean;
+}
+
 export interface ASRConfig {
   mode: ServiceMode;
   local: {
@@ -45,11 +49,13 @@ export interface ASRConfig {
 export interface ThirdPartyConfig {
   ai_provider: AIProviderConfig;
   asr_config: ASRConfig;
+  warmup: WarmupConfig;
 }
 
 export interface ThirdPartyConfigUpdate {
   ai_provider?: AIProviderConfig;
   asr_config?: ASRConfig;
+  warmup?: WarmupConfig;
 }
 
 export interface TestConnectionResponse {

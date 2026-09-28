@@ -22,6 +22,7 @@ from app.services.third_party_config import (
     test_ai_connection as test_ai_service,
     test_asr_service as test_asr_api_service,
     update_third_party_config as update_config_service,
+    warmup_ai_model as warmup_ai_service,
 )
 
 router = APIRouter()
@@ -119,6 +120,16 @@ async def unload_ai_model_endpoint(
     from app.services.third_party_config import unload_ai_model
     model_name = request.get("model") if request else None
     result = await unload_ai_model(model_name)
+    return UnifiedResponse(data=result)
+
+
+@router.post("/ai/warmup", response_model=UnifiedResponse[TestConnectionResponse])
+async def warmup_ai_model_endpoint(
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """按配置预热 AI 模型，仅本地模式有效"""
+    result = await warmup_ai_service(db)
     return UnifiedResponse(data=result)
 
 
