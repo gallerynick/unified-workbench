@@ -128,6 +128,32 @@ interface SeriesDef {
   color: string;
 }
 
+/**
+ * recharts Tooltip 的默认样式是白底黑字硬编码值，不随主题切换。
+ * 统一在这里给出配色，颜色取自 useMonitorChartColors 的已解析值。
+ */
+function tooltipProps(colors: MonitorChartColors): {
+  contentStyle: React.CSSProperties;
+  itemStyle: React.CSSProperties;
+  labelStyle: React.CSSProperties;
+} {
+  return {
+    contentStyle: {
+      backgroundColor: colors.tooltipBg,
+      border: '1px solid ' + colors.tooltipBorder,
+      borderRadius: 8,
+      color: colors.tooltipText,
+    },
+    itemStyle: {
+      color: colors.tooltipText,
+      display: 'block',
+      paddingTop: 4,
+      paddingBottom: 4,
+    },
+    labelStyle: { color: colors.tooltipText },
+  };
+}
+
 // ── 趋势图 ─────────────────────────────────────────────────
 
 function SeriesChart({
@@ -173,6 +199,7 @@ function SeriesChart({
           tickFormatter={(value) => fmt(Number(value))}
         />
         <Tooltip
+          {...tooltipProps(colors)}
           cursor={{ stroke: colors.grid }}
           formatter={(value, name) => [fmt(Number(value)), String(name)]}
         />
@@ -679,6 +706,7 @@ function MonitorContent({ data, colors, failed, lastUpdate }: { data: MonitorDat
                     ))}
                   </Pie>
                   <Tooltip
+                    {...tooltipProps(colors)}
                     formatter={(value, name) => [Number(value).toFixed(1) + '%', String(name)]}
                   />
                 </PieChart>
@@ -728,7 +756,7 @@ function MonitorContent({ data, colors, failed, lastUpdate }: { data: MonitorDat
         <div className={styles.coreGrid}>
           {perCore.map((core) => (
             <div key={core.index} className={styles.coreRow}>
-              <span className="text-body-sm">{core.index} 核</span>
+              <span className="text-body-sm">CPU {core.index}</span>
               <Progress
                 percent={Math.min(100, core.value)}
                 strokeColor={bandColor(core.value, colors)}

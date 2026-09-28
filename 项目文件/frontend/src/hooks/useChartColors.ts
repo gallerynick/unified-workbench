@@ -52,6 +52,10 @@ export interface MonitorChartColors {
   refLine: string;
   /** 环形图分片间隙：与卡片背景同色，视觉上把扇区分开 */
   cardBg: string;
+  /** 悬浮提示层：recharts 默认白底黑字，不随主题变化，必须显式指定 */
+  tooltipBg: string;
+  tooltipBorder: string;
+  tooltipText: string;
 }
 
 /** CSS 变量名映射表：只允许 token.css 中已定义的 token，不写死 hex。 */
@@ -90,6 +94,10 @@ const COLOR_SOURCES: Record<keyof MonitorChartColors, string> = {
   refLine: 'var(--text-secondary)',
 
   cardBg: 'var(--card-bg)',
+
+  tooltipBg: 'var(--card-bg)',
+  tooltipBorder: 'var(--border-secondary)',
+  tooltipText: 'var(--text-primary)',
 };
 
 /**
@@ -115,6 +123,10 @@ export function useMonitorChartColors(): MonitorChartColors {
       // antd token 优先：与 antd 组件同源的次级文字与边框色
       axis: antdToken.colorTextSecondary || out.axis,
       grid: antdToken.colorBorderSecondary || out.grid,
+      // 悬浮层与 antd Tooltip 同源：取 antd 的浮层底色 / 边框 / 正文色
+      tooltipBg: antdToken.colorBgElevated || out.tooltipBg,
+      tooltipBorder: antdToken.colorBorderSecondary || out.tooltipBorder,
+      tooltipText: antdToken.colorText || out.tooltipText,
     };
   }, [isDark, antdToken]);
 }

@@ -59,3 +59,8 @@ export async function unloadASRModel(): Promise<UnifiedResponse<TestConnectionRe
 export async function unloadAIModel(model?: string): Promise<UnifiedResponse<TestConnectionResponse>> {
   return request<TestConnectionResponse>('/config/third-party/ai/unload', { method: 'POST', body: { model } });
 }
+
+/** 预热 AI 模型；仅本地模式生效，按当前配置执行轻量生成 */
+export async function warmupAIModel(): Promise<UnifiedResponse<TestConnectionResponse>> {
+  return request<TestConnectionResponse>('/config/third-party/ai/warmup', { method: 'POST' });
+}

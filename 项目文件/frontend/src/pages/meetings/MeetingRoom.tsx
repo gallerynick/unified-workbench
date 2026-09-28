@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftOutlined, CheckCircleOutlined, DownloadOutlined, LoadingOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CheckCircleOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Button, Tag, Space, message, Spin, Typography, Empty, Tabs } from 'antd';
 import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingTranscriptSegment, TranscriptSegmentData} from '../../types/meeting-record';
 import { getVisibilityConfig } from '../../utils/visibility';
+import { getToken } from '../../utils/auth';
 import { useMeetingWebSocket } from '../../hooks/useMeetingWebSocket';
+import './MeetingList';
 import styles from './MeetingRoom.module.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -636,26 +638,18 @@ export default function MeetingRoom() {
             </div>
           )}
           {activeTab === 'recording' && (
-            <div className={styles.editor} style={{ padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-              <PlayCircleOutlined style={{ fontSize: 48, color: 'var(--color-info)' }} />
-              {meeting?.audio_file_path ? (
-                <>
-                  <Text style={{ fontSize: 14 }}>录音文件已保存</Text>
-                  <Button
-                    type='primary'
-                    icon={<DownloadOutlined />}
-                    onClick={() => {
-                      if (meeting?.audio_file_path) {
-                        window.open('/' + meeting.audio_file_path, '_blank');
-                      }
-                    }}
-                  >
-                    下载录音
-                  </Button>
-                </>
-              ) : (
-                <Text type='secondary'>暂无录音文件</Text>
-              )}
+            <div className={styles.editor} style={{ padding: 16, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '100%', maxWidth: 520, background: 'var(--canvas)', border: '1px solid var(--border-secondary)', borderRadius: 12, padding: 16, boxShadow: 'var(--shadow-sm)' }}>
+                {meeting?.audio_file_path ? (
+                  <audio
+                    controls
+                    style={{ width: '100%' }}
+                    src={'/api/v1/meetings/' + id + '/audio?token=' + encodeURIComponent(getToken() ?? '')}
+                  />
+                ) : (
+                  <Text type='secondary' style={{ fontSize: 13 }}>暂无录音文件</Text>
+                )}
+              </div>
             </div>
           )}
         </div>
