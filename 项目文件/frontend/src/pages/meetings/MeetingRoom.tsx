@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftOutlined, CheckCircleOutlined, DownloadOutlined, LoadingOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { Button, Tag, Space, message, Spin, Typography, Empty, Tabs } from 'antd';
+import { Button, Tag, Space, message, Spin, Typography, Empty } from 'antd';
 import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingTranscriptSegment, TranscriptSegmentData} from '../../types/meeting-record';
 import { getVisibilityConfig } from '../../utils/visibility';
@@ -508,19 +508,24 @@ export default function MeetingRoom() {
         {/* 右侧：笔记面板（带标签页） */}
         <div className={styles.notesPanel}>
           <div className={styles.panelHeader}>
-            <Tabs
-              size="small"
-              items={[
+            <div className={styles.tabRow}>
+              {[
                 { key: 'notes', label: '笔记' },
                 { key: 'summary', label: '总结' },
                 { key: 'highlights', label: '重点摘要' },
                 { key: 'todos', label: '待办事项' },
                 { key: 'recording', label: '录音' },
-              ]}
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              style={{ margin: 0, width: '100%' }}
-            />
+              ].map((t) => (
+                <Button
+                  key={t.key}
+                  size="small"
+                  type={activeTab === t.key ? 'primary' : 'text'}
+                  onClick={() => setActiveTab(t.key)}
+                >
+                  {t.label}
+                </Button>
+              ))}
+            </div>
           </div>
           {activeTab === 'notes' && (
             <>
