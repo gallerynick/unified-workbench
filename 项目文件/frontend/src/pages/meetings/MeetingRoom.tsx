@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftOutlined, CheckCircleOutlined, DownloadOutlined, LoadingOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { Button, Tag, Space, message, Spin, Typography, Empty } from 'antd';
+import { Button, Tag, Space, message, Spin, Typography, Empty, Tabs } from 'antd';
 import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingTranscriptSegment, TranscriptSegmentData} from '../../types/meeting-record';
 import { getVisibilityConfig } from '../../utils/visibility';
@@ -60,7 +60,8 @@ export default function MeetingRoom() {
       const res = await getMeetingRecord(id);
       if (res.code === 0 && res.data) {
         setMeeting(res.data);
-        setTranscript(res.data.segments || []);
+        const serverSegments = res.data.segments || [];
+        setTranscript((prev) => mergeServerSegments(prev, serverSegments));
         // 笔记编辑区只承载用户手记（meeting_record.notes）。
         // AI 纪要存在独立的 meeting_minutes 表，不能塞进 notes 再写回去。
         const notesText = res.data.notes ?? '';
@@ -112,6 +113,41 @@ export default function MeetingRoom() {
   }, [id, meeting?.status, meeting?.minutes_status]);
 
 
+
+  // 将服务端返回的片段并入现有转录，避免恢复/暂停后清空已有内容
+  const mergeServerSegments = (prev: TranscriptItem[], serverSegments: TranscriptItem[]): TranscriptItem[] => {
+    if (!serverSegments || serverSegments.length === 0) {
+      return prev;
+    }
+
+    const stableKey = (item: TranscriptItem): string => {
+      if ('id' in item && item.id) return String(item.id);
+      if ('audio_start_ms' in item) {
+        const start = String(item.audio_start_ms ?? '');
+        const end = String((item as any).audio_end_ms ?? '');
+        return `${start}::${end}`;
+      }
+      const seq = (item as any).seq;
+      if (seq !== undefined && seq !== null) return `seq:${seq}`;
+      return String((item as any).text ?? '');
+    };
+
+    const seen = new Set<string>();
+    const result: TranscriptItem[] = [];
+    for (const item of prev) {
+      const key = stableKey(item);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(item);
+    }
+    for (const item of serverSegments) {
+      const key = stableKey(item);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(item);
+    }
+    return result;
+  };
 
   // 当 WebSocket 收到新的转录片段时更新
   useEffect(() => {
@@ -508,24 +544,19 @@ export default function MeetingRoom() {
         {/* 右侧：笔记面板（带标签页） */}
         <div className={styles.notesPanel}>
           <div className={styles.panelHeader}>
-            <div className={styles.tabRow}>
-              {[
+            <Tabs
+              size="small"
+              items={[
                 { key: 'notes', label: '笔记' },
                 { key: 'summary', label: '总结' },
                 { key: 'highlights', label: '重点摘要' },
                 { key: 'todos', label: '待办事项' },
                 { key: 'recording', label: '录音' },
-              ].map((t) => (
-                <Button
-                  key={t.key}
-                  size="small"
-                  type={activeTab === t.key ? 'primary' : 'text'}
-                  onClick={() => setActiveTab(t.key)}
-                >
-                  {t.label}
-                </Button>
-              ))}
-            </div>
+              ]}
+              activeKey={activeTab}
+              onChange={(key) => setActiveTab(key)}
+              style={{ margin: 0, width: '100%', pointerEvents: 'auto' }}
+            />
           </div>
           {activeTab === 'notes' && (
             <>
