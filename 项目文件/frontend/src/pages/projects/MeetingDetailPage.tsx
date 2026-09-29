@@ -104,29 +104,6 @@ function parseNote(note: unknown): MeetingNote {
   return { content: String(note ?? ''), author: '', created_at: '' };
 }
 
-/** 将备注数组序列化为纯文本（每条用换行分隔） */
-function serializeNotes(notes: MeetingNote[]): string {
-  return notes
-    .filter((n) => n.content.trim())
-    .map((n) => n.author ? `${n.author}: ${n.content}` : n.content)
-    .join('\n');
-}
-
-/** 将纯文本解析为备注数组（按行拆分，格式：作者: 内容 或 纯内容） */
-function parseNotesText(text: string): MeetingNote[] {
-  const now = new Date().toISOString();
-  return text
-    .split('\n')
-    .filter((line) => line.trim())
-    .map((line) => {
-      const colonIdx = line.indexOf(':');
-      if (colonIdx > 0 && colonIdx < 50) {
-        return { author: line.slice(0, colonIdx).trim(), content: line.slice(colonIdx + 1).trim(), created_at: now };
-      }
-      return { author: '', content: line.trim(), created_at: now };
-    });
-}
-
 export default function MeetingDetailPage() {
   const { id: projectId, meetingId } = useParams<{ id: string; meetingId: string }>();
   const navigate = useNavigate();
@@ -840,17 +817,6 @@ export default function MeetingDetailPage() {
               {typeLabel}（{meeting ? formatDate(meeting.started_at) : '-'}）
             </Title>
           </Tooltip>
-        </Space>
-        <Space>
-          {canManageMeetings ? (
-            <Tooltip title="删除">
-              <Button danger icon={<DeleteOutlined />} onClick={handleDeleteMeeting} />
-            </Tooltip>
-          ) : (
-            <Tooltip title="只读权限，无法删除">
-              <Button danger icon={<DeleteOutlined />} disabled />
-            </Tooltip>
-          )}
         </Space>
       </div>
 

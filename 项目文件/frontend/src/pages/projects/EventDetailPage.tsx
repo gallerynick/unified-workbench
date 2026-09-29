@@ -343,18 +343,9 @@ export default function EventDetailPage() {
           <Tag color={typeColor}>{typeLabel}</Tag>
         </Space>
         <Space>
-          {canOperate ? (
-            <>
-              <Tooltip title="编辑">
-                <Button icon={<EditOutlined />} onClick={() => setEditVisible(true)} />
-              </Tooltip>
-              <Tooltip title="删除">
-                <Button danger icon={<DeleteOutlined />} onClick={handleDelete} />
-              </Tooltip>
-            </>
-          ) : (
-            <Tooltip title="只读权限，无法编辑或删除">
-              <Button danger icon={<DeleteOutlined />} disabled />
+          {canOperate && (
+            <Tooltip title="编辑">
+              <Button icon={<EditOutlined />} onClick={() => setEditVisible(true)} />
             </Tooltip>
           )}
         </Space>
