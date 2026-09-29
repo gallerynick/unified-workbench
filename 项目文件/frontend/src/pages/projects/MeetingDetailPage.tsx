@@ -149,10 +149,9 @@ export default function MeetingDetailPage() {
   // ── 分区编辑状态 ──
   const [editBasicVisible, setEditBasicVisible] = useState(false);
   const [editContentVisible, setEditContentVisible] = useState(false);
-  const [editNotesVisible, setEditNotesVisible] = useState(false);
   const [basicForm] = Form.useForm();
   const [editContentBody, setEditContentBody] = useState('');
-  const [notesText, setNotesText] = useState('');
+  const [newNoteText, setNewNoteText] = useState('');
   const [saving, setSaving] = useState(false);
 
   // 用户列表（用于发言人/参与者下拉）
@@ -455,33 +454,32 @@ export default function MeetingDetailPage() {
     }
   }, [meeting, editContentBody]);
 
-  // ── 分区编辑：打开备注弹窗 ──
-  const openEditNotes = useCallback(() => {
-    if (!meeting) return;
-    const notes = (Array.isArray(meeting.notes) ? meeting.notes : []).map(parseNote);
-    setNotesText(serializeNotes(notes));
-    setEditNotesVisible(true);
-  }, [meeting]);
-
-  const handleSaveNotes = useCallback(async () => {
-    if (!meeting) return;
+  // ── 追加备注 ──
+  const handleAddNote = useCallback(async () => {
+    if (!meeting || !newNoteText.trim()) return;
     setSaving(true);
     try {
-      const notes = parseNotesText(notesText);
-      const res = await updateProjectMeeting(meeting.id, { notes });
+      const existingNotes = Array.isArray(meeting.notes) ? meeting.notes : [];
+      const newNote = {
+        content: newNoteText.trim(),
+        author: user?.nickname || user?.username || '未知用户',
+        created_at: new Date().toISOString(),
+      };
+      const updatedNotes = [...existingNotes, newNote];
+      const res = await updateProjectMeeting(meeting.id, { notes: updatedNotes });
       if (res.code === 0) {
-        message.success('备注已更新');
+        message.success('备注已添加');
         setMeeting(res.data);
-        setEditNotesVisible(false);
+        setNewNoteText('');
       } else {
-        message.error(res.msg || '更新失败');
+        message.error(res.msg || '添加失败');
       }
     } catch (err: unknown) {
-      message.error(err instanceof Error ? err.message : '更新失败');
+      message.error(err instanceof Error ? err.message : '添加失败');
     } finally {
       setSaving(false);
     }
-  }, [meeting, notesText]);
+  }, [meeting, newNoteText, user]);
 
   if (!meeting && !loading) return null;
 
@@ -499,11 +497,11 @@ export default function MeetingDetailPage() {
     </div>
   );
 
-  /** 区块标题（带编辑按钮） */
-  const sectionHeader = (title: string, onEdit: () => void) => (
+  /** 区块标题（可带编辑按钮） */
+  const sectionHeader = (title: string, onEdit?: () => void) => (
     <div className={styles.sectionHeader ?? ''}>
       <span className={styles.sectionTitle ?? ''}>{title}</span>
-      {canManageMeetings && (
+      {canManageMeetings && onEdit && (
         <Button type="link" size="small" icon={<EditOutlined />} onClick={onEdit}>
           编辑
         </Button>
@@ -574,30 +572,58 @@ export default function MeetingDetailPage() {
               </Text>
             )}
           </div>
-
-          {/* 备注/讨论 */}
+          {/* 备注/讨论（追加式） */}
           <div className={styles.textBlock ?? ''}>
-            {sectionHeader(`备注/讨论（${notes.length}）`, openEditNotes)}
+            {sectionHeader(`备注/讨论（${notes.length}）`)}
             {notes.length > 0 ? (
               <Space direction="vertical" size="small" style={{ width: '100%' }}>
                 {notes.map((note, index) => (
-                  <div key={`${note.author}-${note.created_at}-${index}`}>
+                  <div key={`${note.author}-${note.created_at}-${index}`} style={{ padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                      <Text strong style={{ fontSize: 'var(--text-body-sm-size)' }}>
+                        {note.author || '未知用户'}
+                      </Text>
+                      <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                        {note.created_at ? formatDate(note.created_at) : ''}
+                      </Text>
+                    </div>
                     <Text style={{ fontSize: 'var(--text-body-sm-size)' }}>
                       {note.content || '-'}
                     </Text>
-                    {(note.author || note.created_at) && (
-                      <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                        {note.author ? `— ${note.author}` : ''}
-                        {note.created_at ? ` · ${formatDate(note.created_at)}` : ''}
-                      </Text>
-                    )}
                   </div>
                 ))}
               </Space>
             ) : (
-              <Text type="secondary" style={{ fontSize: 'var(--text-body-sm-size)' }}>
+              <Text type="secondary" style={{ fontSize: 'var(--text-body-sm-size)', display: 'block', marginBottom: 16 }}>
                 暂无备注/讨论
               </Text>
+            )}
+            {canManageMeetings && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <Input.TextArea
+                  value={newNoteText}
+                  onChange={(e) => setNewNoteText(e.target.value)}
+                  placeholder="添加备注..."
+                  maxLength={500}
+                  autoSize={{ minRows: 1, maxRows: 3 }}
+                  onPressEnter={(e) => {
+                    if (!e.shiftKey) {
+                      e.preventDefault();
+                      void handleAddNote();
+                    }
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  type="primary"
+                  onClick={() => void handleAddNote()}
+                  loading={saving}
+                  disabled={!newNoteText.trim()}
+                  style={{ height: 'auto' }}
+                >
+                  添加
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -895,31 +921,7 @@ export default function MeetingDetailPage() {
         />
       </Modal>
 
-      {/* ── 备注编辑弹窗 ── */}
-      <Modal
-        title="编辑备注"
-        open={editNotesVisible}
-        onOk={() => void handleSaveNotes()}
-        onCancel={() => setEditNotesVisible(false)}
-        confirmLoading={saving}
-        okText="保存"
-        cancelText="取消"
-        destroyOnClose
-        width={560}
-        styles={{ body: { paddingBottom: 24 } }}
-      >
-        <Text type="secondary" style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>
-          每行一条备注，格式：作者: 内容（或纯内容）
-        </Text>
-        <TextArea
-          rows={10}
-          value={notesText}
-          onChange={(e) => setNotesText(e.target.value)}
-          placeholder={'如：\n张三: 需要跟进客户需求\n李四: 已完成初步方案'}
-          maxLength={5000}
-          showCount
-        />
-      </Modal>
+      {/* 备注采用追加式，无需编辑弹窗 */}
 
       {/* ── 关联提案/待办弹窗 ── */}
       <MeetingModal
