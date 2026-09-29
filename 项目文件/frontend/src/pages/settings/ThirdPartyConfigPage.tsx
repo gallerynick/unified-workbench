@@ -581,11 +581,12 @@ export default function ThirdPartyConfigPage() {
       const res = await preloadASRModels();
       if (res.code === 0 && res.data) {
         if (res.data.success) {
-          // 后端发现缓存已经齐了，不用下载——直接刷新状态，
-          // 不要让用户看到「下载模型」按钮点了却被告知已就绪
           if (res.data.details && res.data.details.downloaded === res.data.details.total) {
             setAsrPreloading(false);
             void checkASRStatus();
+            const memRes = await getMemoryInfo();
+            if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
+            setAsrModelStatus('ready');
             message.info('ASR 模型已就绪');
             return;
           }
@@ -611,6 +612,8 @@ export default function ThirdPartyConfigPage() {
       if (r.code === 0 && r.data) {
         setAsrModelDetails(r.data.details ?? null);
       }
+      const memRes = await getMemoryInfo();
+      if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
       waited += 5;
       const done = r.data?.status === 'downloaded';
       if (done || waited >= 180) {
@@ -620,7 +623,7 @@ export default function ThirdPartyConfigPage() {
         }
         setAsrPreloading(false);
         if (done) {
-          setAsrModelStatus('downloaded');
+          setAsrModelStatus('ready');
           message.success('ASR 模型已就绪');
         } else {
           message.warning('预热超时，请检查网络后重试');
@@ -1263,14 +1266,14 @@ export default function ThirdPartyConfigPage() {
                         </Paragraph>
                       </div>
                       <Space>
-                        {(asrModelStatus === 'not_downloaded' || asrPreloading) && (
+                        {(asrModelStatus === 'not_downloaded' || asrModelStatus === 'downloaded' || asrPreloading) && (
                           <Button
                             type="primary"
-                            icon=<DownloadOutlined />
+                            icon={asrModelStatus === 'downloaded' ? <ReloadOutlined /> : <DownloadOutlined />}
                             loading={asrPreloading}
                             onClick={handlePreloadASR}
                           >
-                            {asrPreloading ? '载入中…' : '下载模型'}
+                            {asrModelStatus === 'downloaded' ? '载入' : asrPreloading ? '载入中…' : '下载模型'}
                           </Button>
                         )}
                         {asrModelStatus === 'downloaded' && (
@@ -1331,11 +1334,6 @@ export default function ThirdPartyConfigPage() {
                         {asrModelStatus === 'ready' && (
                           <Button loading={asrUnloading} onClick={handleUnloadASR}>
                             卸载模型
-                          </Button>
-                        )}
-                        {asrModelStatus === 'downloaded' && (
-                          <Button type="primary" icon={<ReloadOutlined />} loading={asrPreloading} onClick={handlePreloadASR}>
-                            载入
                           </Button>
                         )}
                         <Button danger icon={<DeleteOutlined />} onClick={handleDeleteASRModel}>

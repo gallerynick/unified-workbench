@@ -474,17 +474,6 @@ export default function ChangeDetailPage() {
           </Tooltip>
           <Tag color={statusColor}>{statusLabel}</Tag>
         </Space>
-        <Space>
-          {canManageChange ? (
-            <Tooltip title="删除">
-              <Button danger icon={<DeleteOutlined />} onClick={handleDelete} />
-            </Tooltip>
-          ) : (
-            <Tooltip title="只读权限，无法删除">
-              <Button danger icon={<DeleteOutlined />} disabled />
-            </Tooltip>
-          )}
-        </Space>
       </div>
 
       <Card>

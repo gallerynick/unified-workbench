@@ -581,10 +581,17 @@ async def preload_asr_models(db: AsyncSession) -> TestConnectionResponse:
     local = config.asr_config.local or {}
     cached = asr_engine.get_cached_asr_models(_local_asr_model_names(config))
     if cached["downloaded"] == cached["total"]:
+        if not asr_engine.is_available():
+            asr_engine.init_asr_model(
+                asr_model=local.get("model", "paraformer-zh"),
+                vad_model="fsmn-vad",
+                punc_model=local.get("punc_model", "ct-punc"),
+                spk_model=local.get("spk_model", "cam++"),
+            )
         return TestConnectionResponse(
             success=True,
-            message="ASR 模型已就绪，无需下载",
-            details={"downloaded": cached["downloaded"], "total": cached["total"]},
+            message="ASR 模型已就绪",
+            details={"downloaded": cached["downloaded"], "total": cached["total"], "loaded": asr_engine.is_available()},
         )
 
     import threading
