@@ -502,6 +502,7 @@ export default function ChangeDetailPage() {
         cancelText="取消"
         destroyOnClose
         width={520}
+        styles={{ body: { paddingBottom: 8 } }}
       >
         <Form form={basicForm} layout="vertical">
           <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
@@ -571,6 +572,7 @@ export default function ChangeDetailPage() {
         cancelText="取消"
         destroyOnClose
         width={560}
+        styles={{ body: { paddingBottom: 8 } }}
       >
         <TextArea
           rows={10}

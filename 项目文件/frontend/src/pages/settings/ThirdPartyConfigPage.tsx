@@ -1008,11 +1008,6 @@ export default function ThirdPartyConfigPage() {
                               下载模型
                             </Button>
                           )}
-                          {aiModelStatus === 'downloaded' && !checkingDownload && false && (
-                            <Button type="primary" size="small" icon={<ThunderboltOutlined />} onClick={handleSpeedTest} loading={speedTesting}>
-                              载入
-                            </Button>
-                          )}
                           {aiModelStatus === 'downloading' && (
                             <Tag color="processing" icon={<LoadingOutlined />} style={{ margin: 0, fontSize: 12, display: 'inline-flex', alignItems: 'center', height: 24 }}>
                               下载中
@@ -1022,6 +1017,16 @@ export default function ThirdPartyConfigPage() {
                             <Tag color="success" icon={<CheckCircleOutlined />} style={{ margin: 0, fontSize: 12, display: 'inline-flex', alignItems: 'center', height: 24 }}>
                               已下载
                             </Tag>
+                          )}
+                          {aiModelStatus === 'downloaded' && (
+                            <Button type="primary" size="small" icon={<ThunderboltOutlined />} onClick={handleSpeedTest} loading={speedTesting}>
+                              载入
+                            </Button>
+                          )}
+                          {aiModelStatus === 'downloaded' && (
+                            <Button size="small" danger icon={<DeleteOutlined />} onClick={handleDeleteAIModel}>
+                              删除
+                            </Button>
                           )}
                           {aiModelStatus === 'ready' && (
                             <Tag color="success" icon={<CheckCircleOutlined />} style={{ margin: 0, fontSize: 12, display: 'inline-flex', alignItems: 'center', height: 24 }}>
@@ -1098,14 +1103,11 @@ export default function ThirdPartyConfigPage() {
                               卸载模型
                             </Button>
                           )}
-                          {aiModelStatus === 'downloaded' && (
-                            <Button type="primary" icon={<ThunderboltOutlined />} onClick={handleSpeedTest} loading={speedTesting}>
-                              载入
+                          {aiModelStatus === 'ready' && (
+                            <Button danger icon={<DeleteOutlined />} onClick={handleDeleteAIModel}>
+                              删除模型
                             </Button>
                           )}
-                          <Button danger icon={<DeleteOutlined />} onClick={handleDeleteAIModel}>
-                            删除模型
-                          </Button>
                         </Space>
                         {aiModelStatus === 'ready' && speedResult !== null && (
                           <div style={{ marginTop: 12 }}>
@@ -1240,14 +1242,14 @@ export default function ThirdPartyConfigPage() {
                         </Paragraph>
                       </div>
                       <Space>
-                        {(asrModelStatus === 'not_downloaded' || asrModelStatus === 'downloaded' || asrPreloading) && (
+                        {(asrModelStatus === 'not_downloaded' || asrPreloading) && (
                           <Button
                             type="primary"
                             icon=<DownloadOutlined />
                             loading={asrPreloading}
                             onClick={handlePreloadASR}
                           >
-                            {asrModelStatus === 'downloaded' ? '载入' : asrPreloading ? '载入中…' : '下载模型'}
+                            {asrPreloading ? '载入中…' : '下载模型'}
                           </Button>
                         )}
                         {asrModelStatus === 'downloaded' && (
@@ -1255,6 +1257,16 @@ export default function ThirdPartyConfigPage() {
                             <CheckCircleOutlined />
                             已下载
                           </Tag>
+                        )}
+                        {asrModelStatus === 'downloaded' && (
+                          <Button type="primary" icon={<ReloadOutlined />} loading={asrPreloading} onClick={handlePreloadASR}>
+                            载入
+                          </Button>
+                        )}
+                        {asrModelStatus === 'downloaded' && (
+                          <Button danger icon={<DeleteOutlined />} onClick={handleDeleteASRModel}>
+                            删除
+                          </Button>
                         )}
                         {asrModelStatus === 'ready' && (
                           <Tag color="success">
@@ -1310,14 +1322,11 @@ export default function ThirdPartyConfigPage() {
                             卸载模型
                           </Button>
                         )}
-                        {asrModelStatus === 'downloaded' && (
-                          <Button type="primary" icon={<ReloadOutlined />} loading={asrPreloading} onClick={handlePreloadASR}>
-                            载入
+                        {asrModelStatus === 'ready' && (
+                          <Button danger icon={<DeleteOutlined />} onClick={handleDeleteASRModel}>
+                            删除模型
                           </Button>
                         )}
-                        <Button danger icon={<DeleteOutlined />} onClick={handleDeleteASRModel}>
-                          删除模型
-                        </Button>
                       </Space>
                     )}
                   </Card>
