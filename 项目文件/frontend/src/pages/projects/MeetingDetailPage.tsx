@@ -843,7 +843,7 @@ export default function MeetingDetailPage() {
         cancelText="取消"
         destroyOnClose
         width={520}
-        styles={{ body: { paddingBottom: 8 } }}
+        styles={{ body: { paddingBottom: 24 } }}
       >
         <Form form={basicForm} layout="vertical">
           <Form.Item name="type" label="类型" rules={[{ required: true }]}>
@@ -883,7 +883,7 @@ export default function MeetingDetailPage() {
         cancelText="取消"
         destroyOnClose
         width={560}
-        styles={{ body: { paddingBottom: 8 } }}
+        styles={{ body: { paddingBottom: 24 } }}
       >
         <TextArea
           rows={10}
@@ -906,7 +906,7 @@ export default function MeetingDetailPage() {
         cancelText="取消"
         destroyOnClose
         width={560}
-        styles={{ body: { paddingBottom: 8 } }}
+        styles={{ body: { paddingBottom: 24 } }}
       >
         <Text type="secondary" style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>
           每行一条备注，格式：作者: 内容（或纯内容）
