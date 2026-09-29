@@ -629,6 +629,34 @@ export default function ThirdPartyConfigPage() {
     }, 5000);
   };
 
+  // 载入模型 - 仅加载权重，不测速
+  const handleLoadAI = async () => {
+    setTesting((prev) => ({ ...prev, ai: true }));
+    try {
+      const values = form.getFieldsValue();
+      const res = await testAIConnection({
+        ai_provider: values.ai_provider,
+        measure_speed: false,
+      });
+
+      if (res.code === 0 && res.data?.success) {
+        message.success('载入成功');
+        setAiModelStatus('ready');
+        // 刷新内存信息
+        const memRes = await getMemoryInfo();
+        if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
+      } else {
+        message.error(res.data?.message || '载入失败');
+        setAiModelStatus('error');
+      }
+    } catch (err: unknown) {
+      message.error(errorMessage(err, '载入失败'));
+      setAiModelStatus('error');
+    } finally {
+      setTesting((prev) => ({ ...prev, ai: false }));
+    }
+  };
+
   // 测速功能 - 测量模型生成速度 (tokens/s)
   const handleSpeedTest = async () => {
     setSpeedTesting(true);
@@ -1094,7 +1122,7 @@ export default function ThirdPartyConfigPage() {
                             </Button>
                           )}
                           {aiModelStatus === 'downloaded' && (
-                            <Button type="primary" icon={<ThunderboltOutlined />} onClick={handleSpeedTest} loading={speedTesting}>
+                            <Button type="primary" icon={<ThunderboltOutlined />} onClick={handleLoadAI} loading={testing.ai}>
                               载入
                             </Button>
                           )}
