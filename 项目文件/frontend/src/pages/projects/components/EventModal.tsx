@@ -302,7 +302,7 @@ export default function EventModal({
       cancelText="取消"
       destroyOnClose
       width={isHandover ? 720 : 560}
-      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden', paddingBottom: 8 } }}
+      styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', overflowX: 'hidden', paddingBottom: 24 } }}
     >
       <Form form={form} layout="vertical">
         <Form.Item
