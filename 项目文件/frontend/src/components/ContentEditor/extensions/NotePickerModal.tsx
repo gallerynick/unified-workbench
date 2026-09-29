@@ -89,9 +89,6 @@ export default function NotePickerModal({
                 <div className={styles.itemBody}>
                   <div className={styles.itemTitle}>{note.title}</div>
                   <div className={styles.itemMeta}>
-                    {note.category ? (
-                      <Tag className={styles.tag ?? ''}>{note.category}</Tag>
-                    ) : null}
                     {(note.tags ?? []).slice(0, 3).map((tag) => (
                       <Tag key={tag} className={styles.tag ?? ''}>
                         {tag}

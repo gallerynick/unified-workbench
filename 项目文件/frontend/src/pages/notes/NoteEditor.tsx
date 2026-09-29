@@ -263,6 +263,7 @@ export default function NoteEditor({ note, isNew, onNavigate, onSaved, onCancelN
           placeholder="开始撰写笔记…  输入 / 呼出命令菜单"
           minHeight={480}
           extensions={extensions}
+          slashMenu
         />
       </div>
 
