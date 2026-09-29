@@ -1,222 +1,271 @@
-/* 笔记侧栏：颜色与尺寸一律取 design token */
+/* 笔记侧栏：顶部工具条 + 置顶区 + 文件夹/笔记混排树。
+   颜色与尺寸一律取 design token。 */
 
 .sidebar {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  padding: var(--spacing-sm);
   background: var(--card-bg);
   border-right: var(--border-width-thin) solid var(--border-tertiary);
 }
 
-.rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-xs);
-  height: 100%;
-  overflow-y: auto;
-  padding: var(--spacing-xs) 0;
-}
-
-.railItem,
-.railItemActive {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--spacing-xl);
-  height: var(--spacing-xl);
-  border: none;
-  border-radius: var(--rounded-sm);
-  background: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.railItem:hover {
-  background: var(--card-hover-bg);
-  color: var(--ink);
-}
-
-.railItemActive {
-  background: var(--sider-menu-item-active-bg);
-  color: var(--color-primary);
-}
+/* ── 顶部工具条 ─────────────────────────────────────────────── */
 
 .controls {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  border-bottom: var(--border-width-thin) solid var(--border-tertiary);
+  gap: var(--spacing-xs);
   flex-shrink: 0;
+  margin-bottom: var(--spacing-sm);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  height: var(--spacing-xl); /* 24px 控件 + 8px 上下留白 */
+}
+
+.toolbar :global(.ant-btn) {
+  width: var(--spacing-xl);
+  height: var(--spacing-xl);
+  flex-shrink: 0;
+}
+
+.toolbarGap {
+  flex: 1;
 }
 
 .searchRow {
-  flex-shrink: 0;
+  width: 100%;
 }
 
-.filterRow {
-  display: flex;
-  gap: var(--spacing-xs);
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  min-width: 0;
+.searchRow :global(.ant-input-affix-wrapper) {
+  height: var(--spacing-xl);
 }
 
-/* 两个控件各按自然宽度排布、都不可被压缩：
-   侧栏只有 280px，空间吃紧时宁可让按钮宽度恒定，也不要让视图切换变形 */
-.filterRow > * {
-  flex-shrink: 0;
-}
+/* ── 分组标签 ───────────────────────────────────────────────── */
 
-/* 筛选按钮上的激活数量：筛选收进菜单后，条件数量必须始终可见。
-   按纯文本呈现，不加底色壳；宽度固定为 17px（可容纳两位数字），
-   且零数量时同样保留占位，所以按钮宽度在筛选前后不变，
-   也不会因数字位数抖动把右侧的视图切换顶出侧栏 */
-.filterCount {
-  display: inline-block;
-  width: var(--spacing-md);
-  margin-left: var(--spacing-xs);
-  text-align: center;
-  overflow: hidden;
+.groupLabel {
+  font-size: 12px;
+  line-height: 18px;
   color: var(--text-secondary);
-  font-size: var(--text-body-xs-size);
+  padding: 0 var(--spacing-xxs);
+  margin-bottom: var(--spacing-xxs);
 }
 
-.filterCountHidden {
-  visibility: hidden;
+/* ── 置顶区：链接式外观 ─────────────────────────────────────── */
+
+.pinnedArea {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--spacing-sm);
 }
 
-.filterCaret {
-  margin-left: var(--spacing-xs);
-  color: var(--text-tertiary);
-  font-size: var(--text-body-xs-size);
+.pinnedItem,
+.pinnedItemActive {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  width: 100%;
+  min-width: 0;
+  padding: var(--spacing-xxs) var(--spacing-xxs);
+  border: none;
+  border-radius: var(--rounded-chip);
+  background: none;
+  color: var(--color-info);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
 }
 
-.treeWrap {
+.pinnedItem:hover {
+  background: var(--card-hover-bg);
+}
+
+.pinnedItemActive {
+  background: var(--sider-menu-item-active-bg);
+}
+
+.pinnedIcon {
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+.pinnedTitle {
   flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: var(--spacing-sm);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.flatList {
+/* ── 列表 ───────────────────────────────────────────────────── */
+
+.list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm);
 }
 
-.flatItem,
-.flatItemActive {
+/* ── 文件夹行 ───────────────────────────────────────────────── */
+
+.folderRow {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  border-radius: var(--rounded-sm);
-  border: var(--border-width-thin) solid transparent;
+  gap: var(--spacing-xxs);
+  height: var(--spacing-xl);
+  padding: 0 var(--spacing-xxs);
+  border-radius: var(--rounded-chip);
+  border: none;
+  background: none;
 }
 
-.flatItem:hover,
-.flatItemActive:hover {
+.folderRow:hover {
   background: var(--card-hover-bg);
 }
 
-.flatItemActive {
-  background: var(--sider-menu-item-active-bg);
-  border-color: var(--border-secondary);
+.folderArrow {
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0;
 }
 
-.flatItemBody {
+.folderIcon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.folderRowOpen .folderIcon {
+  color: var(--color-info);
+}
+
+.folderName {
   flex: 1;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: 0;
   border: none;
   background: none;
-  color: inherit;
-  font: inherit;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 18px;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.rowActions {
-  display: flex;
-  gap: var(--spacing-xs);
+.folderCount {
   flex-shrink: 0;
-  padding-right: var(--spacing-xs);
-  opacity: 0;
-  transition: opacity var(--anim-fast) ease;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
 }
 
-.flatItem:hover .rowActions,
-.flatItemActive .rowActions {
-  opacity: 1;
+.children {
+  display: flex;
+  flex-direction: column;
 }
 
-.item {
+/* ── 笔记行 ─────────────────────────────────────────────────── */
+
+.noteRow {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  min-width: 0;
-  padding-right: var(--spacing-xs);
+  gap: var(--spacing-xxs);
+  height: var(--spacing-xl);
+  padding: 0 var(--spacing-xxs);
+  border-radius: var(--rounded-chip);
 }
 
-/* 树形节点的行内操作入口：hover 才出现，不占默认视觉空间 */
-.nodeMore {
+.noteRow:hover {
+  background: var(--card-hover-bg);
+}
+
+.noteRowActive {
+  background: var(--sider-menu-item-active-bg);
+}
+
+.noteRowActive .noteTitle {
+  color: var(--color-info);
+}
+
+.indent {
+  display: inline-block;
   flex-shrink: 0;
-  color: var(--text-tertiary);
-  opacity: 0;
-  transition: opacity var(--anim-fast) ease;
+  width: 0;
 }
 
-.item:hover .nodeMore,
-.item:focus-within .nodeMore {
-  opacity: 1;
-}
-
-.itemIcon {
+.noteIcon {
   flex-shrink: 0;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 .pinIcon {
   flex-shrink: 0;
   color: var(--color-warning);
-  font-size: var(--text-body-xs-size);
+  font-size: 10px;
 }
 
-.itemTitle {
+.noteTitle {
   flex: 1;
   min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.categoryTag {
+/* 行内操作默认隐藏，悬浮才出现，避免挤压标题 */
+.noteMore {
+  width: 20px !important;
+  height: 20px !important;
   flex-shrink: 0;
-  max-width: 96px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0 var(--spacing-xs);
-  border-radius: var(--rounded-chip);
-  background: var(--surface-chip-translucent);
-  color: var(--text-secondary);
-  font-size: var(--text-body-xs-size);
+  opacity: 0;
 }
+
+.noteRow:hover .noteMore,
+.folderRow:hover .noteMore,
+.noteRow .noteMore:focus-visible,
+.folderRow .noteMore:focus-visible {
+  opacity: 1;
+}
+
+/* ── 空状态 ─────────────────────────────────────────────────── */
 
 .emptyBox {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  padding: var(--spacing-xl) var(--spacing-sm);
+  padding: var(--spacing-lg);
+}
+
+/* ── 文件夹编辑弹窗 ─────────────────────────────────────────── */
+
+.folderForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.formLabel {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+  margin-bottom: calc(-1 * var(--spacing-xxs));
 }

@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Dropdown, Empty, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd';
-import type { MenuProps } from 'antd';
+import { Button, Empty, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd';
 import {
   AppstoreOutlined,
-  DownOutlined,
   FileAddOutlined,
-  LayoutOutlined,
   LoadingOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   ShareAltOutlined,
 } from '@ant-design/icons';
 import { createNote, deleteNote, getGlobalGraph, getGraph, getNote } from '@/api/notes';
@@ -25,19 +20,38 @@ const { Title } = Typography;
 type ViewMode = 'workspace' | 'graph';
 type GraphScope = 'global' | 'local';
 
+/** 左侧面板开关图标：圆角矩形 + 内部竖线靠左 */
+function PanelLeftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="1.6" y="2.6" width="12.8" height="10.8" rx="1.6" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="5.6" y1="2.6" x2="5.6" y2="13.4" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+/** 右侧面板开关图标：与左侧镜像 */
+function PanelRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="1.6" y="2.6" width="12.8" height="10.8" rx="1.6" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="10.4" y1="2.6" x2="10.4" y2="13.4" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
 /**
  * 笔记工作台：左侧栏 + 中间编辑/图谱 + 右侧面板的三栏布局。
  *
- * 搜索框放在侧栏而非顶部工具条——它与结果同屏更顺手，功能与计划一致，
- * 仅位置调整，工具条保留新建、视图切换、图谱范围、右侧面板开关。
+ * 右侧面板默认收起：编辑器拿满宽度，元信息按需打开。两个面板开关是
+ * 自定义 SVG 图标（矩形 + 内部竖线），不占用文字空间。
  */
 export default function NoteWorkspace() {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
-  const [allNotes, setAllNotes] = useState<Note[]>([]);
   const [isNew, setIsNew] = useState(false);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
-  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('workspace');
   const [graphScope, setGraphScope] = useState<GraphScope>('global');
   const [graph, setGraph] = useState<GraphData | null>(null);
@@ -45,10 +59,6 @@ export default function NoteWorkspace() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const bumpRefresh = useCallback(() => setRefreshKey((key) => key + 1), []);
-
-  const handleNotesLoaded = useCallback((notes: Note[]) => {
-    setAllNotes(notes);
-  }, []);
 
   const openNote = useCallback(async (noteId: string) => {
     try {
@@ -74,7 +84,6 @@ export default function NoteWorkspace() {
         setCurrentNote(res.data);
         setIsNew(true);
         setViewMode('workspace');
-        setLeftCollapsed(false);
       } else {
         message.error('新建笔记失败');
       }
@@ -102,14 +111,7 @@ export default function NoteWorkspace() {
   const handleSaved = useCallback((note: Note) => {
     setCurrentNote(note);
     setIsNew(false);
-    setAllNotes((prev) => {
-      const index = prev.findIndex((item) => item.id === note.id);
-      if (index === -1) return [note, ...prev];
-      const next = [...prev];
-      next[index] = note;
-      return next;
-    });
-    // 标题与正文变更会影响侧栏排序、分类筛选与标签聚合，故同步刷新
+    // 标题与正文变更会影响侧栏排序与搜索索引，故同步刷新
     bumpRefresh();
   }, [bumpRefresh]);
 
@@ -140,39 +142,31 @@ export default function NoteWorkspace() {
     void openNote(noteId);
   }, [openNote]);
 
-  // 面板显隐收进同一个下拉：两个开关合成一个入口，工具条只留主操作与视图切换。
-  // 两个选项都带勾选态文案与图标切换，状态不靠隐藏表达
-  const panelMenu: MenuProps = {
-    items: [
-      {
-        key: 'toggle-left',
-        icon: leftCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />,
-        label: leftCollapsed ? '展开笔记列表' : '收起笔记列表',
-        onClick: () => setLeftCollapsed((prev) => !prev),
-      },
-      { type: 'divider' },
-      {
-        key: 'toggle-right',
-        icon: rightCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />,
-        label: rightCollapsed ? '展开右侧面板' : '收起右侧面板',
-        onClick: () => setRightCollapsed((prev) => !prev),
-        disabled: viewMode === 'graph',
-      },
-    ],
-  };
-
   return (
     <div className={styles.container ?? ''}>
       <div className={styles.header ?? ''}>
         <Title level={4} className={styles.title ?? ''}>笔记知识库</Title>
         <Space size={8}>
-          <Dropdown menu={panelMenu} trigger={['click']}>
-            <Tooltip title="面板显示">
-              <Button type="text" icon={<LayoutOutlined />} aria-label="面板显示设置">
-                <DownOutlined />
-              </Button>
-            </Tooltip>
-          </Dropdown>
+          <Tooltip title={leftCollapsed ? '展开左侧侧栏' : '收起左侧侧栏'}>
+            <Button
+              type="text"
+              icon={<PanelLeftIcon />}
+              aria-label={leftCollapsed ? '展开左侧侧栏' : '收起左侧侧栏'}
+              aria-pressed={!leftCollapsed}
+              disabled={viewMode === 'graph'}
+              onClick={() => setLeftCollapsed((prev) => !prev)}
+            />
+          </Tooltip>
+          <Tooltip title={rightCollapsed ? '展开右侧面板' : '收起右侧面板'}>
+            <Button
+              type="text"
+              icon={<PanelRightIcon />}
+              aria-label={rightCollapsed ? '展开右侧面板' : '收起右侧面板'}
+              aria-pressed={!rightCollapsed}
+              disabled={viewMode === 'graph'}
+              onClick={() => setRightCollapsed((prev) => !prev)}
+            />
+          </Tooltip>
           <Segmented
             value={viewMode}
             onChange={(value) => setViewMode(value as ViewMode)}
@@ -188,16 +182,15 @@ export default function NoteWorkspace() {
       </div>
 
       <div className={styles.columns ?? ''}>
-        <aside className={leftCollapsed ? styles.leftCollapsed ?? '' : styles.left ?? ''}>
-          <NoteSidebar
-            currentId={currentId}
-            collapsed={leftCollapsed}
-            onOpenNote={(id) => void openNote(id)}
-            onCreate={() => void handleCreate()}
-            onNotesLoaded={handleNotesLoaded}
-            refreshKey={refreshKey}
-          />
-        </aside>
+        {leftCollapsed ? null : (
+          <aside className={styles.left ?? ''}>
+            <NoteSidebar
+              currentId={currentId}
+              onOpenNote={(id) => void openNote(id)}
+              refreshKey={refreshKey}
+            />
+          </aside>
+        )}
 
         <main className={styles.center ?? ''}>
           {viewMode === 'workspace' ? (
@@ -221,7 +214,9 @@ export default function NoteWorkspace() {
                 />
               </div>
               {graphLoading ? (
-                <div className={styles.loadingBox ?? ''}><Spin indicator={<LoadingOutlined spin />} /></div>
+                <div className={styles.loadingBox ?? ''}>
+                  <Spin indicator={<LoadingOutlined spin />} />
+                </div>
               ) : graph ? (
                 <GraphView graph={graph} onNodeClick={handleOpenInGraph} />
               ) : (
@@ -243,18 +238,13 @@ export default function NoteWorkspace() {
                   key: 'meta',
                   label: '元信息',
                   children: (
-                    <NoteMetaPanel
-                      note={currentNote}
-                      allNotes={allNotes}
-                      onOpenNote={(id) => void openNote(id)}
-                      onSaved={handleSaved}
-                    />
+                    <NoteMetaPanel note={currentNote} onSaved={handleSaved} />
                   ),
                 },
                 {
                   key: 'backlinks',
                   label: '反向链接',
-                  children: <BacklinksPanel noteId={currentId} onOpenNote={(id) => void openNote(id)} />
+                  children: <BacklinksPanel noteId={currentId} onOpenNote={(id) => void openNote(id)} />,
                 },
               ]}
             />

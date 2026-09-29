@@ -1,230 +1,307 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Button, Dropdown, Empty, Input, Modal, Segmented, Spin, Tooltip, Tree, message } from 'antd';
+import { Button, Dropdown, Empty, Input, Modal, Spin, Tooltip, message } from 'antd';
 import type { MenuProps } from 'antd';
-import type { DataNode, TreeProps } from 'antd/es/tree';
 import {
-  AppstoreOutlined,
   CheckOutlined,
+  CompressOutlined,
   DeleteOutlined,
-  DownOutlined,
+  EditOutlined,
+  ExpandOutlined,
   FileOutlined,
+  FolderAddOutlined,
+  FolderOpenOutlined,
   FolderOutlined,
   LoadingOutlined,
   MoreOutlined,
   PushpinOutlined,
   SearchOutlined,
-  TagsOutlined,
-  UnorderedListOutlined,
+  SortAscendingOutlined,
 } from '@ant-design/icons';
-import { deleteNote, listAllNotes, listNoteTags, moveNote, updateNote } from '@/api/notes';
-import type { Note, TagCount } from '@/types/note';
+import {
+  createFolder,
+  deleteFolder,
+  deleteNote,
+  listAllNotes,
+  listFolders,
+  listNotes,
+  updateFolder,
+  updateNote,
+} from '@/api/notes';
+import type { Note, NoteFolder } from '@/types/note';
 import styles from './NoteSidebar.module.css';
 
 interface NoteSidebarProps {
   currentId: string | null;
-  collapsed: boolean;
   onOpenNote: (noteId: string) => void;
-  onCreate: () => void;
-  /** 上报全量可见笔记，供元信息面板构建父笔记下拉 */
-  onNotesLoaded: (notes: Note[]) => void;
-  /** 外部触发的刷新信号；变化即重新拉取列表 */
+  /** 外部触发的刷新信号；变化即重新拉取笔记与文件夹 */
   refreshKey: number;
 }
 
-interface SidebarTreeNode extends DataNode {
-  note: Note;
-  children: SidebarTreeNode[];
+type SortField = 'name' | 'updated_at' | 'created_at';
+type SortDir = 'asc' | 'desc';
+
+interface SortKey {
+  field: SortField;
+  dir: SortDir;
 }
 
-type ViewMode = 'tree' | 'flat';
+interface SortOption {
+  key: string;
+  field: SortField;
+  dir: SortDir;
+  label: string;
+}
+
+/** 排序选项：文件夹与笔记共用同一套规则 */
+const SORT_OPTIONS: SortOption[] = [
+  { key: 'name-asc', field: 'name', dir: 'asc', label: '名称 A → Z' },
+  { key: 'name-desc', field: 'name', dir: 'desc', label: '名称 Z → A' },
+  { key: 'updated-desc', field: 'updated_at', dir: 'desc', label: '更新时间 新 → 旧' },
+  { key: 'updated-asc', field: 'updated_at', dir: 'asc', label: '更新时间 旧 → 新' },
+  { key: 'created-desc', field: 'created_at', dir: 'desc', label: '创建时间 新 → 旧' },
+  { key: 'created-asc', field: 'created_at', dir: 'asc', label: '创建时间 旧 → 新' },
+];
+
+const DEFAULT_SORT: SortKey = { field: 'updated_at', dir: 'desc' };
 
 const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_PAGE_SIZE = 500;
 
-function buildTree(notes: Note[]): SidebarTreeNode[] {
-  const map = new Map<string, SidebarTreeNode>();
-  const roots: SidebarTreeNode[] = [];
+/** 可排序的统一条目信息：文件夹与笔记共用同一套比较键 */
+interface SortableItem {
+  name: string;
+  created_at: string;
+  updated_at: string;
+  /** 文件夹的手动排序值；笔记恒为 0，同键时作为兜底 */
+  sort_order: number;
+}
 
-  for (const note of notes) {
-    map.set(note.id, { key: note.id, note, children: [] });
+function compareItems(a: SortableItem, b: SortableItem, sort: SortKey): number {
+  let diff: number;
+  if (sort.field === 'name') {
+    diff = a.name.localeCompare(b.name, 'zh-CN');
+  } else {
+    diff = new Date(a[sort.field]).getTime() - new Date(b[sort.field]).getTime();
   }
+  if (diff === 0 && a.sort_order !== b.sort_order) diff = a.sort_order - b.sort_order;
+  return sort.dir === 'asc' ? diff : -diff;
+}
 
-  for (const note of notes) {
-    const node = map.get(note.id);
-    if (!node) continue;
-    const parent = note.parent_id ? map.get(note.parent_id) : undefined;
-    if (parent) parent.children.push(node);
-    else roots.push(node);
-  }
-
-  const sortNodes = (nodes: SidebarTreeNode[]) => {
-    nodes.sort((a, b) => {
-      if (a.note.is_pinned !== b.note.is_pinned) return a.note.is_pinned ? -1 : 1;
-      return new Date(b.note.updated_at).getTime() - new Date(a.note.updated_at).getTime();
-    });
-    for (const node of nodes) sortNodes(node.children);
+function noteSortable(note: Note): SortableItem {
+  return {
+    name: note.title,
+    created_at: note.created_at,
+    updated_at: note.updated_at,
+    sort_order: 0,
   };
-  sortNodes(roots);
-  return roots;
 }
 
-function hasChild(notes: Note[], id: string): boolean {
-  return notes.some((note) => note.parent_id === id);
+function folderSortable(folder: NoteFolder): SortableItem {
+  return {
+    name: folder.name,
+    created_at: folder.created_at,
+    updated_at: folder.updated_at,
+    sort_order: folder.sort_order,
+  };
 }
 
-/** 递归过滤：命中自身或命中子树即保留（保留父链路） */
-function filterTree(nodes: SidebarTreeNode[], keyword: string): SidebarTreeNode[] {
-  const lower = keyword.toLowerCase();
-  const result: SidebarTreeNode[] = [];
-  for (const node of nodes) {
-    const matchedChildren = node.children.length ? filterTree(node.children, keyword) : [];
-    const note = node.note;
-    const selfMatch =
-      note.title.toLowerCase().includes(lower) ||
-      (note.plain_text ?? note.content ?? '').toLowerCase().includes(lower) ||
-      (note.category ?? '').toLowerCase().includes(lower) ||
-      (note.tags ?? []).some((tag) => tag.toLowerCase().includes(lower));
-    if (selfMatch || matchedChildren.length > 0) {
-      result.push({
-        ...node,
-        children: matchedChildren.length > 0 ? matchedChildren : node.children,
-      });
-    }
-  }
-  return result;
+/** 置顶恒在分组内最上，其余按当前排序规则 */
+function compareNotes(a: Note, b: Note, sort: SortKey): number {
+  if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+  return compareItems(noteSortable(a), noteSortable(b), sort);
+}
+
+/** 侧栏顶级条目：文件夹与顶级笔记混排 */
+interface FolderItem {
+  kind: 'folder';
+  folder: NoteFolder;
+  children: Note[];
+}
+
+interface NoteItem {
+  kind: 'note';
+  note: Note;
+}
+
+type SidebarItem = FolderItem | NoteItem;
+
+function toSortable(item: SidebarItem): SortableItem {
+  return item.kind === 'folder' ? folderSortable(item.folder) : noteSortable(item.note);
+}
+
+function compareTopLevel(a: SidebarItem, b: SidebarItem, sort: SortKey): number {
+  const aPinned = a.kind === 'note' && a.note.is_pinned;
+  const bPinned = b.kind === 'note' && b.note.is_pinned;
+  if (aPinned !== bPinned) return aPinned ? -1 : 1;
+  return compareItems(toSortable(a), toSortable(b), sort);
 }
 
 export default function NoteSidebar({
   currentId,
-  collapsed,
   onOpenNote,
-  onCreate,
-  onNotesLoaded,
   refreshKey,
 }: NoteSidebarProps) {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined);
-  const [tagFilters, setTagFilters] = useState<string[]>([]);
-  const [pinnedOnly, setPinnedOnly] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('tree');
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
-  const [tagCounts, setTagCounts] = useState<TagCount[]>([]);
-  const autoExpanded = useRef(false);
+  const [sort, setSort] = useState<SortKey>(DEFAULT_SORT);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [allExpanded, setAllExpanded] = useState(false);
 
-  const fetchNotes = useCallback(async () => {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Note[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<NoteFolder | null>(null);
+  const [folderName, setFolderName] = useState('');
+  const [folderDesc, setFolderDesc] = useState('');
+  const [folderSaving, setFolderSaving] = useState(false);
+
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listAllNotes();
-      if (res.code === 0) {
-        const items = res.data.items;
-        setNotes(items);
-        onNotesLoaded(items);
+      const [notesRes, foldersRes] = await Promise.all([listAllNotes(), listFolders()]);
+      if (notesRes.code === 0) {
+        setNotes(notesRes.data.items);
       } else {
         message.error('获取笔记列表失败');
+      }
+      if (foldersRes.code === 0) {
+        setFolders(foldersRes.data.items);
+      } else {
+        message.error('获取文件夹失败');
       }
     } catch {
       message.error('获取笔记列表失败');
     } finally {
       setLoading(false);
     }
-  }, [onNotesLoaded]);
-
-  useEffect(() => {
-    void fetchNotes();
-  }, [fetchNotes, refreshKey]);
-
-  useEffect(() => {
-    if (autoExpanded.current || notes.length === 0) return;
-    autoExpanded.current = true;
-    setExpandedKeys(notes.map((note) => note.id));
-  }, [notes]);
-
-  useEffect(() => {
-    listNoteTags()
-      .then((res) => {
-        if (res.code === 0) setTagCounts(res.data ?? []);
-      })
-      .catch(() => undefined);
   }, []);
 
-  // 搜索走前端过滤：后端 listNotes 不传 parent_id 时只返回根笔记，会破坏树结构
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS);
+    void fetchAll();
+  }, [fetchAll, refreshKey]);
+
+  // 搜索输入防抖
+  useEffect(() => {
+    if (!searchOpen) {
+      setSearchQuery('');
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(() => setSearchQuery(searchInput.trim()), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [searchInput]);
+  }, [searchInput, searchOpen]);
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    for (const note of notes) if (note.category) set.add(note.category);
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'zh-CN'));
-  }, [notes]);
-
-  const filtered = useMemo(() => {
-    let list = notes;
-    if (categoryFilter) list = list.filter((note) => note.category === categoryFilter);
-    if (tagFilters.length > 0) {
-      list = list.filter((note) => tagFilters.every((tag) => (note.tags ?? []).includes(tag)));
+  // 搜索走后端：文件夹名称与简介也参与命中
+  useEffect(() => {
+    if (!searchOpen || searchQuery === '') {
+      setSearchResults([]);
+      return;
     }
-    if (pinnedOnly) list = list.filter((note) => note.is_pinned);
-    return list;
-  }, [notes, categoryFilter, tagFilters, pinnedOnly]);
+    let cancelled = false;
+    setSearching(true);
+    listNotes({ search: searchQuery, page_size: SEARCH_PAGE_SIZE })
+      .then((res) => {
+        if (cancelled) return;
+        if (res.code === 0) setSearchResults(res.data.items);
+        else message.error('搜索失败');
+      })
+      .catch(() => {
+        if (!cancelled) message.error('搜索失败');
+      })
+      .finally(() => {
+        if (!cancelled) setSearching(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchQuery, searchOpen]);
 
-  const flatNotes = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-    });
-  }, [filtered]);
-
-  const tree = useMemo(() => buildTree(filtered), [filtered]);
-  const visibleTree = useMemo(() => (search ? filterTree(tree, search) : tree), [search, tree]);
-
-  const handleDelete = useCallback((note: Note) => {
-    const childCount = notes.filter((n) => n.parent_id === note.id).length;
-    Modal.confirm({
-      title: '确认删除',
-      content: childCount > 0 ? `删除「${note.title}」会把它的 ${childCount} 篇子笔记提升为根笔记，确定继续吗？` : `确定要删除「${note.title}」吗？`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          const res = await deleteNote(note.id);
-          if (res.code === 0) {
-            message.success('笔记已删除');
-            await fetchNotes();
-          }
-        } catch {
-          message.error('删除失败');
-        }
-      },
-    });
-  }, [notes, fetchNotes]);
-
-  const handleTogglePin = useCallback(async (note: Note) => {
-    try {
-      const res = await updateNote(note.id, { is_pinned: !note.is_pinned });
-      if (res.code === 0) {
-        message.success(note.is_pinned ? '已取消置顶' : '已置顶');
-        await fetchNotes();
+  const handleToggleSearch = useCallback(() => {
+    setSearchOpen((prev) => {
+      if (prev) {
+        setSearchInput('');
+        return false;
       }
-    } catch {
-      message.error('操作失败');
-    }
-  }, [fetchNotes]);
+      return true;
+    });
+  }, []);
 
-  /** 树形节点的行内操作菜单：平铺模式一直有置顶/删除，树形模式原先完全没有 */
-  const nodeMenu = useCallback(
+  const handleToggleAll = useCallback(() => {
+    if (allExpanded) {
+      setExpanded(new Set());
+      setAllExpanded(false);
+    } else {
+      setExpanded(new Set(folders.map((folder) => folder.id)));
+      setAllExpanded(true);
+    }
+  }, [allExpanded, folders]);
+
+  const toggleFolder = useCallback((folderId: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderId)) next.delete(folderId);
+      else next.add(folderId);
+      return next;
+    });
+  }, []);
+
+  const items = useMemo<SidebarItem[]>(() => {
+    const childrenByFolder = new Map<string, Note[]>();
+    for (const folder of folders) childrenByFolder.set(folder.id, []);
+    const independents: Note[] = [];
+    for (const note of notes) {
+      let placed = false;
+      for (const folder of note.folders) {
+        const bucket = childrenByFolder.get(folder.id);
+        if (bucket) {
+          bucket.push(note);
+          placed = true;
+        }
+      }
+      if (!placed) independents.push(note);
+    }
+    const folderItems: FolderItem[] = folders.map((folder) => ({
+      kind: 'folder',
+      folder,
+      children: childrenByFolder.get(folder.id) ?? [],
+    }));
+    const noteItems: NoteItem[] = independents.map((note) => ({ kind: 'note', note }));
+    return [...folderItems, ...noteItems].sort((a, b) => compareTopLevel(a, b, sort));
+  }, [notes, folders, sort]);
+
+  const pinnedNotes = useMemo(
+    () => notes.filter((note) => note.is_pinned).sort((a, b) => compareNotes(a, b, sort)),
+    [notes, sort],
+  );
+
+  const sortedChildren = useCallback(
+    (children: Note[]): Note[] => [...children].sort((a, b) => compareNotes(a, b, sort)),
+    [sort],
+  );
+
+  const noteMenu = useCallback(
     (note: Note): MenuProps => ({
       items: [
         {
           key: 'pin',
           icon: <PushpinOutlined />,
           label: note.is_pinned ? '取消置顶' : '置顶',
-          onClick: () => void handleTogglePin(note),
+          onClick: () => {
+            void updateNote(note.id, { is_pinned: !note.is_pinned }).then((res) => {
+              if (res.code === 0) {
+                message.success(note.is_pinned ? '已取消置顶' : '已置顶');
+                void fetchAll();
+              } else {
+                message.error('操作失败');
+              }
+            });
+          },
         },
         { type: 'divider' },
         {
@@ -232,237 +309,377 @@ export default function NoteSidebar({
           icon: <DeleteOutlined />,
           label: '删除',
           danger: true,
-          onClick: () => handleDelete(note),
+          onClick: () => {
+            Modal.confirm({
+              title: '确认删除',
+              content: `确定要删除「${note.title}」吗？`,
+              okText: '删除',
+              okButtonProps: { danger: true },
+              cancelText: '取消',
+              onOk: async () => {
+                try {
+                  const res = await deleteNote(note.id);
+                  if (res.code === 0) {
+                    message.success('笔记已删除');
+                    await fetchAll();
+                  } else {
+                    message.error('删除失败');
+                  }
+                } catch {
+                  message.error('删除失败');
+                }
+              },
+            });
+          },
         },
       ],
     }),
-    [handleTogglePin, handleDelete],
+    [fetchAll],
   );
 
-  // 第二参数只取 length 判断是否文件夹，故放宽为带 length 的结构
-  const renderTitle = useCallback((note: Note, children: { length: number }): ReactNode => {
-    const isFolder = children.length > 0;
-    return (
-      <div className={styles.item ?? ''}>
-        {isFolder ? <FolderOutlined className={styles.itemIcon ?? ''} /> : <FileOutlined className={styles.itemIcon ?? ''} />}
-        {note.is_pinned ? <PushpinOutlined className={styles.pinIcon ?? ''} /> : null}
-        <span className={styles.itemTitle ?? ''}>{note.title}</span>
-        {note.category ? <span className={styles.categoryTag ?? ''}>{note.category}</span> : null}
-        <Dropdown trigger={['hover']} menu={nodeMenu(note)}>
-          <Button
-            type="text"
-            size="small"
-            icon={<MoreOutlined />}
-            className={styles.nodeMore ?? ''}
-            aria-label="笔记操作"
-            onMouseDown={(event) => event.stopPropagation()}
-          />
-        </Dropdown>
-      </div>
-    );
-  }, [nodeMenu]);
-
-  const onDrop: TreeProps['onDrop'] = async (info) => {
-    const dragKey = String(info.dragNode.key);
-    let dropKey: string | null;
-    if (info.dropToGap) {
-      const dropNote = notes.find((note) => note.id === String(info.node.key));
-      dropKey = dropNote?.parent_id ?? null;
-    } else {
-      dropKey = String(info.node.key);
-    }
-    if (dropKey === dragKey) return;
-    try {
-      const res = await moveNote(dragKey, dropKey);
-      if (res.code === 0) {
-        message.success('已移动');
-      } else {
-        message.error('移动失败');
-      }
-    } catch {
-      message.error('不能移动到自身或子笔记下');
-    }
-    await fetchNotes();
+  const sortMenu: MenuProps = {
+    items: SORT_OPTIONS.map((option) => ({
+      key: option.key,
+      label: option.label,
+      icon: sort.field === option.field && sort.dir === option.dir ? <CheckOutlined /> : null,
+      onClick: () => setSort({ field: option.field, dir: option.dir }),
+    })),
   };
 
-  const toggleTag = useCallback((tag: string) => {
-    setTagFilters((prev) =>
-      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag],
-    );
+  const openCreateFolder = useCallback(() => {
+    setEditingFolder(null);
+    setFolderName('');
+    setFolderDesc('');
+    setFolderModalOpen(true);
   }, []);
 
-  const clearAllFilters = useCallback(() => {
-    setCategoryFilter(undefined);
-    setTagFilters([]);
-    setPinnedOnly(false);
+  const openEditFolder = useCallback((folder: NoteFolder) => {
+    setEditingFolder(folder);
+    setFolderName(folder.name);
+    setFolderDesc(folder.description ?? '');
+    setFolderModalOpen(true);
   }, []);
 
-  if (collapsed) {
-    return (
-      <div className={styles.rail ?? ''}>
-        <Tooltip title="新建笔记" placement="right">
-          <Button type="text" icon={<FileOutlined />} aria-label="新建笔记" onClick={onCreate} />
-        </Tooltip>
-        {flatNotes.slice(0, 50).map((note) => (
-          <Tooltip key={note.id} title={note.title} placement="right">
+  const handleFolderSave = useCallback(async () => {
+    const name = folderName.trim();
+    if (name.length === 0 || name.length > 100) {
+      message.error('文件夹名称需为 1-100 字');
+      return;
+    }
+    setFolderSaving(true);
+    try {
+      const description = folderDesc.trim();
+      const res = editingFolder
+        ? await updateFolder(editingFolder.id, { name, description })
+        : await createFolder({ name, description });
+      if (res.code === 0) {
+        message.success(editingFolder ? '文件夹已更新' : '文件夹已创建');
+        setFolderModalOpen(false);
+        await fetchAll();
+      } else {
+        message.error('保存失败');
+      }
+    } catch {
+      message.error('保存失败');
+    } finally {
+      setFolderSaving(false);
+    }
+  }, [folderName, folderDesc, editingFolder, fetchAll]);
+
+  const handleDeleteFolder = useCallback(
+    (folder: NoteFolder) => {
+      Modal.confirm({
+        title: '确认删除文件夹',
+        content: `删除「${folder.name}」后，其下的 ${folder.note_count} 篇笔记不会受影响，只会移出该文件夹。`,
+        okText: '删除',
+        okButtonProps: { danger: true },
+        cancelText: '取消',
+        onOk: async () => {
+          try {
+            const res = await deleteFolder(folder.id);
+            if (res.code === 0) {
+              message.success('文件夹已删除');
+              setExpanded((prev) => {
+                const next = new Set(prev);
+                next.delete(folder.id);
+                return next;
+              });
+              await fetchAll();
+            } else {
+              message.error('删除失败');
+            }
+          } catch {
+            message.error('删除失败');
+          }
+        },
+      });
+    },
+    [fetchAll],
+  );
+
+  const noteRow = useCallback(
+    (note: Note, depth: number): ReactNode => {
+      const active = note.id === currentId;
+      const rowClass = [styles.noteRow ?? '', active ? styles.noteRowActive ?? '' : '', styles.depth0 ?? ''];
+      return (
+        <div key={note.id} className={rowClass.join(' ')}>
+          <span className={styles.indent} style={{ width: depth * 16 }} />
+          <FileOutlined className={styles.noteIcon ?? ''} />
+          {note.is_pinned ? <PushpinOutlined className={styles.pinIcon ?? ''} /> : null}
+          <button
+            type="button"
+            className={styles.noteTitle ?? ''}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenNote(note.id);
+            }}
+          >
+            {note.title}
+          </button>
+          <Dropdown trigger={['hover']} menu={noteMenu(note)}>
+            <Button
+              type="text"
+              size="small"
+              icon={<MoreOutlined />}
+              className={styles.noteMore ?? ''}
+              aria-label="笔记操作"
+              onMouseDown={(event) => event.stopPropagation()}
+            />
+          </Dropdown>
+        </div>
+      );
+    },
+    [currentId, noteMenu, onOpenNote],
+  );
+
+  const renderItem = useCallback(
+    (item: SidebarItem): ReactNode => {
+      if (item.kind === 'note') return noteRow(item.note, 0);
+      const folder = item.folder;
+      const isExpanded = expanded.has(folder.id);
+      const hasChildren = item.children.length > 0;
+      const rowClass = [styles.folderRow ?? '', isExpanded ? styles.folderRowOpen ?? '' : ''];
+      return (
+        <div key={folder.id}>
+          <div className={rowClass.join(' ')}>
+            <Button
+              type="text"
+              size="small"
+              className={styles.folderArrow ?? ''}
+              aria-label={isExpanded ? '收起文件夹' : '展开文件夹'}
+              icon={
+                isExpanded
+                  ? <CompressOutlined />
+                  : <ExpandOutlined />
+              }
+              disabled={!hasChildren}
+              onClick={() => toggleFolder(folder.id)}
+            />
+            {isExpanded ? (
+              <FolderOpenOutlined className={styles.folderIcon ?? ''} />
+            ) : (
+              <FolderOutlined className={styles.folderIcon ?? ''} />
+            )}
             <button
               type="button"
-              className={note.id === currentId ? styles.railItemActive ?? '' : styles.railItem ?? ''}
-              onClick={() => onOpenNote(note.id)}
+              className={styles.folderName ?? ''}
+              onClick={() => {
+                if (hasChildren) toggleFolder(folder.id);
+              }}
             >
-              {hasChild(notes, note.id) ? <FolderOutlined /> : <FileOutlined />}
+              {folder.name}
             </button>
-          </Tooltip>
-        ))}
-      </div>
-    );
-  }
-
-  const isFiltering = search !== '' || categoryFilter !== undefined || tagFilters.length > 0 || pinnedOnly;
-  const activeFilterCount =
-    (categoryFilter !== undefined ? 1 : 0) + tagFilters.length + (pinnedOnly ? 1 : 0);
-
-  // 徽标占位恒定：数量为 0 时也渲染同样的占位，只是不显示，
-  // 这样按钮宽度在筛选前后完全一致，右侧的视图切换不会被顶出侧栏
-  const countClass =
-    activeFilterCount > 0
-      ? styles.filterCount ?? ''
-      : (styles.filterCount ?? '') + ' ' + (styles.filterCountHidden ?? '');
-
-  // 筛选收进多级菜单：分类、标签各一个子菜单。选中项带勾选图标，
-  // 菜单标题回显当前值，按钮带激活数量——状态全部可见，不做无提示的收纳
-  const filterItems: NonNullable<MenuProps['items']> = [
-    {
-      key: 'category',
-      icon: <AppstoreOutlined />,
-      label: categoryFilter ?? '全部分类',
-      children: [
-        { key: 'category-all', label: '全部分类', onClick: () => setCategoryFilter(undefined) },
-        ...categories.map((category) => ({
-          key: `category-${category}`,
-          label: category,
-          ...(categoryFilter === category ? { icon: <CheckOutlined /> } : {}),
-          onClick: () => setCategoryFilter((prev) => (prev === category ? undefined : category)),
-        })),
-      ],
+            <span className={styles.folderCount ?? ''}>{folder.note_count}</span>
+            <Dropdown
+              trigger={['hover']}
+              menu={{
+                items: [
+                  {
+                    key: 'edit',
+                    icon: <EditOutlined />,
+                    label: '重命名 / 编辑简介',
+                    onClick: () => openEditFolder(folder),
+                  },
+                  { type: 'divider' },
+                  {
+                    key: 'delete',
+                    icon: <DeleteOutlined />,
+                    label: '删除文件夹',
+                    danger: true,
+                    onClick: () => handleDeleteFolder(folder),
+                  },
+                ],
+              }}
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<MoreOutlined />}
+                className={styles.noteMore ?? ''}
+                aria-label="文件夹操作"
+                onMouseDown={(event) => event.stopPropagation()}
+              />
+            </Dropdown>
+          </div>
+          {isExpanded && hasChildren ? (
+            <div className={styles.children ?? ''}>
+              {sortedChildren(item.children).map((note) => noteRow(note, 1))}
+            </div>
+          ) : null}
+        </div>
+      );
     },
-    {
-      key: 'tags',
-      icon: <TagsOutlined />,
-      label: tagFilters.length > 0 ? `标签（已选 ${tagFilters.length}）` : '标签',
-      children: [
-        { key: 'tags-clear', label: '清除标签筛选', onClick: () => setTagFilters([]) },
-        ...tagCounts.map((item) => ({
-          key: `tag-${item.tag}`,
-          label: `${item.tag} (${item.count})`,
-          ...(tagFilters.includes(item.tag) ? { icon: <CheckOutlined /> } : {}),
-          onClick: () => toggleTag(item.tag),
-        })),
-      ],
-    },
-    { type: 'divider' },
-    {
-      key: 'pinned-only',
-      icon: <PushpinOutlined />,
-      label: pinnedOnly ? '显示全部笔记' : '仅显示置顶',
-      onClick: () => setPinnedOnly((prev) => !prev),
-    },
-  ];
-  if (activeFilterCount > 0) {
-    filterItems.push(
-      { type: 'divider' },
-      { key: 'clear-all', label: '清除全部筛选', onClick: clearAllFilters },
-    );
-  }
+    [expanded, handleDeleteFolder, noteRow, openEditFolder, sortedChildren, toggleFolder],
+  );
+
+  const searchingActive = searchOpen && searchQuery !== '';
 
   return (
     <div className={styles.sidebar ?? ''}>
       <div className={styles.controls ?? ''}>
-        <div className={styles.searchRow ?? ''}>
-          <Input
-            placeholder="搜索标题、正文、标签"
-            prefix={<SearchOutlined />}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            variant="filled"
-            allowClear
-            aria-label="搜索笔记"
-          />
-        </div>
-        <div className={styles.filterRow ?? ''}>
-          <Dropdown trigger={['click']} menu={{ items: filterItems }}>
-            <Tooltip title="筛选笔记">
-              <Button size="small" aria-label="筛选笔记">
-                筛选
-                <span className={countClass}>{activeFilterCount}</span>
-                <DownOutlined className={styles.filterCaret ?? ''} />
-              </Button>
+        <div className={styles.toolbar ?? ''}>
+          <Tooltip title={searchOpen ? '关闭搜索' : '搜索笔记'}>
+            <Button
+              type={searchOpen ? 'primary' : 'text'}
+              size="small"
+              icon={<SearchOutlined />}
+              aria-label="搜索笔记"
+              aria-pressed={searchOpen}
+              onClick={() => handleToggleSearch()}
+            />
+          </Tooltip>
+          <Tooltip title={allExpanded ? '全部收起' : '全部展开'}>
+            <Button
+              type="text"
+              size="small"
+              icon={allExpanded ? <CompressOutlined /> : <ExpandOutlined />}
+              aria-label={allExpanded ? '全部收起' : '全部展开'}
+              disabled={folders.length === 0}
+              onClick={() => handleToggleAll()}
+            />
+          </Tooltip>
+          <Dropdown trigger={['click']} menu={sortMenu}>
+            <Tooltip title="排序方式">
+              <Button
+                type="text"
+                size="small"
+                icon={<SortAscendingOutlined />}
+                aria-label="排序方式"
+              />
             </Tooltip>
           </Dropdown>
-          <Segmented
-            size="small"
-            value={viewMode}
-            onChange={(value) => setViewMode(value as ViewMode)}
-            options={[
-              { label: '树形', value: 'tree', icon: <FolderOutlined /> },
-              { label: '平铺', value: 'flat', icon: <UnorderedListOutlined /> },
-            ]}
-          />
+          <span className={styles.toolbarGap} />
+          <Tooltip title="新建文件夹">
+            <Button
+              type="text"
+              size="small"
+              icon={<FolderAddOutlined />}
+              aria-label="新建文件夹"
+              onClick={() => openCreateFolder()}
+            />
+          </Tooltip>
         </div>
+        {searchOpen ? (
+          <div className={styles.searchRow ?? ''}>
+            <Input
+              autoFocus
+              placeholder="搜索标题、正文、标签、文件夹"
+              prefix={<SearchOutlined />}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              variant="filled"
+              allowClear
+              aria-label="搜索笔记"
+            />
+          </div>
+        ) : null}
       </div>
 
       {loading && notes.length === 0 ? (
-        <div className={styles.emptyBox ?? ''}><Spin indicator={<LoadingOutlined spin />} /></div>
-      ) : isFiltering && filtered.length === 0 ? (
-        <div className={styles.emptyBox ?? ''}><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="没有符合条件的笔记" /></div>
-      ) : viewMode === 'tree' ? (
-        <div className={styles.treeWrap ?? ''}>
-          <Tree
-            treeData={visibleTree}
-            draggable
-            blockNode
-            showLine={{ showLeafIcon: false }}
-            onDrop={onDrop}
-            selectedKeys={currentId ? [currentId] : []}
-            expandedKeys={expandedKeys}
-            onExpand={(keys) => setExpandedKeys(keys.map(String))}
-            onSelect={(keys) => {
-              const first = keys[0];
-              if (first) onOpenNote(String(first));
-            }}
-            titleRender={(data) => {
-              const node = data as SidebarTreeNode;
-              return renderTitle(node.note, node.children);
-            }}
-          />
+        <div className={styles.emptyBox ?? ''}>
+          <Spin indicator={<LoadingOutlined spin />} />
+        </div>
+      ) : searchingActive ? (
+        <div className={styles.list ?? ''}>
+          {searching && searchResults.length === 0 ? (
+            <div className={styles.emptyBox ?? ''}>
+              <Spin indicator={<LoadingOutlined spin />} />
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className={styles.emptyBox ?? ''}>
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="没有匹配的结果" />
+            </div>
+          ) : (
+            searchResults.map((note) => noteRow(note, 0))
+          )}
         </div>
       ) : (
-        <div className={styles.flatList ?? ''}>
-          {flatNotes.map((note) => {
-            const isActive = note.id === currentId;
-            const itemClass = isActive ? styles.flatItemActive ?? '' : styles.flatItem ?? '';
-            return (
-              <div key={note.id} className={itemClass}>
-                <button type="button" className={styles.flatItemBody ?? ''} onClick={() => onOpenNote(note.id)}>
-                  {hasChild(notes, note.id) ? <FolderOutlined className={styles.itemIcon ?? ''} /> : <FileOutlined className={styles.itemIcon ?? ''} />}
-                  {note.is_pinned ? <PushpinOutlined className={styles.pinIcon ?? ''} /> : null}
-                  <span className={styles.itemTitle ?? ''}>{note.title}</span>
-                  {note.category ? <span className={styles.categoryTag ?? ''}>{note.category}</span> : null}
-                </button>
-                <div className={styles.rowActions ?? ''}>
-                  <Tooltip title={note.is_pinned ? '取消置顶' : '置顶'}>
-                    <Button type="text" size="small" icon={<PushpinOutlined />} aria-label="切换置顶" onClick={() => void handleTogglePin(note)} />
-                  </Tooltip>
-                  <Tooltip title="删除">
-                    <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label="删除" onClick={() => handleDelete(note)} />
-                  </Tooltip>
-                </div>
+        <div className={styles.list ?? ''}>
+          {pinnedNotes.length > 0 ? (
+            <div>
+              <div className={styles.groupLabel ?? ''}>置顶</div>
+              <div className={styles.pinnedArea ?? ''}>
+                {pinnedNotes.map((note) => {
+                  const active = note.id === currentId;
+                  return (
+                    <button
+                      key={note.id}
+                      type="button"
+                      className={active ? styles.pinnedItemActive ?? '' : styles.pinnedItem ?? ''}
+                      onClick={() => onOpenNote(note.id)}
+                    >
+                      <PushpinOutlined className={styles.pinnedIcon ?? ''} />
+                      <span className={styles.pinnedTitle ?? ''}>{note.title}</span>
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ) : null}
+
+          {items.length === 0 ? (
+            <div className={styles.emptyBox ?? ''}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="还没有笔记或文件夹"
+              />
+            </div>
+          ) : (
+            items.map((item) => renderItem(item))
+          )}
         </div>
       )}
 
+      <Modal
+        open={folderModalOpen}
+        title={editingFolder ? '编辑文件夹' : '新建文件夹'}
+        okText="保存"
+        cancelText="取消"
+        confirmLoading={folderSaving}
+        onOk={() => void handleFolderSave()}
+        onCancel={() => setFolderModalOpen(false)}
+        destroyOnClose
+      >
+        <div className={styles.folderForm ?? ''}>
+          <label className={styles.formLabel ?? ''} htmlFor="note-folder-name">名称</label>
+          <Input
+            id="note-folder-name"
+            value={folderName}
+            maxLength={100}
+            onChange={(event) => setFolderName(event.target.value)}
+            placeholder="如：项目、决策、随手记"
+            autoFocus
+          />
+          <label className={styles.formLabel ?? ''} htmlFor="note-folder-desc">简介</label>
+          <Input.TextArea
+            id="note-folder-desc"
+            value={folderDesc}
+            rows={3}
+            onChange={(event) => setFolderDesc(event.target.value)}
+            placeholder="可选，说明这个文件夹放什么"
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

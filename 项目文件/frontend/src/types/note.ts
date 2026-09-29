@@ -6,6 +6,34 @@ import type { Visibility } from '../utils/visibility';
  */
 export type NoteBody = Record<string, unknown>;
 
+/** 文件夹简写：只含前端列表与多选所需的最小载荷。 */
+export interface NoteFolderBrief {
+  id: string;
+  name: string;
+}
+
+/** 文件夹完整信息。 */
+export interface NoteFolder {
+  id: string;
+  name: string;
+  /** 文件夹只允许简介，不写正文。 */
+  description: string | null;
+  /** 服务端原样保存前端提交的排序值。 */
+  sort_order: number;
+  owner_id: string;
+  visibility: Visibility;
+  created_at: string;
+  updated_at: string;
+  /** 该文件夹下当前用户可见的笔记数。 */
+  note_count: number;
+}
+
+/** 文件夹列表响应。 */
+export interface NoteFolderListResponse {
+  items: NoteFolder[];
+  total: number;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -15,10 +43,13 @@ export interface Note {
   body?: NoteBody | null;
   /** 正文纯文本（供搜索与摘要用）；P1 迁移后由后端派生 */
   plain_text?: string | null;
-  category: string | null;
   tags: string[] | null;
   is_pinned: boolean;
-  parent_id: string | null;
+  /**
+   * 所属文件夹。层级关系不再由父子字段表达：顶级笔记即不属于任何文件夹，
+   * 笔记之间的关联改由正文 wikilink 表达。
+   */
+  folders: NoteFolderBrief[];
   owner_id: string;
   visibility: Visibility;
   /** 后端恒返回该键；为 null 表示未授权任何人 */
@@ -41,11 +72,9 @@ export interface NoteCreate {
   title: string;
   content?: string | undefined;
   body?: NoteBody | undefined;
-  category?: string | undefined;
   tags?: string[] | undefined;
   restricted_tags?: string[] | undefined;
   is_pinned?: boolean | undefined;
-  parent_id?: string | null | undefined;
 }
 
 /** 更新笔记请求体，字段含义同 NoteCreate（含同样的可见性限制）。 */
@@ -53,11 +82,9 @@ export interface NoteUpdate {
   title?: string | undefined;
   content?: string | undefined;
   body?: NoteBody | undefined;
-  category?: string | undefined;
   tags?: string[] | undefined;
   restricted_tags?: string[] | undefined;
   is_pinned?: boolean | undefined;
-  parent_id?: string | null | undefined;
 }
 
 export interface NoteListResponse {
@@ -73,11 +100,12 @@ export interface BacklinkItem {
   updated_at: string;
 }
 
-/** 图谱节点：来自后端 note_link 服务，边来源仅 wikilink。 */
+/** 图谱节点：节点附带文件夹名与标签，供按文件夹 / 标签着色与生成图例。 */
 export interface GraphNode {
   id: string;
   title: string;
-  category: string | null;
+  folders: string[];
+  tags: string[];
   is_pinned: boolean;
 }
 
