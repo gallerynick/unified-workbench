@@ -1,8 +1,9 @@
 """笔记模块回归测试。
 
-覆盖场景：创建、详情、更新、删除、列表分页、置顶排序、循环挂载拦截、
-可见性三态读权限（private / public / restricted）、Tiptap body 与
-plain_text 派生、restricted_tags 读写。
+覆盖场景：创建、详情、更新、删除、列表分页、置顶排序、文件夹 CRUD 与
+多对多归属（按文件夹过滤列表、删除文件夹不删笔记）、可见性三态读权限
+（private / public / restricted）、Tiptap body 与 plain_text 派生、
+restricted_tags 读写、搜索覆盖文件夹名称与简介。
 
 可见性用例中，NoteCreate/NoteUpdate 至今不含 visibility / restricted_users
 字段（写侧尚未开放），因此 public 与 restricted 两态改用 db fixture 直接
@@ -167,29 +168,118 @@ async def test_pinned_sort(client, member_token):
 
 
 @pytest.mark.asyncio
-async def test_move_circular_raises(client, member_token):
-    """A 已在 B 下，再把 B 挂到 A 下形成循环，move 端点应返回 400。"""
-    created_a = await _create_note(client, member_token, title="A")
-    created_b = await _create_note(client, member_token, title="B")
-    a_id = created_a["data"]["id"]
-    b_id = created_b["data"]["id"]
+async def test_folder_crud_and_membership(client, member_token):
+    """文件夹 CRUD + 笔记多对多归属。
 
-    # 第一步：把 A 移到 B 下面（合法），并确认确实生效
-    move1 = await client.put(
-        f"/api/v1/notes/{a_id}/move",
-        headers={"Authorization": f"Bearer {member_token}"},
-        json={"parent_id": b_id},
-    )
-    assert move1.status_code == 200
-    assert move1.json()["data"]["parent_id"] == b_id
+    覆盖：一篇笔记可属于多个文件夹（重复 id 去重）、列表可见笔记数、
+    按文件夹过滤列表、移出全部文件夹、删除文件夹不删笔记、改名生效。
+    """
+    note = await _create_note(client, member_token, title="归属笔记")
+    note_id = note["data"]["id"]
 
-    # 第二步：把 B 移到 A 下面（形成 A -> B -> A 循环）
-    move2 = await client.put(
-        f"/api/v1/notes/{b_id}/move",
+    f1 = await client.post(
+        "/api/v1/notes/folders",
         headers={"Authorization": f"Bearer {member_token}"},
-        json={"parent_id": a_id},
+        json={"name": "工作", "description": "日常事务"},
     )
-    assert move2.status_code == 400
+    assert f1.status_code == 200
+    d1 = f1.json()["data"]
+    assert d1["note_count"] == 0
+
+    f2 = await client.post(
+        "/api/v1/notes/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"name": "生活"},
+    )
+    d2 = f2.json()["data"]
+
+    # 全量替换归属：重复 id 去重，回显为两个文件夹
+    set1 = await client.put(
+        f"/api/v1/notes/{note_id}/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"folder_ids": [d1["id"], d2["id"], d1["id"]]},
+    )
+    assert set1.status_code == 200
+    assert {f["name"] for f in set1.json()["data"]["folders"]} == {"工作", "生活"}
+
+    # 列表附带可见笔记数
+    folders = await client.get(
+        "/api/v1/notes/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    counts = {f["name"]: f["note_count"] for f in folders.json()["data"]["items"]}
+    assert counts["工作"] == 1
+    assert counts["生活"] == 1
+
+    # 按文件夹过滤列表
+    filtered = await client.get(
+        "/api/v1/notes/",
+        params={"folder_id": d1["id"]},
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert filtered.status_code == 200
+    assert [n["id"] for n in filtered.json()["data"]["items"]] == [note_id]
+
+    # 移出全部文件夹：笔记变为顶级
+    set2 = await client.put(
+        f"/api/v1/notes/{note_id}/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"folder_ids": []},
+    )
+    assert set2.status_code == 200
+    assert set2.json()["data"]["folders"] == []
+
+    # 重挂后删除文件夹：关联清除，笔记本身保留
+    await client.put(
+        f"/api/v1/notes/{note_id}/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"folder_ids": [d1["id"]]},
+    )
+    dele = await client.delete(
+        f"/api/v1/notes/folders/{d1['id']}",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert dele.status_code == 200
+    detail = await client.get(
+        f"/api/v1/notes/{note_id}",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert detail.status_code == 200
+    assert detail.json()["data"]["folders"] == []
+
+    # 改名生效
+    patch = await client.patch(
+        f"/api/v1/notes/folders/{d2['id']}",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"name": "生活方式"},
+    )
+    assert patch.status_code == 200
+    assert patch.json()["data"]["name"] == "生活方式"
+
+
+@pytest.mark.asyncio
+async def test_set_note_folders_rejects_unknown_folder(client, member_token):
+    """传入不存在的文件夹 id 返回 400，且不产生任何归属。"""
+    note = await _create_note(client, member_token, title="笔记")
+    resp = await client.put(
+        f"/api/v1/notes/{note['data']['id']}/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"folder_ids": [str(uuid.uuid4())]},
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_move_endpoint_removed(client, member_token):
+    """父子嵌套已废弃，原 /move 端点应返回 404（路径参数无法匹配笔记 id）。"""
+    created = await _create_note(client, member_token, title="笔记")
+    resp = await client.put(
+        f"/api/v1/notes/{created['data']['id']}/move",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={},
+    )
+    assert resp.status_code == 404
+
 
 
 @pytest.mark.asyncio
@@ -554,8 +644,8 @@ async def test_get_graph_local_and_global(db, seeded_user):
 
 
 @pytest.mark.asyncio
-async def test_search_matches_title_plain_text_category_and_tags(client, member_token):
-    """搜索覆盖标题、正文纯文本、分类、标签四字段。
+async def test_search_matches_title_plain_text_tags_and_folder(client, member_token):
+    """搜索覆盖标题、正文纯文本、标签、文件夹名称四路径。
 
     tags 为 JSON 数组，按「元素相等」匹配而非子串，故 tags 为
     ["标签关键词"] 的笔记不会被搜索词「关键词」命中。
@@ -568,13 +658,24 @@ async def test_search_matches_title_plain_text_category_and_tags(client, member_
         body=_tiptap_body(["正文关键词"]),
     )
     await _create_note(
-        client, member_token, title="无关二", content="x", category="分类关键词"
+        client, member_token, title="无关二", content="x", tags=["关键词"]
     )
     await _create_note(
-        client, member_token, title="无关三", content="x", tags=["关键词"]
+        client, member_token, title="无关三-仅子串", content="x", tags=["标签关键词"]
     )
-    await _create_note(
-        client, member_token, title="无关四-仅子串", content="x", tags=["标签关键词"]
+
+    # 文件夹名称命中：其下笔记应被搜到
+    folder = await client.post(
+        "/api/v1/notes/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"name": "文件夹关键词", "description": "简介无关"},
+    )
+    folder_id = folder.json()["data"]["id"]
+    in_folder = await _create_note(client, member_token, title="夹内笔记")
+    await client.put(
+        f"/api/v1/notes/{in_folder['data']['id']}/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"folder_ids": [folder_id]},
     )
 
     resp = await client.get(
@@ -589,8 +690,35 @@ async def test_search_matches_title_plain_text_category_and_tags(client, member_
         "标题关键词",
         "无关一",
         "无关二",
-        "无关三",
+        "夹内笔记",
     }
+
+
+@pytest.mark.asyncio
+async def test_search_matches_folder_description(client, member_token):
+    """文件夹简介命中时，其下笔记应被搜到（名称本身不命中）。"""
+    folder = await client.post(
+        "/api/v1/notes/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"name": "名称无关", "description": "简介里含搜索词"},
+    )
+    folder_id = folder.json()["data"]["id"]
+    note = await _create_note(client, member_token, title="夹内笔记二")
+    await client.put(
+        f"/api/v1/notes/{note['data']['id']}/folders",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"folder_ids": [folder_id]},
+    )
+
+    resp = await client.get(
+        "/api/v1/notes/",
+        params={"search": "简介里"},
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total"] == 1
+    assert data["items"][0]["id"] == note["data"]["id"]
 
 
 @pytest.mark.asyncio

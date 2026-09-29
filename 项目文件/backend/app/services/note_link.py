@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.note import Note
 from app.models.note_link import NoteLink
+from app.models.note_folder import NoteFolder, NoteFolderMembership
 
 
 def extract_link_targets(body: dict[str, Any] | None) -> list[str]:
@@ -178,12 +179,31 @@ async def get_graph(
         .all()
     )
 
+    # 节点附带文件夹名与标签：供前端按文件夹 / 标签着色与生成图例。
+    # 原 category 列已随父子嵌套一并废弃删除。
+    membership_rows = (
+        await db.execute(
+            select(NoteFolderMembership.note_id, NoteFolder.name)
+            .join(
+                NoteFolder,
+                NoteFolder.id == NoteFolderMembership.folder_id,
+            )
+            .where(NoteFolderMembership.note_id.in_(list(ids)))
+        )
+    ).all()
+    folders_by_note: dict[str, list[str]] = {}
+    for note_id, name in membership_rows:
+        folders_by_note.setdefault(str(note_id), []).append(name)
+    for names in folders_by_note.values():
+        names.sort()
+
     return {
         "nodes": [
             {
                 "id": str(note.id),
                 "title": note.title,
-                "category": note.category,
+                "folders": folders_by_note.get(str(note.id), []),
+                "tags": list(note.tags or []),
                 "is_pinned": note.is_pinned,
             }
             for note in notes

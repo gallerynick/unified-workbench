@@ -8,28 +8,28 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.note_folder import NoteFolderBrief
+
 
 class NoteCreate(BaseModel):
     title: str = Field(max_length=200)
     content: str | None = None
     # Tiptap 文档树；plain_text 由服务端从 body 派生，不接受客户端传入
     body: dict[str, Any] | None = None
-    category: str | None = Field(default=None, max_length=100)
     tags: list[str] | None = None
     restricted_tags: list[str] | None = None
     is_pinned: bool = False
-    parent_id: uuid.UUID | None = None
+    # 文件夹归属不经 create/update 变更，统一走 PUT /notes/{id}/folders
 
 
 class NoteUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=200)
     content: str | None = None
     body: dict[str, Any] | None = None
-    category: str | None = Field(default=None, max_length=100)
     tags: list[str] | None = None
     restricted_tags: list[str] | None = None
     is_pinned: bool | None = None
-    parent_id: uuid.UUID | None = None
+    # 文件夹归属不经 create/update 变更，统一走 PUT /notes/{id}/folders
 
 
 class NoteResponse(BaseModel):
@@ -41,10 +41,10 @@ class NoteResponse(BaseModel):
     # Tiptap 文档树（JSON），嵌套结构不定，故用 dict[str, Any]
     body: dict[str, Any] | None = None
     plain_text: str | None = None
-    category: str | None
     tags: list[str] | None
+    # 所属文件夹；文件夹归属变更走 PUT /notes/{id}/folders
+    folders: list[NoteFolderBrief] = Field(default_factory=list)
     is_pinned: bool
-    parent_id: uuid.UUID | None
     owner_id: uuid.UUID
     visibility: str
     # 受限可见的用户 id 列表；JSONB 存 UUID 字符串。列已存在，按计划保持必填

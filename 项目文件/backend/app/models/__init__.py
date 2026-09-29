@@ -11,6 +11,7 @@ from app.models.inventory import Inventory
 from app.models.note import Note
 from app.models.note_draft import NoteDraft
 from app.models.note_link import NoteLink
+from app.models.note_folder import NoteFolder, NoteFolderMembership
 from app.models.notification import Notification
 from app.models.project import Project
 from app.models.project_change import ProjectChange
@@ -61,6 +62,8 @@ __all__ = [
     "Note",
     "NoteDraft",
     "NoteLink",
+    "NoteFolder",
+    "NoteFolderMembership",
     "Notification",
     "Project",
     "ProjectChange",
