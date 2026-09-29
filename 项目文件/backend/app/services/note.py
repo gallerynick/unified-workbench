@@ -6,11 +6,12 @@ import uuid
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import ColumnElement, exists, func, select
+from sqlalchemy import ColumnElement, delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.visibility import Visibility
 from app.models.note import Note
+from app.models.note_folder import NoteFolder, NoteFolderMembership
 from app.models.user import User, UserRole
 from app.schemas.note import NoteCreate, NoteUpdate
 from app.services.note_link import rebuild_outgoing_links
@@ -37,6 +38,24 @@ def _tags_contains_expr(db: AsyncSession, value: str) -> ColumnElement[bool]:
         elements = func.json_each(Note.tags).table_valued("value")
         return exists(select(1).select_from(elements).where(elements.c.value == value))
     return Note.tags.contains([value])
+
+
+def _folder_contains_expr(search: str) -> ColumnElement[bool]:
+    """「该笔记所属任一文件夹的名称或简介命中 search」的关联条件。
+
+    用 exists 子查询而非 join：关联表会产生重复行，直接 join 会放大
+    count 与分页结果，exists 只表达命中与否。
+    """
+    like = f"%{search}%"
+    return exists(
+        select(1)
+        .select_from(NoteFolderMembership)
+        .join(NoteFolder, NoteFolder.id == NoteFolderMembership.folder_id)
+        .where(
+            NoteFolderMembership.note_id == Note.id,
+            NoteFolder.name.ilike(like) | NoteFolder.description.ilike(like),
+        )
+    )
 
 
 # ── 辅助函数 ──────────────────────────────────────────────────────────
@@ -87,9 +106,8 @@ async def list_notes(
     page: int = 1,
     page_size: int = 20,
     search: str | None = None,
-    category: str | None = None,
     tag: str | None = None,
-    parent_id: uuid.UUID | None = None,
+    folder_id: uuid.UUID | None = None,
 ) -> tuple[list[Note], int]:
     user_id = owner_id
     visibility_cond = build_visibility_filter(Note, user_id)
@@ -97,22 +115,26 @@ async def list_notes(
 
     if search:
         like = f"%{search}%"
-        # 标题/正文/分类按文本模糊匹配；tags 为 JSON 数组，按元素包含判断
+        # 标题/正文按文本模糊匹配；tags 为 JSON 数组按元素包含判断；
+        # 文件夹按名称与简介关联匹配
         query = query.where(
             Note.title.ilike(like)
             | Note.plain_text.ilike(like)
-            | Note.category.ilike(like)
             | _tags_contains_expr(db, search)
+            | _folder_contains_expr(search)
         )
     if tag:
         # 精确标签筛选：按数组元素相等判断，不误伤同名字符串前缀
         query = query.where(_tags_contains_expr(db, tag))
-    if category:
-        query = query.where(Note.category == category)
-    if parent_id is not None:
-        query = query.where(Note.parent_id == parent_id)
-    else:
-        query = query.where(Note.parent_id.is_(None))
+    if folder_id is not None:
+        # 按文件夹过滤：取该文件夹下所有笔记 id
+        query = query.where(
+            Note.id.in_(
+                select(NoteFolderMembership.note_id).where(
+                    NoteFolderMembership.folder_id == folder_id
+                )
+            )
+        )
     count_query = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_query)).scalar() or 0
     query = (
@@ -122,6 +144,23 @@ async def list_notes(
     )
     result = await db.execute(query)
     return list(result.scalars().all()), total
+
+
+async def _reload_note(db: AsyncSession, note_id: uuid.UUID) -> Note | None:
+    """重新查询笔记。
+
+    create/update 后 ORM 实例的关系尚未加载，直接读 note.folders 在异步会话中
+    会触发惰性加载并报 MissingGreenlet；重新 select 会按 lazy="selectin"
+    一并把 folders 加载出来。
+    """
+    result = await db.execute(
+        select(Note)
+        .where(Note.id == note_id)
+        # populate_existing：覆盖身份映射中的旧实例，确保 folders 关系按
+        # 当前数据库状态重新加载，而不是返回上一次查询缓存的空列表
+        .execution_options(populate_existing=True)
+    )
+    return result.scalar_one_or_none()
 
 
 # ── 获取 ──────────────────────────────────────────────────────────────
@@ -151,19 +190,16 @@ async def create_note(
         content=request.content,
         body=request.body,
         plain_text=_derive_plain_text(request.body, request.content),
-        category=request.category,
         tags=request.tags,
         restricted_tags=request.restricted_tags,
         is_pinned=request.is_pinned,
-        parent_id=request.parent_id,
         owner_id=owner_id,
     )
     db.add(note)
     await db.flush()
     # 出边随 body 全量重建（先删后插），保证反向链接与图谱同步
     await rebuild_outgoing_links(db, note.id, note.body)
-    await db.refresh(note)
-    return note
+    return await _reload_note(db, note.id)
 
 
 # ── 更新 ──────────────────────────────────────────────────────────────
@@ -188,16 +224,12 @@ async def update_note(
         note.content = request.content
     if request.body is not None:
         note.body = request.body
-    if request.category is not None:
-        note.category = request.category
     if request.tags is not None:
         note.tags = request.tags
     if request.restricted_tags is not None:
         note.restricted_tags = request.restricted_tags
     if request.is_pinned is not None:
         note.is_pinned = request.is_pinned
-    if request.parent_id is not None:
-        note.parent_id = request.parent_id
 
     # 纯文本与最新正文保持一致：优先新版 body，旧版仅改 content 时同步回写，
     # 否则搜索与摘要会读到旧值
@@ -210,8 +242,7 @@ async def update_note(
         await rebuild_outgoing_links(db, note.id, note.body)
 
     await db.flush()
-    await db.refresh(note)
-    return note
+    return await _reload_note(db, note.id)
 
 
 # ── 删除 ──────────────────────────────────────────────────────────────
@@ -227,6 +258,12 @@ async def delete_note(
 
     await _require_manage_permission(db, note, user_id, "删除")
 
+    # 先清文件夹关联，避免留下孤儿关联行
+    await db.execute(
+        delete(NoteFolderMembership).where(
+            NoteFolderMembership.note_id == note_id
+        )
+    )
     await db.delete(note)
     await db.flush()
     return True
@@ -258,39 +295,3 @@ async def list_tag_counts(
             counter[tag] = counter.get(tag, 0) + 1
     return sorted(counter.items(), key=lambda item: (-item[1], item[0]))
 
-
-# ── 移动 ──────────────────────────────────────────────────────────────
-
-
-async def move_note(
-    db: AsyncSession,
-    note_id: uuid.UUID,
-    owner_id: uuid.UUID,
-    new_parent_id: uuid.UUID | None,
-) -> Note | None:
-    """移动笔记到新的父节点（需可见性检查 + 循环引用检测）"""
-    user_id = owner_id
-    note = await get_note(db, note_id, user_id)
-    if not note:
-        return None
-
-    await _require_manage_permission(db, note, user_id, "移动")
-
-    if new_parent_id is not None:
-        if new_parent_id == note_id:
-            raise ValueError("不能将笔记移动到自己下面")
-        target = await get_note(db, new_parent_id, user_id)
-        if not target:
-            raise ValueError("目标父笔记不存在")
-        # 循环引用检测
-        current = target
-        while current.parent_id is not None:
-            if current.parent_id == note_id:
-                raise ValueError("不能将笔记移动到自己的子节点下面")
-            current = await get_note(db, current.parent_id, user_id)
-            if not current:
-                break
-    note.parent_id = new_parent_id
-    await db.flush()
-    await db.refresh(note)
-    return note
