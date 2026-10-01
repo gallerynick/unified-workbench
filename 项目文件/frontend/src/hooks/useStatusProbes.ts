@@ -117,8 +117,13 @@ async function probeHealth(): Promise<HealthResult> {
     // 断网后浏览器可能直接返回缓存副本 → 探测「成功」→ failCount 被清零，
     // 网络告警永远不出现。
     const res = await fetch('/api/v1/health', { headers: NO_CACHE, cache: 'no-store' });
-    if (!res.ok) throw new Error(String(res.status));
-    const body = (await res.json()) as { data?: { version?: string; server_time?: string } };
+    // 502/503/504 来自 nginx，语义是「上游（后端）连不上」，等价于后端不可达；
+    // 其余非 2xx 说明对端已经回包、连接是通的，不能判成「网络已断开」——
+    // 否则后端一次 500 就会被 A1 报成断网，而且 failCount 要 3 轮才清零，双向闪烁。
+    if (res.status === 502 || res.status === 503 || res.status === 504) {
+      return { ok: false, latency: -1, version: null, serverTime: null };
+    }
+    const body = (await res.json().catch(() => ({}))) as { data?: { version?: string; server_time?: string } };
     const data = body.data ?? {};
     return {
       ok: true,
@@ -134,8 +139,12 @@ async function probeHealth(): Promise<HealthResult> {
 async function probeDb(): Promise<boolean | null> {
   try {
     const res = await fetch('/api/v1/health/db', { headers: NO_CACHE, cache: 'no-store' });
-    if (!res.ok) return false;
-    const body = (await res.json()) as { data?: { status?: string } };
+    // 只有 HTTP 2xx 且 body 明确给出 unhealthy 才算一轮证据。非 2xx 不能证明
+    // 「数据库异常」：既可能是 nginx 502（后端在重启），也可能是 get_db 依赖
+    // 解析失败导致的 500（后端自身出错）。都返回 null，交给 flapGate 的 null
+    // 分支既不计入也不清零——否则一次后端重启就被报成「数据服务暂时不可用」。
+    if (!res.ok) return null;
+    const body = (await res.json().catch(() => ({}))) as { data?: { status?: string } };
     return body.data?.status !== 'unhealthy';
   } catch {
     // 传输层失败无法区分「后端不可达」与「DB 异常」，交给 A1 判定。
@@ -198,6 +207,24 @@ async function probeConcurrent(): Promise<ConcurrentInfo | null> {
   }
 }
 
+/**
+ * 服务级抖动抑制：返回本轮是否应告警。
+ *
+ * bad === null 表示本轮探测本身失败（网络抖动、令牌过期、端点 5xx），既不计入
+ * 也不清零：计入会让一次网络抖动被当成服务故障并挂一整个巡检周期；清零会让
+ * 故障期恰逢网络抖动时故障被掩盖。要求连续 FLAP_GUARD 轮异常才告警，代价是
+ * 真实故障晚报约一个巡检周期。
+ */
+function flapGate(ref: { current: number }, bad: boolean | null): boolean {
+  if (bad === null) return false;
+  if (bad) {
+    ref.current += 1;
+    return ref.current >= FLAP_GUARD;
+  }
+  ref.current = 0;
+  return false;
+}
+
 /** 内容比较：id/level/text 三元组，顺序敏感。用于避免同内容新数组触发重渲染 */
 function sameIssues(a: StatusIssue[], b: StatusIssue[]): boolean {
   if (a.length !== b.length) return false;
@@ -255,14 +282,19 @@ export function useStatusProbes(options: {
   const [wsDown, setWsDown] = useState(false);
   // F1 并发登录：独立轮询周期，与 60s 的服务状态探测解耦
   const [concurrentIssues, setConcurrentIssues] = useState<StatusIssue[]>([]);
+  // A1 交叉校验用：上一次 /health 探测结果，null = 尚未探测过
+  const [backendReachable, setBackendReachable] = useState<boolean | null>(null);
 
   // 演示模式（?status_demo=...）：非空时覆盖真实探测结果，null 表示关闭
   const demoIssues = useStatusDemoIssues();
 
   const failCountRef = useRef(0);
   const rttRef = useRef<number[]>([]);
-  // C2 抖动抑制：连续异常计数
+  // C2 / C3 / C4 / C5 抖动抑制：连续异常计数，语义见 flapGate
   const dbBadCountRef = useRef(0);
+  const storageBadCountRef = useRef(0);
+  const streamBadCountRef = useRef(0);
+  const tasksBadCountRef = useRef(0);
   // A3 断开累计时长
   const wsDownMsRef = useRef(0);
   // 供 1s tick 读最新连接状态；直接依赖 wsConnected 会让 effect 重启、计数清零
@@ -297,6 +329,7 @@ export function useStatusProbes(options: {
 
     // A1 / A2 / D1 / D2
     const health = await probeHealth();
+    setBackendReachable(health.ok);
     if (!health.ok) {
       failCountRef.current += 1;
       if (failCountRef.current >= HEALTH_FAIL_THRESHOLD) {
@@ -321,7 +354,7 @@ export function useStatusProbes(options: {
     if (health.serverTime !== null) {
       const skew = Math.abs(Date.now() - health.serverTime);
       if (skew > CLOCK_SKEW_MS) {
-        out.push({ id: 'd2-clock', level: WARNING, text: '本机时间不准' });
+        out.push({ id: 'd2-clock', level: WARNING, text: '本机时间偏差超过 5 分钟' });
       }
     }
 
@@ -330,14 +363,9 @@ export function useStatusProbes(options: {
     if (maintenance) {
       out.push({ id: 'c1-maintenance', level: CRITICAL, text: '系统维护中' });
     }
-    // dbOk === null 表示本次探测本身失败，既不计入异常也不清零
-    if (dbOk === true) {
-      dbBadCountRef.current = 0;
-    } else if (dbOk === false) {
-      dbBadCountRef.current += 1;
-      if (dbBadCountRef.current >= FLAP_GUARD) {
-        out.push({ id: 'c2-db', level: CRITICAL, text: '数据服务暂时不可用' });
-      }
+    // dbOk === null 表示本轮探测本身失败，flapGate 的 null 分支既不计入也不清零
+    if (flapGate(dbBadCountRef, dbOk === false)) {
+      out.push({ id: 'c2-db', level: CRITICAL, text: '数据服务暂时不可用' });
     }
 
     // C3 / C4 / C5 —— 需登录态，共用同一次 /system/status 请求。
@@ -347,13 +375,17 @@ export function useStatusProbes(options: {
       const status = await probeStatus();
       const services = status?.services;
       if (services) {
-        if (services['storage'] === 'unavailable') {
+        if (flapGate(storageBadCountRef, services['storage'] === 'unavailable')) {
           out.push({ id: 'c3-storage', level: CRITICAL, text: '文件服务暂时不可用' });
         }
-        if (services['stream'] === 'unavailable') {
+        if (flapGate(streamBadCountRef, services['stream'] === 'unavailable')) {
           out.push({ id: 'c4-stream', level: WARNING, text: '直播服务暂时不可用' });
         }
-        if (services['tasks'] === 'unavailable') {
+        // tasks 的 stale 判定（backend/app/api/status.py 的 _check_tasks_sync）
+        // 只看 last_beat_at 单点时间戳：机器长时间睡眠、容器重启或系统自动校时
+        // 让时钟向前跳过 5 分钟，就会被判成「任务挂了」，而 beat 下一跳（≤60s）
+        // 即自愈。抖动抑制把这类假象压掉。
+        if (flapGate(tasksBadCountRef, services['tasks'] === 'unavailable')) {
           out.push({ id: 'c5-tasks', level: WARNING, text: '提醒服务暂时不可用' });
         }
       }
@@ -434,8 +466,8 @@ export function useStatusProbes(options: {
     return () => clearInterval(timer);
   }, [authed]);
 
-  // 合并即时项：A1（浏览器已知离线）、A3、E1。
-  // 按 id 去重——离线时巡检也会累计出 a1-backend，两边会撞。
+  // 合并即时项：A1（浏览器离线且后端探测确认）、A3、E1。
+  // 按 id 去重，避免同一 id 重复展示。
   const merged = useMemo(() => {
     const out: StatusIssue[] = [];
     const seen = new Set<string>();
@@ -444,9 +476,13 @@ export function useStatusProbes(options: {
       seen.add(issue.id);
       out.push(issue);
     };
-    // 断网即时告警，不等巡检周期
-    if (!browserOnline) {
-      add({ id: 'a1-backend', level: CRITICAL, text: '网络已断开' });
+    // 浏览器离线信号只有后端也不可达时才采信。navigator.onLine 在 Chromium 系
+    // 由 network service 全局判定，本机 LAN 与后端都正常时也可能为 false，
+    // 且 online 事件不一定会补发——无条件采信会留下一条永不消失的 CRITICAL
+    // 误报。后端可达即证伪；后端首次探测失败即提示（早于 3 次阈值），持续失败
+    // 再由 a1-backend 升级为 CRITICAL。
+    if (!browserOnline && backendReachable === false) {
+      add({ id: 'a1-browser', level: WARNING, text: '浏览器报告离线' });
     }
     probeIssues.forEach(add);
     concurrentIssues.forEach(add);
@@ -457,7 +493,7 @@ export function useStatusProbes(options: {
       add({ id: 'e1-lock', level: WARNING, text: '即将自动锁定' });
     }
     return out;
-  }, [probeIssues, concurrentIssues, authed, wsDown, lockWarning, browserOnline]);
+  }, [probeIssues, concurrentIssues, authed, wsDown, lockWarning, browserOnline, backendReachable]);
 
   // 演示模式优先；关闭时退回真实探测结果
   return demoIssues ?? merged;

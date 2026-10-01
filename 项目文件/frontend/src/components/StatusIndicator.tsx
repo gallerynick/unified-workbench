@@ -102,13 +102,15 @@ export default function StatusIndicator({ issues, layout }: StatusIndicatorProps
   const dotClass = worst === 'critical' ? styles.critical : styles.warning;
   const rotating = !reduced && sorted.length > 1;
 
+  // 开合状态只由 Popover 自己管（trigger="hover"）：它在弹出层上也挂了 mouseenter，
+  // 鼠标从触发文字移到列表时会取消收起计时器。若在此 span 上再挂 onMouseLeave 立即
+  // setHovered(false)，就会抢先一步把 Popover 关掉，表现为「刚移到列表上就消失」。
+  // hovered 仅用于暂停轮播，由 onOpenChange 同步即可。
   const body = (
     <span
       className={cx(styles.wrap, layout === 'floating' ? styles.floating : styles.inline)}
       role="status"
       aria-live="polite"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <span className={cx(styles.dot, dotClass)} aria-hidden />
       <Text key={current.id} type="secondary" className={cx(styles.text, rotating && styles.swap)}>
@@ -134,6 +136,9 @@ export default function StatusIndicator({ issues, layout }: StatusIndicatorProps
       open={hovered}
       onOpenChange={setHovered}
       trigger="hover"
+      // 留出从触发文字移到弹出列表的缓冲时间。默认 0.1s 偏紧，
+      // 列表弹在下方时鼠标要跨越一段空隙，容易被判为离开而立即收起。
+      mouseLeaveDelay={0.3}
     >
       {body}
     </Popover>,
