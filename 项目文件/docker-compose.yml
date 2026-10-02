@@ -59,6 +59,9 @@ services:
       - ${FILE_STORAGE_PATH:-./data/files}:/data/files
       - ${FILE_BACKUPS_PATH:-./data/backups}:/data/backups
       - modelscope_cache:/home/workbench/.modelscope
+      # 与 llama-cpp 共用同一份 GGUF 目录：后端负责写入（下载/删除），
+      # llama-cpp 以 /models 只读扫描。两边必须指向同一个宿主目录。
+      - ./data/gguf:/data/gguf
     environment:
       - TZ=Asia/Shanghai
       - RESERVED_DISK_SPACE_GB=${RESERVED_DISK_SPACE_GB:-10}
@@ -90,6 +93,11 @@ services:
         condition: service_healthy
     volumes:
       - ${FILE_STORAGE_PATH:-./data/files}:/data/files
+      # 预热任务要读 GGUF 落盘情况，与 backend / llama-cpp 共用同一目录
+      - ./data/gguf:/data/gguf
+      # 会后处理要跑 ASR（SenseVoice ONNX）与说话人分离（sherpa-onnx），
+      # 与 backend 共用同一模型缓存卷
+      - modelscope_cache:/home/workbench/.modelscope
     environment:
       - TZ=Asia/Shanghai
       - RESERVED_DISK_SPACE_GB=${RESERVED_DISK_SPACE_GB:-10}
@@ -153,29 +161,31 @@ services:
     networks:
       - workbench
 
-  # Ollama - AI 模型推理
-  ollama:
-    image: ollama/ollama:latest
+  # 本地 AI 推理引擎（llama.cpp，纯 CPU）
+  # 选型理由：官方 server 镜像纯 CPU、零 GPU 库。
+  # 带 GPU 支持的推理镜像会内置多个版本的 CUDA 运行库（可达数 GB），
+  # 而 Apple Silicon + Docker Desktop 无法做 GPU 透传，那些库纯属死重。
+  # router 模式：启动时不带 -m，按请求里的模型名动态载入/卸载；模型从 /models 目录发现。
+  #   --models-max 1        同时最多载入 1 个模型
+  #   --sleep-idle-seconds  空闲 5 分钟后自动卸载模型释放内存；新请求自动重新载入
+  #                         注意 /health、/props、/models、/metrics 不会唤醒模型，
+  #                         因此状态轮询不会意外把它拉起来
+  llama-cpp:
+    image: ghcr.io/ggml-org/llama.cpp:server
     restart: unless-stopped
+    command: >
+      --host 0.0.0.0
+      --port 8080
+      --models-dir /models
+      --models-max 1
+      --ctx-size 8192
+      --sleep-idle-seconds 300
     ports:
-      - "11434:11434"
+      - "8080:8080"
     volumes:
-      - ollama_data:/root/.ollama
-    # GPU 加速说明（默认不开，因为 Docker Desktop 不支持，会导致整个 compose 起不来）：
-    #   - Linux + NVIDIA：在本服务下加
-    #       deploy:
-    #         resources:
-    #           reservations:
-    #             devices:
-    #               - driver: nvidia
-    #                 device_ids: ["0"]
-    #                 capabilities: [gpu]
-    #   - macOS / Windows 的 Docker Desktop 实测不支持 GPU 透传
-    #     （`docker run --gpus all` 报 "no known GPU vendor found"），ollama 只能跑 CPU。
-    #   - Apple Silicon 想要 Metal GPU 加速：在宿主机原生装 ollama（brew install ollama），
-    #     不要放容器里；原生 ollama 会自动走 GPU。
-    # 容器内 CPU 实测速率（本机 M5 / 10 核 / 16 GB / Docker VM 5.8 GB）：
-    #   qwen2.5:0.5b 约 130 tok/s；qwen3.5:4b 约 24 tok/s 且容易因内存不足被系统杀掉。
+      - ./data/gguf:/models
+    environment:
+      - TZ=Asia/Shanghai
     networks:
       - workbench
 
@@ -200,8 +210,6 @@ volumes:
   pg_data:
     driver: local
   redis_data:
-    driver: local
-  ollama_data:
     driver: local
   modelscope_cache:
     driver: local

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SaveOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, CheckCircleOutlined, LoadingOutlined, ThunderboltOutlined, PauseCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, InputNumber, Select, Radio, message, Space, Alert, Typography, Tag, Modal, Progress, Statistic, Row, Col, Switch } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Select, Radio, Checkbox, message, Space, Alert, Typography, Tag, Modal, Progress, Statistic, Row, Col, Switch } from 'antd';
 import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels, getMemoryInfo, unloadASRModel, unloadAIModel } from '../../api/third-party-config';
-import { getOllamaModelStatus, getOllamaModels, deleteOllamaModel, getOllamaHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/ollama';
+import { getLocalModelStatus, getLocalModels, deleteLocalModel, getLocalAIHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/local-model';
 import type { ThirdPartyConfig, TestConnectionResponse, MemoryInfo } from '../../types/third-party-config';
 import { isAdmin } from '../../utils/auth';
 import styles from './ThirdPartyConfigPage.module.css';
@@ -11,12 +11,13 @@ const { Title, Text, Paragraph } = Typography;
 
 const DEFAULT_CONFIG: ThirdPartyConfig = {
   warmup: {
-    auto_start: false,
+    ai: false,
+    asr: false,
   },
   ai_provider: {
     mode: 'local',
     local: {
-      base_url: 'http://ollama:11434/v1',
+      base_url: 'http://llama-cpp:8080/v1',
       model: '',
     },
     online: {
@@ -33,9 +34,7 @@ const DEFAULT_CONFIG: ThirdPartyConfig = {
   asr_config: {
     mode: 'local',
     local: {
-      model: 'paraformer-zh',
-      punc_model: 'ct-punc',
-      spk_model: 'campplus',
+      model: 'sensevoice',
     },
     online: {
       provider: 'openai',
@@ -49,6 +48,7 @@ const DEFAULT_CONFIG: ThirdPartyConfig = {
       noise_reduction: 0.8,
       vad_threshold: 0.006,
       silence_timeout: 1.5,
+      allowed_languages: ['zh'],
     },
   },
 };
@@ -56,7 +56,7 @@ const DEFAULT_CONFIG: ThirdPartyConfig = {
 // 预置模型信息
 const PRESET_AI_MODEL = {
   name: 'Qwen2.5-3B Q4',
-  ollamaName: 'qwen2.5:3b',
+  modelName: 'qwen2.5-3b-instruct-q4_k_m',
   size: '约 2.2 GB',
   description: '阿里云通义千问 2.5 系列 3B 参数模型，Q4 量化版本，支持 32K 上下文，适合会议摘要',
 };
@@ -86,9 +86,7 @@ const MODEL_INFO: Record<string, { name: string; description: string }> = {
 };
 
 const PRESET_ASR_MODELS = {
-  main: { name: 'Paraformer-zh', description: '中文语音识别模型' },
-  punc: { name: 'ct-punc', description: '标点恢复模型' },
-  spk: { name: 'CAM++', description: '说话人分离模型' },
+  main: { name: 'SenseVoice', description: '中文/多语语音识别（自带标点）' },
 };
 
 /** 把秒数格式化成中文时长，用于展示下载已运行时间 */
@@ -184,17 +182,17 @@ export default function ThirdPartyConfigPage() {
   
   // 模型下载状态
   const [aiModelStatus, setAiModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'ready' | 'error'>('not_downloaded');
-  // 已下载模型的实测体积（字节），来自 Ollama，比 PRESET_AI_MODEL 里的估算值准确
+  // 已下载模型的实测体积（字节），来自文件系统，比 PRESET_AI_MODEL 里的估算值准确
   const [aiModelSize, setAiModelSize] = useState<number | null>(null);
-  // 本机 ollama 已下载的全部模型，用于模型选择器
+  // 本机已下载的全部 GGUF 模型，用于模型选择器
   const [localModels, setLocalModels] = useState<{ name: string; size: number }[]>([]);
   const [asrModelStatus, setAsrModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'ready' | 'error'>('not_downloaded');
   const [asrModelDetails, setAsrModelDetails] = useState<{ models: { name: string; repo_id: string; ready: boolean; size_mb: number }[]; downloaded: number; total: number } | null>(null);
   const [asrPreloading, setAsrPreloading] = useState(false);
   const [asrReloading, setAsrReloading] = useState(false);
-  const [ollamaHealth, setOllamaHealth] = useState<'unknown' | 'ok' | 'error'>('unknown');
+  const [aiServiceHealth, setAiServiceHealth] = useState<'unknown' | 'ok' | 'error'>('unknown');
   // 后端回的具体失败原因（超时 / 连不上 / API 错误），展示给用户看
-  const [ollamaHealthDetail, setOllamaHealthDetail] = useState<string | null>(null);
+  const [aiServiceHealthDetail, setAiServiceHealthDetail] = useState<string | null>(null);
   const [checkingDownload, setCheckingDownload] = useState(true);
   
   // 下载任务状态
@@ -205,7 +203,7 @@ export default function ThirdPartyConfigPage() {
   const [downloadSpeed, setDownloadSpeed] = useState(0);
   const [downloadTotal, setDownloadTotal] = useState(0);
   const [downloadDownloaded, setDownloadDownloaded] = useState(0);
-  // Ollama 当前阶段（下载中/校验中/写入中…），用于区分「缓慢」与「卡死」
+  // 下载当前阶段，用于区分「缓慢」与「卡死」
   const [downloadPhase, setDownloadPhase] = useState('');
   // 任务开始时间（Unix 秒），用于展示已运行时长
   const [downloadElapsed, setDownloadElapsed] = useState(0);
@@ -214,7 +212,7 @@ export default function ThirdPartyConfigPage() {
   // ASR 卸载中
   const [asrUnloading, setAsrUnloading] = useState(false);
   const [aiUnloading, setAiUnloading] = useState(false);
-  const [recheckingOllama, setRecheckingOllama] = useState(false);
+  const [recheckingAiService, setRecheckingAiService] = useState(false);
   // 轮询定时器句柄。必须用 ref 而不是 state 持有：
   // poll 闭包捕获的是创建时的 stopPolling，若 stopPolling 读 state，
   // 它拿到的永远是上一次渲染的值（首次为 null），clearInterval 会变成空操作，
@@ -224,16 +222,16 @@ export default function ThirdPartyConfigPage() {
   // 所以只能靠轮询 /asr/status 看缓存里的模型有没有齐
   const asrPreloadTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 检查 Ollama 健康状态和模型状态。
-  // 单次失败就报「不可用」太激进：ollama 在忙于加载模型时 /api/tags 会超时，
+  // 检查本地 AI 服务健康状态与模型状态。
+  // 单次失败就报「不可用」太激进：冷启动载入模型期间引擎响应会变慢，
   // 所以先重试两次、每次间隔 1 秒，再下结论
-  const checkOllamaStatus = async (modelOverride?: string) => {
-    let healthRes: Awaited<ReturnType<typeof getOllamaHealth>> | null = null;
+  const checkLocalAIStatus = async (modelOverride?: string) => {
+    let healthRes: Awaited<ReturnType<typeof getLocalAIHealth>> | null = null;
     let lastErr: unknown = null;
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        healthRes = await getOllamaHealth();
+        healthRes = await getLocalAIHealth();
         lastErr = null;
         break;
       } catch (err) {
@@ -246,21 +244,29 @@ export default function ThirdPartyConfigPage() {
 
     // 后端本身没连上（页面到后端这一跳断了）
     if (lastErr !== null) {
-      console.error('检查 Ollama 状态失败:', lastErr);
-      setOllamaHealth('error');
-      setOllamaHealthDetail('无法请求后端，请检查页面与后端之间的网络');
+      console.error('检查本地 AI 服务状态失败:', lastErr);
+      setAiServiceHealth('error');
+      setAiServiceHealthDetail('无法请求后端，请检查页面与后端之间的网络');
       if (!downloadTaskId) {
         setAiModelStatus('not_downloaded');
       }
       return;
     }
 
+    // 引擎在载入模型时 /health 返回 503，这是正常过渡态而非「服务异常」，
+    // 报成 error 会让用户以为本地 AI 坏了。
+    if (healthRes?.code === 0 && healthRes.data?.status === 'loading') {
+      setAiServiceHealth('ok');
+      setAiServiceHealthDetail(healthRes.data.reason || '模型载入中');
+      return;
+    }
+
     if (healthRes?.code === 0 && healthRes.data?.status === 'ok') {
-      setOllamaHealth('ok');
-      setOllamaHealthDetail(null);
+      setAiServiceHealth('ok');
+      setAiServiceHealthDetail(null);
 
       // 拉取本机已下载的模型列表，供模型选择器使用
-      const modelsRes = await getOllamaModels();
+      const modelsRes = await getLocalModels();
       if (modelsRes.code === 0 && Array.isArray(modelsRes.data?.models)) {
         const models = modelsRes.data.models.map((m) => ({ name: m.name, size: m.size ?? 0 }));
         setLocalModels(models);
@@ -271,7 +277,7 @@ export default function ThirdPartyConfigPage() {
         // 表单里没选中模型时，默认选第一个已下载的
         if (!targetModel && models.length > 0) {
           // 优先选预设模型，否则选第一个
-          const presetModel = models.find((m) => m.name === PRESET_AI_MODEL.ollamaName);
+          const presetModel = models.find((m) => m.name === PRESET_AI_MODEL.modelName);
           targetModel = presetModel?.name || models[0]!.name;
           form.setFieldValue(['ai_provider', 'local', 'model'], targetModel);
         }
@@ -283,10 +289,16 @@ export default function ThirdPartyConfigPage() {
           return;
         }
 
-        const modelRes = await getOllamaModelStatus(targetModel);
+        const modelRes = await getLocalModelStatus(targetModel);
         if (modelRes.code === 0 && modelRes.data?.downloaded) {
-          setAiModelStatus('downloaded');
           setAiModelSize(modelRes.data.size ?? null);
+          // 引擎加载状态决定显示：loaded → 已就绪；卸载/休眠 → 已下载未就绪
+          const engine = modelRes.data.engine_status;
+          if (engine === 'loaded' || engine === 'loading') {
+            setAiModelStatus('ready');
+          } else {
+            setAiModelStatus('downloaded');
+          }
         } else if (!downloadTaskId) {
           setAiModelStatus('not_downloaded');
           setAiModelSize(null);
@@ -295,9 +307,9 @@ export default function ThirdPartyConfigPage() {
       return;
     }
 
-    setOllamaHealth('error');
-    setOllamaHealthDetail(
-      healthRes?.data?.message || '无法连接到 Ollama 服务，请检查容器是否已启动并暴露 11434 端口',
+    setAiServiceHealth('error');
+    setAiServiceHealthDetail(
+      healthRes?.data?.reason || '无法连接到本地 AI 服务，请检查 llama-cpp 容器是否已启动',
     );
     // 只有在没有正在进行的下载任务时，才设置为 'not_downloaded'
     if (!downloadTaskId) {
@@ -311,10 +323,15 @@ export default function ThirdPartyConfigPage() {
       const res = await getASRModelStatus();
       if (res.code === 0 && res.data) {
         setAsrModelDetails(res.data.details ?? null);
-        if (res.data.status === 'downloaded') {
+        // 后端状态：ready（已载入） / downloaded（已下载未载入） /
+        // partial / not_downloaded / error。ready 必须映射到 ready，
+        // 否则加载完成后会被误判成 not_downloaded，按钮显示错乱。
+        if (res.data.status === 'ready') {
+          setAsrModelStatus('ready');
+        } else if (res.data.status === 'downloaded') {
           setAsrModelStatus('downloaded');
-        } else if (res.data.status === 'partial') {
-          setAsrModelStatus('not_downloaded');
+        } else if (res.data.status === 'error') {
+          setAsrModelStatus('error');
         } else {
           setAsrModelStatus('not_downloaded');
         }
@@ -330,7 +347,7 @@ export default function ThirdPartyConfigPage() {
     }
   };
 
-  const fetchConfig = async (skipOllamaCheck = false) => {
+  const fetchConfig = async (skipAiServiceCheck = false) => {
     setError(null);
     try {
       const res = await getThirdPartyConfig();
@@ -344,10 +361,10 @@ export default function ThirdPartyConfigPage() {
       form.setFieldsValue(DEFAULT_CONFIG);
     }
     
-    // 异步检查 Ollama 状态，不阻塞页面显示
-    // 如果有正在进行的下载任务，跳过 Ollama 状态检查，避免覆盖下载状态
-    if (!skipOllamaCheck) {
-      checkOllamaStatus();
+    // 异步检查本地 AI 服务状态，不阻塞页面显示
+    // 有正在进行的下载任务时跳过状态检查，避免覆盖下载状态
+    if (!skipAiServiceCheck) {
+      checkLocalAIStatus();
     }
   };
 
@@ -429,6 +446,48 @@ export default function ThirdPartyConfigPage() {
       const res = await updateThirdPartyConfig(values);
       if (res.code === 0) {
         message.success('配置已保存');
+        const cfg = res.data;
+        // 开启模型自热备后，立即刷新模型与内存状态；
+        // 如果 ASR 还只是已下载，进入短暂轮询，避免用户一直看到「已下载」
+        void checkASRStatus();
+        void getMemoryInfo().then((memRes) => {
+          if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
+        });
+
+        if (cfg?.warmup?.asr && cfg?.asr_config?.mode === 'local' && !asrPreloading && asrPreloadTimerRef.current === null) {
+          setAsrPreloading(true);
+          let waited = 0;
+          asrPreloadTimerRef.current = setInterval(async () => {
+            try {
+              const r = await getASRModelStatus();
+              if (r.code === 0 && r.data) {
+                setAsrModelDetails(r.data.details ?? null);
+              }
+            } catch (err) {
+              console.warn('刷新 ASR 状态失败', err);
+            }
+            try {
+              const memRes = await getMemoryInfo();
+              if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
+            } catch (err) {
+              console.warn('刷新内存信息失败', err);
+            }
+            waited += 5;
+            const r = await getASRModelStatus().catch(() => null);
+            const done = r?.data?.status === 'ready' || r?.data?.details?.loaded === true;
+            if (done || waited >= 120) {
+              if (asrPreloadTimerRef.current !== null) {
+                clearInterval(asrPreloadTimerRef.current);
+                asrPreloadTimerRef.current = null;
+              }
+              setAsrPreloading(false);
+              if (done) {
+                setAsrModelStatus('ready');
+                message.success('ASR 模型已就绪');
+              }
+            }
+          }, 5000);
+        }
       } else {
         message.error(res.msg || '保存失败');
       }
@@ -544,8 +603,9 @@ export default function ThirdPartyConfigPage() {
       if (res.code === 0 && res.data) {
         message.success(res.data.message || 'ASR 模型已卸载');
         if (res.data.details?.loaded === false) {
-          setAsrModelStatus('not_downloaded');
+          setAsrModelStatus('downloaded');
         }
+        void checkASRStatus();
         const memRes = await getMemoryInfo();
         if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
       }
@@ -563,6 +623,8 @@ export default function ThirdPartyConfigPage() {
       const res = await unloadAIModel(model);
       if (res.code === 0 && res.data) {
         message.success(res.data.message || 'AI 模型已卸载');
+        // 卸载后立即刷新状态（不刷新会一直显示「已就绪」直到重载页面）
+        void checkLocalAIStatus(model);
         const memRes = await getMemoryInfo();
         if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
       }
@@ -581,7 +643,13 @@ export default function ThirdPartyConfigPage() {
       const res = await preloadASRModels();
       if (res.code === 0 && res.data) {
         if (res.data.success) {
-          if (res.data.details && res.data.details.downloaded === res.data.details.total) {
+          const details = res.data.details ?? {};
+          if ((details as { loading?: boolean }).loading) {
+            // 后台加载中：不 return，落到下方轮询等待落定，
+            // 否则 asrPreloading 一直为 true，按钮永远停在「载入中」
+            message.info('ASR 模型载入已开始');
+            void checkASRStatus();
+          } else if (details.downloaded === details.total) {
             setAsrPreloading(false);
             void checkASRStatus();
             const memRes = await getMemoryInfo();
@@ -597,6 +665,7 @@ export default function ThirdPartyConfigPage() {
           return;
         }
       } else {
+        message.error(res.msg || '载入失败');
         setAsrPreloading(false);
         return;
       }
@@ -608,14 +677,26 @@ export default function ThirdPartyConfigPage() {
 
     let waited = 0;
     asrPreloadTimerRef.current = setInterval(async () => {
-      const r = await getASRModelStatus();
-      if (r.code === 0 && r.data) {
-        setAsrModelDetails(r.data.details ?? null);
+      try {
+        const r = await getASRModelStatus();
+        if (r.code === 0 && r.data) {
+          setAsrModelDetails(r.data.details ?? null);
+        }
+      } catch (err) {
+        console.warn('检查 ASR 状态失败', err);
       }
-      const memRes = await getMemoryInfo();
-      if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
+      try {
+        const memRes = await getMemoryInfo();
+        if (memRes.code === 0 && memRes.data) setMemoryInfo(memRes.data);
+      } catch (err) {
+        console.warn('刷新内存信息失败', err);
+      }
       waited += 5;
-      const done = r.data?.status === 'downloaded';
+      const r = await getASRModelStatus().catch(() => null);
+      // 加载完成后端返回 ready（已载入）；downloaded 且已加载也算完成
+      const done =
+        r?.data?.status === 'ready' ||
+        (r?.data?.status === 'downloaded' && r?.data?.details?.loaded === true);
       if (done || waited >= 180) {
         if (asrPreloadTimerRef.current !== null) {
           clearInterval(asrPreloadTimerRef.current);
@@ -712,7 +793,7 @@ export default function ThirdPartyConfigPage() {
       stopPolling();
 
       const targetModel =
-        form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.ollamaName;
+        form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.modelName;
       const res = await startModelDownload(targetModel);
       if (res.code === 0 && res.data?.task_id) {
         const taskId = res.data.task_id;
@@ -865,19 +946,19 @@ export default function ThirdPartyConfigPage() {
 
   const handleDeleteAIModel = async () => {
     const targetModel =
-      form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.ollamaName;
+      form.getFieldValue(['ai_provider', 'local', 'model']) || PRESET_AI_MODEL.modelName;
     const sizeText = aiModelSize != null ? `（已占 ${formatBytes(aiModelSize)}）` : '';
     Modal.confirm({
       title: '删除模型',
       content: `将删除 ${targetModel}${sizeText}，删除后需要重新下载。确定要删除吗？`,
       onOk: async () => {
         try {
-          const res = await deleteOllamaModel(targetModel);
+          const res = await deleteLocalModel(targetModel);
           if (res.code === 0) {
             setAiModelStatus('not_downloaded');
             setAiModelSize(null);
             // 重新拉取模型列表，选择器里的选项要同步更新
-            void checkOllamaStatus();
+            void checkLocalAIStatus();
             message.success('模型已删除');
           }
         } catch (err: unknown) {
@@ -919,22 +1000,6 @@ export default function ThirdPartyConfigPage() {
       )}
 
       <Form form={form} layout="vertical" initialValues={DEFAULT_CONFIG}>
-        <Card
-          title="模型自启动预热"
-          style={{ marginBottom: "var(--spacing-lg)" }}
-        >
-          <Form.Item
-            name={['warmup', 'auto_start']}
-            valuePropName="checked"
-            style={{ marginBottom: 0 }}
-          >
-            <Switch checkedChildren="开" unCheckedChildren="关" />
-          </Form.Item>
-          <Paragraph type="secondary" style={{ margin: 'var(--spacing-xs) 0 0', fontSize: 12 }}>
-            系统启动后若资源充足，会自动载入本地模型并做几次轻量预热；资源不足或模型未下载时会跳过。此开关为全局开关，不再绑定到单个 AI 模型。
-          </Paragraph>
-        </Card>
-
         {/* AI 模型配置 */}
         <Card 
           title="AI 模型配置" 
@@ -942,7 +1007,7 @@ export default function ThirdPartyConfigPage() {
         >
           <Form.Item name={['ai_provider', 'mode']} label="模式">
             <Radio.Group>
-              <Radio value="local">本地（Ollama）</Radio>
+              <Radio value="local">本地（llama.cpp）</Radio>
               <Radio value="online">在线（OpenAI 兼容）</Radio>
             </Radio.Group>
           </Form.Item>
@@ -958,26 +1023,26 @@ export default function ThirdPartyConfigPage() {
                     size="small"
                     style={{ background: 'var(--fill-tertiary)', marginBottom: "var(--spacing-md)" }}
                   >
-                    {/* Ollama 状态提示 */}
+                    {/* 本地 AI 服务状态提示 */}
                     <Alert
-                      type={ollamaHealth === 'ok' ? 'success' : ollamaHealth === 'error' ? 'error' : 'info'}
+                      type={aiServiceHealth === 'ok' ? 'success' : aiServiceHealth === 'error' ? 'error' : 'info'}
                       message={
-                        ollamaHealth === 'ok' ? 'Ollama 服务正常' :
-                        ollamaHealth === 'error' ? 'Ollama 服务异常' : '正在检查 Ollama 状态…'
+                        aiServiceHealth === 'ok' ? '本地 AI 服务正常' :
+                        aiServiceHealth === 'error' ? '本地 AI 服务异常' : '正在检查本地 AI 服务…'
                       }
-                      description={ollamaHealthDetail || undefined}
+                      description={aiServiceHealthDetail || undefined}
                       showIcon
                       action={
                         <Button
                           size="small"
                           type="link"
-                          loading={recheckingOllama}
+                          loading={recheckingAiService}
                           onClick={async () => {
-                            setRecheckingOllama(true);
+                            setRecheckingAiService(true);
                             try {
-                              await checkOllamaStatus();
+                              await checkLocalAIStatus();
                             } finally {
-                              setRecheckingOllama(false);
+                              setRecheckingAiService(false);
                             }
                           }}
                         >
@@ -986,6 +1051,16 @@ export default function ThirdPartyConfigPage() {
                       }
                       style={{ marginBottom: 16 }}
                     />
+
+                    <Form.Item
+                      name={['warmup', 'ai']}
+                      label="模型自热备"
+                      tooltip="仅在本机模式下生效：资源充足时自动保持载入，手动卸载后会自动恢复"
+                      valuePropName="checked"
+                      style={{ marginBottom: 16 }}
+                    >
+                      <Switch checkedChildren="开" unCheckedChildren="关" />
+                    </Form.Item>
 
                     <div style={{ marginBottom: 'var(--spacing-sm)' }}>
                       <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'flex-start' }}>
@@ -1020,8 +1095,8 @@ export default function ThirdPartyConfigPage() {
                                   setAiModelStatus('not_downloaded');
                                   setAiModelSize(null);
                                 }
-                                // 异步刷新 Ollama 健康状态（不影响即时显示）
-                                void checkOllamaStatus(value);
+                                // 异步刷新本地 AI 服务健康状态（不影响即时显示）
+                                void checkLocalAIStatus(value);
                               }}
                             />
                           </Form.Item>
@@ -1262,18 +1337,18 @@ export default function ThirdPartyConfigPage() {
                           本地语音识别模型
                         </Text>
                         <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
-                          {PRESET_ASR_MODELS.main.name} + {PRESET_ASR_MODELS.punc.name} + {PRESET_ASR_MODELS.spk.name}
+                          {PRESET_ASR_MODELS.main.name}（ONNX，自带标点）
                         </Paragraph>
                       </div>
                       <Space>
-                        {(asrModelStatus === 'not_downloaded' || asrModelStatus === 'downloaded' || asrPreloading) && (
+                        {asrModelStatus === 'not_downloaded' && (
                           <Button
                             type="primary"
-                            icon={asrModelStatus === 'downloaded' ? <ReloadOutlined /> : <DownloadOutlined />}
+                            icon={<DownloadOutlined />}
                             loading={asrPreloading}
                             onClick={handlePreloadASR}
                           >
-                            {asrModelStatus === 'downloaded' ? '载入' : asrPreloading ? '载入中…' : '下载模型'}
+                            下载模型
                           </Button>
                         )}
                         {asrModelStatus === 'downloaded' && (
@@ -1290,6 +1365,16 @@ export default function ThirdPartyConfigPage() {
                         )}
                       </Space>
                     </div>
+
+                    <Form.Item
+                      name={['warmup', 'asr']}
+                      label="模型自热备"
+                      tooltip="仅在本机模式下生效：资源充足时自动保持载入，手动卸载后会自动恢复"
+                      valuePropName="checked"
+                      style={{ marginBottom: 12 }}
+                    >
+                      <Switch checkedChildren="开" unCheckedChildren="关" />
+                    </Form.Item>
 
                     {asrModelDetails && asrModelDetails.total > 0 && (
                       <div style={{ marginBottom: 12 }}>
@@ -1334,6 +1419,11 @@ export default function ThirdPartyConfigPage() {
                         {asrModelStatus === 'ready' && (
                           <Button loading={asrUnloading} onClick={handleUnloadASR}>
                             卸载模型
+                          </Button>
+                        )}
+                        {asrModelStatus === 'downloaded' && (
+                          <Button type="primary" icon={<ThunderboltOutlined />} loading={asrPreloading} onClick={handlePreloadASR}>
+                            载入
                           </Button>
                         )}
                         <Button danger icon={<DeleteOutlined />} onClick={handleDeleteASRModel}>
@@ -1412,6 +1502,22 @@ export default function ThirdPartyConfigPage() {
               tooltip="音频采样率，固定为 16000 Hz"
             >
               <InputNumber min={16000} max={16000} step={1000} disabled />
+            </Form.Item>
+
+            <Form.Item
+              name={['asr_config', 'parameters', 'allowed_languages']}
+              label="语言白名单"
+              tooltip="只识别白名单内的语言；检测到白名单外的语言时丢弃该句。中文识别请保留「中文」"
+            >
+              <Checkbox.Group
+                options={[
+                  { label: '中文', value: 'zh' },
+                  { label: '英文', value: 'en' },
+                  { label: '日文', value: 'ja' },
+                  { label: '韩文', value: 'ko' },
+                  { label: '粤语', value: 'yue' },
+                ]}
+              />
             </Form.Item>
           </div>
         </Card>

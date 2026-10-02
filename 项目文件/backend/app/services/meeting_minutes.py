@@ -1,6 +1,6 @@
 """会议纪要生成器。
 
-使用 Ollama LLM 从转录文本生成结构化会议纪要。
+调用本地 AI 引擎（llama.cpp 的 OpenAI 兼容接口），从转录文本生成结构化会议纪要。
 """
 
 from __future__ import annotations
@@ -13,11 +13,11 @@ from typing import Any
 
 import httpx
 
-from app.core.config import get_settings
+from app.services.llama_cpp import DEFAULT_MODEL as LOCAL_AI_MODEL, OPENAI_BASE_URL as LOCAL_AI_BASE_URL
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "qwen2.5:14b"
+DEFAULT_MODEL = LOCAL_AI_MODEL
 
 MINUTES_SYSTEM_PROMPT = """你是一个专业的会议纪要助手。你的任务是根据会议转录内容，
 生成结构化的会议纪要。
@@ -157,9 +157,7 @@ async def generate_minutes(
     max_retries: int = 3,
 ) -> tuple[dict[str, Any], str]:
     """生成会议纪要。"""
-    settings = get_settings()
-    # 容器内 Ollama 走 Docker 网络别名 ollama；localhost 会指向 backend 容器自身而连接失败
-    ollama_url = getattr(settings, "OLLAMA_URL", "http://ollama:11434")
+    # 走 Docker 网络别名直连 llama.cpp 容器；localhost 会指向 backend 容器自身而连接失败
     model = model_name or DEFAULT_MODEL
 
     transcript_text = "\n".join(
@@ -186,23 +184,21 @@ async def generate_minutes(
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
-                    f"{ollama_url}/api/chat",
+                    f"{LOCAL_AI_BASE_URL}/chat/completions",
                     json={
                         "model": model,
                         "messages": [
                             {"role": "user", "content": prompt},
                         ],
                         "stream": False,
-                        "options": {
-                            "temperature": 0.3,
-                            "top_p": 0.9,
-                        },
+                        "temperature": 0.3,
+                        "top_p": 0.9,
                     },
                 )
                 response.raise_for_status()
                 data = response.json()
 
-                response_text = data.get("message", {}).get("content", "")
+                response_text = data["choices"][0]["message"]["content"]
                 if not response_text:
                     raise ValueError("LLM returned empty response")
 

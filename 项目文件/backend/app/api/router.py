@@ -18,11 +18,12 @@ from app.api.health import router as health_router
 from app.api.inventory import router as inventory_router
 from app.api.notes import router as notes_router
 from app.api.notifications import router as notifications_router
-from app.api.ollama import router as ollama_router
+from app.api.local_model import router as local_model_router
 from app.api.project_changes import router as project_changes_router
 from app.api.project_events import router as project_events_router
 from app.api.project_meetings import router as project_meetings_router
 from app.api.meeting_records import router as meeting_records_router
+from app.api.model_inventory import router as model_inventory_router
 from app.api.monitor import router as monitor_router
 # meeting_ws_router 直接在 app 上注册（WebSocket 不走 /api/v1 前缀）
 from app.api.third_party_config import router as third_party_config_router
@@ -38,6 +39,7 @@ from app.api.servers import router as servers_router
 from app.api.services import router as services_router
 from app.api.stream import router as stream_router
 from app.api.stream_room import router as stream_room_router
+from app.api.storage import router as storage_router
 from app.api.status import router as status_router
 from app.api.system import router as system_router
 from app.api.system_config import router as system_config_router
@@ -87,7 +89,7 @@ api_router.include_router(project_meetings_router, prefix="/project-meetings", t
 api_router.include_router(meeting_records_router, prefix="/meetings", tags=["会议记录"])
 
 api_router.include_router(third_party_config_router, prefix="/config/third-party", tags=["第三方服务配置"])
-api_router.include_router(ollama_router, prefix="/config/ollama", tags=["Ollama 模型管理"])
+api_router.include_router(local_model_router, prefix="/config/local-model", tags=["本地 AI 模型管理"])
 api_router.include_router(project_changes_router, prefix="/project-changes", tags=["项目变更"])
 api_router.include_router(project_todos_router, prefix="/project-todos", tags=["项目待办"])
 api_router.include_router(project_events_router, prefix="/project-events", tags=["项目事件"])
@@ -97,6 +99,8 @@ api_router.include_router(topology_router, prefix="/topologies", tags=["拓扑�
 api_router.include_router(notifications_router, prefix="/notifications", tags=["通知"])
 api_router.include_router(system_router)
 api_router.include_router(status_router)
+api_router.include_router(storage_router)
+api_router.include_router(model_inventory_router)
 api_router.include_router(monitor_router)
 api_router.include_router(servers_router, prefix="/servers", tags=["服务器管理"])
 api_router.include_router(systems_router, prefix="/systems", tags=["系统管理"])

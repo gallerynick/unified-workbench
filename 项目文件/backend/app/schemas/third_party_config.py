@@ -8,9 +8,10 @@ from pydantic import BaseModel, Field
 
 
 class WarmupConfig(BaseModel):
-    """模型自启动预热配置"""
+    """模型自热备配置"""
 
-    auto_start: bool = False
+    ai: bool = False
+    asr: bool = False
 
 
 class AIProviderConfig(BaseModel):
@@ -38,6 +39,7 @@ class ASRConfig(BaseModel):
         "noise_reduction": 0.8,
         "vad_threshold": 0.006,
         "silence_timeout": 1.5,
+        "allowed_languages": ["zh"],
     }
 
 

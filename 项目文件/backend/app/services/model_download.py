@@ -1,25 +1,29 @@
 """模型下载管理服务 - 进度跟踪、暂停/恢复/取消、卡死回收
 
-本模块历史上出现「进度条 / 速度 / 已下载量永久卡在 96%」的缺陷，根因有四：
+从 HuggingFace 流式拉取 GGUF 到本地模型目录（后端 /data/gguf，与 llama-cpp 的
+/models 是同一份宿主目录），下载完成后通知 llama.cpp 重新扫描，无需重启容器。
 
-1. **进度样本被静默丢弃**：Ollama `/api/pull` 返回 NDJSON（每行一个 JSON 对象），
-   而 `response.aiter_bytes()` 给出的字节块与 JSON 行并不对齐。旧实现直接对整个块
-   `json.loads`，一个块里含多行时整体抛错并被 `except: pass` 吞掉，整批进度样本
-   丢失，进度看起来像冻结。现在做行缓冲后再解析。
-2. **速度计算窗口错位**：旧实现用「距上次写入 Redis 的间隔」当分母，节流一旦跳过写入
-   就会把长时间窗口的增量除进去，速度被严重低估（0.09 MB/s 即由此而来）。
-   现在按最近 N 秒的采样点滑动窗口计算。
-3. **僵尸任务**：下载由 `asyncio.create_task` 驱动，进程重启后协程消失但 Redis 状态
-   仍是 `downloading`，前端会永久轮询一个不存在的任务。现在：下载协程持续写心跳
-   `updated_at`，读侧按心跳判定存活并回收为 error，启动时统一清理孤儿任务。
-4. **无单飞保护**：多次点击会并发多个 pull，既互相竞争也留下多份孤儿键。
-   现在同用户同模型只保留一个活跃任务。
+本模块曾长期只服务 Ollama 的 `/api/pull`，那套实现有四个历史缺陷：
+
+1. **进度样本被静默丢弃**：Ollama 返回 NDJSON，字节块与 JSON 行并不对齐，
+   整块 `json.loads` 会在多行时抛错并被吞掉，进度看起来像冻结。
+2. **速度计算窗口错位**：分母取「距上次写 Redis 的间隔」，节流跳过写入就把
+   长时间增量除进短分母，速度被严重低估。
+3. **僵尸任务**：协程随进程消失而 Redis 状态仍是 `downloading`，
+   前端永久轮询一个不存在的任务。
+4. **无单飞保护**：多次点击并发多个下载，互相竞争并留下孤儿键。
+
+改直连 GGUF 之后，**第 1 条从根上消失**（不再解析任何流式 JSON，进度就是
+「已写入字节数」）。第 2、3、4 条的防护是任务层的职责，与本模块的下载实现无关，
+因此原样保留。
 """
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import logging
 import time
 from collections import deque
 from typing import Any
@@ -28,10 +32,11 @@ import httpx
 import redis.asyncio as aioredis
 
 from app.core.config import get_settings
+from app.services import llama_cpp
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
-
-OLLAMA_BASE_URL = "http://ollama:11434"
 
 # Redis key 前缀与 TTL
 DOWNLOAD_KEY_PREFIX = "model_download:"
@@ -75,51 +80,6 @@ o.updated_at = tonumber(ARGV[1])
 redis.call('SET', KEYS[1], cjson.encode(o), 'EX', tonumber(ARGV[2]))
 return 1
 """
-
-
-def _map_phase(status_text: str) -> str:
-    """把 Ollama 的 status 文本映射成简短中文阶段，供前端展示"""
-    s = (status_text or "").lower()
-    if "success" in s:
-        return "完成"
-    if "verifying" in s:
-        return "校验中"
-    if "writing" in s:
-        return "写入中"
-    if "metadata" in s or "reading" in s:
-        return "读取元数据"
-    if "build" in s or "executing" in s:
-        return "构建中"
-    if "manifest" in s:
-        return "拉取清单"
-    if "pulling" in s:
-        return "下载中"
-    return status_text or "下载中"
-
-
-def _feed_ndjson(buf: bytearray, chunk: bytes) -> list[dict[str, Any]]:
-    """把新到达的字节并入缓冲区，切出所有完整行并解析。
-
-    不完整的行留在 `buf` 中等待后续字节；流结束时调用方补一个换行即可解析残余行。
-    解析失败（非法 JSON）的行直接跳过，不影响同块内的其他行。
-    """
-    buf.extend(chunk)
-    items: list[dict[str, Any]] = []
-    while True:
-        nl = buf.find(b"\n")
-        if nl < 0:
-            break
-        line = bytes(buf[:nl]).strip()
-        del buf[: nl + 1]
-        if not line:
-            continue
-        try:
-            obj = json.loads(line.decode("utf-8", "ignore"))
-        except ValueError:
-            continue
-        if isinstance(obj, dict):
-            items.append(obj)
-    return items
 
 
 def _is_orphan(info: dict[str, Any], now: float) -> tuple[bool, str]:
@@ -228,7 +188,7 @@ async def _last_incomplete_started_at(
 ) -> float:
     """同用户同模型最近一次未完成任务（取消 / 出错）的 started_at。
 
-    取消或中断后重新下载时，Ollama 会复用本地已缓存的分片，
+    断点续传下，重试会带着上一次留下的 .part 继续拉，
     「已下载」并非全部由本次任务产生，若不沿用上一次任务的起始时间，
     会出现「用时 34 秒、已下载 3 GB」这类互相矛盾的数字。
     返回 0.0 表示没有可继承的历史。
@@ -247,118 +207,52 @@ async def _last_incomplete_started_at(
     return best
 
 
-def _blob_id_from_status(status: str) -> str:
-    """从 Ollama 的 status 文本中提取 blob 标识，用于按 blob 聚合进度。
-
-    Ollama 的 `total` / `completed` 是针对**单个 blob** 上报的，不是整个模型：
-    一个模型由 manifest、system、template、license 等多个 blob 组成，逐个下载，
-    每个 blob 有自己的 total，且 completed 从 0 重新开始。若按「最后一条覆盖」，
-    进度会退化成最后一个 blob 的进度，导致百分比爆炸或停滞。
-
-    形如 ``downloading 58d1e17ffe51 3.2%`` → ``58d1e17ffe51``；
-    无 blob 标识的行（``pulling manifest``、``verifying sha256 digest``、``success``）
-    不携带 total / completed，用什么键都不影响聚合结果。
-    """
-    parts = status.split()
-    return parts[1] if len(parts) >= 2 else status
-
-
 class _ProgressState:
-    """一次 pull 流内的进度聚合状态"""
+    """一次下载内的进度聚合状态"""
 
-    __slots__ = (
-        "blobs",
-        "total",
-        "downloaded",
-        "phase",
-        "error",
-        "success",
-        "samples",
-        "last_write",
-        "last_recorded",
-    )
+    __slots__ = ("total", "downloaded", "samples", "last_write", "last_recorded")
 
     def __init__(self) -> None:
-        self.blobs: dict[str, dict[str, int]] = {}
         self.total = 0
         self.downloaded = 0
-        self.phase = "连接中"
-        self.error = ""
-        self.success = False
         self.samples: deque[tuple[float, int]] = deque()
         self.last_write = 0.0
         self.last_recorded = -1
 
 
-async def _apply_lines(
-    redis: aioredis.Redis, task_key: str, p: _ProgressState, objs: list[dict[str, Any]]
+async def _publish_progress(
+    redis: aioredis.Redis, task_key: str, p: _ProgressState
 ) -> None:
-    """把一批 Ollama 进度行应用到状态，并按节流写回 Redis"""
-    for obj in objs:
-        if "status" in obj:
-            status_text = str(obj["status"])
-            p.phase = _map_phase(status_text)
-            # Ollama 只在真正下载完成后才发 {"status": "success"}；
-            # 流提前结束（CDN 断连、重试耗尽）时不会发这一行，必须以此为准判定成功
-            if "success" in status_text.lower():
-                p.success = True
-        # Ollama 失败时以 HTTP 200 + {"error": ...} 正常结束流，必须捕获，否则会误判为下载完成
-        if "error" in obj:
-            p.error = str(obj["error"])
-        blob = p.blobs.setdefault(_blob_id_from_status(str(obj.get("status") or "")), {
-            "total": 0,
-            "completed": 0,
-        })
-        if "total" in obj:
-            blob["total"] = max(blob["total"], int(obj["total"]))
-        if "completed" in obj:
-            blob["completed"] = max(blob["completed"], int(obj["completed"]))
-        # 只报了 total 没报 completed 的分片视为已就位（本地缓存命中），
-        # 否则已缓存模型的进度会一直停在 0%
-        if "completed" not in obj and blob["completed"] == 0:
-            blob["completed"] = blob["total"]
+    """按节流把当前进度写回 Redis。
 
-    p.total = sum(v["total"] for v in p.blobs.values())
-    p.downloaded = sum(v["completed"] for v in p.blobs.values())
-
+    速度按最近 SPEED_WINDOW 秒的采样点滑动窗口计算。旧实现把窗口起点锚在
+    「上次写 Redis」，节流一旦跳过写入，就会把一段长时间跨度的增量除进短分母，
+    速度被严重低估。这里速度与写库节流解耦。
+    """
     now = time.time()
 
-    # completed 未变化时不重复入样，避免空样本把窗口无谓拉长
     if not (p.samples and p.samples[-1][1] == p.downloaded):
         p.samples.append((now, p.downloaded))
-
     while p.samples and now - p.samples[0][0] > SPEED_WINDOW:
         p.samples.popleft()
 
-    # 剔除窗口首段的「缓存复用跳变」：Ollama 复用本地已缓存分片时，completed 会在毫秒级
-    # 从 0 跳到接近 total，该跳变不属本窗口内的真实下载，需逐段前移锚点直到速率回落
-    while len(p.samples) >= 2:
-        dt_head = p.samples[1][0] - p.samples[0][0]
-        dd_head = p.samples[1][1] - p.samples[0][1]
-        head_rate = (dd_head / dt_head) if dt_head > 0 else float("inf")
-        if head_rate > MAX_PLAUSIBLE_SPEED:
-            p.samples.popleft()
-        else:
-            break
-
     if len(p.samples) >= 2 and p.samples[-1][0] - p.samples[0][0] >= MIN_SPEED_WINDOW:
-        dt = p.samples[-1][0] - p.samples[0][0]
-        dd = p.samples[-1][1] - p.samples[0][1]
-        speed = max(0.0, dd / dt)
+        span = p.samples[-1][0] - p.samples[0][0]
+        speed = max(0.0, (p.samples[-1][1] - p.samples[0][1]) / span)
     else:
         speed = 0.0
 
     if now - p.last_write < PROGRESS_WRITE_INTERVAL:
         return
-
     p.last_write = now
+
     progress = min(100.0, p.downloaded / p.total * 100) if p.total > 0 else 0.0
     updates: dict[str, Any] = {
         "progress": progress,
         "total": p.total,
         "downloaded": p.downloaded,
         "speed": speed,
-        "phase": p.phase,
+        "phase": "下载中",
         "updated_at": now,
     }
     if p.downloaded != p.last_recorded:
@@ -382,98 +276,181 @@ class _ControlFlag:
         return self.value
 
 
-async def _run_pull(redis: aioredis.Redis, task_key: str, model_name: str) -> str:
-    """执行一次 pull 流并跟踪进度。
+async def _run_download(redis: aioredis.Redis, task_key: str, model_name: str) -> str:
+    """从 HuggingFace 拉取模型 GGUF 并跟踪进度。
 
-    返回结果：completed / interrupted / http_error / pull_error / cancelled / paused / timeout。
-    interrupted 表示流正常结束但未收到 Ollama 的 success 信号，模型并未真正下载完成。
-    连接级异常（EOF、断连等）向外抛出，由上层决定重试。
+    返回：completed / interrupted / http_error / download_error /
+    cancelled / paused / timeout。连接级异常向外抛出，由上层重试。
     """
-    started_at = time.time()
-    control = _ControlFlag()
-    reader_task: asyncio.Task[None] | None = None
-    watchdog_task: asyncio.Task[None] | None = None
-
-    async with httpx.AsyncClient(timeout=None) as client:
-        async with client.stream(
-            "POST",
-            f"{OLLAMA_BASE_URL}/api/pull",
-            json={"name": model_name},
-        ) as response:
-            if response.status_code != 200:
-                await _update_status(redis, task_key, {
-                    "status": DownloadStatus.ERROR,
-                    "error": f"HTTP {response.status_code}",
-                    "updated_at": time.time(),
-                })
-                return "http_error"
-
-            p = _ProgressState()
-
-            async def reader() -> None:
-                buf = bytearray()
-                async for chunk in response.aiter_bytes():
-                    objs = _feed_ndjson(buf, chunk)
-                    if objs:
-                        await _apply_lines(redis, task_key, p, objs)
-                # 流结束：最后一行可能没有换行符，补一个触发解析
-                if buf:
-                    objs = _feed_ndjson(buf, b"\n")
-                    if objs:
-                        await _apply_lines(redis, task_key, p, objs)
-
-            async def watchdog() -> None:
-                while True:
-                    await asyncio.sleep(HEARTBEAT_INTERVAL)
-                    await _heartbeat(redis, task_key)
-                    info = await _get_status(redis, task_key)
-                    if not info:
-                        return
-                    status = info.get("status")
-                    if status == DownloadStatus.CANCELLED:
-                        control.set("cancelled")
-                    elif status == DownloadStatus.PAUSED:
-                        control.set("paused")
-                    elif (
-                        time.time()
-                        - float(info.get("started_at") or started_at)
-                        > MAX_DURATION_SECONDS
-                    ):
-                        control.set("timeout")
-                    else:
-                        continue
-                    if reader_task is not None:
-                        reader_task.cancel()
-                    return
-
-            reader_task = asyncio.create_task(reader())
-            watchdog_task = asyncio.create_task(watchdog())
-            try:
-                await reader_task
-            except asyncio.CancelledError:
-                return control.get() or "cancelled"
-            finally:
-                if watchdog_task is not None:
-                    watchdog_task.cancel()
-                    try:
-                        await watchdog_task
-                    except BaseException:
-                        pass
-
-    # 流正常结束：若流内带 error 字段则是拉取失败（如模型名无效 / 清单不存在），不能当成成功
-    if p.error:
+    target = llama_cpp.resolve_download_target(model_name)
+    if target is None:
         await _update_status(redis, task_key, {
             "status": DownloadStatus.ERROR,
-            "error": f"Ollama 拉取失败: {p.error}",
+            "error": f"模型 {model_name} 不在可下载目录中",
             "phase": "失败",
             "updated_at": time.time(),
         })
-        return "pull_error"
+        return "download_error"
 
-    # 流结束了但没收到 success：上游提前断流（CDN EOF、重试耗尽）。此时模型并未真正下载完，
-    # 若在此置为 completed，前端会反复弹「下载完成」且模型不可用（测速 0 tokens/s）
-    if not p.success:
+    destination = llama_cpp.model_file_path(model_name)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    # 先写 .part 再原子改名：中途失败不会留下一个「看起来完整」的坏文件
+    partial = destination.with_name(destination.name + ".part")
+
+    # 断点续传：已有半成品就带 Range 续拉。大文件弱网重来代价很高，
+    # 且 _do_download 重试时并不删 .part，因此这里能真正接着上次的进度。
+    resume_from = partial.stat().st_size if partial.exists() else 0
+
+    started_at = time.time()
+    control = _ControlFlag()
+    writer_task: asyncio.Task[None] | None = None
+    watchdog_task: asyncio.Task[None] | None = None
+    state = _ProgressState()
+
+    async with httpx.AsyncClient(timeout=None, follow_redirects=True) as client:
+        response = None
+        last_error: Exception | None = None
+        for url in target["urls"]:
+            try:
+                request = client.build_request("GET", url)
+                if resume_from > 0:
+                    request.headers["Range"] = f"bytes={resume_from}-"
+                candidate = await client.send(request, stream=True)
+                if candidate.status_code in (200, 206):
+                    response = candidate
+                    break
+                await candidate.aclose()
+                last_error = RuntimeError(f"HTTP {candidate.status_code}")
+            except Exception as exc:
+                # 换下一个源继续试；全部失败才报错
+                last_error = exc
+
+        if response is None:
+            await _update_status(redis, task_key, {
+                "status": DownloadStatus.ERROR,
+                "error": f"所有下载源均不可用：{last_error}",
+                "phase": "失败",
+                "updated_at": time.time(),
+            })
+            return "http_error"
+
+        content_length = int(response.headers.get("content-length") or 0)
+        if response.status_code == 206 and resume_from > 0:
+            # 206 的 content-length 只覆盖剩余部分，总量要把已下载的加回去
+            state.total = resume_from + content_length
+        else:
+            # 服务端不支持 Range（返回 200）时必须从头写，否则文件会错位
+            state.total = content_length
+            resume_from = 0
+
+        await _update_status(redis, task_key, {"total": state.total, "phase": "下载中"})
+
+        # 边下边算 sha256，下载完成后与目录里的官方哈希比对，
+        # 防止 CDN 出错或源被篡改后留下「字节数对得上但内容是坏的」文件。
+        digest = hashlib.sha256()
+        if resume_from > 0:
+            # 断点续传：先把已有半成品的字节补算进哈希，
+            # 这样最后比对的是「旧 + 新」的完整文件哈希，而不是跳过校验。
+            with open(partial, "rb") as fp:
+                for block in iter(lambda: fp.read(1 << 20), b""):
+                    digest.update(block)
+
+        async def writer() -> None:
+            mode = "ab" if resume_from > 0 else "wb"
+            state.downloaded = resume_from
+            with open(partial, mode) as fp:
+                async for chunk in response.aiter_bytes():
+                    fp.write(chunk)
+                    digest.update(chunk)
+                    state.downloaded += len(chunk)
+                    await _publish_progress(redis, task_key, state)
+
+        async def watchdog() -> None:
+            while True:
+                await asyncio.sleep(HEARTBEAT_INTERVAL)
+                await _heartbeat(redis, task_key)
+                info = await _get_status(redis, task_key)
+                if not info:
+                    return
+                status = info.get("status")
+                if status == DownloadStatus.CANCELLED:
+                    control.set("cancelled")
+                elif status == DownloadStatus.PAUSED:
+                    control.set("paused")
+                elif (
+                    time.time() - float(info.get("started_at") or started_at)
+                    > MAX_DURATION_SECONDS
+                ):
+                    control.set("timeout")
+                else:
+                    continue
+                if writer_task is not None:
+                    writer_task.cancel()
+                return
+
+        writer_task = asyncio.create_task(writer())
+        watchdog_task = asyncio.create_task(watchdog())
+        try:
+            await writer_task
+        except asyncio.CancelledError:
+            partial.unlink(missing_ok=True)
+            return control.get() or "cancelled"
+        except Exception as exc:
+            partial.unlink(missing_ok=True)
+            await _update_status(redis, task_key, {
+                "status": DownloadStatus.ERROR,
+                "error": f"下载中断：{exc}",
+                "phase": "失败",
+                "updated_at": time.time(),
+            })
+            return "interrupted"
+        finally:
+            if watchdog_task is not None:
+                watchdog_task.cancel()
+                try:
+                    await watchdog_task
+                except BaseException:
+                    pass
+            try:
+                await response.aclose()
+            except Exception:
+                pass
+
+    # 字节数校验：声明长度与实际写入不符说明流被截断，
+    # 此时文件不可用，必须判失败，不能当成「下载完成」。
+    if state.total > 0 and state.downloaded != state.total:
+        partial.unlink(missing_ok=True)
+        logger.warning(
+            "下载字节数不符：期望 %s，实得 %s", state.total, state.downloaded
+        )
         return "interrupted"
+
+    # sha256 校验：目录里登记了官方哈希的模型必须逐字节对上。
+    # 覆盖两种情况——全新下载（哈希含全部字节）与断点续传
+    # （启动时先补算了 .part 已有字节，哈希同样覆盖完整文件）。
+    expected_sha = target.get("sha256")
+    if expected_sha and digest.hexdigest() != expected_sha:
+        partial.unlink(missing_ok=True)
+        logger.error(
+            "sha256 校验失败：期望 %s，实得 %s",
+            expected_sha,
+            digest.hexdigest(),
+        )
+        await _update_status(redis, task_key, {
+            "status": DownloadStatus.ERROR,
+            "error": "sha256 校验失败，文件可能损坏或源被篡改",
+            "phase": "失败",
+            "updated_at": time.time(),
+        })
+        return "integrity_error"
+
+    partial.replace(destination)
+
+    # 让 llama.cpp 重新扫描目录，新模型立刻可用，不必重启容器
+    try:
+        await llama_cpp.reload_models()
+    except Exception:
+        logger.warning("llama.cpp 模型列表刷新失败，新模型需手动 reload", exc_info=True)
 
     await _update_status(redis, task_key, {
         "status": DownloadStatus.COMPLETED,
@@ -510,15 +487,15 @@ async def _do_download(task_id: str, model_name: str) -> None:
         while True:
             await _update_status(redis, task_key, {
                 "status": DownloadStatus.DOWNLOADING,
-                "phase": "连接 Ollama",
+                "phase": "连接下载源",
                 "retry_count": retry_count,
                 "updated_at": time.time(),
             })
 
             try:
-                outcome = await _run_pull(redis, task_key, model_name)
+                outcome = await _run_download(redis, task_key, model_name)
                 if outcome == "interrupted":
-                    # 走连接级重试：Ollama 会复用已缓存分片，重拉代价很低
+                    # 走连接级重试：.part 保留着，下一次会自动带 Range 续传
                     raise RuntimeError("下载流提前结束，未收到完成信号")
             except Exception as exc:
                 last_error = str(exc) or exc.__class__.__name__
@@ -542,7 +519,7 @@ async def _do_download(task_id: str, model_name: str) -> None:
 
             if outcome == "completed":
                 return
-            if outcome in ("http_error", "pull_error", "cancelled", "gone"):
+            if outcome in ("http_error", "pull_error", "integrity_error", "cancelled", "gone"):
                 return
             if outcome == "timeout":
                 await _update_status(redis, task_key, {
@@ -561,7 +538,7 @@ async def _do_download(task_id: str, model_name: str) -> None:
                 })
                 wait_result = await _wait_for_resume(redis, task_key)
                 if wait_result == "resumed":
-                    # 重新发起 pull；Ollama 会从已缓存的分片续传，无需从零开始
+                    # 重新发起下载；.part 里的字节保留着，会自动带 Range 续传
                     continue
             return
     finally:
@@ -722,7 +699,7 @@ async def resume_download(task_id: str, user_id: str = "") -> bool:
         if info and _is_owner(info, user_id) and info.get("status") == DownloadStatus.PAUSED:
             await _update_status(redis, task_key, {
                 "status": DownloadStatus.DOWNLOADING,
-                "phase": "连接 Ollama",
+                "phase": "连接下载源",
                 "updated_at": time.time(),
             })
             return True
@@ -749,18 +726,8 @@ async def cancel_download(task_id: str, user_id: str = "") -> bool:
             "updated_at": time.time(),
         })
 
-        # 删除已下载的模型（如果存在）
-        model_name = info.get("model_name")
-        if model_name:
-            try:
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    await client.delete(
-                        f"{OLLAMA_BASE_URL}/api/delete",
-                        json={"name": model_name},
-                    )
-            except Exception:
-                pass  # 忽略删除失败
-
+        # 半成品由 _run_download 收到取消信号时自行删掉 .part 文件，这里不重复处理。
+        # 更不能像旧实现那样删「同名模型」——那会误删此前已下载完成的正式文件。
         return True
     finally:
         await redis.close()
