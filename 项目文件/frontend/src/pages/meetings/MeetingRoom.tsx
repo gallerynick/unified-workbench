@@ -43,9 +43,12 @@ export default function MeetingRoom() {
   // 会议状态
   const isRecording = meeting?.status === 'recording';
   const isPaused = meeting?.status === 'paused';
-  
+  const isCompleted = meeting?.status === 'completed';
+  const isProcessing = meeting?.status === 'processing';
+
   // 会议状态决定是否连接 WebSocket（仅录音/暂停状态）
   const shouldConnect = isRecording || isPaused;
+  const isNonStartable = !isRecording && !isPaused && meeting?.status !== 'not_started';
 
   // WebSocket 连接
   const { 
@@ -139,10 +142,13 @@ export default function MeetingRoom() {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
       void flushAutosave({ force: true });
+      if (isRecording) {
+        notifyPause();
+      }
       // 组件卸载时停止音频采集，避免后台占用麦克风
       stopAudioCapture();
     };
-  }, [id]);
+  }, [id, isRecording]);
 
   // 当 WebSocket 连接建立时启动音频采集
   useEffect(() => {
@@ -357,6 +363,15 @@ export default function MeetingRoom() {
     }
   };
 
+  // 发送一次 pause 给后端，确保离开时状态落盘为 paused
+  const notifyPause = () => {
+    try {
+      sendMessage({ type: 'pause' });
+    } catch {
+      // ignore
+    }
+  };
+
   // 停止录音
   const stopAudioCapture = () => {
     if (audioProcessorRef.current) {
@@ -380,6 +395,20 @@ export default function MeetingRoom() {
 
   const handleStart = async () => {
     if (!id || actionLoading) return;
+    if (meeting) {
+      if (meeting.status === 'completed') {
+        message.warning('会议已结束，不能再次开始');
+        return;
+      }
+      if (meeting.status === 'recording' || meeting.status === 'paused') {
+        message.info('会议进行中');
+        return;
+      }
+      if (meeting.status === 'processing') {
+        message.info('会议处理中，请稍后再试');
+        return;
+      }
+    }
     setActionLoading(true);
     try {
       const res = await startMeeting(id);
@@ -580,10 +609,10 @@ export default function MeetingRoom() {
             {/* 录音控制按钮 - 始终显示，绝对居中 */}
             <div className={styles.recordButtonWrapper}>
               <button
-                className={`${styles.recordButton} ${isRecording ? styles.recordButtonActive : isPaused ? styles.recordButtonPaused : ''}`}
+                className={`${styles.recordButton} ${isRecording ? styles.recordButtonActive : isPaused ? styles.recordButtonPaused : ''} ${isNonStartable ? styles.recordButtonDisabled : ''}`}
                 onClick={isRecording ? handlePause : isPaused ? handleResume : handleStart}
-                title={isRecording ? '暂停' : isPaused ? '恢复' : '开始'}
-                disabled={actionLoading}
+                title={isRecording ? '暂停' : isPaused ? '恢复' : isCompleted ? '会议已结束' : isProcessing ? '处理中' : '开始'}
+                disabled={actionLoading || isNonStartable}
               >
                 {isRecording ? (
                   <div className={styles.pauseIcon}>
@@ -675,6 +704,8 @@ export default function MeetingRoom() {
                 <Paragraph style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8' }}>
                   {meeting.minutes.summary}
                 </Paragraph>
+              ) : meeting?.status === 'paused' ? (
+                <Empty description='会议已暂停，结束后将自动生成总结' image={Empty.PRESENTED_IMAGE_SIMPLE} />
               ) : (
                 <Empty description='会议结束后将自动生成总结' image={Empty.PRESENTED_IMAGE_SIMPLE} />
               )}
@@ -690,6 +721,8 @@ export default function MeetingRoom() {
                     </li>
                   ))}
                 </ul>
+              ) : meeting?.status === 'paused' ? (
+                <Empty description='会议已暂停，结束后将自动生成重点摘要' image={Empty.PRESENTED_IMAGE_SIMPLE} />
               ) : (
                 <Empty description='会议结束后将自动生成重点摘要' image={Empty.PRESENTED_IMAGE_SIMPLE} />
               )}
@@ -714,6 +747,8 @@ export default function MeetingRoom() {
                     </li>
                   ))}
                 </ul>
+              ) : meeting?.status === 'paused' ? (
+                <Empty description='会议已暂停，结束后将自动生成待办事项' image={Empty.PRESENTED_IMAGE_SIMPLE} />
               ) : (
                 <Empty description='会议结束后将自动生成待办事项' image={Empty.PRESENTED_IMAGE_SIMPLE} />
               )}

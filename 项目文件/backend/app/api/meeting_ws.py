@@ -92,6 +92,8 @@ def _send_transcript_segment(
 # 会议 WebSocket 连接跟踪（防止多人同时进入）
 _ws_connections: dict[uuid.UUID, set[uuid.UUID]] = {}  # meeting_id -> set of user_ids
 _ws_lock = threading.Lock()
+_ws_owner_connections: dict[uuid.UUID, dict[uuid.UUID, uuid.UUID]] = {}  # meeting_id -> {user_id: connection_id}
+_ws_active_sockets: dict[uuid.UUID, dict[uuid.UUID, WebSocket]] = {}  # meeting_id -> {connection_id: websocket}
 
 # ── 句子切分（VAD 活性检测）────────────────────────────────────
 # 用 webrtcvad（纯 C，无 onnxruntime session）逐帧判断语音活性：
@@ -213,17 +215,31 @@ async def meeting_audio_ws(
             return
 
     # 检查是否已有其他用户连接（验证通过后才添加）
+    connection_id = uuid.uuid4()
     with _ws_lock:
-        if meeting_id in _ws_connections and _ws_connections[meeting_id]:
-            existing_users = _ws_connections[meeting_id]
-            if len(existing_users) > 0:
-                await websocket.send_json({
-                    "type": "error",
-                    "data": {"message": "会议中已有其他用户正在录音，无法加入"}
-                })
-                await websocket.close(code=4005, reason="Meeting already occupied")
-                return
+        other_users = set(_ws_connections.get(meeting_id, set())) - {user_id}
+        if other_users:
+            await websocket.send_json({
+                "type": "error",
+                "data": {"message": "会议中已有其他用户正在录音，无法加入"}
+            })
+            await websocket.close(code=4005, reason="Meeting already occupied")
+            return
+
+        previous_connection_id = _ws_owner_connections.get(meeting_id, {}).get(user_id)
+        if previous_connection_id and previous_connection_id != connection_id:
+            previous_ws = _ws_active_sockets.get(meeting_id, {}).get(previous_connection_id)
+            if previous_ws is not None:
+                try:
+                    await previous_ws.close(code=1000, reason="replaced_by_new_connection")
+                except Exception:
+                    pass
+                _ws_active_sockets.get(meeting_id, {}).pop(previous_connection_id, None)
+            _ws_owner_connections.get(meeting_id, {}).pop(user_id, None)
+
         _ws_connections.setdefault(meeting_id, set()).add(user_id)
+        _ws_owner_connections.setdefault(meeting_id, {})[user_id] = connection_id
+        _ws_active_sockets.setdefault(meeting_id, {})[connection_id] = websocket
 
     # 初始化音频文件
     audio_file_path = os.path.join(AUDIO_DIR, f"{meeting_id}.wav")
@@ -560,6 +576,19 @@ async def meeting_audio_ws(
                 _ws_connections[meeting_id].discard(user_id)
                 if not _ws_connections[meeting_id]:
                     del _ws_connections[meeting_id]
+
+            if meeting_id in _ws_owner_connections:
+                stored_connection_id = _ws_owner_connections[meeting_id].get(user_id)
+                if stored_connection_id == connection_id:
+                    _ws_owner_connections[meeting_id].pop(user_id, None)
+                if not _ws_owner_connections[meeting_id]:
+                    del _ws_owner_connections[meeting_id]
+
+            if meeting_id in _ws_active_sockets:
+                _ws_active_sockets[meeting_id].pop(connection_id, None)
+                if not _ws_active_sockets[meeting_id]:
+                    del _ws_active_sockets[meeting_id]
+
         try:
             await websocket.close()
         except Exception:
