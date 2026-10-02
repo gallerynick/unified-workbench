@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftOutlined, CheckCircleOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Button, Tag, Space, message, Spin, Typography, Empty, Tabs } from 'antd';
-import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord } from '../../api/meeting-records';
+import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord, autosaveMeetingRecord } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingTranscriptSegment, TranscriptSegmentData} from '../../types/meeting-record';
 import { getVisibilityConfig } from '../../utils/visibility';
 import { getToken } from '../../utils/auth';
@@ -37,6 +37,8 @@ export default function MeetingRoom() {
   const audioProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const lastTranscriptSeq = useRef(0);
+  const autosaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const autosaveInFlight = useRef(false);
 
   // 会议状态
   const isRecording = meeting?.status === 'recording';
@@ -50,8 +52,8 @@ export default function MeetingRoom() {
     connected: wsConnected, 
     segments: wsSegments,
     durationSeconds: wsDuration,
-
     error: wsError,
+    warningMessage: wsWarningMessage,
     sendMessage,
   } = useMeetingWebSocket(id, shouldConnect);
 
@@ -77,11 +79,66 @@ export default function MeetingRoom() {
     }
   };
 
+  const flushAutosave = async (opts: { force?: boolean } = {}) => {
+    if (!id || autosaveInFlight.current) return;
+    autosaveInFlight.current = true;
+    try {
+      const segments = transcript.map((seg, idx) => {
+        if ('seq' in seg) {
+          return {
+            seq: seg.seq,
+            text: seg.text,
+            audio_start_ms: seg.audio_start_ms,
+            audio_end_ms: seg.audio_end_ms,
+            speaker: seg.speaker ?? null,
+          };
+        }
+        const data = seg as TranscriptSegmentData;
+        return {
+          seq: typeof data.seq === 'number' ? data.seq : idx + 1,
+          text: data.text,
+          audio_start_ms: data.audio_start_ms,
+          audio_end_ms: data.audio_end_ms,
+          speaker: null,
+        };
+      });
+      if (!opts.force && noteContent === noteBaseline.current && segments.length === 0) {
+        return;
+      }
+      const res = await autosaveMeetingRecord(id, {
+        notes: noteContent,
+        transcript_segments: segments,
+      });
+      if (res.code === 0) {
+        noteBaseline.current = noteContent;
+        setNoteSaveState('saved');
+        setNoteSavedAt(new Date().toLocaleTimeString());
+        if (res.data) {
+          setMeeting((prev) => (prev ? { ...prev, notes: res.data!.notes ?? prev.notes } : prev));
+        }
+      }
+    } catch {
+      setNoteSaveState('failed');
+    } finally {
+      autosaveInFlight.current = false;
+    }
+  };
+
+  const scheduleAutosave = (delay = 1200) => {
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      autosaveTimer.current = null;
+      void flushAutosave();
+    }, delay);
+  };
+
   useEffect(() => {
     fetchMeeting();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+      void flushAutosave({ force: true });
       // 组件卸载时停止音频采集，避免后台占用麦克风
       stopAudioCapture();
     };
@@ -159,6 +216,7 @@ export default function MeetingRoom() {
         lastTranscriptSeq.current = wsSegments.length;
         return [...prev, ...newSegments];
       });
+      scheduleAutosave(800);
     }
   }, [wsSegments]);
 
@@ -220,6 +278,7 @@ export default function MeetingRoom() {
         setNoteSaveState('failed');
       }
     }, 2000);
+    scheduleAutosave(1500);
   };
 
   // 开始录音 - 启动麦克风采集
@@ -453,6 +512,11 @@ export default function MeetingRoom() {
           <div className={styles.panelHeader}>
             <Text strong>实时转录</Text>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {wsWarningMessage && (
+                <Tag color="blue" style={{ fontSize: 11, margin: 0 }}>
+                  {wsWarningMessage}
+                </Tag>
+              )}
               {wsError && (isRecording || isPaused) && (
                 <Tag color="red" style={{ fontSize: 11, margin: 0 }}>
                   {wsError}
@@ -598,7 +662,16 @@ export default function MeetingRoom() {
           )}
           {activeTab === 'summary' && (
             <div className={styles.editor} style={{ padding: 16, overflowY: 'auto' }}>
-              {meeting?.minutes?.summary ? (
+              {meeting?.minutes_status === 'pending' && meeting?.status === 'processing' ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <Spin />
+                  <Paragraph type='secondary' style={{ marginTop: 12 }}>
+                    会议纪要生成中，请稍候…
+                  </Paragraph>
+                </div>
+              ) : meeting?.minutes_status === 'failed' ? (
+                <Paragraph type='danger'>会议纪要生成失败，请结束会议后重试</Paragraph>
+              ) : meeting?.minutes?.summary ? (
                 <Paragraph style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8' }}>
                   {meeting.minutes.summary}
                 </Paragraph>
@@ -624,7 +697,16 @@ export default function MeetingRoom() {
           )}
           {activeTab === 'todos' && (
             <div className={styles.editor} style={{ padding: 16, overflowY: 'auto' }}>
-              {meeting?.minutes?.todos && meeting.minutes.todos.length > 0 ? (
+              {meeting?.minutes_status === 'pending' && meeting?.status === 'processing' ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <Spin />
+                  <Paragraph type='secondary' style={{ marginTop: 12 }}>
+                    待办事项生成中，请稍候…
+                  </Paragraph>
+                </div>
+              ) : meeting?.minutes_status === 'failed' ? (
+                <Paragraph type='danger'>待办事项生成失败，请结束会议后重试</Paragraph>
+              ) : meeting?.minutes?.todos && meeting.minutes.todos.length > 0 ? (
                 <ul style={{ paddingLeft: 20, lineHeight: '2' }}>
                   {meeting.minutes.todos.map((todo, i) => (
                     <li key={i} style={{ marginBottom: 8 }}>

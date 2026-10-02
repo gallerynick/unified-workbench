@@ -21,15 +21,15 @@ export interface AIProviderConfig {
 }
 
 export interface WarmupConfig {
-  auto_start: boolean;
+  ai: boolean;
+  asr: boolean;
 }
 
 export interface ASRConfig {
   mode: ServiceMode;
   local: {
+    /** SenseVoice（ONNX，自带标点与语言识别） */
     model: string;
-    punc_model: string;
-    spk_model: string;
   };
   online: {
     provider: string;
@@ -43,6 +43,8 @@ export interface ASRConfig {
     noise_reduction: number;
     vad_threshold: number;
     silence_timeout: number;
+    /** 语言白名单：只识别这些语言（zh/en/ja/ko/yue） */
+    allowed_languages?: string[];
   };
 }
 

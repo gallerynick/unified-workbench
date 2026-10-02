@@ -93,6 +93,8 @@ export interface TranscriptSegmentData {
   text: string;
   audio_start_ms: number;
   audio_end_ms: number;
+  /** 说话人标签（说话人1/2/…，未分离时为 null） */
+  speaker?: string | null;
 }
 
 export interface TranscriptSegmentMessage extends WebSocketMessage {

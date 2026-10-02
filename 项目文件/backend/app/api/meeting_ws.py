@@ -28,12 +28,19 @@ from app.services.meeting_record import get_meeting_record
 try:
     import numpy as np
 
-    from app.services.asr_engine import init_asr_model, transcribe_audio_array
+    from app.services.asr_engine import (
+        init_asr_model,
+        is_available as asr_is_available,
+        transcribe_audio_array,
+        vad_is_speech,
+    )
     ASR_AVAILABLE = True
 except ImportError as e:
     np = None
     init_asr_model = None
+    asr_is_available = lambda: False
     transcribe_audio_array = None
+    vad_is_speech = lambda frame, sr=16000: False
     ASR_AVAILABLE = False
     logger = logging.getLogger(__name__)
     logger.warning(f"ASR dependencies not available: {e}")
@@ -85,6 +92,12 @@ def _send_transcript_segment(
 # 会议 WebSocket 连接跟踪（防止多人同时进入）
 _ws_connections: dict[uuid.UUID, set[uuid.UUID]] = {}  # meeting_id -> set of user_ids
 _ws_lock = threading.Lock()
+
+# ── 句子切分（VAD 活性检测）────────────────────────────────────
+# 用 webrtcvad（纯 C，无 onnxruntime session）逐帧判断语音活性：
+# sherpa-onnx 的 Silero VAD 与 SenseVoice 各持一个 ORT session，
+# 并存会让进程内存 commit 超 Docker VM overcommit 上限被 OOM 杀掉。
+# webrtcvad 零 ORT 开销，与 SenseVoice 并存安全。
 
 router = APIRouter()
 
@@ -244,32 +257,61 @@ async def meeting_audio_ws(
         await update_audio_path()
 
     # 初始化 ASR 模型（如果可用，失败不阻断连接）
+    asr_loading = False
+    pending_audio: list[bytes] = []
+    asr_ready = asyncio.Event()
+
     if ASR_AVAILABLE:
-        try:
-            init_asr_model()
-        except Exception as e:
-            logger.error(f"Failed to init ASR model: {e}")
+        async def load_asr_model():
+            try:
+                await asyncio.to_thread(init_asr_model)
+                asr_ready.set()
+            except Exception as e:
+                logger.error(f"Failed to init ASR model: {e}")
+                await websocket.send_json({
+                    "type": "warning",
+                    "data": {"message": "语音识别模型载入失败，将仅接收音频数据"}
+                })
+
+        if asr_is_available():
+            # 模型已在内存：直接就绪，不打扰用户
+            asr_ready.set()
+        else:
+            asr_loading = True
             await websocket.send_json({
                 "type": "warning",
-                "data": {"message": "语音识别模型初始化失败，将仅接收音频数据"}
+                "data": {"message": "语音识别模型载入中，音频正在先缓存"}
             })
+            asyncio.create_task(load_asr_model())
     else:
+        asr_ready.set()
         await websocket.send_json({
             "type": "warning",
             "data": {"message": "语音识别服务不可用，将仅接收音频数据"}
         })
 
-    # 音频缓冲（用于 ASR 转录）- 参考 live_paraformer.py 实现
+    # 音频缓冲（用于 ASR 转录）
     speech_buffer: list[bytes] = []  # 语音缓冲
     has_speech = False  # 是否有语音
     silence_timer = 0.0  # 静音计时器（秒）
     is_processing = False  # 是否正在处理转录
     buffer_lock = threading.Lock()  # 缓冲锁
 
-    # 配置参数（参考 live_paraformer.py）
-    vad_threshold = 0.006  # VAD 阈值
-    silence_timeout = 1.5  # 静音超时（秒）
-    min_speech_duration = 0.3  # 最小语音时长（秒）
+    # 配置参数：从 ASR 配置读取（此前硬编码，设置页改了没效果）
+    silence_timeout = 1.5
+    min_speech_duration = 0.3
+    allowed_languages: list[str] | None = None
+    try:
+        async with factory() as cfg_db:
+            from app.services.third_party_config import get_third_party_config
+            params = (await get_third_party_config(cfg_db)).asr_config.parameters or {}
+            silence_timeout = float(params.get("silence_timeout", 1.5))
+            min_speech_duration = float(params.get("min_speech_duration", 0.3))
+            raw_langs = params.get("allowed_languages")
+            if isinstance(raw_langs, list) and raw_langs:
+                allowed_languages = [str(x).lower() for x in raw_langs]
+    except Exception:
+        pass
 
     total_duration = num_samples / SAMPLE_RATE  # 累计时长 (秒)
     segment_count = 0  # 已转录句子数
@@ -298,7 +340,7 @@ async def meeting_audio_ws(
 
             msg_type = message.get("type")
 
-            # 处理音频块 - 参考 live_paraformer.py 的 VAD 逻辑
+            # 处理音频块
             if msg_type == "audio_chunk":
                 if is_paused:
                     continue  # 暂停时不写入音频
@@ -318,90 +360,88 @@ async def meeting_audio_ws(
                     chunk_samples = len(audio_bytes) // (SAMPLE_WIDTH * CHANNELS)
                     num_samples += chunk_samples
 
+                    # 如果模型还在载入，先把音频囤积起来，待模型就绪后再识别
+                    if ASR_AVAILABLE and not asr_ready.is_set():
+                        pending_audio.append(audio_bytes)
+                        continue
+
                     # 计算时长
                     duration = chunk_samples / SAMPLE_RATE
                     total_duration += duration
 
-                    # 转换为 numpy float32 数组用于 VAD 检测
-                    if ASR_AVAILABLE and np is not None:
-                        audio_np = (
-                            np.frombuffer(audio_bytes, dtype=np.int16)
-                            .astype(np.float32)
-                            / 32768.0
-                        )
-
-                        # VAD 检测：计算 RMS
-                        rms = np.sqrt(np.mean(audio_np ** 2))
-                        is_speech = rms > vad_threshold
-
+                    # 如果模型已经就绪，先回放刚才囤积的音频，保证顺序不乱
+                    if ASR_AVAILABLE and asr_ready.is_set() and pending_audio:
                         with buffer_lock:
-                            if is_speech:
-                                # 检测到语音，添加到缓冲
-                                has_speech = True
-                                speech_buffer.append(audio_bytes)
-                                silence_timer = 0.0
-                            elif has_speech:
-                                # 有语音但当前块是静音，继续累积
-                                speech_buffer.append(audio_bytes)
-                                silence_timer += duration
+                            has_speech = True
+                            speech_buffer.extend(pending_audio)
+                            pending_audio.clear()
+                            silence_timer = 0.0
 
-                                # 静音超时且不在处理中，触发转录
-                                if silence_timer >= silence_timeout and not is_processing:
-                                    speech_audio = b"".join(speech_buffer)
-                                    denom = SAMPLE_WIDTH * CHANNELS * SAMPLE_RATE
-                                    speech_duration = len(speech_audio) // denom
-
-                                    # 检查最小语音时长
-                                    if speech_duration >= min_speech_duration:
-                                        # 启动后台转录线程
-                                        def transcribe_async():
-                                            # 三个变量都是外层协程的局部变量，必须用 nonlocal。
-                                            # 写成 global 会让 is_processing 落到模块级；
-                                            # segment_count / buffer_offset_ms 若写成 global
-                                            # 会退成本函数局部变量，首次赋值抛 UnboundLocalError
-                                            nonlocal is_processing, segment_count, buffer_offset_ms
-                                            is_processing = True
-                                            try:
-                                                segments = transcribe_audio_array(
-                                                    speech_audio, SAMPLE_RATE
-                                                )
-                                                if segments:
-                                                    for seg in segments:
-                                                        segment_count += 1
-                                                        seg_end_ms = seg.get("end_ms")
-                                                        _send_transcript_segment(
-                                                            websocket,
-                                                            loop,
-                                                            segment_count,
-                                                            seg.get("text", ""),
-                                                            int(seg.get("start_ms", 0))
-                                                            + buffer_offset_ms,
-                                                            (
-                                                                seg_end_ms + buffer_offset_ms
-                                                                if seg_end_ms is not None
-                                                                else None
-                                                            ),
-                                                        )
-
-                                                    # 更新偏移量
-                                                    last_end_ms = max(
-                                                        int(seg.get("end_ms", 0))
-                                                        for seg in segments
-                                                    )
-                                                    buffer_offset_ms += last_end_ms
-
-                                            finally:
-                                                is_processing = False
-
-                                        worker = threading.Thread(
-                                            target=transcribe_async, daemon=True
-                                        )
-                                        worker.start()
-
-                                    # 清空缓冲
-                                    speech_buffer.clear()
-                                    has_speech = False
+                    # 语音活性检测：webrtcvad 逐帧判断（20ms/帧，纯 C 无 ORT
+                    # session，与 SenseVoice 并存不会触发 VM 内存 OOM）
+                    if ASR_AVAILABLE and np is not None:
+                        frame_len = SAMPLE_RATE * 20 // 1000  # 20ms = 320 采样
+                        frame_bytes = frame_len * SAMPLE_WIDTH  # int16
+                        pos = 0
+                        while pos + frame_bytes <= len(audio_bytes):
+                            frame = audio_bytes[pos : pos + frame_bytes]
+                            is_speech = vad_is_speech(frame, SAMPLE_RATE)
+                            with buffer_lock:
+                                if is_speech:
+                                    has_speech = True
+                                    speech_buffer.append(frame)
                                     silence_timer = 0.0
+                                elif has_speech:
+                                    speech_buffer.append(frame)
+                                    silence_timer += 0.02
+                                    # 静音超时切句（无条件触发，串句修复：
+                                    # 识别期间新音频进入下一句，不再被并进上一句）
+                                    if silence_timer >= silence_timeout:
+                                        speech_audio = b"".join(speech_buffer)
+                                        denom = SAMPLE_WIDTH * CHANNELS * SAMPLE_RATE
+                                        speech_duration = len(speech_audio) // denom
+                                        speech_buffer.clear()
+                                        has_speech = False
+                                        silence_timer = 0.0
+                                        if speech_duration >= min_speech_duration:
+                                            def transcribe_async(
+                                                speech_audio=speech_audio,
+                                                speech_duration=speech_duration,
+                                            ):
+                                                # 外层协程局部变量，必须 nonlocal
+                                                nonlocal is_processing, segment_count, buffer_offset_ms
+                                                is_processing = True
+                                                try:
+                                                    segments = transcribe_audio_array(
+                                                        speech_audio,
+                                                        SAMPLE_RATE,
+                                                        allowed_languages=allowed_languages,
+                                                    )
+                                                    if segments:
+                                                        segment_duration_ms = int(
+                                                            speech_duration * 1000
+                                                        )
+                                                        for seg in segments:
+                                                            segment_count += 1
+                                                            _send_transcript_segment(
+                                                                websocket,
+                                                                loop,
+                                                                segment_count,
+                                                                seg.get("text", ""),
+                                                                buffer_offset_ms,
+                                                                buffer_offset_ms + segment_duration_ms,
+                                                            )
+                                                        buffer_offset_ms += segment_duration_ms
+                                                finally:
+                                                    is_processing = False
+
+                                            worker = threading.Thread(
+                                                target=transcribe_async, daemon=True
+                                            )
+                                            worker.start()
+                            pos += frame_bytes
+
+
 
                     # 发送状态更新
                     await websocket.send_json({

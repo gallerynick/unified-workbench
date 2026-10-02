@@ -1,6 +1,13 @@
 """ASR 语音识别引擎。
 
-封装 FunASR，提供实时转录和批量转录能力。
+基于 funasr-onnx 的 SenseVoiceSmall，纯 ONNX 推理，不依赖 torch。
+
+**时间戳不在本模块产生**：SenseVoice ONNX 只返回文本（带富文本标签），
+句子边界与时间戳由调用方（场景层，如会议模块）的 VAD 分段决定。
+本模块只回答「这段音频说了什么」。
+
+富文本标签（如 <|zh|><|NEUTRAL|><|withitn|>）在输出时剥离；
+标点由 textnorm="withitn" 内建，不再需要独立的标点模型。
 """
 
 from __future__ import annotations
@@ -8,6 +15,7 @@ from __future__ import annotations
 import glob
 import logging
 import os
+import re
 import shutil
 import threading
 from typing import Any
@@ -19,43 +27,23 @@ os.makedirs(os.environ["MODELSCOPE_CACHE"], exist_ok=True)
 
 logger = logging.getLogger(__name__)
 
-# 配置的模型名 → ModelScope 仓库 ID。
-# FunASR 的别名表在 funasr.download.name_maps_from_hub.name_maps_ms 里，
-# 这里只做「用户填写的名称」到「官方别名」的归一化，真正的别名解析交给 FunASR。
-# campplus / cam 是配置里出现过但不在官方别名表里的写法。
-ASR_ALIASES: dict[str, str] = {
-    "campplus": "cam++",
-    "cam": "cam++",
-    "cam_plus": "cam++",
+# SenseVoice 模型仓库与缓存目录。
+# 配置里填 "sensevoice" 或 "SenseVoiceSmall"，统一映射到 ONNX 仓库。
+_SENSEVOICE_REPO = "iic/SenseVoiceSmall-onnx"
+
+# 配置模型名 -> 仓库 ID。只保留实际使用的 SenseVoice ONNX。
+_MODEL_REPOS: dict[str, str] = {
+    "sensevoice": _SENSEVOICE_REPO,
+    "sensevoicesmall": _SENSEVOICE_REPO,
+    "sensevoice-onnx": _SENSEVOICE_REPO,
+    _SENSEVOICE_REPO: _SENSEVOICE_REPO,
 }
 
 
-def _modelspec_alias(name: str) -> str:
-    """把配置里填写的模型名归一化成 FunASR 认识的别名；不在别名表里则原样返回。"""
-    key = (name or "").strip().lower()
-    if not key:
-        return name
-    if key in ASR_ALIASES:
-        return ASR_ALIASES[key]
-    return ASR_ALIASES.get(key.replace(" ", ""), name)
-
-
 def _repo_id_for(name: str) -> str:
-    """解析出 ModelScope 仓库 ID。
-
-    优先查 FunASR 自带的别名表（权威来源，随 FunASR 版本演进），
-    查不到就把原值当作仓库 ID 直接使用。
-    """
-    alias = _modelspec_alias(name)
-    try:
-        from funasr.download.name_maps_from_hub import name_maps_ms
-        if alias in name_maps_ms:
-            return name_maps_ms[alias]
-        if name in name_maps_ms:
-            return name_maps_ms[name]
-    except Exception as exc:  # pragma: no cover - 仅在 FunASR 缺失时触发
-        logger.warning("无法读取 FunASR 别名表：%s", exc)
-    return alias
+    """模型名 -> ModelScope 仓库 ID。未知名称原样返回。"""
+    key = (name or "").strip().lower().replace(" ", "")
+    return _MODEL_REPOS.get(key, name or _SENSEVOICE_REPO)
 
 
 def _cache_base() -> str:
@@ -65,9 +53,14 @@ def _cache_base() -> str:
 
 
 def _model_cache_dir(name: str) -> str:
-    """某个模型在缓存里的目录（例如 models/iic--speech_seaco_...）。"""
+    """某个模型在缓存里的目录（仓库 ID 中的 / 替换为 --）。"""
     repo_id = _repo_id_for(name)
     return os.path.join(_cache_base(), repo_id.replace("/", "--"))
+
+
+def cached_model_dir_name(name: str) -> str:
+    """模型名 -> 缓存目录名。供模型清单等外部模块定位缓存目录。"""
+    return _repo_id_for(name).replace("/", "--")
 
 
 def _snapshot_dir(cache_dir: str) -> str:
@@ -92,12 +85,7 @@ def _dir_size_bytes(path: str) -> int:
 
 
 def _top_level_size_bytes(path: str) -> int:
-    """只统计目录第一层的普通文件。
-
-    展示用的体积用这个：snapshot 目录里的 example/ 和 fig/ 是官方样例数据，
-    动辄几百 MB，算进去会把 ct-punc 这种小模型报成 1GB+。
-    真正删除时才是整个目录，那个用 _dir_size_bytes。
-    """
+    """只统计目录第一层的普通文件（不含 example/ 等官方样例数据）。"""
     total = 0
     try:
         entries = os.listdir(path)
@@ -116,18 +104,16 @@ def _top_level_size_bytes(path: str) -> int:
 def _model_ready(cache_dir: str) -> bool:
     """判断模型是否已完整下载。
 
-    以 snapshot 目录里的 config.yaml 为准：四个模型的快照根目录都有它，
-    而 model.pt 在 campplus 上叫 campplus_cn_common.bin，不能作为统一判据。
+    SenseVoice ONNX 以 model_quant.onnx 存在为准。
     """
     snap = _snapshot_dir(cache_dir)
     if not snap:
         return False
-    cfg = os.path.join(snap, "config.yaml")
-    return os.path.isfile(cfg) and os.path.getsize(cfg) > 0
+    return os.path.isfile(os.path.join(snap, "model_quant.onnx"))
 
 
 def get_cached_asr_models(names: list[str] | None = None) -> dict[str, Any]:
-    """检查一组模型在 ModelScope 缓存里的状态。
+    """检查模型在缓存里的状态。
 
     返回 {"models": [{"name", "repo_id", "ready", "size_mb"}], "downloaded", "total"}。
     这是「模型管理」面板判断按钮是否可用的唯一数据源。
@@ -151,11 +137,7 @@ def get_cached_asr_models(names: list[str] | None = None) -> dict[str, Any]:
 
 
 def delete_asr_cache_models(names: list[str]) -> dict[str, Any]:
-    """删除一组模型的 ModelScope 缓存目录。
-
-    只删这几个模型自己的 snapshots 目录，不碰 credentials / .lock 等公共内容。
-    返回 {"deleted": [...], "missing": [...], "freed_mb": float}。
-    """
+    """删除一组模型的 ModelScope 缓存目录。"""
     deleted: list[str] = []
     missing: list[str] = []
     freed = 0
@@ -168,7 +150,6 @@ def delete_asr_cache_models(names: list[str]) -> dict[str, Any]:
         target = snap or cache_dir
         freed += _dir_size_bytes(target)
         shutil.rmtree(target, ignore_errors=True)
-        # 空壳目录也一并清掉
         try:
             if os.path.isdir(cache_dir) and not os.listdir(cache_dir):
                 os.rmdir(cache_dir)
@@ -178,13 +159,101 @@ def delete_asr_cache_models(names: list[str]) -> dict[str, Any]:
     return {"deleted": deleted, "missing": missing, "freed_mb": round(freed / (1024 * 1024), 1)}
 
 
+# ── 句子切分（VAD 活性检测）────────────────────────────────────────
+# 用 webrtcvad（纯 C，不创建 onnxruntime session）做语音活性判断。
+# 选择原因：sherpa-onnx 的 Silero VAD 与 SenseVoice 各自持有一个 ORT
+# session，两个 session 并存会让进程的内存 commit 超 VM overcommit 上限
+# （本机 Docker VM 8.7GB / CommitLimit 5.5GB），推理时被 OOM 杀掉。
+# webrtcvad 零 ORT 开销，与 SenseVoice 并存无此问题。
+_webrtc_vad = None
+
+
+def _get_webrtc_vad():
+    """懒加载 webrtcvad 实例（模式 2，平衡灵敏度）。"""
+    global _webrtc_vad
+    if _webrtc_vad is None:
+        import webrtcvad
+
+        _webrtc_vad = webrtcvad.Vad(2)
+    return _webrtc_vad
+
+
+def vad_is_speech(frame: bytes, sample_rate: int = 16000) -> bool:
+    """单帧（16-bit PCM mono，10/20/30ms）语音活性判断。"""
+    try:
+        return _get_webrtc_vad().is_speech(frame, sample_rate)
+    except Exception:
+        return False
+
+
+def segment_audio(
+    audio,
+    sample_rate: int = 16000,
+    silence_timeout: float = 0.6,
+    min_duration: float = 0.3,
+) -> list[tuple[int, bytes]]:
+    """整段切句：把音频切成语音句段。
+
+    Args:
+        audio: float32 单声道波形（numpy 数组）
+        sample_rate: 采样率（16000）
+        silence_timeout: 句内静音超过该秒数则切句
+        min_duration: 短于该秒数的段丢弃（噪声）
+
+    Returns:
+        [(start_ms, pcm_int16_bytes)]，按时间顺序。
+    """
+    import numpy as np
+
+    pcm = (audio * 32768).astype(np.int16)
+    frame_ms = 20
+    frame_len = sample_rate * frame_ms // 1000  # 320 samples @16k
+    segments: list[tuple[int, bytes]] = []
+
+    cur_start_ms: int | None = None
+    cur = bytearray()
+    silence = 0.0
+
+    for i in range(0, len(pcm) - frame_len + 1, frame_len):
+        frame = pcm[i : i + frame_len].tobytes()
+        start_ms = i * 1000 // sample_rate
+        if vad_is_speech(frame, sample_rate):
+            if cur_start_ms is None:
+                cur_start_ms = start_ms
+            cur.extend(frame)
+            silence = 0.0
+        elif cur_start_ms is not None:
+            cur.extend(frame)
+            silence += frame_ms / 1000
+            if silence >= silence_timeout:
+                seg_dur = len(cur) // 2 / sample_rate
+                if seg_dur >= min_duration:
+                    segments.append((cur_start_ms, bytes(cur)))
+                cur_start_ms = None
+                cur = bytearray()
+                silence = 0.0
+
+    if cur_start_ms is not None:
+        seg_dur = len(cur) // 2 / sample_rate
+        if seg_dur >= min_duration:
+            segments.append((cur_start_ms, bytes(cur)))
+
+    return segments
+
+
+def is_available() -> bool:
+    """ASR 模型是否已载入内存。"""
+    return _model_initialized and _asr_model is not None
+
+
 def shutdown_asr_model() -> None:
-    """卸载已加载的模型实例，供「重载模型」使用。下次转录会重新加载。"""
+    """卸载已加载的模型实例。下次转录会重新加载。"""
     global _asr_model, _model_initialized
     with _model_lock:
         _asr_model = None
         _model_initialized = False
         logger.info("ASR model unloaded")
+
 
 # 全局模型实例（线程安全）
 _asr_model: Any = None
@@ -192,20 +261,8 @@ _model_lock = threading.Lock()
 _model_initialized = False
 
 
-def init_asr_model(
-    asr_model: str = "paraformer-zh",
-    vad_model: str = "fsmn-vad",
-    punc_model: str = "ct-punc",
-    spk_model: str = "cam++",
-) -> None:
-    """初始化 ASR 模型（惰性加载，线程安全）。
-
-    使用 Paraformer-zh + ct-punc + CAM++ 组合：
-    - paraformer-zh: 中文语音识别主模型
-    - fsmn-vad: 语音端点检测
-    - ct-punc: 标点符号恢复
-    - cam++: 说话人嵌入/分离
-    """
+def init_asr_model(asr_model: str = "sensevoice") -> None:
+    """初始化 SenseVoice ONNX 模型（惰性加载，线程安全）。"""
     global _asr_model, _model_initialized
     if _model_initialized:
         return
@@ -214,50 +271,69 @@ def init_asr_model(
         if _model_initialized:
             return
         try:
-            from funasr import AutoModel
+            from funasr_onnx import SenseVoiceSmall
 
-            # 配置里可能填 campplus 这类不在官方别名表里的写法，先归一化，
-            # 否则 FunASR 会把它当成仓库 ID 直接去下载并失败
-            asr_model = _modelspec_alias(asr_model)
-            vad_model = _modelspec_alias(vad_model)
-            punc_model = _modelspec_alias(punc_model)
-            spk_model = _modelspec_alias(spk_model)
+            cache_dir = _model_cache_dir(asr_model)
+            snap = _snapshot_dir(cache_dir)
+            if not snap:
+                raise FileNotFoundError(
+                    f"模型缓存不完整：{cache_dir}（缺少 model_quant.onnx）"
+                )
 
-            logger.info(
-                "Loading ASR models: asr=%s, vad=%s, punc=%s, spk=%s",
-                asr_model,
-                vad_model,
-                punc_model,
-                spk_model,
-            )
-            _asr_model = AutoModel(
-                model=asr_model,
-                vad_model=vad_model,
-                punc_model=punc_model,
-                spk_model=spk_model,
-                device="cpu",
+            logger.info("Loading SenseVoice ONNX from %s", snap)
+            _asr_model = SenseVoiceSmall(
+                snap,
+                quantize=True,
+                intra_op_num_threads=2,
             )
             _model_initialized = True
             logger.info("ASR model loaded successfully")
         except Exception as e:
-            logger.error(f"Failed to load ASR model: {e}")
+            logger.error("Failed to load ASR model: %s", e)
             raise
+
+
+# 富文本标签清洗：<|zh|> 以及被意外插入空格的形态 < | zh | > 都剥掉。
+_TAG_RE = re.compile(r"<\s*\|[^>]*?\|\s*>")
+
+# SenseVoice 语言标签（含被插入空格的形态）
+_LANG_TAG_RE = re.compile(r"<\s*\|\s*(zh|en|ja|ko|yue)\s*\|\s*>", re.IGNORECASE)
+
+# 语言白名单可选项 → SenseVoice 语言参数
+SUPPORTED_LANGUAGES = ("zh", "en", "ja", "ko", "yue", "auto")
+
+
+def _clean_rich_text(text: str) -> str:
+    """剥离 SenseVoice 富文本标签（<|zh|>、<|withitn|> 等），返回纯文本。"""
+    return _TAG_RE.sub("", text).strip()
+
+
+def _detect_language(raw_text: str) -> str | None:
+    """从富文本中提取语言标签（auto 模式输出 <|zh|> 等），没有则 None。"""
+    m = _LANG_TAG_RE.search(raw_text)
+    return m.group(1).lower() if m else None
 
 
 def transcribe_audio_array(
     audio_data: bytes,
     sample_rate: int = 16000,
     channels: int = 1,
+    language: str = "auto",
+    allowed_languages: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """转录音频数据，返回带时间戳的文本段。
+    """转录音频（PCM int16），返回文本段。
 
     Args:
         audio_data: WAV PCM 原始数据（16-bit signed, mono）
-        sample_rate: 采样率
-        channels: 声道数
+        sample_rate: 采样率（应为 16000）
+        channels: 声道数（应为 1）
+        language: 语言提示，auto / zh / en / ja / ko / yue
+        allowed_languages: 语言白名单（zh/en/ja/ko/yue）。auto 检测出
+            白名单外的语言时丢弃该段；为 None 或空则不限制。
 
     Returns:
-        转录结果列表，每项包含 text, start_ms, end_ms
+        转录结果列表，每项含 text。**不含时间戳**——句子边界与时间戳
+        由调用方（场景层）的 VAD 分段决定。
     """
     global _asr_model
 
@@ -271,30 +347,24 @@ def transcribe_audio_array(
     try:
         import numpy as np
 
-        # 确保是 numpy float32 数组
         audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
 
-        # 执行转录（Paraformer-zh + ct-punc + CAM++ 使用 generate 方法）
-        result = _asr_model.generate(audio_np, batch_size_s=300)
+        # SenseVoice ONNX 推理：withitn 启用内建标点（ITN）
+        raw = _asr_model(audio_np, language=language, textnorm="withitn")
 
         segments = []
-        if result and len(result) > 0:
-            for item in result:
-                text = item.get("text", "").strip()
-                if text:
-                    segments.append({
-                        "text": text,
-                        "start_ms": int(item.get("start", 0)),
-                        "end_ms": int(item.get("end", 0)),
-                    })
+        for item in raw:
+            raw_text = str(item)
+            # 语言白名单过滤：auto 模式带语言标签，检出白名单外语言则丢弃
+            if allowed_languages:
+                detected = _detect_language(raw_text)
+                if detected and detected not in allowed_languages:
+                    continue
+            text = _clean_rich_text(raw_text)
+            if text:
+                segments.append({"text": text})
 
         return segments
-
     except Exception as e:
-        logger.error(f"ASR transcription failed: {e}")
+        logger.error("ASR transcription failed: %s", e)
         return []
-
-
-def is_available() -> bool:
-    """检查 ASR 是否可用。"""
-    return _model_initialized and _asr_model is not None
