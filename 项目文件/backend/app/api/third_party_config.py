@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from typing import Any
+
+# 保存配置时触发的后台预热任务引用（防 GC 回收协程）
+_WARMUP_SAVE_TASKS: list[asyncio.Task] = []
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,13 +53,19 @@ async def update_third_party_config_endpoint(
     data = request.model_dump(exclude_unset=True)
     config = await update_config_service(db, current_user, data)
 
-    # 开启模型自热备后，立即触发一次预热，避免用户以为开关已经生效但实际没载入
+    # 开启模型自热备后，后台触发一次预热，避免用户以为开关生效但实际没载入。
+    # 预热可能耗时（加载权重 / 等引擎就绪），不能 await——否则保存请求
+    # 会卡住（前端一直转圈），模型未加载时更甚。
     if config.warmup.ai or config.warmup.asr:
         try:
+            import asyncio
+
             from app.tasks.model_warmup import ensure_models_warm
-            await ensure_models_warm()
+
+            _task = asyncio.create_task(ensure_models_warm())
+            _WARMUP_SAVE_TASKS.append(_task)  # 保存引用防 GC
         except Exception:
-            # 不阻断配置保存；后台调度任务会继续兜底
+            # 不阻断配置保存；Celery 周期调度会继续兜底
             pass
 
     return UnifiedResponse(data=config)
