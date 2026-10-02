@@ -45,9 +45,18 @@ async def update_third_party_config_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """更新第三方服务配置"""
-    config = await update_config_service(
-        db, current_user, request.model_dump(exclude_unset=True)
-    )
+    data = request.model_dump(exclude_unset=True)
+    config = await update_config_service(db, current_user, data)
+
+    # 开启模型自热备后，立即触发一次预热，避免用户以为开关已经生效但实际没载入
+    if config.warmup.ai or config.warmup.asr:
+        try:
+            from app.tasks.model_warmup import ensure_models_warm
+            await ensure_models_warm()
+        except Exception:
+            # 不阻断配置保存；后台调度任务会继续兜底
+            pass
+
     return UnifiedResponse(data=config)
 
 
