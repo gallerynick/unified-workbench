@@ -198,6 +198,7 @@ export default function ThirdPartyConfigPage() {
   const [asrDownloadEta, setAsrDownloadEta] = useState<number | null>(null);
   const [asrDownloadDownloaded, setAsrDownloadDownloaded] = useState(0);
   const [asrDownloadTotal, setAsrDownloadTotal] = useState(0);
+  const [asrDownloadElapsed, setAsrDownloadElapsed] = useState(0);
   const [asrModelDetails, setAsrModelDetails] = useState<{ models: { name: string; repo_id: string; ready: boolean; size_mb: number }[]; downloaded: number; total: number } | null>(null);
   const [asrPreloading, setAsrPreloading] = useState(false);
   const [asrReloading, setAsrReloading] = useState(false);
@@ -708,6 +709,9 @@ export default function ThirdPartyConfigPage() {
           setAsrDownloadEta(d?.download_eta_seconds ?? null);
           setAsrDownloadDownloaded(Number(d?.download_downloaded_mb ?? 0) * 1048576);
           setAsrDownloadTotal(Number(d?.download_total_mb ?? 0) * 1048576);
+          if (typeof d?.download_elapsed_seconds === 'number') {
+            setAsrDownloadElapsed(d.download_elapsed_seconds);
+          }
         }
       } catch (err) {
         console.warn('检查 ASR 状态失败', err);
@@ -1392,9 +1396,13 @@ export default function ThirdPartyConfigPage() {
                               format={(p) => <span>{p?.toFixed(1)}%</span>}
                             />
                             <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
-                              <span>速度: {(asrDownloadSpeed / 1024 / 1024).toFixed(2)} MB/s</span>
+                              <span>下载中</span>
+                              <span style={{ marginLeft: 16 }}>速度: {(asrDownloadSpeed / 1024 / 1024).toFixed(2)} MB/s</span>
                               <span style={{ marginLeft: 16 }}>已下载: {(asrDownloadDownloaded / 1024 / 1024).toFixed(1)} MB</span>
                               <span style={{ marginLeft: 16 }}>总计: {(asrDownloadTotal / 1024 / 1024).toFixed(1)} MB</span>
+                              <span style={{ marginLeft: 16 }}>
+                                用时: {formatDuration(asrDownloadElapsed)}
+                              </span>
                               {formatEta(asrDownloadEta) && (
                                 <span style={{ marginLeft: 16, color: 'var(--color-primary)' }}>
                                   预计剩余: {formatEta(asrDownloadEta)}
@@ -1428,7 +1436,7 @@ export default function ThirdPartyConfigPage() {
                       <Switch checkedChildren="开" unCheckedChildren="关" />
                     </Form.Item>
 
-                    {asrModelDetails && asrModelDetails.total > 0 && (
+                    {asrModelDetails && asrModelDetails.total > 0 && !asrDownloading && (
                       <div style={{ marginBottom: 12 }}>
                         <Progress
                           percent={Math.round(

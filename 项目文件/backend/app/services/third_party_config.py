@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 _asr_dl_lock = threading.Lock()
 _asr_dl_state: dict[str, Any] = {
     "running": False,
+    "started_at": None,
     "total_bytes": 0,
     "downloaded_bytes": 0,
     "speed": 0.0,
@@ -655,6 +656,9 @@ def asr_download_progress() -> dict[str, Any]:
     """读取当前 ASR 下载进度（供 get_asr_model_status 返回）。"""
     with _asr_dl_lock:
         s = _asr_dl_state
+        elapsed = (
+            round(time.time() - s["started_at"]) if s["started_at"] else 0
+        )
         return {
             "downloading": s["running"],
             "download_progress": round(s["progress"], 1),
@@ -662,6 +666,7 @@ def asr_download_progress() -> dict[str, Any]:
             "download_eta_seconds": s["eta_seconds"],
             "download_downloaded_mb": round(s["downloaded_bytes"] / 1048576, 1),
             "download_total_mb": round(s["total_bytes"] / 1048576, 1),
+            "download_elapsed_seconds": elapsed,
         }
 
 
@@ -680,6 +685,7 @@ def _download_asr_models(models: list[dict[str, Any]]) -> None:
 
     with _asr_dl_lock:
         _asr_dl_state["running"] = True
+        _asr_dl_state["started_at"] = time.time()
         _asr_dl_state["total_bytes"] = 0
         _asr_dl_state["downloaded_bytes"] = 0
         _asr_dl_state["speed"] = 0.0

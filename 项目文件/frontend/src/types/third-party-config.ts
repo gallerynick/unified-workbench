@@ -131,6 +131,7 @@ export interface ASRModelStatus {
     download_eta_seconds?: number | null;
     download_downloaded_mb?: number;
     download_total_mb?: number;
+    download_elapsed_seconds?: number;
   } | null;
 }
 
