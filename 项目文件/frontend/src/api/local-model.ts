@@ -42,6 +42,8 @@ export interface DownloadStatus {
   started_at: number | null;
   /** 任务已运行秒数（服务端按 started_at 推导，避免前后端时钟偏差） */
   elapsed_seconds?: number;
+  /** 预计剩余秒数（后端按滑动窗口速度推导；速度未知时为 null） */
+  eta_seconds?: number | null;
   updated_at: number;
   error?: string;
 }
