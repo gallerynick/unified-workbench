@@ -768,6 +768,16 @@ def _ensure_sensevoice_bpe(repo_id: str) -> None:
             logger.info("已补取 SenseVoice BPE 分词文件：%s", bpe_target)
     except Exception as e:
         logger.warning("补取 SenseVoice BPE 失败：%s", e)
+    finally:
+        # 临时源只用了一次，copy 完即删，避免在模型清单里留下 torch 版孤儿缓存
+        try:
+            temp_cache = os.path.join(
+                asr_engine._cache_base(), "iic--SenseVoiceSmall"
+            )
+            if os.path.isdir(temp_cache):
+                shutil.rmtree(temp_cache, ignore_errors=True)
+        except Exception:
+            pass
 
 
 async def reload_asr_model(db: AsyncSession) -> TestConnectionResponse:
