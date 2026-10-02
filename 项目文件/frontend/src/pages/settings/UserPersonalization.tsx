@@ -22,11 +22,11 @@ const THEME_OPTIONS: { label: string; value: ThemeMode }[] = [
 ];
 
 const ZOOM_OPTIONS = [
+  { label: '80%', value: '80' },
   { label: '90%', value: '90' },
-  { label: '95%', value: '95' },
   { label: '标准 (100%)', value: '100' },
-  { label: '105%', value: '105' },
   { label: '110%', value: '110' },
+  { label: '120%', value: '120' },
 ];
 
 export default function UserPersonalization() {

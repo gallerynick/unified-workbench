@@ -280,7 +280,10 @@ export class WhipClient {
     if (!location) {
       throw new Error('WHIP 响应缺少 Location 头');
     }
-    const resolvedLocation = new URL(location, url).toString();
+    // 端点 URL 可能是相对应用 origin 的路径（如 /live/{room_id}/whip），
+    // 先归一为绝对 URL 才能作为 new URL 的 base，否则抛 "Invalid base URL"。
+    const baseUrl = new URL(url, window.location.origin).toString();
+    const resolvedLocation = new URL(location, baseUrl).toString();
 
     const answerSdp = await resp.text();
     if (!answerSdp) {

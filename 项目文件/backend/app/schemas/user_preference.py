@@ -8,8 +8,8 @@ class UserPreferenceUpdate(BaseModel):
 
     page_zoom: str = Field(
         default="100",
-        pattern=r"^(90|95|100|105|110)$",
-        description="页面缩放比例：90=90%, 95=95%, 100=标准, 105=105%, 110=110%",
+        pattern=r"^(80|90|100|110|120)$",
+        description="页面缩放比例：80=80%, 90=90%, 100=标准, 110=110%, 120=120%",
     )
     theme_mode: str = Field(
         default="system",
