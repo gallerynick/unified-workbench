@@ -309,6 +309,8 @@ export function useStatusProbes(options: {
   const storageBadCountRef = useRef(0);
   const streamBadCountRef = useRef(0);
   const tasksBadCountRef = useRef(0);
+  // D2 时钟偏差抖动抑制：机器校时/跳变瞬间的单轮偏差不误报（与 C 系列同语义）
+  const clockSkewRef = useRef(0);
   // A3 断开累计时长
   const wsDownMsRef = useRef(0);
   // 供 1s tick 读最新连接状态；直接依赖 wsConnected 会让 effect 重启、计数清零
@@ -367,7 +369,9 @@ export function useStatusProbes(options: {
 
     if (health.serverTime !== null) {
       const skew = Math.abs(Date.now() - health.serverTime);
-      if (skew > CLOCK_SKEW_MS) {
+      // 连续 2 轮确认才提示：机器校时/时钟跳变瞬间的单轮偏差（60s 内自愈）不误报；
+      // 真实时钟错误会持续多轮，仍会提示，只是晚报约一个巡检周期。
+      if (flapGate(clockSkewRef, skew > CLOCK_SKEW_MS)) {
         out.push({ id: 'd2-clock', level: WARNING, text: '本机时间偏差超过 5 分钟' });
       }
     }
