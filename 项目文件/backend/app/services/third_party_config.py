@@ -16,12 +16,17 @@ from app.schemas.third_party_config import (
     ThirdPartyConfig,
     WarmupConfig,
 )
+from app.services import llama_cpp
+from app.services.llama_cpp import (
+    DEFAULT_MODEL as LOCAL_AI_MODEL,
+    OPENAI_BASE_URL as LOCAL_AI_BASE_URL,
+)
 
 DEFAULT_AI_CONFIG = {
     "mode": "local",
     "local": {
-        "base_url": "http://ollama:11434/v1",
-        "model": "qwen2.5:3b",
+        "base_url": LOCAL_AI_BASE_URL,
+        "model": LOCAL_AI_MODEL,
     },
     "online": {
         "base_url": "https://api.openai.com/v1",
@@ -36,15 +41,14 @@ DEFAULT_AI_CONFIG = {
 }
 
 DEFAULT_WARMUP_CONFIG = {
-    "auto_start": False,
+    "ai": False,
+    "asr": False,
 }
 
 DEFAULT_ASR_CONFIG = {
     "mode": "local",
     "local": {
-        "model": "paraformer-zh",
-        "punc_model": "ct-punc",
-        "spk_model": "campplus",
+        "model": "sensevoice",
     },
     "online": {
         "provider": "openai",
@@ -58,6 +62,9 @@ DEFAULT_ASR_CONFIG = {
         "noise_reduction": 0.8,
         "vad_threshold": 0.006,
         "silence_timeout": 1.5,
+        # 语言白名单：只允许识别这些语言（zh/en/ja/ko/yue），
+        # 白名单外的语言（auto 检出）会被丢弃
+        "allowed_languages": ["zh"],
     },
 }
 
@@ -158,30 +165,30 @@ async def test_ai_connection(db: AsyncSession) -> TestConnectionResponse:
     config = await get_third_party_config(db)
 
     if config.ai_provider.mode == "local":
-        # 测试本地 Ollama 服务
-        import httpx
+        # 测试本地 llama.cpp 服务
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get("http://ollama:11434/api/tags")
-                if response.status_code == 200:
-                    models = response.json().get("models", [])
-                    model_name = config.ai_provider.local.get("model", "qwen2.5:3b")
-                    model_found = any(m.get("name") == model_name for m in models)
-                    return TestConnectionResponse(
-                        success=model_found,
-                        message="本地 AI 服务配置正常" if model_found else f"模型 {model_name} 未下载",
-                        details={"model": model_name, "model_count": len(models)},
-                    )
-                else:
-                    return TestConnectionResponse(
-                        success=False,
-                        message="Ollama 服务不可用",
-                        details={"status_code": response.status_code},
-                    )
+            models = await llama_cpp.list_models(timeout=5.0)
+            model_name = config.ai_provider.local.get("model") or llama_cpp.DEFAULT_MODEL
+            entry = next((m for m in models if m.get("id") == model_name), None)
+            if entry is None:
+                return TestConnectionResponse(
+                    success=False,
+                    message=f"模型 {model_name} 未下载",
+                    details={"model": model_name, "model_count": len(models)},
+                )
+            return TestConnectionResponse(
+                success=True,
+                message="本地 AI 服务配置正常",
+                details={
+                    "model": model_name,
+                    "model_count": len(models),
+                    "status": llama_cpp.status_value(entry),
+                },
+            )
         except Exception as e:
             return TestConnectionResponse(
                 success=False,
-                message=f"Ollama 服务连接失败：{str(e)}",
+                message=f"本地 AI 服务连接失败：{str(e)}",
             )
     else:
         # 测试在线 API
@@ -281,11 +288,8 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
     if ai_config.mode == "local":
         # 智能内存调度：测速需要加载模型，先检查内存是否足够
         if measure_speed:
-            model_name = ai_config.local.get("model", "qwen2.5:3b")
-            # qwen2.5:1.5b ~1GB, 3b ~1.9GB, 7b ~4.4GB
-            # qwen2.5:1.5b ~1GB, 3b ~1.9GB, 7b ~4.4GB, qwen3:1.7b ~1.2GB, qwen3.5:4b ~3GB
-            est_mb = {"qwen2.5:1.5b": 1200, "qwen2.5:3b": 2200, "qwen2.5:7b": 4700,
-                      "qwen3:1.7b": 1400, "qwen3.5:4b": 3000}.get(model_name, 2200)
+            model_name = ai_config.local.get("model") or llama_cpp.DEFAULT_MODEL
+            est_mb = llama_cpp.estimate_model_mb(model_name)
             mem_result = await prepare_memory_for_model(est_mb, "AI 测速")
             if mem_result["action"] == "insufficient":
                 return TestConnectionResponse(
@@ -299,122 +303,105 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
         
         import httpx
         try:
-            # 超时给足 3 分钟：冷启动要先加载权重，qwen3.5:4b 光加载就 5 秒左右
-            async with httpx.AsyncClient(timeout=180.0) as client:
-                # 检查模型是否已下载
-                response = await client.get("http://ollama:11434/api/tags")
-                if response.status_code != 200:
-                    return TestConnectionResponse(
-                        success=False,
-                        message=f"Ollama 服务响应异常（HTTP {response.status_code}）",
-                        details={"status_code": response.status_code},
-                    )
-                
-                models = response.json().get("models", [])
-                model_name = ai_config.local.get("model", "qwen2.5:3b")
-                model_found = any(m.get("name") == model_name for m in models)
-                
-                if not model_found:
-                    return TestConnectionResponse(
-                        success=False,
-                        message=f"模型 {model_name} 未下载",
-                    )
-                
-                # 测速模式：发送生成请求并测量 tokens/s
-                if measure_speed:
-                    import time
+            models = await llama_cpp.list_models(timeout=10.0)
+            model_name = ai_config.local.get("model") or llama_cpp.DEFAULT_MODEL
+            if not any(m.get("id") == model_name for m in models):
+                return TestConnectionResponse(
+                    success=False,
+                    message=f"模型 {model_name} 未下载",
+                )
 
-                    start_time = time.time()
+            # 测速模式：发一次生成请求，读取 llama.cpp 返回的 timings
+            if measure_speed:
+                import time
+
+                start_time = time.time()
+                async with httpx.AsyncClient(timeout=300.0) as client:
                     generate_response = await client.post(
-                        "http://ollama:11434/api/generate",
+                        f"{LOCAL_AI_BASE_URL}/chat/completions",
                         json={
                             "model": model_name,
-                            "prompt": test_prompt,
+                            "messages": [{"role": "user", "content": test_prompt}],
                             "stream": False,
-                            "options": {
-                                "temperature": ai_config.parameters.get("temperature", 0.2),
-                                # 200 个 token 才够测出稳定速率；100 个太短，
-                                # 单次抖动就能让数字差出几十个百分点
-                                "num_predict": 200
-                            },
+                            "temperature": ai_config.parameters.get("temperature", 0.2),
+                            # 200 个 token 才够测出稳定速率；太短单次抖动就很大
+                            "max_tokens": 200,
                         },
-                        timeout=180.0,
                     )
-                    total_time = time.time() - start_time
+                total_time = time.time() - start_time
 
-                    if generate_response.status_code != 200:
-                        # ollama 会把错误原因写在响应体里，一定要读出来，
-                        # 否则只会得到一句「生成请求失败：500」这种无从下手的信息
-                        detail = ""
-                        try:
-                            detail = generate_response.json().get("error", "")
-                        except Exception:
-                            detail = generate_response.text[:300]
-                        low = (detail or "").lower()
-                        if "killed" in low or "out of memory" in low:
-                            message = (
-                                "模型加载失败（进程被系统杀掉，通常是内存不足）："
-                                f"{detail or 'signal: killed'}"
-                            )
-                        else:
-                            message = f"生成请求失败：{detail or generate_response.status_code}"
-                        return TestConnectionResponse(success=False, message=message)
-
-                    result = generate_response.json()
-                    eval_count = result.get("eval_count", 0)
-                    eval_duration = result.get("eval_duration", 0) or 0
-                    # 纯生成速率 = 只算解码时间，不含加载和 prompt 前向。
-                    # 旧算法是 (prompt_eval_count + eval_count) / 总墙钟时间，
-                    # 把权重加载时间和 prompt 前向也算进去，实测会比真实生成速率低一半
-                    tokens_per_second = (
-                        eval_count / (eval_duration / 1e9) if eval_duration > 0 else 0
-                    )
-                    load_seconds = (result.get("load_duration") or 0) / 1e9
-                    prompt_rate = (
-                        result.get("prompt_eval_count", 0)
-                        / ((result.get("prompt_eval_duration") or 1) / 1e9)
-                    ) if result.get("prompt_eval_duration") else 0
-                    visible = len(result.get("response") or "")
-                    thinking = len(result.get("thinking") or "")
-
-                    if eval_count == 0:
-                        return TestConnectionResponse(
-                            success=False,
-                            message="模型未产生任何 token，请检查模型是否正常",
+                if generate_response.status_code != 200:
+                    # 失败原因在 error.message 里，要读出来，
+                    # 否则只会得到「生成请求失败：500」这种无从下手的信息
+                    detail = ""
+                    try:
+                        detail = (generate_response.json().get("error") or {}).get("message", "")
+                    except Exception:
+                        detail = generate_response.text[:300]
+                    low = (detail or "").lower()
+                    if "killed" in low or "out of memory" in low or "failed to load" in low:
+                        message = (
+                            "模型加载失败（进程被系统杀掉，通常是内存不足）："
+                            f"{detail or 'signal: killed'}"
                         )
+                    else:
+                        message = f"生成请求失败：{detail or generate_response.status_code}"
+                    return TestConnectionResponse(success=False, message=message)
 
-                    msg = f"测速完成：{tokens_per_second:.1f} tokens/s"
-                    if 'mem_msg' in dir() and mem_msg:
-                        msg += f"（{mem_msg}）"
+                result = generate_response.json()
+                timings = result.get("timings") or {}
+                usage = result.get("usage") or {}
+                choice = (result.get("choices") or [{}])[0]
+
+                eval_count = timings.get("predicted_n") or usage.get("completion_tokens", 0)
+                # llama.cpp 的 timings 直接给速率，不必再自己拿 token 数除以耗时
+                tokens_per_second = timings.get("predicted_per_second") or 0.0
+                prompt_rate = timings.get("prompt_per_second") or 0.0
+                visible = len((choice.get("message") or {}).get("content") or "")
+
+                if eval_count == 0:
                     return TestConnectionResponse(
-                        success=True,
-                        message=msg,
-                        details={
-                            "model": model_name,
-                            "tokens_per_second": round(tokens_per_second, 2),
-                            "total_tokens": eval_count,
-                            "total_latency_ms": int(total_time * 1000),
-                            # 额外指标，前端和日志用得上
-                            "eval_count": eval_count,
-                            "prompt_eval_count": result.get("prompt_eval_count", 0),
-                            "prompt_tokens_per_second": round(prompt_rate, 2),
-                            "load_seconds": round(load_seconds, 2),
-                            "done_reason": result.get("done_reason"),
-                            "response_chars": visible,
-                            "thinking_chars": thinking,
-                        },
+                        success=False,
+                        message="模型未产生任何 token，请检查模型是否正常",
                     )
-                
-                # 普通连接测试
+
+                msg = f"测速完成：{tokens_per_second:.1f} tokens/s"
+                if mem_result.get("action") == "unloaded":
+                    msg += f"（{mem_result['message']}）"
                 return TestConnectionResponse(
                     success=True,
-                    message="本地 AI 服务配置正常",
-                    details={"model": model_name, "model_count": len(models)},
+                    message=msg,
+                    details={
+                        "model": model_name,
+                        "tokens_per_second": round(tokens_per_second, 2),
+                        "total_tokens": eval_count,
+                        "total_latency_ms": int(total_time * 1000),
+                        # 额外指标，前端和日志用得上
+                        "eval_count": eval_count,
+                        "prompt_eval_count": timings.get("prompt_n", 0),
+                        "prompt_tokens_per_second": round(prompt_rate, 2),
+                        "done_reason": choice.get("finish_reason"),
+                        "response_chars": visible,
+                    },
                 )
+
+            # 非测速路径 = 前端的「载入模型」按钮。
+            # 必须真的把模型载入内存：旧实现靠发一次生成请求隐式触发加载，
+            # 只校验文件存在会让按钮显示成功而模型其实没进内存。
+            await llama_cpp.load_model(model_name)
+            return TestConnectionResponse(
+                success=True,
+                message="模型已载入",
+                details={
+                    "model": model_name,
+                    "model_count": len(models),
+                    "loaded": True,
+                },
+            )
         except Exception as e:
             return TestConnectionResponse(
                 success=False,
-                message=f"Ollama 服务连接失败：{str(e)}",
+                message=f"本地 AI 服务连接失败：{str(e)}",
             )
     else:
         base_url = ai_config.online.get("base_url", "")
@@ -455,20 +442,20 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
 
 
 def _local_asr_model_names(config: ThirdPartyConfig) -> list[str]:
-    """本地 ASR 需要缓存的全部模型：主模型 + VAD + 标点 + 声纹。"""
+    """本地 ASR 需要缓存的模型。
+
+    换 SenseVoice 后只需主模型（ONNX 自带标点与语言识别）；
+    VAD 由场景层（会议模块）负责，说话人分离走 sherpa-onnx 独立目录，
+    两者都不再占用 ModelScope 缓存槽位。
+    """
     local = config.asr_config.local or {}
-    return [
-        local.get("model", "paraformer-zh"),
-        "fsmn-vad",
-        local.get("punc_model", "ct-punc"),
-        local.get("spk_model", "cam++"),
-    ]
+    return [local.get("model") or "sensevoice"]
 
 
 async def _test_local_asr(asr_config: ASRConfig) -> TestConnectionResponse:
     """真的加载模型并跑一段音频，而不是只回一句「配置正常」。
 
-    ASR 引擎是同步阻塞的（PyTorch 推理 + 模型加载），直接 await 会卡死
+    ASR 引擎是同步阻塞的（ONNX 推理 + 模型加载），直接 await 会卡死
     asyncio 事件循环，导致 WebSocket 心跳和并发请求全部挂起。用 to_thread
     丢到线程池执行，主事件循环保持空闲。
     """
@@ -478,8 +465,8 @@ async def _test_local_asr(asr_config: ASRConfig) -> TestConnectionResponse:
 
     local = asr_config.local or {}
 
-    # 智能内存调度：ASR 模型约 2.1 GB，先检查内存是否足够
-    mem_result = await prepare_memory_for_model(2500, "ASR 测试")
+    # 智能内存调度：SenseVoice ONNX 量化版常驻约 500 MB
+    mem_result = await prepare_memory_for_model(500, "ASR 测试")
     if mem_result["action"] == "insufficient":
         return TestConnectionResponse(
             success=False,
@@ -491,10 +478,7 @@ async def _test_local_asr(asr_config: ASRConfig) -> TestConnectionResponse:
     try:
         await asyncio.to_thread(
             asr_engine.init_asr_model,
-            asr_model=local.get("model", "paraformer-zh"),
-            vad_model="fsmn-vad",
-            punc_model=local.get("punc_model", "ct-punc"),
-            spk_model=local.get("spk_model", "cam++"),
+            local.get("model") or "sensevoice",
         )
     except Exception as e:
         return TestConnectionResponse(success=False, message=f"ASR 模型加载失败：{e}")
@@ -572,6 +556,8 @@ async def preload_asr_models(db: AsyncSession) -> TestConnectionResponse:
     首次下载约 300 MB 权重，耗时可能几分钟，所以在后台线程里跑，
     接口立即返回；进度通过 /asr/status 轮询查看。
     """
+    import asyncio
+
     from app.services import asr_engine
 
     config = await get_third_party_config(db)
@@ -580,35 +566,29 @@ async def preload_asr_models(db: AsyncSession) -> TestConnectionResponse:
 
     local = config.asr_config.local or {}
     cached = asr_engine.get_cached_asr_models(_local_asr_model_names(config))
-    if cached["downloaded"] == cached["total"]:
-        if not asr_engine.is_available():
-            asr_engine.init_asr_model(
-                asr_model=local.get("model", "paraformer-zh"),
-                vad_model="fsmn-vad",
-                punc_model=local.get("punc_model", "ct-punc"),
-                spk_model=local.get("spk_model", "cam++"),
-            )
+
+    if asr_engine.is_available():
         return TestConnectionResponse(
             success=True,
             message="ASR 模型已就绪",
-            details={"downloaded": cached["downloaded"], "total": cached["total"], "loaded": asr_engine.is_available()},
+            details={"downloaded": cached["downloaded"], "total": cached["total"], "loaded": True},
         )
 
-    import threading
+    async def _load_in_background() -> None:
+        try:
+            await asyncio.to_thread(
+                asr_engine.init_asr_model,
+                local.get("model") or "sensevoice",
+            )
+        except Exception as e:
+            logger.warning("ASR 模型后台加载失败：%s", e)
 
-    def _run() -> None:
-        asr_engine.init_asr_model(
-            asr_model=local.get("model", "paraformer-zh"),
-            vad_model="fsmn-vad",
-            punc_model=local.get("punc_model", "ct-punc"),
-            spk_model=local.get("spk_model", "cam++"),
-        )
+    task = asyncio.create_task(_load_in_background())
 
-    threading.Thread(target=_run, name="asr-preload", daemon=True).start()
     return TestConnectionResponse(
         success=True,
-        message="模型下载已开始，请稍后刷新查看进度",
-        details={"downloaded": cached["downloaded"], "total": cached["total"]},
+        message="ASR 模型载入已开始",
+        details={"downloaded": cached["downloaded"], "total": cached["total"], "loaded": False, "loading": True},
     )
 
 
@@ -626,12 +606,7 @@ async def reload_asr_model(db: AsyncSession) -> TestConnectionResponse:
     local = config.asr_config.local or {}
     try:
         asr_engine.shutdown_asr_model()
-        asr_engine.init_asr_model(
-            asr_model=local.get("model", "paraformer-zh"),
-            vad_model="fsmn-vad",
-            punc_model=local.get("punc_model", "ct-punc"),
-            spk_model=local.get("spk_model", "cam++"),
-        )
+        asr_engine.init_asr_model(local.get("model") or "sensevoice")
     except Exception as e:
         return TestConnectionResponse(success=False, message=f"重载失败：{e}")
 
@@ -695,9 +670,13 @@ async def get_asr_model_status(db: AsyncSession) -> dict:
 
     done = cached["downloaded"]
     total = cached["total"]
-    if done == total:
-        status = "downloaded"
+    loaded = asr_engine.is_available()
+    if done == total and loaded:
+        status = "ready"
         message = f"ASR 模型已就绪（{done}/{total}）"
+    elif done == total:
+        status = "downloaded"
+        message = f"ASR 模型已下载（{done}/{total}）"
     elif done > 0:
         status = "partial"
         message = f"ASR 模型部分就绪（{done}/{total}）"
@@ -712,7 +691,7 @@ async def get_asr_model_status(db: AsyncSession) -> dict:
             "models": cached["models"],
             "downloaded": done,
             "total": total,
-            "loaded": asr_engine.is_available(),
+            "loaded": loaded,
         },
     }
 
@@ -730,14 +709,8 @@ async def warmup_ai_model(db: AsyncSession | None = None) -> TestConnectionRespo
         return TestConnectionResponse(success=False, message="在线模式无需预热")
 
     local = config.ai_provider.local or {}
-    model_name = local.get("model") or "qwen2.5:3b"
-    est_mb = {
-        "qwen2.5:1.5b": 1200,
-        "qwen2.5:3b": 2200,
-        "qwen2.5:7b": 4700,
-        "qwen3:1.7b": 1400,
-        "qwen3.5:4b": 3000,
-    }.get(model_name, 2200)
+    model_name = local.get("model") or llama_cpp.DEFAULT_MODEL
+    est_mb = llama_cpp.estimate_model_mb(model_name)
 
     mem_result = await prepare_memory_for_model(est_mb, "AI 自启动预热")
     if mem_result["action"] == "insufficient":
@@ -747,44 +720,41 @@ async def warmup_ai_model(db: AsyncSession | None = None) -> TestConnectionRespo
             details={"available_mb": mem_result["available_mb"]},
         )
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            tags = await client.get("http://ollama:11434/api/tags")
-            if tags.status_code != 200:
-                return TestConnectionResponse(
-                    success=False,
-                    message=f"Ollama 服务响应异常（HTTP {tags.status_code}）",
-                )
-            models = tags.json().get("models", [])
-            if not any(m.get("name") == model_name for m in models):
-                return TestConnectionResponse(
-                    success=False,
-                    message=f"模型 {model_name} 未下载",
-                )
+    try:
+        entries = await llama_cpp.list_models(timeout=10.0)
+        if not any(m.get("id") == model_name for m in entries):
+            return TestConnectionResponse(
+                success=False,
+                message=f"模型 {model_name} 未下载",
+            )
 
+        # 预热 = 显式载入 + 跑几次极短生成，把权重与 KV cache 路径走热。
+        # 用 /models/load 而不是靠发请求隐式触发，载入失败时能拿到明确错误。
+        await llama_cpp.load_model(model_name)
+
+        async with httpx.AsyncClient(timeout=180.0) as client:
             for _ in range(3):
                 resp = await client.post(
-                    "http://ollama:11434/api/generate",
+                    f"{LOCAL_AI_BASE_URL}/chat/completions",
                     json={
                         "model": model_name,
-                        "prompt": "Hi",
+                        "messages": [{"role": "user", "content": "Hi"}],
                         "stream": False,
-                        "options": {"num_predict": 2},
+                        "max_tokens": 2,
                     },
-                    timeout=180.0,
                 )
                 if resp.status_code != 200:
                     detail = ""
                     try:
-                        detail = resp.json().get("error", "")
+                        detail = (resp.json().get("error") or {}).get("message", "")
                     except Exception:
                         detail = resp.text[:200]
                     return TestConnectionResponse(
                         success=False,
                         message=f"模型预热失败：{detail or resp.status_code}",
                     )
-        except Exception as e:
-            return TestConnectionResponse(success=False, message=f"模型预热失败：{e}")
+    except Exception as e:
+        return TestConnectionResponse(success=False, message=f"模型预热失败：{e}")
 
     return TestConnectionResponse(
         success=True,
@@ -794,12 +764,12 @@ async def warmup_ai_model(db: AsyncSession | None = None) -> TestConnectionRespo
 
 
 async def auto_start_ai_warmup(db: AsyncSession) -> TestConnectionResponse:
-    """自启动预热入口：只在本地模式且开启全局开关时执行。"""
+    """自启动预热入口：只在本地模式且开启模型自热备时执行。"""
     config = await get_third_party_config(db)
     if config.ai_provider.mode != "local":
-        return TestConnectionResponse(success=False, message="在线模式无需自启动预热")
-    if not config.warmup.auto_start:
-        return TestConnectionResponse(success=False, message="未开启自启动预热")
+        return TestConnectionResponse(success=False, message="在线模式无需模型自热备")
+    if not config.warmup.ai:
+        return TestConnectionResponse(success=False, message="未开启模型自热备")
     return await warmup_ai_model(db)
 
 
@@ -843,38 +813,33 @@ async def get_memory_info() -> dict[str, Any]:
 
         # 检查 ASR 是否已加载
         asr_loaded = asr_engine.is_available()
+
+        # 如果缓存已经齐了，即使进程内还没初始化，也不要立刻报“可能无法加载”
+        try:
+            cached = asr_engine.get_cached_asr_models(_local_asr_model_names(config))
+            if not asr_loaded and cached["downloaded"] == cached["total"]:
+                asr_loaded = True
+        except Exception:
+            pass
+
         info["asr_loaded"] = asr_loaded
 
-        # 检查 AI 模型是否已加载（通过 Ollama API）
+        # 检查 AI 模型是否已载入内存（llama.cpp 的 /models 状态）
         try:
-            import httpx
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get("http://ollama:11434/api/ps")
-                if resp.status_code == 200:
-                    running = resp.json().get("models", [])
-                    if running:
-                        info["ai_loaded"] = True
-                        info["ai_model_name"] = running[0].get("name", "")
+            for entry in await llama_cpp.list_models(timeout=5.0):
+                if llama_cpp.status_value(entry) == "loaded":
+                    info["ai_loaded"] = True
+                    info["ai_model_name"] = entry.get("id", "")
+                    break
         except Exception:
             pass
 
         # 计算已加载模型占用的内存
         loaded_mb = 0
         if asr_loaded:
-            loaded_mb += 2100  # ASR 模型约 2.1 GB
+            loaded_mb += 500  # SenseVoice ONNX 量化版约 500 MB
         if info["ai_loaded"]:
-            model_name = info.get("ai_model_name", "")
-            model_sizes = {
-                "qwen2.5:1.5b": 1200, "qwen2.5:3b": 2200, "qwen2.5:7b": 4700,
-                "qwen3:1.7b": 1400, "qwen3.5:4b": 3000,
-            }
-            # 尝试匹配模型大小
-            for key, size in model_sizes.items():
-                if key in model_name:
-                    loaded_mb += size
-                    break
-            else:
-                loaded_mb += 2200  # 默认估算
+            loaded_mb += llama_cpp.estimate_model_mb(info.get("ai_model_name"))
         info["loaded_mb"] = loaded_mb
 
         # 系统开销（backend, postgres, redis, celery 等）
@@ -914,7 +879,7 @@ async def prepare_memory_for_model(
 ) -> dict[str, Any]:
     """智能内存调度：检查可用内存是否足够，不足时自动卸载 ASR 模型腾空间。
 
-    如果 AI 模型正在运行，不会尝试卸载（Ollama 管理生命周期）。
+    如果 AI 模型正在运行，不会尝试卸载（AI 侧有独立的空闲自动卸载策略）。
     如果 ASR 已加载且内存不足，会卸载 ASR 释放空间。
 
     Args:
@@ -1011,34 +976,17 @@ async def unload_asr_model() -> TestConnectionResponse:
 
 
 async def unload_ai_model(model_name: str | None = None) -> TestConnectionResponse:
-    """卸载已加载的 AI 模型（Ollama），释放内存。
+    """卸载已载入的 AI 模型，释放内存。
 
-    Ollama 的 keep_alive: 0 告诉它在请求完成后立即卸载模型。
-    如果模型未加载，请求会先加载再卸载（等于空操作）。
+    走 llama.cpp 的显式卸载接口。旧实现是发一个 keep_alive=0 的生成请求
+    来达到同一目的（副作用式），实测卸载后推理进程内存回落到十几 MB。
     """
-    import httpx
-
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                "http://ollama:11434/api/generate",
-                json={
-                    "model": model_name or "qwen2.5:3b",
-                    "prompt": "",
-                    "keep_alive": 0,
-                },
-            )
-            if response.status_code == 200:
-                return TestConnectionResponse(
-                    success=True,
-                    message="AI 模型已卸载，内存已释放",
-                )
-            else:
-                detail = response.text[:200]
-                return TestConnectionResponse(
-                    success=False,
-                    message=f"卸载失败：HTTP {response.status_code} {detail}",
-                )
+        await llama_cpp.unload_model(model_name or llama_cpp.DEFAULT_MODEL)
+        return TestConnectionResponse(
+            success=True,
+            message="AI 模型已卸载，内存已释放",
+        )
     except Exception as e:
         return TestConnectionResponse(
             success=False,

@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 
 from app.schemas.third_party_config import AIProviderConfig
+from app.services.llama_cpp import DEFAULT_MODEL as LOCAL_AI_MODEL, OPENAI_BASE_URL as LOCAL_AI_BASE_URL
 
 MINUTES_PROMPT = """请根据以下会议转录内容生成会议纪要，以 JSON 格式输出。
 
@@ -33,8 +34,8 @@ async def generate_minutes(transcript: str, meeting_id: uuid.UUID) -> dict[str, 
     config = {
         "mode": "local",
         "local": {
-            "base_url": "http://ollama:11434/v1",
-            "model": "qwen2.5:3b",
+            "base_url": LOCAL_AI_BASE_URL,
+            "model": LOCAL_AI_MODEL,
         },
         "online": {
             "base_url": "https://api.openai.com/v1",
@@ -56,8 +57,8 @@ async def _call_ai(config: dict[str, Any], transcript: str) -> dict[str, Any]:
     mode = config.get("mode", "local")
     
     if mode == "local":
-        base_url = config["local"].get("base_url", "http://ollama:11434/v1")
-        model = config["local"].get("model", "qwen2.5:3b")
+        base_url = config["local"].get("base_url", LOCAL_AI_BASE_URL)
+        model = config["local"].get("model", LOCAL_AI_MODEL)
         api_key = None
     else:
         base_url = config["online"].get("base_url", "https://api.openai.com/v1")
