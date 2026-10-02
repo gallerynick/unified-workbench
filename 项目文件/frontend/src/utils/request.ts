@@ -121,13 +121,19 @@ export async function request<T>(
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+    let parsed: any = null;
+    try {
+      const text = await response.text();
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = null;
+    }
     // FastAPI 422 验证错误返回 { detail: [{ msg: "...", loc: [...], type: "..." }] }
-    const msg = Array.isArray(error.detail)
-      ? error.detail.map((e: { msg: string; loc?: string[] }) =>
+    const msg = parsed && Array.isArray(parsed.detail)
+      ? parsed.detail.map((e: { msg: string; loc?: string[] }) =>
           e.loc ? `${e.loc.join('.')}: ${e.msg}` : e.msg
         ).join('; ')
-      : (error.detail || error.msg || `HTTP ${response.status}`);
+      : (parsed && (parsed.detail || parsed.msg)) || `HTTP ${response.status}`;
     throw new HttpError(msg, response.status);
   }
 

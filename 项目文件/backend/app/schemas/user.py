@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from sqlalchemy import inspect
 
 from app.models.user import UserRole, UserStatus
 
@@ -39,10 +40,19 @@ class UserResponse(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def handle_lazy_tags(cls, data):
-        """处理惰性加载的 tags 关系。"""
+        """处理未预加载的 tags 关系。
+
+        关键：先检查 loaded 状态，而不是直接访问 data.tags。在 async SQLAlchemy 下，
+        对未加载关系的访问会触发惰性加载（greenlet_spawn 错误），并把当前 session
+        事务置为 rollback-pending，随后所有字段的取值都会抛 PendingRollbackError
+        （表现为 10 连 validation error）。正确做法是未加载时直接把 tags 置空。
+        """
         if hasattr(data, "__dict__"):
             try:
-                _ = data.tags
+                state = inspect(data)
+                if "tags" in state.mapper.relationships:
+                    if not state.attrs["tags"].loaded:
+                        data.__dict__["tags"] = []
             except Exception:
                 data.__dict__["tags"] = []
         return data

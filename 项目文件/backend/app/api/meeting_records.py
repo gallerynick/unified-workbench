@@ -17,6 +17,7 @@ from app.core.security import decode_token
 from app.models.user import User
 from app.schemas.common import UnifiedResponse
 from app.schemas.meeting_record import (
+    MeetingAutosaveRequest,
     MeetingMinutesResponse,
     MeetingRecordCreate,
     MeetingRecordListResponse,
@@ -25,6 +26,7 @@ from app.schemas.meeting_record import (
     MeetingTranscriptSegmentResponse,
 )
 from app.services.meeting_record import (
+    autosave_meeting_record,
     create_meeting_record,
     delete_meeting_record,
     end_meeting_record,
@@ -129,6 +131,26 @@ async def update_meeting_endpoint(
     """更新会议（标题、可见性）"""
     item = await update_meeting_record(
         db, meeting_id, current_user, request.model_dump(exclude_unset=True)
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="会议不存在")
+    return UnifiedResponse(data=MeetingRecordResponse.model_validate(item))
+
+
+@router.post("/{meeting_id}/autosave", response_model=UnifiedResponse[MeetingRecordResponse])
+async def autosave_meeting_endpoint(
+    meeting_id: uuid.UUID,
+    request: MeetingAutosaveRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """自动保存会议笔记与实时转录片段"""
+    item = await autosave_meeting_record(
+        db,
+        meeting_id,
+        current_user,
+        request.notes,
+        [s.model_dump() for s in request.transcript_segments],
     )
     if not item:
         raise HTTPException(status_code=404, detail="会议不存在")

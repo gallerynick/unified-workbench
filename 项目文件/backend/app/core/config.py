@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # 文件分享配置
     NAS_FILES_PATH: str = "/data/files"  # 向后兼容
     FILE_STORAGE_PATH: str = "/data/files"
+    # 备份目录：与 app/services/backup.py 的 _backup_dir() 默认值一致；
+    # 实际读取时仍以 BACKUP_DIR 环境变量优先，保持单一来源
+    FILE_BACKUPS_PATH: str = "/data/backups"
+    # ModelScope 模型缓存：docker-compose 中 modelscope_cache 命名卷的挂载点
+    MODELSCOPE_CACHE_PATH: str = "/home/workbench/.modelscope"
     RESERVED_DISK_SPACE_GB: int = 10
     MAX_SHARE_FILE_SIZE_GB: int = 1
 

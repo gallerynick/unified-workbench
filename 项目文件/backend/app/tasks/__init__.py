@@ -8,6 +8,7 @@ from app.tasks.calendar_reminder import check_calendar_reminders  # noqa: F401
 from app.tasks.file_share_cleanup import cleanup_expired_shares  # noqa: F401
 from app.tasks.meeting_process import process_meeting  # noqa: F401
 from app.tasks.heartbeat import beat_heartbeat  # noqa: F401
+from app.tasks.model_warmup import scheduled_model_warmup  # noqa: F401
 from app.tasks.reminder import check_due_reminders  # noqa: F401
 from app.tasks.stream_room import (
     cleanup_temporary_rooms,  # noqa: F401
@@ -27,6 +28,7 @@ celery_app = Celery(
         "app.tasks.stream_room",
         "app.tasks.file_share_cleanup",
         "app.tasks.heartbeat",
+        "app.tasks.model_warmup",
         "app.tasks.meeting_process",
     ],
 )
@@ -74,5 +76,9 @@ celery_app.conf.beat_schedule = {
     'task-heartbeat': {
         'task': 'app.tasks.heartbeat.beat_heartbeat',
         'schedule': 60.0,
+    },
+    'ensure-models-warm': {
+        'task': 'app.tasks.model_warmup.ensure_models_warm',
+        'schedule': 10.0,
     },
 }

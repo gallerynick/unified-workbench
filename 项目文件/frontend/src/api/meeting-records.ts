@@ -42,6 +42,22 @@ export async function updateMeetingRecord(
   return request<MeetingRecord>('/meetings/' + id, { method: 'PATCH', body: data });
 }
 
+export async function autosaveMeetingRecord(
+  id: string,
+  data: {
+    notes?: string | null;
+    transcript_segments?: Array<{
+      seq: number;
+      text: string;
+      audio_start_ms: number;
+      audio_end_ms: number | null;
+      speaker?: string | null;
+    }>;
+  },
+): Promise<UnifiedResponse<MeetingRecord>> {
+  return request<MeetingRecord>('/meetings/' + id + '/autosave', { method: 'POST', body: data });
+}
+
 export async function deleteMeetingRecord(id: string): Promise<UnifiedResponse<null>> {
   return request<null>('/meetings/' + id, { method: 'DELETE' });
 }

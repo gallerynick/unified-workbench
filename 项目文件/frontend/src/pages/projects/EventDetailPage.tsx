@@ -6,7 +6,6 @@ import {
   Checkbox,
   Descriptions,
   message,
-  Modal,
   Space,
   Spin,
   Tag,
@@ -16,12 +15,9 @@ import {
 } from 'antd';
 import {
   ArrowLeftOutlined,
-  DeleteOutlined,
   EditOutlined,
-  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import {
-  deleteProjectEvent,
   getProjectEvent,
 } from '../../api/project-events';
 import { getProject } from '../../api/projects';
@@ -173,31 +169,6 @@ export default function EventDetailPage() {
   const handleBack = () => {
     if (projectId) navigate(`/projects/${projectId}`);
   };
-
-  const handleDelete = useCallback(() => {
-    if (!event) return;
-    Modal.confirm({
-      title: '确认删除事件',
-      icon: <ExclamationCircleOutlined />,
-      content: `确定要删除事件「${event.number} ${event.title}」吗？此操作不可恢复。`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          const res = await deleteProjectEvent(event.id);
-          if (res.code === 0) {
-            message.success('事件已删除');
-            if (projectId) navigate(`/projects/${projectId}`);
-          } else {
-            message.error(res.msg || '删除失败');
-          }
-        } catch (err: unknown) {
-          message.error(err instanceof Error ? err.message : '删除失败');
-        }
-      },
-    });
-  }, [event, projectId, navigate]);
 
   if (!event && !loading) return null;
 

@@ -35,7 +35,7 @@ export const STATUS_DEMO_ITEMS: Record<
   latency: { level: 'warning', text: '网络延迟较高' },
   insecure: { level: 'warning', text: '未启用 HTTPS' },
   unsafe: { level: 'critical', text: '非安全环境，直播等能力不可用' },
-  public: { level: 'warning', text: '正在通过公网访问' },
+  public: { level: 'warning', text: '正在通过公网访问（访问地址为公网 IP）' },
   maintenance: { level: 'critical', text: '系统维护中' },
   db: { level: 'critical', text: '数据服务暂时不可用' },
   version: { level: 'critical', text: '版本不匹配，请刷新' },

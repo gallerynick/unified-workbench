@@ -348,6 +348,8 @@
   --header-border: 1px solid var(--border-secondary);
   --input-focus-shadow: 0 0 0 2px rgba(0, 113, 227, 0.3);
   --tag-bg: var(--bg-tertiary);
+  --tooltip-bg: var(--bg-tertiary);
+  --tooltip-text: #ffffff;
 
   /* === 扩展强调色（深色适配 → 提亮以保持深底辨识度） === */
   --color-purple: #9254de;

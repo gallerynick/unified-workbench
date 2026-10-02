@@ -45,17 +45,30 @@
 
 ### 前置条件
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) 已安装并运行
-- Windows 10/11 或 macOS 10.15+
+| 依赖 | 要求 | 说明 |
+|------|------|------|
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | 已安装并运行 | Linux 需 Docker Engine + Compose 插件 |
+| [Node.js](https://nodejs.org/) LTS | 18+ | **必需**：前端在宿主机构建，容器内不跑 npm |
+| npm | 随 Node 附带 | 用于 `npm install` / `npm run build` |
+| 磁盘空间 | ≥ 25 GB | 镜像 10.5GB + 模型 5.3GB + 系统预留 |
+| 内存 | ≥ 8 GB | 构建后端镜像（含 PyTorch）时需要 |
+
+> 请在 Docker Desktop「Settings → Resources」把内存调到 8GB 以上，
+> 否则后端镜像构建会被系统 OOM 杀掉。
 
 ### 一键启动
 
+先 `cd` 到 `项目文件/` 目录，再执行：
+
 | 平台 | 命令 |
 |------|------|
-| macOS / Linux | `bash start.sh` |
+| macOS / Linux | `./start.sh` |
 | Windows | `start.bat` |
 
 脚本会自动检测本机 IP、创建环境配置、构建并启动所有服务。
+
+> **首次启动会下载约 11.5 GB**（外部镜像 8.7GB + 构建依赖 2.5GB + npm 包 355MB），
+> 首次使用会议转写 / AI 功能时还会自动下载模型约 5 GB。
 
 ### 访问
 
@@ -75,8 +88,11 @@
 ### 停止
 
 ```bash
-docker compose -p unified-workbench down
+# 在 项目文件/ 目录下
+./stop.sh        # Windows: stop.bat
 ```
+
+停止所有服务容器并**保留数据卷**。
 
 ## 数据存储
 
@@ -115,9 +131,12 @@ docker compose -p unified-workbench down
 ├── nginx/                  # Nginx 反向代理
 ├── mediamtx/               # 流媒体服务器配置
 ├── docker-compose.yml      # 容器编排
-├── scripts/                # 共享脚本（docker 自动探测）
+├── scripts/                # 共享脚本
 │   ├── docker-detect.sh    # macOS/Linux docker 自动探测库
-│   └── docker-detect.bat   # Windows docker 自动探测
+│   ├── docker-detect.bat   # Windows docker 自动探测
+│   ├── prune-cache.sh      # 构建缓存清理（手动执行，start 不调用）
+│   ├── prune-cache.bat     # 构建缓存清理（手动执行，start 不调用）
+│   └── claim_log_number.sh # 开发日志序号原子占位
 ├── start.sh                # macOS/Linux 启动脚本
 ├── stop.sh                 # macOS/Linux 停止脚本
 ├── reset.sh                # macOS/Linux 重置脚本

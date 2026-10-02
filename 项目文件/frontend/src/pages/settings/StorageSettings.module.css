@@ -39,6 +39,300 @@
   margin-top: var(--spacing-card-gap);
 }
 
+/* ── 存储占用分布 ───────────────────────────────────────── */
+
+.breakdownCard {
+  border-radius: var(--rounded-lg);
+}
+
+.breakdownExtra {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.breakdownMeta {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.chartWrap {
+  position: relative;
+  width: 100%;
+}
+
+.chartEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 260px;
+}
+
+.chartCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.chartCenterLabel {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.chartCenterValue {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.legendList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--rounded-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+}
+
+.legendDot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--rounded-full);
+}
+
+.legendName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legendAccuracy {
+  flex: none;
+}
+
+.legendValue {
+  flex: none;
+  min-width: 132px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.legendPercent {
+  color: var(--text-secondary);
+}
+
+.logicalHint {
+  margin: var(--spacing-sm) 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tableWrap {
+  margin: var(--spacing-lg) 0 var(--spacing-sm);
+}
+
+.catName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.catIcon {
+  display: inline-flex;
+  color: var(--color-primary);
+}
+
+.sourceText {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.pathHint {
+  color: var(--text-tertiary);
+  cursor: help;
+}
+
+.noteCell {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.detailList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.detailItem {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  font-size: 13px;
+  padding: var(--spacing-xxs) var(--spacing-xs);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.detailItem:last-child {
+  border-bottom: none;
+}
+
+.diskRow {
+  margin-top: var(--spacing-sm);
+}
+
+.diskBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border-radius: var(--rounded-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+}
+
+.diskHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.diskStats {
+  font-size: 12px;
+}
+
+.otherAlert {
+  margin-top: var(--spacing-card-gap);
+  border-radius: var(--rounded-md);
+}
+
+.otherBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  line-height: 1.7;
+}
+
+.cmdList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  margin-top: var(--spacing-xxs);
+}
+
+.cmdRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.cmd {
+  padding: var(--spacing-xxs) var(--spacing-xs);
+  border-radius: var(--rounded-chip);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+/* ── 模型清单 ───────────────────────────────────────────── */
+
+.invCard {
+  border-radius: var(--rounded-lg);
+}
+
+.invHint {
+  margin: 0 0 var(--spacing-sm);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.invNotes {
+  margin-bottom: var(--spacing-sm);
+  border-radius: var(--rounded-md);
+}
+
+.invChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.invChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--rounded-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+}
+
+.invChipIcon {
+  color: var(--color-indigo);
+}
+
+.invChipLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.invChipValue {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.invChipCount {
+  font-size: 12px;
+}
+
+.invModel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.invModelName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invRepoId {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 @media (max-width: 767px) {
   .container {
     padding: var(--spacing-xs);
@@ -49,5 +343,22 @@
   }
   .header > * {
     width: 100%;
+  }
+  .statsRow {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  .breakdownExtra {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .breakdownMeta {
+    white-space: normal;
+  }
+  .legendValue {
+    min-width: 108px;
+  }
+  .cmdRow {
+    flex-wrap: wrap;
   }
 }
