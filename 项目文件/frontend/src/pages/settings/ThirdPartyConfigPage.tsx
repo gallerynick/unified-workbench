@@ -61,27 +61,17 @@ const PRESET_AI_MODEL = {
   description: '阿里云通义千问 2.5 系列 3B 参数模型，Q4 量化版本，支持 32K 上下文，适合会议摘要',
 };
 
-/** 已知模型的描述信息，用于选择器下方展示 */
+/** 已知模型的描述信息，用于选择器下方展示。
+ * key 必须与可下载目录（backend MODEL_CATALOG）一致，
+ * 即 GGUF 文件名去掉扩展名——Ollama 时代的 qwen2.5:3b 等旧名已废弃。 */
 const MODEL_INFO: Record<string, { name: string; description: string }> = {
-  'qwen3:1.7b': {
-    name: 'Qwen3-1.7B Q4',
-    description: '阿里云通义千问 3 系列 1.7B 参数模型，Q4 量化版本，思考型模型，支持 32K 上下文，低负载高速（约 1.2 GB），中文质量优于 Qwen2.5-1.5B',
-  },
-  'qwen2.5:1.5b': {
+  'qwen2.5-1.5b-instruct-q4_k_m': {
     name: 'Qwen2.5-1.5B Q4',
     description: '阿里云通义千问 2.5 系列 1.5B 参数模型，Q4 量化版本，支持 32K 上下文，速度最快（约 1 GB），适合轻量摘要',
   },
-  'qwen2.5:3b': {
+  'qwen2.5-3b-instruct-q4_k_m': {
     name: 'Qwen2.5-3B Q4',
     description: '阿里云通义千问 2.5 系列 3B 参数模型，Q4 量化版本，支持 32K 上下文，适合会议摘要',
-  },
-  'qwen2.5:7b': {
-    name: 'Qwen2.5-7B Q4',
-    description: '阿里云通义千问 2.5 系列 7B 参数模型，Q4 量化版本，支持 128K 上下文，摘要质量最好',
-  },
-  'qwen3.5:4b': {
-    name: 'Qwen3.5-4B Q4',
-    description: '阿里云通义千问 3.5 系列 4B 参数模型，思考型模型，支持 32K 上下文',
   },
 };
 
