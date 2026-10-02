@@ -96,6 +96,20 @@ function formatDuration(seconds: number): string {
   return `${s}秒`;
 }
 
+/** 把预计剩余秒数格式化成中文时长；未知（null/非法）返回 null 由调用方处理 */
+function formatEta(seconds: number | null | undefined): string | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) {
+    return null;
+  }
+  const total = Math.ceil(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  if (m > 0) {
+    return `约 ${m} 分 ${s} 秒`;
+  }
+  return `约 ${s} 秒`;
+}
+
 /** 把字节数格式化成人类可读体积，用于展示模型实际占用 */
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -191,6 +205,7 @@ export default function ThirdPartyConfigPage() {
   const [downloadStatus, setDownloadStatus] = useState<'pending' | 'downloading' | 'paused' | 'cancelled' | 'completed' | 'error'>('pending');
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadSpeed, setDownloadSpeed] = useState(0);
+  const [downloadEta, setDownloadEta] = useState<number | null>(null);
   const [downloadTotal, setDownloadTotal] = useState(0);
   const [downloadDownloaded, setDownloadDownloaded] = useState(0);
   // 下载当前阶段，用于区分「缓慢」与「卡死」
@@ -830,6 +845,7 @@ export default function ThirdPartyConfigPage() {
           setDownloadProgress(data.progress || 0);
           setDownloadStatus(data.status);
           setDownloadSpeed(data.speed || 0);
+          setDownloadEta(data.eta_seconds ?? null);
           setDownloadTotal(data.total || 0);
           setDownloadDownloaded(data.downloaded || 0);
           if (data.phase) {
@@ -1147,6 +1163,11 @@ export default function ThirdPartyConfigPage() {
                           <span style={{ marginLeft: 16 }}>
                             用时: {formatDuration(downloadElapsed)}
                           </span>
+                          {downloadStatus === 'downloading' && formatEta(downloadEta) && (
+                            <span style={{ marginLeft: 16, color: 'var(--color-primary)' }}>
+                              预计剩余: {formatEta(downloadEta)}
+                            </span>
+                          )}
                         </div>
                         <Space style={{ marginTop: 8 }}>
                           {downloadStatus === 'downloading' && (

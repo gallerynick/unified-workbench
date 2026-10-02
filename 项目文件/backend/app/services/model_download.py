@@ -247,11 +247,15 @@ async def _publish_progress(
     p.last_write = now
 
     progress = min(100.0, p.downloaded / p.total * 100) if p.total > 0 else 0.0
+    # 预计剩余秒数：剩余字节 / 当前速度；速度未知（刚开始/暂停）时为 None
+    remaining = p.total - p.downloaded if p.total > 0 else 0
+    eta_seconds = round(remaining / speed) if speed > 0 and remaining > 0 else None
     updates: dict[str, Any] = {
         "progress": progress,
         "total": p.total,
         "downloaded": p.downloaded,
         "speed": speed,
+        "eta_seconds": eta_seconds,
         "phase": "下载中",
         "updated_at": now,
     }
