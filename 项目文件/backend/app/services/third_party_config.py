@@ -84,9 +84,7 @@ DEFAULT_ASR_CONFIG = {
     },
     "parameters": {
         "sample_rate": 16000,
-        "hpf_cutoff": 80,
-        "noise_reduction": 0.8,
-        "vad_threshold": 0.006,
+        # 静音超时：超过此秒数无语音则切句（webrtcvad 句子边界）
         "silence_timeout": 1.5,
         # 语言白名单：只允许识别这些语言（zh/en/ja/ko/yue），
         # 白名单外的语言（auto 检出）会被丢弃
