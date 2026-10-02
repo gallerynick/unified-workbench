@@ -5,14 +5,15 @@ WORKDIR /build
 
 # Debian 源：使用清华镜像加速（原用的阿里云镜像站在本机网络下传输大索引会停顿）。
 #
-# 为什么必须同时调 apt 超时 —— 2026-09-30 部署中断的根因：
-#   apt 按 xz → gz → 未压缩 的优先级依次尝试索引，且每个都走 by-hash 路径：
-#     by-hash/SHA256/<.xz 的 sha256>  →  <...gz>  →  <...plain>
-#   Debian 已不再发布「未压缩」索引（官方源、清华、中科大、阿里云全部 404，
-#   但 Release 文件仍声明它）。于是压缩索引一旦下载超时，apt 回退到未压缩版
-#   即秒收 404，并被当作致命错误（E: Failed to fetch）中断整个构建。
-#   放宽超时 + 重试 + 关闭 HTTP 流水线（对有本地代理的环境更稳），
-#   确保压缩索引能在超时前取回。
+# 2026-09-30/10-01 部署中断的根因（已核实，与网络无关）：
+#   Debian trixie/InRelease（官方源与各镜像逐字节一致）仍广告 main/binary-arm64/Packages
+#   未压缩索引（56,162,922 字节），但该文件在所有镜像上均已 404——Debian 已停发
+#   未压缩索引却未同步 InRelease。apt 按 InRelease 去取该文件 → 404 被当作致命错误
+#   （E: Failed to fetch）→ exit 100，且 trixie/main 包列表为空，后续 install 全报
+#   "has no installation candidate"。压缩索引（.gz/.xz）均在且下载正常（570–880 KB/s）。
+# 解法：Acquire::IndexTargets::deb::Packages:: "no"; 让 apt 不再请求未压缩索引，直接拉
+#   .xz 压缩索引（实测 apt-get update exit 0、install 成功）。下方 Timeout/Retries 调优
+#   保留，但 404 非超时问题，单独不解决此故障。
 RUN sed -i 's|http://deb.debian.org/debian|http://mirrors.tuna.tsinghua.edu.cn/debian|g' /etc/apt/sources.list.d/debian.sources \
     && sed -i 's|http://security.debian.org/debian-security|http://mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list.d/debian.sources \
     && printf 'Acquire::IndexTargets::deb::Packages:: "no";\nAcquire::http::Timeout "600";\nAcquire::https::Timeout "600";\nAcquire::Retries "5";\nAcquire::http::Pipeline-Depth "0";\n' > /etc/apt/apt.conf.d/99-build-tuning
@@ -38,14 +39,15 @@ WORKDIR /app
 
 # Debian 源：使用清华镜像加速（原用的阿里云镜像站在本机网络下传输大索引会停顿）。
 #
-# 为什么必须同时调 apt 超时 —— 2026-09-30 部署中断的根因：
-#   apt 按 xz → gz → 未压缩 的优先级依次尝试索引，且每个都走 by-hash 路径：
-#     by-hash/SHA256/<.xz 的 sha256>  →  <...gz>  →  <...plain>
-#   Debian 已不再发布「未压缩」索引（官方源、清华、中科大、阿里云全部 404，
-#   但 Release 文件仍声明它）。于是压缩索引一旦下载超时，apt 回退到未压缩版
-#   即秒收 404，并被当作致命错误（E: Failed to fetch）中断整个构建。
-#   放宽超时 + 重试 + 关闭 HTTP 流水线（对有本地代理的环境更稳），
-#   确保压缩索引能在超时前取回。
+# 2026-09-30/10-01 部署中断的根因（已核实，与网络无关）：
+#   Debian trixie/InRelease（官方源与各镜像逐字节一致）仍广告 main/binary-arm64/Packages
+#   未压缩索引（56,162,922 字节），但该文件在所有镜像上均已 404——Debian 已停发
+#   未压缩索引却未同步 InRelease。apt 按 InRelease 去取该文件 → 404 被当作致命错误
+#   （E: Failed to fetch）→ exit 100，且 trixie/main 包列表为空，后续 install 全报
+#   "has no installation candidate"。压缩索引（.gz/.xz）均在且下载正常（570–880 KB/s）。
+# 解法：Acquire::IndexTargets::deb::Packages:: "no"; 让 apt 不再请求未压缩索引，直接拉
+#   .xz 压缩索引（实测 apt-get update exit 0、install 成功）。下方 Timeout/Retries 调优
+#   保留，但 404 非超时问题，单独不解决此故障。
 RUN sed -i 's|http://deb.debian.org/debian|http://mirrors.tuna.tsinghua.edu.cn/debian|g' /etc/apt/sources.list.d/debian.sources \
     && sed -i 's|http://security.debian.org/debian-security|http://mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list.d/debian.sources \
     && printf 'Acquire::IndexTargets::deb::Packages:: "no";\nAcquire::http::Timeout "600";\nAcquire::https::Timeout "600";\nAcquire::Retries "5";\nAcquire::http::Pipeline-Depth "0";\n' > /etc/apt/apt.conf.d/99-build-tuning
@@ -57,7 +59,7 @@ RUN sed -i 's|http://deb.debian.org/debian|http://mirrors.tuna.tsinghua.edu.cn/d
 # PG15 服务端不识别该参数，恢复会直接失败。PGDG 仓库提供所有受支持的 PG 版本。
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg lsb-release \
-    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    && curl -fsSL --retry 5 --retry-all-errors http://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc \
         | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
