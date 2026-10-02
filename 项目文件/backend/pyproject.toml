@@ -34,6 +34,8 @@ dependencies = [
     # 句子切分：webrtcvad（纯 C 库，不创建 onnxruntime session，
     # 避免与 SenseVoice 两个 ORT session 并存的 VM 内存峰值）
     "webrtcvad>=2.0",
+    # 模型下载：ASR 模型缺失时从 ModelScope 拉取（funasr-onnx 不含 modelscope）
+    "modelscope>=1.0",
     "soundfile>=0.12",
     "numpy>=1.24",
 ]
