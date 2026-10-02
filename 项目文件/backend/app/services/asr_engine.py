@@ -137,7 +137,14 @@ def get_cached_asr_models(names: list[str] | None = None) -> dict[str, Any]:
 
 
 def delete_asr_cache_models(names: list[str]) -> dict[str, Any]:
-    """删除一组模型的 ModelScope 缓存目录。"""
+    """删除一组模型的 ModelScope 缓存目录（含辅助缓存），确保无残留。
+
+    删除策略：
+    - 整个模型缓存目录直接 rmtree（而非只删 snapshots 层）——
+      否则会留下 snapshots/ 空壳目录；
+    - 连带清理 BPE 补取时下载的 torch 版缓存（iic--SenseVoiceSmall）——
+      它只是分词文件的临时来源，模型删除后不再需要，留下就是孤儿缓存。
+    """
     deleted: list[str] = []
     missing: list[str] = []
     freed = 0
@@ -146,16 +153,17 @@ def delete_asr_cache_models(names: list[str]) -> dict[str, Any]:
         if not os.path.isdir(cache_dir):
             missing.append(name)
             continue
-        snap = _snapshot_dir(cache_dir)
-        target = snap or cache_dir
-        freed += _dir_size_bytes(target)
-        shutil.rmtree(target, ignore_errors=True)
-        try:
-            if os.path.isdir(cache_dir) and not os.listdir(cache_dir):
-                os.rmdir(cache_dir)
-        except OSError:
-            pass
+        freed += _dir_size_bytes(cache_dir)
+        shutil.rmtree(cache_dir, ignore_errors=True)
         deleted.append(name)
+
+    # 连带清理 SenseVoice BPE 补取产生的 torch 版缓存目录
+    bpe_cache = os.path.join(_cache_base(), "iic--SenseVoiceSmall")
+    if os.path.isdir(bpe_cache):
+        freed += _dir_size_bytes(bpe_cache)
+        shutil.rmtree(bpe_cache, ignore_errors=True)
+        logger.info("已连带清理 SenseVoice BPE 临时缓存：%s", bpe_cache)
+
     return {"deleted": deleted, "missing": missing, "freed_mb": round(freed / (1024 * 1024), 1)}
 
 
