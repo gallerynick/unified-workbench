@@ -297,9 +297,12 @@ export default function ThirdPartyConfigPage() {
         const modelRes = await getLocalModelStatus(targetModel);
         if (modelRes.code === 0 && modelRes.data?.downloaded) {
           setAiModelSize(modelRes.data.size ?? null);
-          // 引擎加载状态决定显示：loaded → 已就绪；卸载/休眠 → 已下载未就绪
+          // 引擎加载状态决定显示：
+          // loaded/loading → 已就绪；sleeping（空闲自动卸载）也会自动唤醒，
+          // 且自热备开启时 10s 内补载，同样按「已就绪」处理；
+          // 仅 unloaded（显式卸载）显示「已下载未就绪」
           const engine = modelRes.data.engine_status;
-          if (engine === 'loaded' || engine === 'loading') {
+          if (engine === 'loaded' || engine === 'loading' || engine === 'sleeping') {
             setAiModelStatus('ready');
           } else {
             setAiModelStatus('downloaded');
@@ -650,9 +653,13 @@ export default function ThirdPartyConfigPage() {
         if (res.data.success) {
           const details = res.data.details ?? {};
           if ((details as { loading?: boolean }).loading) {
-            // 后台加载中：不 return，落到下方轮询等待落定，
+            // 后台加载/下载中：不 return，落到下方轮询等待落定，
             // 否则 asrPreloading 一直为 true，按钮永远停在「载入中」
-            message.info('ASR 模型载入已开始');
+            if ((details as { downloading?: boolean }).downloading) {
+              message.info('ASR 模型下载并载入中，请稍候…');
+            } else {
+              message.info('ASR 模型载入已开始');
+            }
             void checkASRStatus();
           } else if (details.downloaded === details.total) {
             setAsrPreloading(false);

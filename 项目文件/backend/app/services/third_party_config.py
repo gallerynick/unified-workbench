@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -574,22 +577,83 @@ async def preload_asr_models(db: AsyncSession) -> TestConnectionResponse:
             details={"downloaded": cached["downloaded"], "total": cached["total"], "loaded": True},
         )
 
-    async def _load_in_background() -> None:
+    need_download = cached["downloaded"] < cached["total"]
+
+    async def _prepare_in_background() -> None:
+        """后台：缓存不齐先下载（modelscope），下载完成再加载进内存。"""
         try:
+            if need_download:
+                await asyncio.to_thread(_download_asr_models, cached["models"])
             await asyncio.to_thread(
                 asr_engine.init_asr_model,
                 local.get("model") or "sensevoice",
             )
         except Exception as e:
-            logger.warning("ASR 模型后台加载失败：%s", e)
+            logger.warning("ASR 模型后台准备失败：%s", e)
 
-    task = asyncio.create_task(_load_in_background())
+    task = asyncio.create_task(_prepare_in_background())
 
     return TestConnectionResponse(
         success=True,
-        message="ASR 模型载入已开始",
-        details={"downloaded": cached["downloaded"], "total": cached["total"], "loaded": False, "loading": True},
+        message="ASR 模型下载并载入已开始" if need_download else "ASR 模型载入已开始",
+        details={
+            "downloaded": cached["downloaded"],
+            "total": cached["total"],
+            "loaded": False,
+            "loading": True,
+            "downloading": need_download,
+        },
     )
+
+
+def _download_asr_models(models: list[dict[str, Any]]) -> None:
+    """后台下载缺失的 ASR 模型（ModelScope 缓存到 ~/.modelscope）。"""
+    import os
+    import shutil
+
+    os.environ.setdefault("MODELSCOPE_CACHE", "/home/workbench/.modelscope")
+    from modelscope.hub.snapshot_download import snapshot_download
+
+    for item in models:
+        repo_id = item.get("repo_id")
+        if not item.get("ready") and repo_id:
+            snapshot_download(repo_id, revision="master")
+            _ensure_sensevoice_bpe(repo_id)
+
+
+def _ensure_sensevoice_bpe(repo_id: str) -> None:
+    """SenseVoice ONNX 仓库缺 sentencepiece 分词文件，需从 torch 版仓库补取。
+
+    funasr-onnx 的 SenseVoiceSmall 加载时需要 chn_jpn_yue_eng_ko_spectok.bpe.model，
+    而 iic/SenseVoiceSmall-onnx 仓库里没有它（只在 iic/SenseVoiceSmall 里）。
+    下载 ONNX 后检查缺失则只拉取该文件（377 KB，allow_patterns 避免整仓下载）并复制。
+    """
+    import os
+    import shutil
+
+    from app.services import asr_engine
+
+    onnx_dir = asr_engine._snapshot_dir(asr_engine._model_cache_dir(repo_id))
+    if not onnx_dir:
+        return
+    bpe_target = os.path.join(onnx_dir, "chn_jpn_yue_eng_ko_spectok.bpe.model")
+    if os.path.isfile(bpe_target):
+        return
+
+    from modelscope.hub.snapshot_download import snapshot_download
+
+    try:
+        src = snapshot_download(
+            "iic/SenseVoiceSmall",
+            revision="master",
+            allow_patterns=["chn_jpn_yue_eng_ko_spectok.bpe.model"],
+        )
+        src_file = os.path.join(src, "chn_jpn_yue_eng_ko_spectok.bpe.model")
+        if os.path.isfile(src_file):
+            shutil.copy2(src_file, bpe_target)
+            logger.info("已补取 SenseVoice BPE 分词文件：%s", bpe_target)
+    except Exception as e:
+        logger.warning("补取 SenseVoice BPE 失败：%s", e)
 
 
 async def reload_asr_model(db: AsyncSession) -> TestConnectionResponse:
@@ -728,38 +792,37 @@ async def warmup_ai_model(db: AsyncSession | None = None) -> TestConnectionRespo
                 message=f"模型 {model_name} 未下载",
             )
 
-        # 预热 = 显式载入 + 跑几次极短生成，把权重与 KV cache 路径走热。
-        # 用 /models/load 而不是靠发请求隐式触发，载入失败时能拿到明确错误。
+        # 预热 = 显式载入（核心） + 尝试跑几次极短生成把 KV cache 走热。
+        # 载入用 /models/load 而非靠请求隐式触发，载入失败时能拿到明确错误。
+        # 生成测试是**次要**的：模型刚载入时首个请求偶发连接断开（llama-cpp
+        # 仍在预热权重路径），此时模型已 loaded，自热备目的已达成——
+        # 生成测试失败只警告、不判预热失败，避免自热备被瞬时请求错误打断。
         await llama_cpp.load_model(model_name)
 
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            for _ in range(3):
-                resp = await client.post(
-                    f"{LOCAL_AI_BASE_URL}/chat/completions",
-                    json={
-                        "model": model_name,
-                        "messages": [{"role": "user", "content": "Hi"}],
-                        "stream": False,
-                        "max_tokens": 2,
-                    },
-                )
-                if resp.status_code != 200:
-                    detail = ""
-                    try:
-                        detail = (resp.json().get("error") or {}).get("message", "")
-                    except Exception:
-                        detail = resp.text[:200]
-                    return TestConnectionResponse(
-                        success=False,
-                        message=f"模型预热失败：{detail or resp.status_code}",
+        warmup_runs = 0
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                for _ in range(3):
+                    resp = await client.post(
+                        f"{LOCAL_AI_BASE_URL}/chat/completions",
+                        json={
+                            "model": model_name,
+                            "messages": [{"role": "user", "content": "Hi"}],
+                            "stream": False,
+                            "max_tokens": 2,
+                        },
                     )
+                    if resp.status_code == 200:
+                        warmup_runs += 1
+        except Exception as e:
+            logger.warning("AI 预热生成测试失败（模型已载入，不影响自热备）：%s", e)
     except Exception as e:
         return TestConnectionResponse(success=False, message=f"模型预热失败：{e}")
 
     return TestConnectionResponse(
         success=True,
         message="AI 模型已预热",
-        details={"model": model_name, "warmup_runs": 3},
+        details={"model": model_name, "warmup_runs": warmup_runs},
     )
 
 
