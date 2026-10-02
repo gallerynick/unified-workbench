@@ -7,7 +7,7 @@ import uuid
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.visibility import Visibility
@@ -369,6 +369,65 @@ async def end_meeting_record(
         item.minutes_status = "failed"
         await db.flush()
 
+    return item
+
+
+async def autosave_meeting_record(
+    db: AsyncSession,
+    meeting_id: uuid.UUID,
+    user: User,
+    notes: str | None,
+    transcript_segments: list[dict[str, Any]],
+) -> MeetingRecord | None:
+    """自动保存会议笔记与实时转录片段。
+
+    - 笔记：直接覆盖 meeting_record.notes
+    - 转录：按 meeting_id + seq upsert，避免重复堆积
+    """
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
+
+    if item.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="仅创建者可以更新会议")
+
+    if notes is not None:
+        item.notes = notes
+
+    for seg in transcript_segments or []:
+        seq = int(seg.get("seq", 0))
+        text = seg.get("text", "")
+        audio_start_ms = int(seg.get("audio_start_ms", 0))
+        audio_end_ms = seg.get("audio_end_ms")
+        speaker = seg.get("speaker")
+
+        existing = await db.execute(
+            select(MeetingTranscriptSegment).where(
+                MeetingTranscriptSegment.meeting_id == meeting_id,
+                MeetingTranscriptSegment.seq == seq,
+            )
+        )
+        existing_seg = existing.scalar_one_or_none()
+        if existing_seg:
+            existing_seg.text = text
+            existing_seg.audio_start_ms = audio_start_ms
+            existing_seg.audio_end_ms = audio_end_ms if audio_end_ms is not None else None
+            if speaker is not None:
+                existing_seg.speaker = speaker
+        else:
+            db.add(
+                MeetingTranscriptSegment(
+                    id=uuid.uuid4(),
+                    meeting_id=meeting_id,
+                    seq=seq,
+                    text=text,
+                    audio_start_ms=audio_start_ms,
+                    audio_end_ms=audio_end_ms if audio_end_ms is not None else None,
+                    speaker=speaker,
+                )
+            )
+
+    await db.flush()
+    await db.refresh(item)
     return item
 
 

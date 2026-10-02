@@ -10,6 +10,9 @@ echo ========================================
 echo.
 
 :: ── 参数：--skip-build 跳过前端构建 ──
+:: 本脚本【不碰】构建缓存：清理会销毁重建时本可复用的层，下次构建被迫
+:: 重新拉依赖，一旦镜像源异常就会构建失败（2026-09-30 已发生过）。
+:: 需要腾空间时手动执行： scripts\prune-cache.bat
 if defined SKIP_FRONTEND_BUILD set "SKIP_BUILD=!SKIP_FRONTEND_BUILD!" else set "SKIP_BUILD=0"
 for %%a in (%*) do (
   if /i "%%a" == "--skip-build" set "SKIP_BUILD=1"

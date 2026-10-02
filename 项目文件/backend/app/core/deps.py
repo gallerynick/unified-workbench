@@ -7,6 +7,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.security import decode_token
@@ -46,9 +47,10 @@ async def get_current_user(
         user: User | None = None
         if jti:
             pair = await db.execute(
-                select(UserSession, User).join(
-                    User, User.id == UserSession.user_id
-                ).where(UserSession.jti == jti)
+                select(UserSession, User)
+                .join(User, User.id == UserSession.user_id)
+                .where(UserSession.jti == jti)
+                .options(selectinload(User.tags))
             )
             row = pair.one_or_none()
             if row:
@@ -71,7 +73,9 @@ async def get_current_user(
             # 令牌里没有 jti（历史令牌或未绑定会话）时退回按 user_id 查用户，
             # 行为与改造前一致。
             result = await db.execute(
-                select(User).where(User.id == uuid.UUID(user_id))
+                select(User)
+                .where(User.id == uuid.UUID(user_id))
+                .options(selectinload(User.tags))
             )
             user = result.scalar_one_or_none()
 
@@ -115,7 +119,11 @@ async def get_current_user_optional(
         user_id = payload.get("sub")
         if not user_id:
             return None
-        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+        result = await db.execute(
+            select(User)
+            .where(User.id == uuid.UUID(user_id))
+            .options(selectinload(User.tags))
+        )
         return result.scalar_one_or_none()
     except Exception:
         return None

@@ -5,6 +5,7 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.security import hash_password
 from app.models.tag import Tag
@@ -35,7 +36,12 @@ async def list_users(
 
     # 分页
     offset = (page - 1) * page_size
-    query = query.order_by(User.created_at.desc()).offset(offset).limit(page_size)
+    query = (
+        query.order_by(User.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+        .options(selectinload(User.tags))
+    )
     result = await db.execute(query)
     users = list(result.scalars().all())
 
@@ -70,12 +76,16 @@ async def create_user(db: AsyncSession, request: UserCreateRequest) -> User:
                 db.add(UserTag(user_id=user.id, tag_id=tag.id))
         await db.flush()
 
+    # 标签是直接通过 UserTag SQL 插入的，重载关系集合，避免响应里触发惰性加载或读到旧值
+    await db.refresh(user, attribute_names=["tags"])
     return user
 
 
 async def get_user(db: AsyncSession, user_id: uuid.UUID) -> User:
     """根据 ID 获取用户，不存在则 404。"""
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(
+        select(User).where(User.id == user_id).options(selectinload(User.tags))
+    )
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
@@ -135,6 +145,8 @@ async def update_user(
                 db.add(UserTag(user_id=user.id, tag_id=tag.id))
 
     await db.flush()
+    # 标签通过 UserTag SQL 先删后建，重载关系集合，避免响应里读到旧标签或触发惰性加载
+    await db.refresh(user, attribute_names=["tags"])
     return user
 
 

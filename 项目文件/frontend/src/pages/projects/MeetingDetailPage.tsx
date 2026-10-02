@@ -21,14 +21,12 @@ import {
 } from 'antd';
 import {
   ArrowLeftOutlined,
-  DeleteOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
-  deleteProjectMeeting,
   getProjectMeeting,
   updateProjectMeeting,
 } from '../../api/project-meetings';
@@ -232,31 +230,6 @@ export default function MeetingDetailPage() {
   const handleBack = () => {
     if (projectId) navigate(`/projects/${projectId}`);
   };
-
-  const handleDeleteMeeting = useCallback(() => {
-    if (!meeting) return;
-    Modal.confirm({
-      title: '确认删除交流记录',
-      icon: <ExclamationCircleOutlined />,
-      content: `确定要删除交流记录「${meeting.number}」吗？此操作不可恢复。`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          const res = await deleteProjectMeeting(meeting.id);
-          if (res.code === 0) {
-            message.success('交流记录已删除');
-            if (projectId) navigate(`/projects/${projectId}`);
-          } else {
-            message.error(res.msg || '删除失败');
-          }
-        } catch (err: unknown) {
-          message.error(err instanceof Error ? err.message : '删除失败');
-        }
-      },
-    });
-  }, [meeting, projectId, navigate]);
 
   const handleDisconnectProposal = useCallback(() => {
     if (!meeting) return;

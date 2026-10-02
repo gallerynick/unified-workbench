@@ -13,6 +13,9 @@ const { Title } = Typography;
 export default function BackupManagement() {
   const [backups, setBackups] = useState<BackupInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [restoreModal, setRestoreModal] = useState<{ open: boolean; filename: string }>({ open: false, filename: '' });
+  const [restorePassword, setRestorePassword] = useState('');
+  const [restoreSubmitting, setRestoreSubmitting] = useState(false);
   const [config, setConfig] = useState<BackupConfig>({
     backup_dir: '/data/backups',
     schedule: 'daily',
@@ -95,22 +98,44 @@ export default function BackupManagement() {
   const handleRestore = (filename: string) => {
     Modal.confirm({
       title: '确认恢复',
-      content: `确定要从 ${filename} 恢复数据库吗？此操作不可撤销！`,
-      okText: '恢复',
+      content: (
+        <div>
+          <p>确定要从 <strong>{filename}</strong> 恢复数据库与文件吗？</p>
+          <p style={{ color: '#ff4d4f' }}>
+            ⚠ 此操作将完全覆盖当前数据，不可撤销！系统会自动备份当前数据作为回退点。
+          </p>
+        </div>
+      ),
+      okText: '继续',
       okButtonProps: { danger: true },
       cancelText: '取消',
-      onOk: async () => {
-        try {
-          const res = await restoreBackup(filename);
-          if (res.code === 0) {
-            message.success('备份恢复成功');
-          }
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : '恢复失败';
-          message.error(msg);
-        }
+      onOk: () => {
+        setRestorePassword('');
+        setRestoreModal({ open: true, filename });
       },
     });
+  };
+
+  const handleRestorePassword = async () => {
+    if (!restorePassword) {
+      message.warning('请输入管理员密码');
+      return;
+    }
+    setRestoreSubmitting(true);
+    try {
+      const res = await restoreBackup(restoreModal.filename, restorePassword);
+      if (res.code === 0) {
+        message.success('备份恢复成功');
+        setRestoreModal({ open: false, filename: '' });
+        setRestorePassword('');
+        fetchBackups();
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '恢复失败';
+      message.error(msg);
+    } finally {
+      setRestoreSubmitting(false);
+    }
   };
 
   const handleSaveConfig = async () => {
@@ -131,13 +156,39 @@ export default function BackupManagement() {
       title: '大小',
       dataIndex: 'size',
       key: 'size',
+      width: 100,
       render: (size: number) => `${(size / 1024 / 1024).toFixed(2)} MB`,
     },
     {
       title: '创建时间',
       dataIndex: 'created_at',
       key: 'created_at',
+      width: 170,
       render: (text: string) => new Date(text).toLocaleString('zh-CN'),
+    },
+    {
+      title: '表数 / 文件数',
+      key: 'counts',
+      width: 110,
+      render: (_: unknown, record: BackupInfo) =>
+        record.table_count !== undefined || record.file_count !== undefined
+          ? `${record.table_count ?? '-'} / ${record.file_count ?? '-'}`
+          : '-',
+    },
+    {
+      title: '校验和',
+      dataIndex: 'checksum',
+      key: 'checksum',
+      width: 160,
+      ellipsis: true,
+      render: (text: string | undefined) =>
+        text ? (
+          <Tooltip title={text}>
+            <span>{text.slice(0, 12)}...</span>
+          </Tooltip>
+        ) : (
+          '-'
+        ),
     },
     {
       title: '操作',
@@ -151,7 +202,7 @@ export default function BackupManagement() {
               size="small"
               icon={<CloudDownloadOutlined />}
               onClick={() => handleRestore(record.filename)}
-            >
+           >
               恢复
             </Button>
           </Tooltip>
@@ -230,6 +281,44 @@ export default function BackupManagement() {
           showTotal: (t) => `共 ${t} 条`,
         }}
       />
+
+      {/* 恢复二次验证弹窗 */}
+      <Modal
+        title={
+          <Space>
+            <LockOutlined />
+            恢复验证
+          </Space>
+        }
+        open={restoreModal.open}
+        onOk={handleRestorePassword}
+        onCancel={() => {
+          setRestoreModal({ open: false, filename: '' });
+          setRestorePassword('');
+        }}
+        okText="确认恢复"
+        okButtonProps={{ danger: true }}
+        cancelText="取消"
+        confirmLoading={restoreSubmitting}
+        maskClosable={false}
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <p>
+            正在恢复：<strong>{restoreModal.filename}</strong>
+          </p>
+          <p style={{ color: '#ff4d4f' }}>
+            此操作将完全覆盖当前数据。系统会自动备份当前数据作为回退点，
+            恢复失败时自动回退。
+          </p>
+          <Input.Password
+            placeholder="请输入管理员密码"
+            value={restorePassword}
+            onChange={(e) => setRestorePassword(e.target.value)}
+            onPressEnter={handleRestorePassword}
+            autoComplete="current-password"
+          />
+        </Space>
+      </Modal>
     </div>
   );
 }

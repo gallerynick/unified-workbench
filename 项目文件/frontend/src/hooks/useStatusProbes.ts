@@ -46,28 +46,42 @@ const NO_CACHE: Record<string, string> = {
 };
 
 // ── B3 公网访问判定 ─────────────────────────────────────────────
-// 规则见《待办计划/状态指示设计规格.md》3.3：
-// 域名一律按公网处理（浏览器无法解析 DNS，内网 DNS 部署概率低，宁可提示不漏判）。
-function isPrivateHost(hostname: string): boolean {
-  if (hostname === 'localhost') return true;
+// 规则见《项目架构/状态指示设计规格.md》3.3：
+// 浏览器无法解析 DNS，带点域名是否指向内网无法判定 —— 因此只有「确凿的公网
+// IP 字面量」才提示公网访问；裸主机名、.local/.arpa、私网 IP、回环一律算内网；
+// 其余（可解析域名、无法判定的内部域名）视为未知，不提示，避免内网部署误报。
+type HostReachability = 'private' | 'public' | 'unknown';
 
+function classifyHost(hostname: string): HostReachability {
+  if (hostname === 'localhost' || hostname === '::1') return 'private';
+
+  // IPv4 字面量
   const m = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (m) {
     const a = Number(m[1]);
     const b = Number(m[2]);
-    return (
+    if (
       a === 10 ||
       a === 127 ||
       (a === 172 && b >= 16 && b <= 31) ||
       (a === 192 && b === 168)
-    );
+    ) {
+      return 'private';
+    }
+    return 'public';
   }
 
-  // IPv6 字面量经 URL 解析后不带方括号
-  if (hostname === '::1') return true;
-  if (/^f[cd][0-3]/.test(hostname)) return true; // fc00::/7 ULA
-  if (/^fe[89ab]/.test(hostname)) return true;   // fe80::/10 链路本地
-  return false;
+  // IPv6 字面量（经 URL 解析后不带方括号）
+  if (/^f[cd][0-3]/.test(hostname)) return 'private'; // fc00::/7 ULA
+  if (/^fe[89ab]/.test(hostname)) return 'private';   // fe80::/10 链路本地
+  if (hostname.includes(':')) return 'public';        // 其余 IPv6 视为公网
+
+  // 裸主机名（workbench、nas）与 mDNS / 反向解析后缀：确凿内网
+  if (!hostname.includes('.')) return 'private';
+  if (hostname.endsWith('.local') || hostname.endsWith('.arpa')) return 'private';
+
+  // 带点的可解析域名：浏览器无法判定其解析结果 → 未知，不告警
+  return 'unknown';
 }
 
 /** 登录前即可判定的本地项：B1 / B2 / B3 / D3 */
@@ -83,8 +97,8 @@ function detectLocal(): StatusIssue[] {
     out.push({ id: 'b1-http', level: WARNING, text: '未启用 HTTPS' });
   }
 
-  if (!isPrivateHost(hostname)) {
-    out.push({ id: 'b3-public', level: WARNING, text: '正在通过公网访问' });
+  if (classifyHost(hostname) === 'public') {
+    out.push({ id: 'b3-public', level: WARNING, text: '正在通过公网访问（访问地址为公网 IP）' });
   }
 
   const missing: string[] = [];

@@ -37,18 +37,15 @@ type TaskStatus = 'idle' | 'running' | 'completed' | 'failed';
 
 interface ExportStatus {
   status: 'running' | 'completed' | 'failed';
-  completed_tables: number;
-  total_tables: number;
-  current_table: string;
   error: string | null;
 }
 
 interface ImportStats {
   imported_tables: number;
-  imported_rows: number;
   total_tables: number;
   file_count: number;
   errors: string[];
+  table_count?: number;
 }
 
 interface ImportStatusData {
@@ -71,11 +68,7 @@ export default function DataManagement() {
   // ── 导出状态 ──
   const [exportPassword, setExportPassword] = useState('');
   const [exportStatus, setExportStatus] = useState<TaskStatus>('idle');
-  const [exportProgress, setExportProgress] = useState({
-    completed: 0,
-    total: 0,
-    current: '',
-  });
+
   const [exportSalt, setExportSalt] = useState('');
   const [exportUrl, setExportUrl] = useState('');
   const [exportFileName, setExportFileName] = useState('export.zip');
@@ -88,7 +81,7 @@ export default function DataManagement() {
   const [importStatus, setImportStatus] = useState<TaskStatus>('idle');
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
   const [importError, setImportError] = useState('');
-  const [importProgress, setImportProgress] = useState({ imported: 0, total: 0 });
+
   const importTimerRef = useRef<number | null>(null);
 
   // ── 导入预览 ──
@@ -99,8 +92,8 @@ export default function DataManagement() {
     can_import: boolean;
     version_note: string;
     exported_at: string;
-    total_tables: number;
-    total_rows: number;
+    table_count: number;
+    file_count: number;
     app_id: string;
   } | null>(null);
 
@@ -127,7 +120,6 @@ export default function DataManagement() {
       return;
     }
     setExportStatus('running');
-    setExportProgress({ completed: 0, total: 0, current: '' });
     setExportSalt('');
     setExportUrl('');
 
@@ -166,11 +158,6 @@ export default function DataManagement() {
         const res = await request<ExportStatus>(`/transfer/export/${exportId}/status`);
         if (res.code === 0 && res.data) {
           const st = res.data;
-          setExportProgress({
-            completed: st.completed_tables,
-            total: st.total_tables,
-            current: st.current_table,
-          });
           if (st.status === 'completed') {
             if (exportTimerRef.current !== null) window.clearInterval(exportTimerRef.current);
             exportTimerRef.current = null;
@@ -243,10 +230,7 @@ export default function DataManagement() {
     a.click();
   };
 
-  const exportPercent =
-    exportProgress.total > 0
-      ? Math.round((exportProgress.completed / exportProgress.total) * 100)
-      : 0;
+
 
   // ═══════════════════ 导入流程 ═══════════════════
 
@@ -330,20 +314,14 @@ export default function DataManagement() {
       <div>
         <p style={{ marginBottom: 8 }}>
           <strong>数据版本：</strong>{preview?.zip_version ?? '未知'}
-          {preview?.zip_version !== preview?.current_version
-            ? <span style={{ color: '#1677ff' }}> → {preview?.current_version}（将自动迁移）</span>
-            : <span style={{ color: '#52c41a' }}>（与当前版本一致）</span>}
-        </p>
-        <p style={{ marginBottom: 8 }}>
-          <strong>导出版本：</strong>{preview?.zip_version ?? '未知'} ｜
-          <strong>当前版本：</strong>{preview?.current_version ?? '-'}
+          <span style={{ color: '#52c41a' }}>（与当前版本一致）</span>
         </p>
         <p style={{ marginBottom: 8 }}>
           <strong>导出时间：</strong>{dt}
         </p>
         <p style={{ marginBottom: 8 }}>
-          <strong>数据表：</strong>{preview?.total_tables ?? 0} 张 ｜
-          <strong>数据行：</strong>{preview?.total_rows ?? 0} 行
+          <strong>数据表：</strong>{preview?.table_count ?? 0} 张 ｜
+          <strong>文件数：</strong>{preview?.file_count ?? 0} 个
         </p>
         <p style={{ marginTop: 16, color: '#ff4d4f' }}>
           ⚠ 导入将完全覆盖现有数据，且此操作不可撤销！请确认已备份当前数据。
@@ -418,7 +396,6 @@ export default function DataManagement() {
     setImportStatus('running');
     setImportStats(null);
     setImportError('');
-    setImportProgress({ imported: 0, total: 0 });
     setResultModal(null);
 
     const formData = new FormData();
@@ -461,12 +438,7 @@ export default function DataManagement() {
         const res = await request<ImportStatusData>(`/transfer/import/${taskId}/status`);
         if (res.code === 0 && res.data) {
           const st = res.data;
-          if (st.stats) {
-            setImportProgress({
-              imported: st.stats.imported_tables,
-              total: st.stats.total_tables,
-            });
-          }
+
           if (st.status === 'completed') {
             if (importTimerRef.current !== null) window.clearInterval(importTimerRef.current);
             importTimerRef.current = null;
@@ -479,8 +451,8 @@ export default function DataManagement() {
             }
             setResultModal({
               type: 'success',
-              tables: st.stats?.imported_tables ?? 0,
-              rows: st.stats?.imported_rows ?? 0,
+              tables: st.stats?.total_tables ?? 0,
+              rows: 0,
               message: '',
               rollback: 'none',
             });
@@ -514,10 +486,7 @@ export default function DataManagement() {
     }, 2000);
   };
 
-  const importPercent =
-    importProgress.total > 0
-      ? Math.round((importProgress.imported / importProgress.total) * 100)
-      : 0;
+
 
   return (
     <div className={styles.container ?? ''}>
@@ -564,7 +533,7 @@ export default function DataManagement() {
             {exportStatus !== 'idle' && (
               <div className={styles.progressBlock ?? ''}>
                 <Progress
-                  percent={exportPercent}
+                  percent={exportStatus === 'completed' ? 100 : 0}
                   status={
                     exportStatus === 'failed'
                       ? 'exception'
@@ -573,9 +542,9 @@ export default function DataManagement() {
                         : 'active'
                   }
                 />
-                {exportStatus === 'running' && exportProgress.current && (
+                {exportStatus === 'running' && (
                   <Text type="secondary" className={styles.progressHint ?? ''}>
-                    正在导出：{exportProgress.current}
+                    正在导出数据库与文件，请稍候...
                   </Text>
                 )}
                 {exportStatus === 'failed' && (
@@ -671,14 +640,9 @@ export default function DataManagement() {
 
             {importStatus === 'running' && (
               <div className={styles.progressBlock ?? ''}>
-                <Progress percent={importPercent} status="active" />
+                <Progress percent={0} status="active" />
                 <Text type="secondary" className={styles.progressHint ?? ''}>
-                  {importProgress.total > 0
-                    ? `${importProgress.imported}/${importProgress.total} 张表`
-                    : '正在准备导入...'}
-                </Text>
-                <Text type="secondary" className={styles.progressHint ?? ''}>
-                  正在导入数据，请勿关闭页面...
+                  正在恢复数据库与文件，请勿关闭页面...
                 </Text>
               </div>
             )}
@@ -686,18 +650,14 @@ export default function DataManagement() {
             {importStatus === 'completed' && importStats && (
               <div className={styles.resultBlock ?? ''}>
                 <div className={styles.resultLine ?? ''}>
-                  <span className={styles.resultKey ?? ''}>导入表</span>
+                  <span className={styles.resultKey ?? ''}>数据表</span>
                   <span className={styles.resultValue ?? ''}>
-                    {importStats.imported_tables} / {importStats.total_tables}
+                    {importStats.total_tables ?? 0} 张
                   </span>
                 </div>
                 <div className={styles.resultLine ?? ''}>
-                  <span className={styles.resultKey ?? ''}>导入行数</span>
-                  <span className={styles.resultValue ?? ''}>{importStats.imported_rows}</span>
-                </div>
-                <div className={styles.resultLine ?? ''}>
                   <span className={styles.resultKey ?? ''}>导入文件</span>
-                  <span className={styles.resultValue ?? ''}>{importStats.file_count}</span>
+                  <span className={styles.resultValue ?? ''}>{importStats.file_count} 个</span>
                 </div>
                 {importStats.errors.length > 0 && (
                   <div className={styles.errorList ?? ''}>
@@ -775,8 +735,7 @@ export default function DataManagement() {
       >
         <div className={styles.formBlock ?? ''}>
           <Text>
-            数据导入完成！{resultModal?.type === 'success' ? resultModal.tables : 0} 张表导入成功，
-            {resultModal?.type === 'success' ? resultModal.rows : 0} 行数据
+            数据导入完成！数据库与文件已全部恢复，点击「刷新工作台」开始使用。
           </Text>
         </div>
       </Modal>

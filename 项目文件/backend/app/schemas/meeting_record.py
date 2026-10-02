@@ -28,6 +28,23 @@ class MeetingRecordUpdate(BaseModel):
     notes: str | None = None
 
 
+class TranscriptSegmentUpsert(BaseModel):
+    """转录片段写入/覆盖请求"""
+
+    seq: int = Field(ge=0)
+    text: str
+    audio_start_ms: int = Field(ge=0)
+    audio_end_ms: int | None = Field(default=None, ge=0)
+    speaker: str | None = None
+
+
+class MeetingAutosaveRequest(BaseModel):
+    """会议自动保存请求"""
+
+    notes: str | None = None
+    transcript_segments: list[TranscriptSegmentUpsert] = []
+
+
 class MeetingTranscriptSegmentResponse(BaseModel):
     """转录句子响应"""
 

@@ -150,7 +150,8 @@ async def update_me_endpoint(
     if "avatar" in request.model_fields_set:
         current_user.avatar = request.avatar
     await db.flush()
-    await db.refresh(current_user)
+    # 只重载 tags 关系：全量 refresh 会过期关系属性，序列化时再次触发 async 惰性加载（greenlet 错误）
+    await db.refresh(current_user, attribute_names=["tags"])
     return UnifiedResponse(data=UserResponse.model_validate(current_user))
 
 

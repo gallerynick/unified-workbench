@@ -299,8 +299,8 @@ export function getAntdThemeConfig(isDark: boolean) {
         borderRadius: 8,
         paddingXS: 6,
         paddingXXS: 8,
-        colorBgSpotlight: isDark ? '#ffffff' : '#1d1d1f',
-        colorTextLightSolid: isDark ? '#000000' : '#ffffff',
+        colorBgSpotlight: isDark ? '#262626' : '#1d1d1f',
+        colorTextLightSolid: '#ffffff',
         boxShadowSecondary: isDark
           ? '0 4px 12px rgba(0,0,0,0.3)'
           : '0 4px 12px rgba(0,0,0,0.08)',

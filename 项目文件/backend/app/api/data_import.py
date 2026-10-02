@@ -37,19 +37,17 @@ async def start_import_endpoint(
     服务端使用 PBKDF2(passphrase + pepper, salt, 600k iter) 派生 AES-256 密钥解密。
     密码短语与 salt 仅用于本次导入，不持久化存储。
     """
-    # 保存上传的 ZIP 到临时文件
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
     try:
         with tmp as f:
             while chunk := await file.read(1024 * 1024):
                 f.write(chunk)
         saved_path = tmp.name
-        import_id = await data_import.start_import(db, saved_path, password, salt)
+        import_id = await data_import.start_import(saved_path, password, salt)
     except Exception as e:
-        # 清理临时文件后抛出
         if os.path.exists(tmp.name):
             os.remove(tmp.name)
-        raise HTTPException(status_code=500, detail=f"启动导入失败: {e}")
+        raise HTTPException(status_code=500, detail="启动导入失败: %s" % e)
     finally:
         await file.close()
 
@@ -97,11 +95,11 @@ async def preview_import_endpoint(
         os.remove(tmp.name)
 
         zip_version = manifest.get("version", "unknown")
-        can_import = not data_import._version_gt(zip_version, __version__)
+        can_import = zip_version == __version__
         version_note = (
-            "版本一致，可直接导入" if zip_version == __version__
-            else f"将从 {zip_version} 升级至 {__version__}" if can_import
-            else f"数据版本 {zip_version} 高于当前版本 {__version__}，无法导入"
+            "版本一致，可直接导入" if can_import
+            else "数据来源版本 %s 与当前版本 %s 不兼容，无法导入"
+            % (zip_version, __version__)
         )
 
         return UnifiedResponse(data={
@@ -110,8 +108,7 @@ async def preview_import_endpoint(
             "can_import": can_import,
             "version_note": version_note,
             "exported_at": manifest.get("exported_at", "unknown"),
-            "total_tables": len(manifest.get("tables", [])),
-            "total_rows": manifest.get("total_rows", 0),
+            "table_count": manifest.get("table_count", 0),
             "file_count": manifest.get("file_count", 0),
             "app_id": manifest.get("app_id", "unknown"),
         })
@@ -122,4 +119,4 @@ async def preview_import_endpoint(
     except Exception as e:
         if os.path.exists(tmp.name):
             os.remove(tmp.name)
-        raise HTTPException(status_code=500, detail=f"预览失败: {e}")
+        raise HTTPException(status_code=500, detail="预览失败: %s" % e)
