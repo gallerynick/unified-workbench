@@ -170,6 +170,12 @@ services:
   #   --sleep-idle-seconds  空闲 5 分钟后自动卸载模型释放内存；新请求自动重新载入
   #                         注意 /health、/props、/models、/metrics 不会唤醒模型，
   #                         因此状态轮询不会意外把它拉起来
+  # 性能通用项（跨机器自适应，均已实测生效）：
+  #   --cache-reuse 256：前缀缓存服务端能力（业务侧保证请求前缀固定即命中）
+  #   --metrics：Prometheus 容量监控（router 模式端点为 /metrics?model=<模型名>）
+  #   线程/GPU/上下文不写死：-t 默认按物理核自适应；GPU 环境可另加 -ngl；-c 内存足可调大
+  #   KV 量化（-fa/-ctk/-ctv q8_0）在本 router 构建不可用：命令行被拒（invalid argument），
+  #   preset 文件被忽略——如未来换非 router 模式或新版本支持，再启用以省 ~140MB KV 内存
   llama-cpp:
     image: ghcr.io/ggml-org/llama.cpp:server
     restart: unless-stopped
@@ -180,6 +186,8 @@ services:
       --models-max 1
       --ctx-size 8192
       --sleep-idle-seconds 300
+      --cache-reuse 256
+      --metrics
     ports:
       - "8080:8080"
     volumes:
