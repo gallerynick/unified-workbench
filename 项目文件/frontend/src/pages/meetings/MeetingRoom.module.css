@@ -80,9 +80,11 @@
 
 /* 转录列表 - 限制高度并启用滚动 */
 .transcriptList {
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0; /* 允许 flex 子项收缩，关键属性 */
+  max-height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 12px 16px;
   background: var(--canvas);
 }

@@ -26,17 +26,19 @@ dependencies = [
     "pyotp>=2.9",
     "webauthn>=2.0",
     "psutil>=5.9",
-    # ASR 语音识别（torch/torchaudio 在 Dockerfile 中单独安装 CPU-only 版）
-    "funasr>=1.0",
+    # ASR 语音识别：funasr-onnx（SenseVoice 推理，无 torch）
+    "funasr-onnx>=0.4",
+    "onnxruntime>=1.17",
+    # 说话人分离：sherpa-onnx 自带 ONNX Runtime，无需 torch
+    "sherpa-onnx>=1.10",
+    # 句子切分：webrtcvad（纯 C 库，不创建 onnxruntime session，
+    # 避免与 SenseVoice 两个 ORT session 并存的 VM 内存峰值）
+    "webrtcvad>=2.0",
     "soundfile>=0.12",
     "numpy>=1.24",
 ]
 
 [project.optional-dependencies]
-asr = [
-    "torch>=2.0",
-    "torchaudio>=2.0",
-]
 dev = [
     "ruff>=0.8",
     "black>=24.10",

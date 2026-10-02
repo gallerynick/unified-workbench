@@ -12,6 +12,7 @@ export interface MeetingWebSocketState {
   processingProgress: number;
   processingMessage: string;
   error: string | null;
+  warningMessage: string | null;
 }
 
 /**
@@ -33,6 +34,7 @@ export function useMeetingWebSocket(
     processingProgress: 0,
     processingMessage: '',
     error: null,
+    warningMessage: null,
   });
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,6 +74,8 @@ export function useMeetingWebSocket(
               ...prev,
               segments: [...prev.segments, msg.data],
               segmentCount: prev.segmentCount + 1,
+              // 已出转录结果说明识别正常，清掉「载入中」等警告
+              warningMessage: null,
             }));
             break;
           case 'status_update':
@@ -91,6 +95,10 @@ export function useMeetingWebSocket(
             }));
             break;
           case 'warning':
+            setState((prev) => ({
+              ...prev,
+              warningMessage: msg.data.message,
+            }));
             console.warn('WebSocket warning:', msg.data.message);
             break;
           case 'error':
@@ -106,7 +114,7 @@ export function useMeetingWebSocket(
     };
 
     ws.onclose = () => {
-      setState((prev) => ({ ...prev, connected: false }));
+      setState((prev) => ({ ...prev, connected: false, warningMessage: null }));
       // 只有在应该连接的情况下才重连
       if (shouldConnectRef.current) {
         reconnectTimer.current = setTimeout(() => {

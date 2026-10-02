@@ -188,16 +188,6 @@ export default function MeetingList() {
               label=""
             />
           </Form.Item>
-          <div style={{ marginTop: 8, padding: 12, background: 'var(--fill-tertiary)', borderRadius: 8 }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              <Text strong style={{ color: 'var(--text-tertiary)' }}>权限说明：</Text>
-              <div style={{ marginTop: 4, lineHeight: '20px' }}>
-                <div>• 公开：所有成员都可以查看该会议</div>
-                <div>• 私有：仅会议创建者可以查看</div>
-                <div>• 受限：仅指定用户和标签用户可见</div>
-              </div>
-            </Text>
-          </div>
         </Form>
       </Modal>
 
