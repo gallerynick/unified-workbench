@@ -190,6 +190,16 @@ MODEL_CATALOG: dict[str, dict[str, str]] = {
         "file": "qwen2.5-3b-instruct-q4_k_m.gguf",
         "sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
     },
+    # Ollama 时代的旧模型名 → GGUF 目录名。兼容遗留配置与前端旧缓存：
+    # 用户数据库或浏览器还存着 qwen2.5:3b 时，下载/载入也能正确落到 GGUF。
+    # 7B 因分片未入目录，别名保留但下载会报「不在目录」。
+    "_OLD_ALIASES": {
+        "qwen2.5:1.5b": "qwen2.5-1.5b-instruct-q4_k_m",
+        "qwen2.5:3b": "qwen2.5-3b-instruct-q4_k_m",
+        "qwen2.5:7b": "qwen2.5-7b-instruct-q4_k_m",
+        "qwen3:1.7b": "qwen2.5-1.5b-instruct-q4_k_m",
+        "qwen3.5:4b": "qwen2.5-3b-instruct-q4_k_m",
+    },
     # 注意：qwen2.5-7b-instruct-q4_k_m 是**分片文件**（00001-of-00002），
     # 当前下载器与 llama.cpp 的 models-dir 均按单文件处理，分片需子目录结构，
     # 故暂不列入可下载目录。需要 7B 时：手动把两个分片放进 data/gguf/<name>/ 子目录即可。
@@ -228,16 +238,26 @@ def model_file_path(model: str) -> Path:
     return Path(MODELS_DIR) / f"{model}.gguf"
 
 
+def _canonical_model_name(model: str) -> str:
+    """旧模型名（Ollama 别名）归一化到 GGUF 目录名；未知则原样返回。"""
+    return MODEL_CATALOG["_OLD_ALIASES"].get(model, model)
+
+
 def resolve_download_target(model: str) -> dict[str, Any] | None:
-    """把模型名解析成可下载目标；不在目录里返回 None。"""
-    entry = MODEL_CATALOG.get(model)
+    """把模型名解析成可下载目标；不在目录里返回 None。
+
+    先做旧名（qwen2.5:3b 等）→ GGUF 目录名归一化，再查目录。
+    """
+    canonical = _canonical_model_name(model)
+    entry = MODEL_CATALOG.get(canonical)
     if entry is None:
         return None
     suffix = f"{entry['repo']}/resolve/main/{entry['file']}"
     return {
-        "model": model,
+        "model": canonical,
         "file": entry["file"],
         "label": entry["label"],
         "sha256": entry.get("sha256"),
         "urls": [f"{origin}/{suffix}" for origin in DOWNLOAD_ORIGINS],
     }
+
