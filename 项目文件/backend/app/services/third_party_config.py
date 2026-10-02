@@ -3,9 +3,31 @@
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# ── ASR 模型下载进度（字节级，与 AI 下载一致的前端展示）────────────
+# 后台下载线程把进度写进这个模块级状态，get_asr_model_status 读取后
+# 随状态一起返回；前端据此渲染进度条 / 速度 / 预计剩余时间。
+_asr_dl_lock = threading.Lock()
+_asr_dl_state: dict[str, Any] = {
+    "running": False,
+    "total_bytes": 0,
+    "downloaded_bytes": 0,
+    "speed": 0.0,
+    "eta_seconds": None,
+    "progress": 0.0,
+    "samples": [],  # [(ts, downloaded_bytes)]
+}
+
+# SenseVoiceSmall-onnx 仓库的模型文件（model_quant.onnx 占体积大头）
+_ASR_MODEL_FILES: tuple[str, ...] = (
+    ".gitattributes", "am.mvn", "config.yaml", "configuration.json",
+    "model_quant.onnx", "README.md", "tokens.json",
+)
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -606,19 +628,111 @@ async def preload_asr_models(db: AsyncSession) -> TestConnectionResponse:
     )
 
 
+def _update_asr_dl_progress(n: int) -> None:
+    """下载线程：累计字节并滑动窗口算速度 / ETA。"""
+    now = time.time()
+    with _asr_dl_lock:
+        s = _asr_dl_state
+        s["downloaded_bytes"] += n
+        s["samples"].append((now, s["downloaded_bytes"]))
+        while s["samples"] and now - s["samples"][0][0] > 10:
+            s["samples"].pop(0)
+        if len(s["samples"]) >= 2 and s["samples"][-1][0] > s["samples"][0][0]:
+            span = s["samples"][-1][0] - s["samples"][0][0]
+            s["speed"] = max(0.0, (s["samples"][-1][1] - s["samples"][0][1]) / span)
+        remaining = s["total_bytes"] - s["downloaded_bytes"]
+        s["eta_seconds"] = (
+            round(remaining / s["speed"]) if s["speed"] > 0 and remaining > 0 else None
+        )
+        s["progress"] = (
+            min(100.0, s["downloaded_bytes"] / s["total_bytes"] * 100)
+            if s["total_bytes"] > 0
+            else 0.0
+        )
+
+
+def asr_download_progress() -> dict[str, Any]:
+    """读取当前 ASR 下载进度（供 get_asr_model_status 返回）。"""
+    with _asr_dl_lock:
+        s = _asr_dl_state
+        return {
+            "downloading": s["running"],
+            "download_progress": round(s["progress"], 1),
+            "download_speed": round(s["speed"], 1),
+            "download_eta_seconds": s["eta_seconds"],
+            "download_downloaded_mb": round(s["downloaded_bytes"] / 1048576, 1),
+            "download_total_mb": round(s["total_bytes"] / 1048576, 1),
+        }
+
+
 def _download_asr_models(models: list[dict[str, Any]]) -> None:
-    """后台下载缺失的 ASR 模型（ModelScope 缓存到 ~/.modelscope）。"""
+    """后台下载缺失的 ASR 模型：从 ModelScope 直连流式下载，发布字节级进度。
+
+    与 AI（GGUF）下载走同一条前端展示路径：进度条 + 速度 + 预计剩余。
+    """
     import os
     import shutil
 
-    os.environ.setdefault("MODELSCOPE_CACHE", "/home/workbench/.modelscope")
-    from modelscope.hub.snapshot_download import snapshot_download
+    import httpx
 
-    for item in models:
-        repo_id = item.get("repo_id")
-        if not item.get("ready") and repo_id:
-            snapshot_download(repo_id, revision="master")
+    os.environ.setdefault("MODELSCOPE_CACHE", "/home/workbench/.modelscope")
+    from app.services import asr_engine
+
+    with _asr_dl_lock:
+        _asr_dl_state["running"] = True
+        _asr_dl_state["total_bytes"] = 0
+        _asr_dl_state["downloaded_bytes"] = 0
+        _asr_dl_state["speed"] = 0.0
+        _asr_dl_state["eta_seconds"] = None
+        _asr_dl_state["progress"] = 0.0
+        _asr_dl_state["samples"] = []
+
+    try:
+        for item in models:
+            repo_id = item.get("repo_id")
+            if item.get("ready") or not repo_id:
+                continue
+            cache_dir = asr_engine._model_cache_dir(repo_id)
+            snap = asr_engine._snapshot_dir(cache_dir) or os.path.join(
+                cache_dir, "snapshots", "master"
+            )
+            os.makedirs(snap, exist_ok=True)
+
+            files = _ASR_MODEL_FILES
+            # 逐个流式下载。进度分母（total_bytes）在下载时从 GET 响应头累加：
+            # modelscope 对 HEAD 不返回 content-length（chunked），HEAD 拿不到大小。
+            for fname in files:
+                url = f"https://modelscope.cn/models/{repo_id}/resolve/master/{fname}"
+                target = os.path.join(snap, fname)
+                if os.path.isfile(target) and os.path.getsize(target) > 0:
+                    # 已落盘的文件算作已下载字节，不重复拉取
+                    with _asr_dl_lock:
+                        _asr_dl_state["total_bytes"] += os.path.getsize(target)
+                        _asr_dl_state["downloaded_bytes"] += os.path.getsize(target)
+                    continue
+                with httpx.stream("GET", url, timeout=300.0, follow_redirects=True) as resp:
+                    resp.raise_for_status()
+                    size = int(resp.headers.get("content-length") or 0)
+                    with _asr_dl_lock:
+                        _asr_dl_state["total_bytes"] += size
+                    with open(target, "wb") as f:
+                        for chunk in resp.iter_bytes(1 << 20):
+                            f.write(chunk)
+                            _update_asr_dl_progress(len(chunk))
+
             _ensure_sensevoice_bpe(repo_id)
+    except Exception as e:
+        logger.warning("ASR 模型下载失败：%s", e)
+    finally:
+        with _asr_dl_lock:
+            _asr_dl_state["running"] = False
+            _asr_dl_state["progress"] = (
+                100.0
+                if _asr_dl_state["total_bytes"] > 0
+                and _asr_dl_state["downloaded_bytes"] >= _asr_dl_state["total_bytes"]
+                else _asr_dl_state["progress"]
+            )
+            _asr_dl_state["eta_seconds"] = None
 
 
 def _ensure_sensevoice_bpe(repo_id: str) -> None:
@@ -748,6 +862,7 @@ async def get_asr_model_status(db: AsyncSession) -> dict:
         status = "not_downloaded"
         message = "ASR 模型未下载"
 
+    dl = asr_download_progress()
     return {
         "status": status,
         "message": message,
@@ -756,6 +871,8 @@ async def get_asr_model_status(db: AsyncSession) -> dict:
             "downloaded": done,
             "total": total,
             "loaded": loaded,
+            # 下载进度（与 AI 下载同源的字节级进度，供前端统一展示）
+            **dl,
         },
     }
 

@@ -124,6 +124,13 @@ export interface ASRModelStatus {
     downloaded: number;
     total: number;
     loaded: boolean;
+    /** 下载进度（与 AI 下载同一套字段，未下载时为 false/0） */
+    downloading?: boolean;
+    download_progress?: number;
+    download_speed?: number;
+    download_eta_seconds?: number | null;
+    download_downloaded_mb?: number;
+    download_total_mb?: number;
   } | null;
 }
 
