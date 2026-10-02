@@ -39,9 +39,6 @@ export interface ASRConfig {
   };
   parameters: {
     sample_rate: number;
-    hpf_cutoff: number;
-    noise_reduction: number;
-    vad_threshold: number;
     silence_timeout: number;
     /** 语言白名单：只识别这些语言（zh/en/ja/ko/yue） */
     allowed_languages?: string[];

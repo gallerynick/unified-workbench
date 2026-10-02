@@ -35,9 +35,6 @@ class ASRConfig(BaseModel):
     online: dict[str, Any] = {}
     parameters: dict[str, Any] = {
         "sample_rate": 16000,
-        "hpf_cutoff": 80,
-        "noise_reduction": 0.8,
-        "vad_threshold": 0.006,
         "silence_timeout": 1.5,
         "allowed_languages": ["zh"],
     }

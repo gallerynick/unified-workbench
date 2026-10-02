@@ -44,9 +44,6 @@ const DEFAULT_CONFIG: ThirdPartyConfig = {
     },
     parameters: {
       sample_rate: 16000,
-      hpf_cutoff: 80,
-      noise_reduction: 0.8,
-      vad_threshold: 0.006,
       silence_timeout: 1.5,
       allowed_languages: ['zh'],
     },
@@ -1532,22 +1529,6 @@ export default function ThirdPartyConfigPage() {
           <div style={{ marginTop: "var(--spacing-md)", padding: "var(--spacing-md)", background: 'var(--fill-tertiary)', borderRadius: "var(--border-radius)" }}>
             <Text strong style={{ display: 'block', marginBottom: 12 }}>参数配置</Text>
             
-            <Form.Item 
-              name={['asr_config', 'parameters', 'noise_reduction']}
-              label="降噪强度"
-              tooltip="音频降噪强度，范围 0-1。值越高降噪越强，但可能损失部分语音细节"
-            >
-              <InputNumber min={0} max={1} step={0.1} />
-            </Form.Item>
-
-            <Form.Item 
-              name={['asr_config', 'parameters', 'vad_threshold']}
-              label="VAD 阈值"
-              tooltip="语音活动检测阈值，范围 0-0.1。值越低越敏感，可能误判静音为语音"
-            >
-              <InputNumber min={0} max={0.1} step={0.001} />
-            </Form.Item>
-
             <Form.Item 
               name={['asr_config', 'parameters', 'silence_timeout']}
               label="静音超时 (秒)"
