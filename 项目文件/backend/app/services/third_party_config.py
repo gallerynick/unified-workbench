@@ -348,8 +348,9 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                             "messages": [{"role": "user", "content": test_prompt}],
                             "stream": False,
                             "temperature": ai_config.parameters.get("temperature", 0.2),
-                            # 200 个 token 才够测出稳定速率；太短单次抖动就很大
-                            "max_tokens": 200,
+                            # 64 个 token：够看吞吐量级且快（纯 CPU 4 线程下 200 token 要 30s）；
+                            # 需要更稳的速率可用 200（约 5 倍耗时）
+                            "max_tokens": 64,
                         },
                     )
                 total_time = time.time() - start_time
