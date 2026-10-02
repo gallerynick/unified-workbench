@@ -191,6 +191,13 @@ export default function ThirdPartyConfigPage() {
   // 本机已下载的全部 GGUF 模型，用于模型选择器
   const [localModels, setLocalModels] = useState<{ name: string; size: number }[]>([]);
   const [asrModelStatus, setAsrModelStatus] = useState<'not_downloaded' | 'downloading' | 'downloaded' | 'ready' | 'error'>('not_downloaded');
+  // ASR 下载进度（与 AI 下载同一套展示：进度条 + 速度 + 预计剩余）
+  const [asrDownloading, setAsrDownloading] = useState(false);
+  const [asrDownloadProgress, setAsrDownloadProgress] = useState(0);
+  const [asrDownloadSpeed, setAsrDownloadSpeed] = useState(0);
+  const [asrDownloadEta, setAsrDownloadEta] = useState<number | null>(null);
+  const [asrDownloadDownloaded, setAsrDownloadDownloaded] = useState(0);
+  const [asrDownloadTotal, setAsrDownloadTotal] = useState(0);
   const [asrModelDetails, setAsrModelDetails] = useState<{ models: { name: string; repo_id: string; ready: boolean; size_mb: number }[]; downloaded: number; total: number } | null>(null);
   const [asrPreloading, setAsrPreloading] = useState(false);
   const [asrReloading, setAsrReloading] = useState(false);
@@ -693,6 +700,14 @@ export default function ThirdPartyConfigPage() {
         const r = await getASRModelStatus();
         if (r.code === 0 && r.data) {
           setAsrModelDetails(r.data.details ?? null);
+          // 同步下载进度（与 AI 下载同一套字段）
+          const d = r.data.details;
+          setAsrDownloading(Boolean(d?.downloading));
+          setAsrDownloadProgress(Number(d?.download_progress ?? 0));
+          setAsrDownloadSpeed(Number(d?.download_speed ?? 0));
+          setAsrDownloadEta(d?.download_eta_seconds ?? null);
+          setAsrDownloadDownloaded(Number(d?.download_downloaded_mb ?? 0) * 1048576);
+          setAsrDownloadTotal(Number(d?.download_total_mb ?? 0) * 1048576);
         }
       } catch (err) {
         console.warn('检查 ASR 状态失败', err);
@@ -1368,6 +1383,25 @@ export default function ThirdPartyConfigPage() {
                           >
                             下载模型
                           </Button>
+                        )}
+                        {asrDownloading && (
+                          <div style={{ marginTop: 12, width: '100%' }}>
+                            <Progress
+                              percent={asrDownloadProgress}
+                              status="active"
+                              format={(p) => <span>{p?.toFixed(1)}%</span>}
+                            />
+                            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
+                              <span>速度: {(asrDownloadSpeed / 1024 / 1024).toFixed(2)} MB/s</span>
+                              <span style={{ marginLeft: 16 }}>已下载: {(asrDownloadDownloaded / 1024 / 1024).toFixed(1)} MB</span>
+                              <span style={{ marginLeft: 16 }}>总计: {(asrDownloadTotal / 1024 / 1024).toFixed(1)} MB</span>
+                              {formatEta(asrDownloadEta) && (
+                                <span style={{ marginLeft: 16, color: 'var(--color-primary)' }}>
+                                  预计剩余: {formatEta(asrDownloadEta)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         )}
                         {asrModelStatus === 'downloaded' && (
                           <Tag color="success">
