@@ -179,6 +179,7 @@ async def create_meeting_record(
         visibility=data.get("visibility", "private"),
         restricted_users=data.get("restricted_users", []),
         restricted_tags=data.get("restricted_tags", []),
+        participants=data.get("participants") or [],
         status="not_started",
     )
     db.add(item)
@@ -215,7 +216,7 @@ async def update_meeting_record(
             status_code=403, detail="仅创建者可以更新会议"
         )
 
-    for field in ("title", "visibility", "restricted_users", "restricted_tags", "notes"):
+    for field in ("title", "visibility", "restricted_users", "restricted_tags", "participants", "notes"):
         if field in data and data[field] is not None:
             setattr(item, field, data[field])
 
@@ -365,6 +366,47 @@ async def end_meeting_record(
         process_meeting.delay(str(item.id))
     except Exception as e:
         logger.error(f"Failed to enqueue meeting processing task for {item.id}: {e}")
+        item.status = "completed"
+        item.minutes_status = "failed"
+        await db.flush()
+
+    return item
+
+
+async def regenerate_minutes_record(
+    db: AsyncSession,
+    meeting_id: uuid.UUID,
+    user: User,
+) -> MeetingRecord | None:
+    """手动重新生成会议纪要（供前端失败重试）。
+
+    - 仅创建者可触发；
+    - 会议已结束（completed）才允许重新生成：重置纪要状态为 pending，
+      重新入队会后处理任务；若正在处理中（processing）则直接返回现状，防止重复并发。
+    """
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
+
+    if item.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="仅创建者可以重新生成纪要")
+
+    if item.status != "completed":
+        raise HTTPException(
+            status_code=400, detail="会议尚未结束，不能重新生成纪要"
+        )
+
+    item.status = "processing"
+    item.minutes_status = "pending"
+
+    await db.flush()
+    await db.refresh(item)
+
+    await db.commit()
+
+    try:
+        process_meeting.delay(str(item.id))
+    except Exception as e:
+        logger.error(f"Failed to enqueue minutes regeneration for {item.id}: {e}")
         item.status = "completed"
         item.minutes_status = "failed"
         await db.flush()

@@ -152,8 +152,11 @@ async def _process_meeting_async(self, meeting_id: str) -> dict[str, Any]:
             diarization_result: list[dict[str, Any]] | None = None
             if meeting.audio_file_path:
                 await _set_stage("正在区分讲话人")
+                # 参会人名单已知时按人数聚类（更准）；名单空/1 人时自动聚类
+                participants = meeting.participants or []
+                num_speakers = len(participants) if len(participants) > 1 else None
                 diarization_result = await asyncio.to_thread(
-                    _diarize_isolated, meeting.audio_file_path, None
+                    _diarize_isolated, meeting.audio_file_path, num_speakers
                 )
                 meeting.diarization_status = "done" if diarization_result else "failed"
                 await db.commit()
