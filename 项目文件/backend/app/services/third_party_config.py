@@ -326,17 +326,44 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                 pass  # 卸载消息会在测试完成后一起返回
         
         import httpx
+
+        model_name = ai_config.local.get("model") or llama_cpp.DEFAULT_MODEL
+
+        # 非测速：只验证连通性 + 模型文件存在，**不查 /models**。
+        # 该 llama.cpp 版本对 /models 查询会唤醒 sleeping/unloaded 的模型并等待加载
+        # （实测约 9-18s），会让「测试连接」按钮一直转圈。
+        if not measure_speed:
+            health = await llama_cpp.health()
+            if health.get("status_code") != 200:
+                return TestConnectionResponse(
+                    success=False,
+                    message="本地 AI 服务不可达（llama.cpp 未响应）",
+                )
+            if not llama_cpp.model_file_path(model_name).exists():
+                return TestConnectionResponse(
+                    success=False,
+                    message=f"模型 {model_name} 未下载",
+                )
+            return TestConnectionResponse(
+                success=True,
+                message="本地 AI 服务连通，模型文件已就绪（请求时自动载入）",
+                details={
+                    "model": model_name,
+                    "health_status": health.get("status"),
+                },
+            )
+
+        # 测速模式：模型需在 llama.cpp 可加载，查 /models（会触发加载，属于测速预期）
         try:
             models = await llama_cpp.list_models(timeout=10.0)
-            model_name = ai_config.local.get("model") or llama_cpp.DEFAULT_MODEL
             if not any(m.get("id") == model_name for m in models):
                 return TestConnectionResponse(
                     success=False,
                     message=f"模型 {model_name} 未下载",
                 )
 
-            # 测速模式：发一次生成请求，读取 llama.cpp 返回的 timings
-            if measure_speed:
+            # 发一次生成请求，读取 llama.cpp 返回的 timings
+
                 import time
 
                 start_time = time.time()
@@ -348,9 +375,8 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                             "messages": [{"role": "user", "content": test_prompt}],
                             "stream": False,
                             "temperature": ai_config.parameters.get("temperature", 0.2),
-                            # 64 个 token：够看吞吐量级且快（纯 CPU 4 线程下 200 token 要 30s）；
-                            # 需要更稳的速率可用 200（约 5 倍耗时）
-                            "max_tokens": 64,
+                            # 200 个 token 才够测出稳定速率；太短单次抖动就很大
+                            "max_tokens": 200,
                         },
                     )
                 total_time = time.time() - start_time
