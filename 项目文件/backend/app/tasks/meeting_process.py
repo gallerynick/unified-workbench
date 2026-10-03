@@ -10,13 +10,14 @@
 from __future__ import annotations
 
 import asyncio
+import bisect
 import logging
 import os
 import uuid
 from typing import Any
 
 from celery import shared_task
-from sqlalchemy import delete, select
+from sqlalchemy import select
 
 from app.core.database import isolated_session
 from app.models.meeting_minutes import MeetingMinutes
@@ -28,7 +29,79 @@ from app.utils.timeutil import now_shanghai
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def _build_minutes_meta(
+    meeting: MeetingRecord,
+    segments: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """从会议记录提取纪要生成所需的元信息（全字段可缺失）。
+
+    participants 会并入分离出的说话人标签（如"说话人1"），
+    作为负责人取值白名单，缺省时仅会议创建者。
+    """
+    meta: dict[str, Any] = {}
+    if meeting.title:
+        meta["title"] = meeting.title
+
+    ref_time = meeting.started_at or meeting.ended_at
+    if ref_time is not None:
+        meta["date"] = ref_time.strftime("%Y-%m-%d")
+
+    participants: list[str] = []
+    try:
+        owner = meeting.owner
+    except Exception:
+        owner = None
+    if owner is not None:
+        name = getattr(owner, "nickname", None) or getattr(owner, "username", None)
+        if name:
+            participants.append(str(name))
+
+    seen: set[str] = set(participants)
+    for seg in segments or []:
+        spk = str(seg.get("speaker") or "").strip()
+        if spk and spk not in seen:
+            seen.add(spk)
+            participants.append(spk)
+    if participants:
+        meta["participants"] = participants
+
+    if meeting.notes:
+        meta["notes"] = meeting.notes
+    return meta
+
+
+async def _load_segments_with_speaker(
+    db: Any,
+    meeting_id: uuid.UUID,
+) -> list[dict[str, Any]]:
+    """按 seq 读取已入库转录段并附带 speaker 字段。
+
+    说话人分离成功后调用；任一环节失败返回空列表，由调用方回退。
+    """
+    try:
+        result = await db.execute(
+            select(MeetingTranscriptSegment)
+            .where(MeetingTranscriptSegment.meeting_id == meeting_id)
+            .order_by(MeetingTranscriptSegment.seq)
+        )
+        rows = list(result.scalars().all())
+        return [
+            {
+                "text": seg.text,
+                "start_ms": seg.audio_start_ms,
+                "end_ms": seg.audio_end_ms,
+                "speaker": seg.speaker,
+            }
+            for seg in rows
+            if seg.text
+        ]
+    except Exception as exc:
+        logger.warning("读取带说话人的转录段失败：%s", exc)
+        return []
+
+
+# 共尝试 5 次（初始 1 次 + 最多 4 次重试），仍失败则 minutes_status=failed 由前端提示
+@shared_task(bind=True, max_retries=4, default_retry_delay=60)
 def process_meeting(self, meeting_id: str) -> dict[str, Any]:
     """会后处理任务入口（同步签名，内部转异步执行）。"""
     return asyncio.run(_process_meeting_async(self, meeting_id))
@@ -69,13 +142,11 @@ async def _process_meeting_async(self, meeting_id: str) -> dict[str, Any]:
                 pass
             segments_data = _transcribe_audio(meeting, allowed_languages)
 
-            # 步骤 2: 生成纪要（本函数已是 async，直接 await，勿用 asyncio.run 包装）
-            minutes_data, model_used = await generate_minutes(segments_data)
-
-            # 步骤 3: 保存转录段到数据库
+            # 步骤 A: 先把转录段落库
             await _save_transcript_segments(db, meeting_uuid, segments_data)
 
-            # 步骤 4: 说话人分离（sherpa-onnx，独立 session，与 SenseVoice 顺序执行）
+            # 步骤 B: 说话人分离（sherpa-onnx，独立 session，与 SenseVoice 顺序执行）。
+            # 提前到纪要之前执行，让纪要输入带说话人归属；失败只标记状态，不阻断纪要。
             try:
                 if meeting.audio_file_path:
                     await _assign_speakers(
@@ -88,7 +159,17 @@ async def _process_meeting_async(self, meeting_id: str) -> dict[str, Any]:
                 logger.error("说话人分离失败：%s", exc)
                 meeting.diarization_status = "failed"
 
-            # 步骤 5: 保存纪要到数据库
+            # 步骤 C: 生成纪要（优先使用带说话人的库内转录段；取不到则回退转写结果，
+            # 行为与改前一致，保证不劣化）。
+            minutes_input = await _load_segments_with_speaker(
+                db, meeting_uuid
+            ) or segments_data
+            meeting_meta = _build_minutes_meta(meeting, minutes_input)
+            minutes_data, model_used = await generate_minutes(
+                minutes_input, meeting_meta=meeting_meta
+            )
+
+            # 步骤 D: 保存纪要到数据库
             await _save_minutes(db, meeting_uuid, minutes_data, model_used)
 
             # 步骤 5: 更新会议状态
@@ -197,25 +278,61 @@ async def _save_transcript_segments(
     meeting_id: uuid.UUID,
     segments: list[dict[str, Any]],
 ) -> None:
-    """保存转录段到数据库（async：db 是 AsyncSession，execute 必须 await）。"""
-    await db.execute(
-        delete(MeetingTranscriptSegment).where(
-            MeetingTranscriptSegment.meeting_id == meeting_id
-        )
-    )
+    """合并保存转录段，不删除既有实时段（async）。
 
-    # 插入新数据
-    for i, seg in enumerate(segments):
+    实时转录会先把句子写入库（前端 autosave），会后完整重转录又来一批；
+    直接 delete + 重插会把「实时有、会后因 VAD 参数差异未切出」的句子丢掉。
+    这里按 (audio_start_ms, text) 去重合并：已有段保留，新段追加，
+    时间戳与文本都重叠的视为同一句不重复插入。
+    """
+    # 读取已有转录段
+    existing_result = await db.execute(
+        select(MeetingTranscriptSegment)
+        .where(MeetingTranscriptSegment.meeting_id == meeting_id)
+        .order_by(MeetingTranscriptSegment.seq)
+    )
+    existing = list(existing_result.scalars().all())
+    # 已有段索引：文本规范化后按起始时间戳排序，便于区间内查重
+    # 同一句在实时/会后转录中因 VAD 边界差异，时间戳可能偏移数百毫秒，
+    # 因此「文本相同 && 时间戳相差 <= 1000ms」视为同一句，避免重复插入。
+    existing_by_text: dict[str, list[int]] = {}
+    for seg in existing:
+        text = (seg.text or "").strip()
+        existing_by_text.setdefault(text, []).append(seg.audio_start_ms)
+    for timestamps in existing_by_text.values():
+        timestamps.sort()
+
+    next_seq = max((seg.seq for seg in existing), default=-1) + 1
+
+    for seg in segments:
+        start_ms = int(seg.get("start_ms", 0) or 0)
+        text = str(seg.get("text", "") or "").strip()
+        if not text:
+            continue
+        ts_list = existing_by_text.get(text)
+        if ts_list is not None:
+            idx = bisect.bisect_left(ts_list, start_ms)
+            near = (
+                (idx < len(ts_list) and abs(ts_list[idx] - start_ms) <= 1000)
+                or (idx > 0 and abs(ts_list[idx - 1] - start_ms) <= 1000)
+            )
+            if near:
+                continue  # 与已有段同文本且时间接近：视为同一句
+            # 记录新段时间戳，供后续同句继续判重
+            bisect.insort(ts_list, start_ms)
+        else:
+            existing_by_text[text] = [start_ms]
         db.add(
             MeetingTranscriptSegment(
                 id=uuid.uuid4(),
                 meeting_id=meeting_id,
-                seq=i,
-                text=seg.get("text", ""),
-                audio_start_ms=seg.get("start_ms", 0),
+                seq=next_seq,
+                text=text,
+                audio_start_ms=start_ms,
                 audio_end_ms=seg.get("end_ms"),
             )
         )
+        next_seq += 1
 
 
 async def _save_minutes(
@@ -280,11 +397,41 @@ async def _assign_speakers(
 ) -> None:
     """说话人分离：用 sherpa-onnx 分离说话人，给转录段打 speaker 标签。
 
-    与 SenseVoice 转写顺序执行（转写已完成），无 ORT session 并存。
+    与 SenseVoice 转写顺序执行（转写已完成）。但 **同一进程加载过 SenseVoice 的
+    onnxruntime 后，pyannote 分割会卡死**（即使 shutdown 释放 session，ORT 进程级
+    状态仍污染，本机实测）——因此 diarize 放在**独立子进程**跑（干净解释器），
+    父进程的 SenseVoice 完全不受影响。
     """
-    from app.services.speaker_diarization import diarize_speakers
+    import json
+    import os
+    import subprocess
+    import sys
 
-    diarization_result = diarize_speakers(audio_file_path)
+    # 释放父进程的 SenseVoice，回收内存
+    from app.services import asr_engine
+
+    asr_engine.shutdown_asr_model()
+
+    snippet = (
+        "from app.services.speaker_diarization import diarize_speakers;"
+        "import json,sys;"
+        "print(json.dumps(diarize_speakers(sys.argv[1])))"
+    )
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", snippet, audio_file_path],
+            capture_output=True,
+            text=True,
+            timeout=240,
+            cwd="/app",
+            env={**os.environ, "PYTHONPATH": "/app", "MODELSCOPE_CACHE": "/home/workbench/.modelscope"},
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(f"子进程退出码 {proc.returncode}: {proc.stderr[-300:]}")
+        diarization_result = json.loads(proc.stdout.strip().splitlines()[-1])
+    except Exception as exc:
+        logger.error("说话人分离子进程失败：%s", exc)
+        return
     if not diarization_result:
         return
 
