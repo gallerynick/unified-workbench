@@ -71,10 +71,14 @@ export async function request<T>(
   const { method = 'GET', body, headers = {}, skipAuthRedirect = false } = options;
   const token = getToken();
 
+  // FormData（文件上传）由浏览器自动带 multipart boundary，不能手动设 Content-Type
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   const requestHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...headers,
   };
+  if (!isFormData) {
+    requestHeaders['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     requestHeaders['Authorization'] = `Bearer ${token}`;
@@ -89,7 +93,7 @@ export async function request<T>(
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method,
     headers: requestHeaders,
-    body: body ? JSON.stringify(body) : null,
+    body: body ? (isFormData ? body : JSON.stringify(body)) : null,
     redirect: 'follow',
   });
 
@@ -104,7 +108,7 @@ export async function request<T>(
           const retryResponse = await fetch(`${BASE_URL}${endpoint}`, {
             method,
             headers: requestHeaders,
-            body: body ? JSON.stringify(body) : null,
+            body: body ? (isFormData ? body : JSON.stringify(body)) : null,
           });
           if (retryResponse.ok) {
             return retryResponse.json();

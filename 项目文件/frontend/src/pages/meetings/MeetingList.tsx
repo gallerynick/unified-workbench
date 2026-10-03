@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusOutlined, ClockCircleOutlined, CheckCircleOutlined, PlayCircleOutlined, PauseCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import { Button, Input, InputNumber, Modal, Form, Tag, Tooltip, Space, Empty, message, Spin, Typography } from 'antd';
-import { listMeetingRecords, createMeetingRecord } from '../../api/meeting-records';
+import { Button, Input, InputNumber, Modal, Form, Tag, Tooltip, Space, Empty, message, Spin, Typography, Upload } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import { listMeetingRecords, createMeetingRecord, importMeetingAudio } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingRecordCreate, MeetingStatus } from '../../types/meeting-record';
 import VisibilitySetting from '../../components/VisibilitySetting/VisibilitySetting';
 import { getVisibilityConfig } from '../../utils/visibility';
@@ -31,6 +32,7 @@ export default function MeetingList() {
   const [creating, setCreating] = useState(false);
   const [permissionVisible, setPermissionVisible] = useState(false);
   const [createForm] = Form.useForm();
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const navigate = useNavigate();
 
   const fetchMeetings = useCallback(async () => {
@@ -65,9 +67,25 @@ export default function MeetingList() {
       };
       const res = await createMeetingRecord(data);
       if (res.code === 0) {
-        message.success('会议已创建');
+        const newId = res.data.id;
+        // 若选择导入录音：创建后上传并自动触发识别
+        if (newId && audioFile) {
+          try {
+            const imp = await importMeetingAudio(newId, audioFile);
+            if (imp.code === 0) {
+              message.success('会议已创建，录音识别已开始');
+            } else {
+              message.warning('会议已创建，但录音导入失败：' + (imp.msg || '未知错误'));
+            }
+          } catch {
+            message.warning('会议已创建，但录音导入失败，请稍后重试');
+          }
+        } else {
+          message.success('会议已创建');
+        }
         setCreateModalOpen(false);
         createForm.resetFields();
+        setAudioFile(null);
         fetchMeetings();
       } else {
         message.error(res.msg || '创建失败');
@@ -195,6 +213,22 @@ export default function MeetingList() {
             tooltip="填写预期讲话人数，会后说话人分离将按此人数聚类、区分更准；留空则不指定、自动判断"
           >
             <InputNumber min={2} max={20} placeholder="留空自动判断" style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            label="导入录音（可选）"
+            tooltip="上传已有录音（wav/mp3/flac），创建后自动识别：转录区、纪要、录音区均以上传音频为准"
+          >
+            <Upload
+              accept=".wav,.mp3,.flac,.m4a"
+              maxCount={1}
+              beforeUpload={(file) => {
+                setAudioFile(file);
+                return false; // 阻止自动上传，创建会议时统一提交
+              }}
+              onRemove={() => setAudioFile(null)}
+            >
+              <Button icon={<UploadOutlined />}>选择录音文件</Button>
+            </Upload>
           </Form.Item>
         </Form>
       </Modal>

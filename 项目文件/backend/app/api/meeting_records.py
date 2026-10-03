@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+import os
 import uuid
+
+logger = logging.getLogger(__name__)
 from typing import Callable, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -108,6 +112,70 @@ async def create_meeting_endpoint(
     item = await create_meeting_record(db, current_user, request.model_dump())
     return UnifiedResponse(data=MeetingRecordResponse.model_validate(item))
 
+
+@router.post("/{meeting_id}/audio-import", response_model=UnifiedResponse[MeetingRecordResponse])
+async def import_audio_endpoint(
+    meeting_id: uuid.UUID,
+    file: UploadFile = File(..., description="录音文件（wav/mp3/flac 等）"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """导入会议录音：上传音频 → 存为会议音频 → 自动触发会后识别
+    （转写 + 讲话人分离 + 纪要）。录音区、转录区、纪要以该音频为准。
+    """
+    from app.core.config import get_settings
+
+    from app.tasks.meeting_process import process_meeting
+
+    item = await get_meeting_record(db, meeting_id, current_user)
+    if not item:
+        raise HTTPException(status_code=404, detail="会议不存在")
+    if item.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="仅创建者可以导入录音")
+
+    # 保存到会议音频目录（扩展名保留，处理时由 soundfile 自动解析格式）
+    ext = os.path.splitext(file.filename or "")[1] or ".wav"
+    audio_dir = os.path.join(get_settings().FILE_STORAGE_PATH, "meetings", "audio")
+    os.makedirs(audio_dir, exist_ok=True)
+    dest = os.path.join(audio_dir, f"{meeting_id}{ext}")
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="文件为空")
+    with open(dest, "wb") as fh:
+        fh.write(content)
+
+    item.audio_file_path = dest
+    item.status = "processing"
+    item.diarization_status = "pending"
+    item.minutes_status = "pending"
+    item.processing_stage = "正在区分讲话人"
+    await db.commit()
+
+    # 触发会后识别（转写 + 说话人 + 纪要）
+    try:
+        process_meeting.delay(str(item.id))
+    except Exception as exc:
+        logger.error("导入录音后入队处理失败：%s", exc)
+        item.status = "completed"
+        item.minutes_status = "failed"
+        await db.commit()
+
+    # commit 后标量属性过期，且 minutes/segments 是懒加载关系——model_validate 在
+    # 同步上下文访问会 MissingGreenlet。显式加载关系后再序列化。
+    from sqlalchemy.orm import selectinload
+
+    from app.models.meeting_record import MeetingRecord
+
+    result = await db.execute(
+        select(MeetingRecord)
+        .where(MeetingRecord.id == meeting_id)
+        .options(
+            selectinload(MeetingRecord.minutes),
+            selectinload(MeetingRecord.segments),
+        )
+    )
+    item = result.scalar_one()
+    return UnifiedResponse(data=MeetingRecordResponse.model_validate(item))
 
 @router.get("/{meeting_id}", response_model=UnifiedResponse[MeetingRecordResponse])
 async def get_meeting_endpoint(

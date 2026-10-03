@@ -29,6 +29,13 @@ export async function getMeetingRecord(id: string): Promise<UnifiedResponse<Meet
   return request<MeetingRecord>('/meetings/' + id);
 }
 
+/** 导入会议录音（上传音频后自动触发识别） */
+export async function importMeetingAudio(id: string, file: File): Promise<UnifiedResponse<MeetingRecord>> {
+  const form = new FormData();
+  form.append('file', file);
+  return request<MeetingRecord>('/meetings/' + id + '/audio-import', { method: 'POST', body: form });
+}
+
 export async function createMeetingRecord(
   data: MeetingRecordCreate,
 ): Promise<UnifiedResponse<MeetingRecord>> {
