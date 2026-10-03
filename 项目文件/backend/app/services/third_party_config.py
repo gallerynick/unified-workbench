@@ -363,7 +363,7 @@ async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool =
                 )
 
             # 发一次生成请求，读取 llama.cpp 返回的 timings
-
+            if measure_speed:
                 import time
 
                 start_time = time.time()
