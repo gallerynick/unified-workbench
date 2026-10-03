@@ -29,15 +29,20 @@ _EMBEDDING_MODEL = os.path.join(
     _MODEL_DIR, "3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx"
 )
 
-_diarization = None
+_diarization: dict[int, Any] = {}
 _import_error: str | None = None
 
 
-def _get_diarization():
-    """惰性初始化 sherpa-onnx 说话人分离器；失败时缓存错误信息。"""
+def _get_diarization(num_speakers: int | None = None):
+    """惰性初始化 sherpa-onnx 说话人分离器；失败时缓存错误信息。
+
+    num_speakers 已知时传给聚类（num_clusters=N），分得更准；
+    不同人数各自缓存一个实例（数量有限：0 代表自动 + 各 N）。
+    """
     global _diarization, _import_error
-    if _diarization is not None:
-        return _diarization
+    key = num_speakers if num_speakers and num_speakers > 0 else 0
+    if key in _diarization:
+        return _diarization[key]
     if _import_error is not None:
         raise RuntimeError(_import_error)
 
@@ -62,7 +67,7 @@ def _get_diarization():
             model=_EMBEDDING_MODEL,
         ),
         clustering=sherpa_onnx.FastClusteringConfig(
-            num_clusters=-1,  # 自动聚类，不预设人数
+            num_clusters=key if key > 0 else -1,  # 已知人数用固定 N，否则自动
             threshold=0.5,
         ),
         min_duration_on=0.3,
@@ -72,16 +77,20 @@ def _get_diarization():
         _import_error = "说话人分离配置校验失败"
         raise RuntimeError(_import_error)
 
-    _diarization = sherpa_onnx.OfflineSpeakerDiarization(config)
-    logger.info("sherpa-onnx 说话人分离器已初始化")
-    return _diarization
+    _diarization[key] = sherpa_onnx.OfflineSpeakerDiarization(config)
+    logger.info("sherpa-onnx 说话人分离器已初始化（num_speakers=%s）", key or "auto")
+    return _diarization[key]
 
 
-def diarize_speakers(audio_path: str) -> list[dict[str, Any]]:
+def diarize_speakers(
+    audio_path: str,
+    num_speakers: int | None = None,
+) -> list[dict[str, Any]]:
     """对音频做说话人分离，返回带时间戳的说话人段。
 
     Args:
         audio_path: WAV 音频文件路径
+        num_speakers: 已知说话人人数时传入（聚类按 N 分，更准）；None 自动聚类
 
     Returns:
         [{start_time, end_time, spk}]，spk 为 0 起始的说话人编号。
@@ -96,7 +105,7 @@ def diarize_speakers(audio_path: str) -> list[dict[str, Any]]:
     audio = audio[:, 0]  # 只用第一个声道
 
     try:
-        sd = _get_diarization()
+        sd = _get_diarization(num_speakers)
         if sample_rate != sd.sample_rate:
             import librosa
 

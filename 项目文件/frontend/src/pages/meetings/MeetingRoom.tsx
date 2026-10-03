@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftOutlined, CheckCircleOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Button, Tag, Space, message, Spin, Typography, Empty, Tabs } from 'antd';
-import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord, autosaveMeetingRecord } from '../../api/meeting-records';
+import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord, autosaveMeetingRecord, generateMinutes } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingTranscriptSegment, TranscriptSegmentData} from '../../types/meeting-record';
 import { getVisibilityConfig } from '../../utils/visibility';
 import { getToken } from '../../utils/auth';
@@ -23,6 +23,9 @@ export default function MeetingRoom() {
   const [actionLoading, setActionLoading] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [noteContent, setNoteContent] = useState<string>('');
+  // 与 noteContent 同步的 ref：自动保存/卸载兜底必须读 ref，
+  // 不能读闭包里的 state（setTimeout 回调会捕获输入前的旧值，导致笔记丢失）
+  const noteContentRef = useRef('');
   const [charCount, setCharCount] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
@@ -32,13 +35,21 @@ export default function MeetingRoom() {
   const [noteSaveState, setNoteSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const [noteSavedAt, setNoteSavedAt] = useState('');
   const noteBaseline = useRef('');
+  // 笔记富文本编辑器元素（contentEditable）
+  const noteEditorRef = useRef<HTMLDivElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  // 会议录音侧降噪链（仅会议记录使用，不改全局 ASR）：
+  // 高通滤波 + 动态压缩，抑制键盘敲击/桌面震动等瞬态噪声
+  const noiseHighpassRef = useRef<BiquadFilterNode | null>(null);
+  const noiseCompressorRef = useRef<DynamicsCompressorNode | null>(null);
   const lastTranscriptSeq = useRef(0);
   const autosaveTimer = useRef<NodeJS.Timeout | null>(null);
   const autosaveInFlight = useRef(false);
+  // 纪要完成/失败提醒去重：轮询期间只提示一次，避免每个 5s 间隔重复弹窗
+  const minutesNotified = useRef(false);
 
   // 会议状态
   const isRecording = meeting?.status === 'recording';
@@ -68,7 +79,13 @@ export default function MeetingRoom() {
       if (res.code === 0 && res.data) {
         setMeeting(res.data);
         const serverSegments = res.data.segments || [];
-        setTranscript((prev) => mergeServerSegments(prev, serverSegments));
+        // 会议结束（处理中/完成）后转录以服务端落库为准：实时 WS 片段已失效，
+        // 直接替换避免「同一句被实时片段与服务端片段各保留一份」的重复串扰。
+        if (res.data.status === 'processing' || res.data.status === 'completed') {
+          setTranscript(serverSegments);
+        } else {
+          setTranscript((prev) => mergeServerSegments(prev, serverSegments));
+        }
         // 笔记编辑区只承载用户手记（meeting_record.notes）。
         // AI 纪要存在独立的 meeting_minutes 表，不能塞进 notes 再写回去。
         const notesText = res.data.notes ?? '';
@@ -76,6 +93,11 @@ export default function MeetingRoom() {
         setCharCount(notesText.length);
         noteBaseline.current = notesText;
         setNoteSaveState('idle');
+        // contentEditable 编辑器在首次加载时填充已保存笔记；
+        // 仅当编辑器为空时写入，避免覆盖用户正在编辑的内容
+        if (noteEditorRef.current && !noteEditorRef.current.innerText.trim()) {
+          noteEditorRef.current.innerText = notesText;
+        }
       }
     } finally {
       setLoading(false);
@@ -105,15 +127,16 @@ export default function MeetingRoom() {
           speaker: null,
         };
       });
-      if (!opts.force && noteContent === noteBaseline.current && segments.length === 0) {
+      const currentNotes = noteContentRef.current;
+      if (!opts.force && currentNotes === noteBaseline.current && segments.length === 0) {
         return;
       }
       const res = await autosaveMeetingRecord(id, {
-        notes: noteContent,
+        notes: currentNotes,
         transcript_segments: segments,
       });
       if (res.code === 0) {
-        noteBaseline.current = noteContent;
+        noteBaseline.current = currentNotes;
         setNoteSaveState('saved');
         setNoteSavedAt(new Date().toLocaleTimeString());
         if (res.data) {
@@ -135,13 +158,49 @@ export default function MeetingRoom() {
     }, delay);
   };
 
+  // 笔记编辑器首次挂载时填入已保存内容；
+  // 之后由用户编辑驱动（contentEditable 不被 React 覆写，保留光标与格式）
+  useEffect(() => {
+    if (noteEditorRef.current && noteContent) {
+      noteEditorRef.current.innerText = noteContent;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     fetchMeeting();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-      void flushAutosave({ force: true });
+      // 卸载兜底：用 keepalive fetch 保存笔记。
+      // 普通 fetch 在页面跳转/刷新时会被浏览器 abort（nginx 表现为 499），
+      // keepalive 让请求在页面卸载后仍能送达；对比 state 用 ref 取最新值。
+      const finalNotes = noteContentRef.current;
+      if (finalNotes !== noteBaseline.current) {
+        const token = getToken();
+        if (token) {
+          try {
+            void fetch('/api/v1/meetings/' + id + '/autosave', {
+              method: 'POST',
+              keepalive: true,
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + token,
+              },
+              body: JSON.stringify({
+                notes: finalNotes,
+                transcript_segments: [],
+              }),
+            });
+          } catch {
+            // keepalive 失败时退回到常规 force flush
+            void flushAutosave({ force: true });
+          }
+        } else {
+          void flushAutosave({ force: true });
+        }
+      }
       if (isRecording) {
         notifyPause();
       }
@@ -160,17 +219,29 @@ export default function MeetingRoom() {
     };
   }, [wsConnected, isRecording]);
 
-  // 会议结束后轮询纪要生成状态（处理中→完成）
+  // 会议结束后轮询纪要生成状态（处理中→完成/失败）
   useEffect(() => {
     if (meeting?.status !== 'processing' && meeting?.status !== 'completed') return;
-    if (meeting?.minutes_status === 'done') return;
+    if (meeting?.minutes_status === 'done' || meeting?.minutes_status === 'failed') return;
     const interval = setInterval(async () => {
       if (!id) return;
       const res = await getMeetingRecord(id);
       if (res.code === 0 && res.data) {
         setMeeting(res.data);
-        if (res.data.minutes_status === 'done') {
+        // 会后转录段会被重写（时间戳/说话人以音频为准），必须同步刷新转录列表
+        if (res.data.status === 'processing' || res.data.status === 'completed') {
+          setTranscript(res.data.segments || []);
+        }
+        if (res.data.minutes_status === 'done' || res.data.minutes_status === 'failed') {
           clearInterval(interval);
+          if (!minutesNotified.current) {
+            minutesNotified.current = true;
+            if (res.data.minutes_status === 'done') {
+              message.success('纪要生成完成');
+            } else {
+              message.error('纪要生成失败');
+            }
+          }
         }
       }
     }, 5000);
@@ -186,15 +257,13 @@ export default function MeetingRoom() {
     }
 
     const stableKey = (item: TranscriptItem): string => {
-      if ('id' in item && item.id) return String(item.id);
-      if ('audio_start_ms' in item) {
-        const start = String(item.audio_start_ms ?? '');
-        const end = String((item as any).audio_end_ms ?? '');
-        return `${start}::${end}`;
-      }
+      const start = String((item as any).audio_start_ms ?? '');
+      const end = String((item as any).audio_end_ms ?? '');
+      const text = String((item as any).text ?? '');
+      if (start !== '' && text) return start + '::' + end + '::' + text;
       const seq = (item as any).seq;
-      if (seq !== undefined && seq !== null) return `seq:${seq}`;
-      return String((item as any).text ?? '');
+      if (seq !== undefined && seq !== null) return 'seq:' + seq + '::' + text;
+      return 'text:' + text;
     };
 
     const seen = new Set<string>();
@@ -213,6 +282,14 @@ export default function MeetingRoom() {
     }
     return result;
   };
+
+  // 当 WebSocket 断开时重置片段序号追踪：
+  // 重连后后端 segment_count 从 0 重新计数，旧 lastTranscriptSeq 会让新片段永远不被追加
+  useEffect(() => {
+    if (!wsConnected) {
+      lastTranscriptSeq.current = 0;
+    }
+  }, [wsConnected]);
 
   // 当 WebSocket 收到新的转录片段时更新
   useEffect(() => {
@@ -259,9 +336,13 @@ export default function MeetingRoom() {
   };
 
   // 自动保存笔记：停止输入 2 秒后 PATCH 到后端
-  const handleNoteChange = (e: React.FormEvent<HTMLTextAreaElement>) => {
-    const newContent = e.currentTarget.value;
+  // contentEditable 时提取纯文本保存（保持 notes 字段语义不变，
+  // 后端/纪要生成均按纯文本处理，不受影响）
+  const handleNoteChange = (e: React.FormEvent<HTMLDivElement>) => {
+    const editor = e.currentTarget;
+    const newContent = editor.innerText ?? '';
     setNoteContent(newContent);
+    noteContentRef.current = newContent;
     setCharCount(newContent.length);
     if (newContent === noteBaseline.current) {
       return;
@@ -287,6 +368,46 @@ export default function MeetingRoom() {
     scheduleAutosave(1500);
   };
 
+  // 笔记工具栏：对 contentEditable 执行真实格式化命令
+  const handleNoteFormat = (
+    command: 'bold' | 'italic' | 'underline' | 'formatBlock',
+    value?: string,
+  ) => {
+    const editor = noteEditorRef.current;
+    if (!editor) return;
+    editor.focus();
+    try {
+      document.execCommand(command, false, value);
+      // 格式化后同步内容（execCommand 改变 DOM，触发 onInput 事件）
+      const newContent = editor.innerText ?? '';
+      setNoteContent(newContent);
+      noteContentRef.current = newContent;
+      setCharCount(newContent.length);
+      if (newContent !== noteBaseline.current) {
+        setNoteSaveState('idle');
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = setTimeout(async () => {
+          if (!id || newContent === noteBaseline.current) return;
+          setNoteSaveState('saving');
+          try {
+            const res = await updateMeetingRecord(id, { notes: newContent });
+            if (res.code === 0) {
+              noteBaseline.current = newContent;
+              setNoteSaveState('saved');
+              setNoteSavedAt(new Date().toLocaleTimeString());
+            } else {
+              setNoteSaveState('failed');
+            }
+          } catch {
+            setNoteSaveState('failed');
+          }
+        }, 2000);
+      }
+    } catch {
+      // execCommand 失败时静默（旧浏览器降级为纯文本）
+    }
+  };
+
   // 开始录音 - 启动麦克风采集
   const startAudioCapture = async () => {
     try {
@@ -306,11 +427,31 @@ export default function MeetingRoom() {
       const source = audioContext.createMediaStreamSource(stream);
       audioSourceRef.current = source;
 
+      // 会议录音侧降噪链（仅会议记录使用，不影响全局 ASR）：
+      // 1) 高通滤波：切掉 120Hz 以下低频冲击（敲桌面/键盘震动等瞬态噪声的低频分量），
+      //    人声基频通常高于该值，说话内容不受影响；
+      // 2) 动态压缩：压制尖锐瞬态尖峰（按键敲击声），人声是持续信号，压缩后损失很小。
+      const highpass = audioContext.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = 120;
+      highpass.Q.value = 0.7;
+      noiseHighpassRef.current = highpass;
+
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -40;
+      compressor.knee.value = 15;
+      compressor.ratio.value = 8;
+      compressor.attack.value = 0.002;
+      compressor.release.value = 0.15;
+      noiseCompressorRef.current = compressor;
+
       // 使用 ScriptProcessorNode 获取音频数据
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
       audioProcessorRef.current = processor;
 
-      source.connect(processor);
+      source.connect(highpass);
+      highpass.connect(compressor);
+      compressor.connect(processor);
       processor.connect(audioContext.destination);
 
       processor.onaudioprocess = (e) => {
@@ -382,6 +523,14 @@ export default function MeetingRoom() {
       audioSourceRef.current.disconnect();
       audioSourceRef.current = null;
     }
+    if (noiseHighpassRef.current) {
+      noiseHighpassRef.current.disconnect();
+      noiseHighpassRef.current = null;
+    }
+    if (noiseCompressorRef.current) {
+      noiseCompressorRef.current.disconnect();
+      noiseCompressorRef.current = null;
+    }
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
@@ -435,9 +584,10 @@ export default function MeetingRoom() {
       const res = await pauseMeeting(id);
       if (res.code === 0) {
         message.success('会议已暂停');
-        stopAudioCapture();
-        // 通知后端暂停音频写入
+        // 先通知后端暂停（后端会 flush 语音缓冲中未切句的部分，确保不漏句），
+        // 再停止本端采集，避免最后一块已采集音频在暂停消息前被丢弃
         sendMessage({ type: 'pause' });
+        stopAudioCapture();
         fetchMeeting();
       } else {
         message.error(res.msg || '暂停会议失败');
@@ -473,12 +623,14 @@ export default function MeetingRoom() {
     if (!id || actionLoading) return;
     setActionLoading(true);
     try {
-      stopAudioCapture();
-      // 通知后端结束音频
+      // 先通知后端结束（后端会 flush 语音缓冲，确保最后一句不漏），
+      // 再停止本端采集，避免结束瞬间最后一块音频丢失
       sendMessage({ type: 'end' });
+      stopAudioCapture();
       const res = await endMeeting(id);
       if (res.code === 0) {
         message.success('会议已结束，正在处理中...');
+        minutesNotified.current = false;
         fetchMeeting();
       } else {
         message.error(res.msg || '结束会议失败');
@@ -488,6 +640,82 @@ export default function MeetingRoom() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // 手动生成 / 重新生成纪要（失败重试入口）
+  const handleGenerateMinutes = async () => {
+    if (!id || actionLoading) return;
+    setActionLoading(true);
+    try {
+      const res = await generateMinutes(id);
+      if (res.code === 0) {
+        message.success('已开始生成纪要，请稍候...');
+        minutesNotified.current = false;
+        fetchMeeting();
+      } else {
+        message.error(res.msg || '生成纪要失败');
+      }
+    } catch {
+      message.error('网络错误，请稍后重试');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+
+  // 统一的纪要/重点/待办面板：生成中 Spin → 失败提示+重试 → 内容 → 兜底
+  const renderMinutesPanel = (
+    label: string,
+    content: React.ReactNode | null,
+  ) => {
+    if (meeting?.minutes_status === 'pending' && meeting?.status === 'processing') {
+      // 会后处理分阶段：区分讲话人 → 转写 → 生成纪要，后端经 processing_stage 驱动
+      const stageText =
+        meeting?.processing_stage === '正在区分讲话人'
+          ? '正在区分讲话人…'
+          : meeting?.processing_stage === '正在转写'
+            ? '正在转写（按讲话人）…'
+            : meeting?.processing_stage === '正在生成纪要'
+              ? '正在生成纪要…'
+              : label + '生成中，请稍候…';
+      return (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <Spin />
+          <Paragraph type='secondary' style={{ marginTop: 12 }}>
+            {stageText}
+          </Paragraph>
+        </div>
+      );
+    }
+    if (meeting?.minutes_status === 'failed') {
+      return (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <Paragraph type='danger'>{label + '生成失败'}</Paragraph>
+          <Button type='primary' loading={actionLoading} onClick={handleGenerateMinutes}>
+            重新生成
+          </Button>
+        </div>
+      );
+    }
+    if (content) {
+      return content;
+    }
+    // 纪要已生成完成（done）但当前栏没有匹配内容：
+    // 说明确实没提取到（如无待办），此时必须明说「未提取到」，而不是
+    // 「会议结束后将自动生成」——后者会误导用户以为还没开始生成。
+    if (meeting?.minutes_status === 'done') {
+      return (
+        <Empty description={'会议中未提取到' + label} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      );
+    }
+    if (meeting?.status === 'paused') {
+      return (
+        <Empty description={'会议已暂停，结束后将自动生成' + label} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      );
+    }
+    return (
+      <Empty description={'会议结束后将自动生成' + label} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+    );
   };
 
   if (!meeting) {
@@ -527,6 +755,21 @@ export default function MeetingRoom() {
           {meeting.status === 'completed' && meeting.audio_file_path && (
             <Button icon={<DownloadOutlined />} onClick={() => window.open('/api/v1/meetings/' + id + '/audio', '_blank')}>
               下载音频
+            </Button>
+          )}
+          {/* 手动生成纪要（完成后未生成 / 生成失败重试 / 重新生成） */}
+          {(meeting.status === 'completed' || meeting.status === 'processing') && (
+            <Button
+              icon={<LoadingOutlined spin={actionLoading || meeting.status === 'processing'} />}
+              loading={actionLoading || meeting.status === 'processing'}
+              disabled={meeting.status === 'processing'}
+              onClick={handleGenerateMinutes}
+            >
+              {meeting.status === 'processing'
+                ? '生成中'
+                : meeting.minutes_status === 'done'
+                  ? '重新生成'
+                  : '生成纪要'}
             </Button>
           )}
         </Space>
@@ -591,15 +834,22 @@ export default function MeetingRoom() {
             <div className={styles.audioMeter}>
               <div className={styles.meterBars}>
                 {[...Array(10)].map((_, i) => {
-                  // 根据音频电平和索引计算每个条的高度，创建视觉波动效果
-                  const baseHeight = Math.max(10, audioLevel * 100);
-                  const variation = Math.sin(Date.now() / 100 + i) * 20;
-                  const height = isRecording ? Math.max(10, Math.min(100, baseHeight + variation)) : 10;
+                  // 真实电平驱动：audioLevel 是 onaudioprocess 计算的 RMS（正常说话约 0.01~0.3）。
+                  // VU 表阈值按对数分布（0.01 → 0.65），匹配人声动态范围，
+                  // 让静音时左 1-2 根微亮、说话时柱子随音量逐级点亮。
+                  const rmsLevel = audioLevel;
+                  const barThreshold = 0.01 * Math.pow(1.6, i); // 0.01,0.016,0.026,...,0.55
+                  const active = rmsLevel >= barThreshold;
+                  // 柱高随索引递增形成 VU 表造型；点亮时按电平微调，未点亮保持低矮
+                  const baseHeight = 14 + i * 8;
+                  const height = isRecording && active
+                    ? Math.min(100, baseHeight + rmsLevel * 60)
+                    : 12;
                   return (
                     <div
                       key={i}
-                      className={`${styles.meterBar} ${isRecording ? 'active' : ''}`}
-                      style={{ height: `${height}%` }}
+                      className={`${styles.meterBar} ${isRecording && active ? 'active' : ''}`}
+                      style={{ height: `${height}%`, opacity: isRecording ? (active ? 1 : 0.5) : 0.5 }}
                     />
                   );
                 })}
@@ -656,17 +906,19 @@ export default function MeetingRoom() {
           {activeTab === 'notes' && (
             <>
               <div className={styles.toolbar}>
-                <Button size='small' type='text'><Text strong>B</Text></Button>
-                <Button size='small' type='text'><Text italic>I</Text></Button>
-                <Button size='small' type='text'><Text underline>U</Text></Button>
-                <Button size='small' type='text'>H1</Button>
-                <Button size='small' type='text'>H2</Button>
+                <Button size='small' type='text' onClick={() => handleNoteFormat('bold')}><Text strong>B</Text></Button>
+                <Button size='small' type='text' onClick={() => handleNoteFormat('italic')}><Text italic>I</Text></Button>
+                <Button size='small' type='text' onClick={() => handleNoteFormat('underline')}><Text underline>U</Text></Button>
+                <Button size='small' type='text' onClick={() => handleNoteFormat('formatBlock', '<h1>')}>H1</Button>
+                <Button size='small' type='text' onClick={() => handleNoteFormat('formatBlock', '<h2>')}>H2</Button>
               </div>
-              <textarea
+              <div
+                ref={noteEditorRef}
                 className={styles.editor}
-                value={noteContent}
-                onChange={handleNoteChange}
-                placeholder='开始记录你的笔记...'
+                contentEditable
+                suppressContentEditableWarning
+                onInput={handleNoteChange}
+                data-placeholder='开始记录你的笔记...'
                 style={{ outline: 'none', resize: 'none' }}
               />
               <div className={styles.editorFooter}>
@@ -691,66 +943,45 @@ export default function MeetingRoom() {
           )}
           {activeTab === 'summary' && (
             <div className={styles.editor} style={{ padding: 16, overflowY: 'auto' }}>
-              {meeting?.minutes_status === 'pending' && meeting?.status === 'processing' ? (
-                <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <Spin />
-                  <Paragraph type='secondary' style={{ marginTop: 12 }}>
-                    会议纪要生成中，请稍候…
+              {renderMinutesPanel(
+                '总结',
+                meeting?.minutes?.summary ? (
+                  <Paragraph style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8' }}>
+                    {meeting.minutes.summary}
                   </Paragraph>
-                </div>
-              ) : meeting?.minutes_status === 'failed' ? (
-                <Paragraph type='danger'>会议纪要生成失败，请结束会议后重试</Paragraph>
-              ) : meeting?.minutes?.summary ? (
-                <Paragraph style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8' }}>
-                  {meeting.minutes.summary}
-                </Paragraph>
-              ) : meeting?.status === 'paused' ? (
-                <Empty description='会议已暂停，结束后将自动生成总结' image={Empty.PRESENTED_IMAGE_SIMPLE} />
-              ) : (
-                <Empty description='会议结束后将自动生成总结' image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                ) : null,
               )}
             </div>
           )}
           {activeTab === 'highlights' && (
             <div className={styles.editor} style={{ padding: 16, overflowY: 'auto' }}>
-              {meeting?.minutes?.key_points && meeting.minutes.key_points.length > 0 ? (
-                <ul style={{ paddingLeft: 20, lineHeight: '2' }}>
-                  {meeting.minutes.key_points.map((point, i) => (
-                    <li key={i} style={{ marginBottom: 8 }}>
-                      <Text>{point}</Text>
-                    </li>
-                  ))}
-                </ul>
-              ) : meeting?.status === 'paused' ? (
-                <Empty description='会议已暂停，结束后将自动生成重点摘要' image={Empty.PRESENTED_IMAGE_SIMPLE} />
-              ) : (
-                <Empty description='会议结束后将自动生成重点摘要' image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              {renderMinutesPanel(
+                '重点摘要',
+                meeting?.minutes?.key_points && meeting.minutes.key_points.length > 0 ? (
+                  <ul style={{ paddingLeft: 20, lineHeight: '2' }}>
+                    {meeting.minutes.key_points.map((point, i) => (
+                      <li key={i} style={{ marginBottom: 8 }}>
+                        <Text>{point}</Text>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null,
               )}
             </div>
           )}
           {activeTab === 'todos' && (
             <div className={styles.editor} style={{ padding: 16, overflowY: 'auto' }}>
-              {meeting?.minutes_status === 'pending' && meeting?.status === 'processing' ? (
-                <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <Spin />
-                  <Paragraph type='secondary' style={{ marginTop: 12 }}>
-                    待办事项生成中，请稍候…
-                  </Paragraph>
-                </div>
-              ) : meeting?.minutes_status === 'failed' ? (
-                <Paragraph type='danger'>待办事项生成失败，请结束会议后重试</Paragraph>
-              ) : meeting?.minutes?.todos && meeting.minutes.todos.length > 0 ? (
-                <ul style={{ paddingLeft: 20, lineHeight: '2' }}>
-                  {meeting.minutes.todos.map((todo, i) => (
-                    <li key={i} style={{ marginBottom: 8 }}>
-                      <Text>{todo.content}</Text>
-                    </li>
-                  ))}
-                </ul>
-              ) : meeting?.status === 'paused' ? (
-                <Empty description='会议已暂停，结束后将自动生成待办事项' image={Empty.PRESENTED_IMAGE_SIMPLE} />
-              ) : (
-                <Empty description='会议结束后将自动生成待办事项' image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              {renderMinutesPanel(
+                '待办事项',
+                meeting?.minutes?.todos && meeting.minutes.todos.length > 0 ? (
+                  <ul style={{ paddingLeft: 20, lineHeight: '2' }}>
+                    {meeting.minutes.todos.map((todo, i) => (
+                      <li key={i} style={{ marginBottom: 8 }}>
+                        <Text>{todo.content}</Text>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null,
               )}
             </div>
           )}

@@ -129,7 +129,7 @@ async def _process_meeting_async(self, meeting_id: str) -> dict[str, Any]:
 
             logger.info(f"Starting post-processing for meeting {meeting_id}")
 
-            # 步骤 1: 转录音频（带语言白名单）
+            # 语言白名单
             allowed_languages = None
             try:
                 from app.services.third_party_config import get_third_party_config
@@ -140,41 +140,49 @@ async def _process_meeting_async(self, meeting_id: str) -> dict[str, Any]:
                     allowed_languages = [str(x).lower() for x in raw_langs]
             except Exception:
                 pass
-            segments_data = _transcribe_audio(meeting, allowed_languages)
 
-            # 步骤 A: 先把转录段落库
+            async def _set_stage(stage: str | None) -> None:
+                """更新处理后处理阶段提示（前端会议页可见）。"""
+                if meeting.processing_stage != stage:
+                    meeting.processing_stage = stage
+                    await db.commit()
+
+            # 阶段 1: 说话人分离（优先，独立子进程跑，避免 ORT 污染）——
+            # 用户原则：先区分讲话人，再按讲话人分句。
+            diarization_result: list[dict[str, Any]] | None = None
+            if meeting.audio_file_path:
+                await _set_stage("正在区分讲话人")
+                diarization_result = await asyncio.to_thread(
+                    _diarize_isolated, meeting.audio_file_path, None
+                )
+                meeting.diarization_status = "done" if diarization_result else "failed"
+                await db.commit()
+
+            # 阶段 2: 按说话人段转写（说话人优先 → 轮次内分句）；分离失败回退旧方式
+            await _set_stage("正在转写")
+            if diarization_result:
+                segments_data = _transcribe_by_speakers(
+                    meeting, allowed_languages, diarization_result
+                )
+            else:
+                segments_data = _transcribe_audio(meeting, allowed_languages)
+
+            # 阶段 3: 转录段落库
             await _save_transcript_segments(db, meeting_uuid, segments_data)
 
-            # 步骤 B: 说话人分离（sherpa-onnx，独立 session，与 SenseVoice 顺序执行）。
-            # 提前到纪要之前执行，让纪要输入带说话人归属；失败只标记状态，不阻断纪要。
-            try:
-                if meeting.audio_file_path:
-                    await _assign_speakers(
-                        db, meeting_uuid, meeting.audio_file_path
-                    )
-                    meeting.diarization_status = "done"
-                else:
-                    meeting.diarization_status = "failed"
-            except Exception as exc:
-                logger.error("说话人分离失败：%s", exc)
-                meeting.diarization_status = "failed"
-
-            # 步骤 C: 生成纪要（优先使用带说话人的库内转录段；取不到则回退转写结果，
-            # 行为与改前一致，保证不劣化）。
-            minutes_input = await _load_segments_with_speaker(
-                db, meeting_uuid
-            ) or segments_data
+            # 阶段 4: 生成纪要（输入直接带说话人，无需再匹配）
+            await _set_stage("正在生成纪要")
+            minutes_input = segments_data
             meeting_meta = _build_minutes_meta(meeting, minutes_input)
             minutes_data, model_used = await generate_minutes(
                 minutes_input, meeting_meta=meeting_meta
             )
-
-            # 步骤 D: 保存纪要到数据库
             await _save_minutes(db, meeting_uuid, minutes_data, model_used)
 
-            # 步骤 5: 更新会议状态
+            # 完成
             meeting.status = "completed"
             meeting.minutes_status = "done"
+            meeting.processing_stage = None
             if meeting.started_at and meeting.ended_at:
                 meeting.duration_seconds = int(
                     (meeting.ended_at - meeting.started_at).total_seconds()
@@ -204,6 +212,7 @@ async def _process_meeting_async(self, meeting_id: str) -> dict[str, Any]:
             meeting = result.scalar_one_or_none()
             if meeting:
                 meeting.minutes_status = "failed"
+                meeting.processing_stage = None
                 meeting.status = "completed"
                 await db.commit()
 
@@ -330,6 +339,7 @@ async def _save_transcript_segments(
                 text=text,
                 audio_start_ms=start_ms,
                 audio_end_ms=seg.get("end_ms"),
+                speaker=seg.get("speaker"),
             )
         )
         next_seq += 1
@@ -370,56 +380,29 @@ async def _save_minutes(
         )
 
 
-def _match_speaker(
-    segment: MeetingTranscriptSegment,
-    diarization_result: list[dict[str, Any]],
-) -> int:
-    """按时间戳重叠度匹配说话人编号。"""
-    start_ms = segment.audio_start_ms
-    end_ms = segment.audio_end_ms or start_ms + 1000
-
-    best_match = 0
-    best_overlap = 0
-    for item in diarization_result:
-        item_start = item.get("start_time", 0)
-        item_end = item.get("end_time", 0)
-        overlap = min(end_ms, item_end) - max(start_ms, item_start)
-        if overlap > best_overlap:
-            best_overlap = overlap
-            best_match = item.get("spk", 0)
-    return best_match
-
-
-async def _assign_speakers(
-    db: Any,
-    meeting_id: uuid.UUID,
+def _diarize_isolated(
     audio_file_path: str,
-) -> None:
-    """说话人分离：用 sherpa-onnx 分离说话人，给转录段打 speaker 标签。
+    num_speakers: int | None = None,
+) -> list[dict[str, Any]] | None:
+    """独立子进程跑说话人分离（干净解释器）。
 
-    与 SenseVoice 转写顺序执行（转写已完成）。但 **同一进程加载过 SenseVoice 的
-    onnxruntime 后，pyannote 分割会卡死**（即使 shutdown 释放 session，ORT 进程级
-    状态仍污染，本机实测）——因此 diarize 放在**独立子进程**跑（干净解释器），
-    父进程的 SenseVoice 完全不受影响。
+    同进程加载过 SenseVoice 的 onnxruntime 后，pyannote 分割会卡死（ORT 进程级
+    状态污染，shutdown session 也不够）——必须用独立进程，父进程的 SenseVoice
+    完全不受影响。
     """
     import json
-    import os
     import subprocess
     import sys
-
-    # 释放父进程的 SenseVoice，回收内存
-    from app.services import asr_engine
-
-    asr_engine.shutdown_asr_model()
 
     snippet = (
         "from app.services.speaker_diarization import diarize_speakers;"
         "import json,sys;"
-        "print(json.dumps(diarize_speakers(sys.argv[1])))"
+        "n=int(sys.argv[2]) if sys.argv[2] else None;"
+        "print(json.dumps(diarize_speakers(sys.argv[1], num_speakers=n)))"
     )
     try:
         proc = subprocess.run(
-            [sys.executable, "-c", snippet, audio_file_path],
+            [sys.executable, "-c", snippet, audio_file_path, str(num_speakers or "")],
             capture_output=True,
             text=True,
             timeout=240,
@@ -427,26 +410,86 @@ async def _assign_speakers(
             env={**os.environ, "PYTHONPATH": "/app", "MODELSCOPE_CACHE": "/home/workbench/.modelscope"},
         )
         if proc.returncode != 0:
-            raise RuntimeError(f"子进程退出码 {proc.returncode}: {proc.stderr[-300:]}")
-        diarization_result = json.loads(proc.stdout.strip().splitlines()[-1])
+            logger.error("说话人分离子进程失败：%s", proc.stderr[-300:])
+            return None
+        return json.loads(proc.stdout.strip().splitlines()[-1])
     except Exception as exc:
-        logger.error("说话人分离子进程失败：%s", exc)
-        return
-    if not diarization_result:
-        return
+        logger.error("说话人分离子进程异常：%s", exc)
+        return None
 
-    result = await db.execute(
-        select(MeetingTranscriptSegment)
-        .where(MeetingTranscriptSegment.meeting_id == meeting_id)
-        .order_by(MeetingTranscriptSegment.seq)
-    )
-    segments = list(result.scalars().all())
 
-    spk_map: dict[int, str] = {}
-    spk_count = 0
-    for seg in segments:
-        spk = _match_speaker(seg, diarization_result)
-        if spk not in spk_map:
-            spk_count += 1
-            spk_map[spk] = f"说话人{spk_count}"
-        seg.speaker = spk_map[spk]
+def _transcribe_by_speakers(
+    meeting: MeetingRecord,
+    allowed_languages: list[str] | None,
+    diarization: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """按说话人段转写：**先区分说话人，再分句**。
+
+    对每个说话人轮次取对应音频段：短段整段转写（一句），长段用 webrtcvad 细分
+    后再逐句转写。句子直接带上说话人标签，句子边界以完整音频的说话人轮次为准
+    （实时 VAD 的分句错误不再传导到最终结果）。
+    """
+    import os
+
+    import numpy as np
+    import soundfile as sf
+
+    from app.services import asr_engine
+
+    audio_path = meeting.audio_file_path
+    if not audio_path or not os.path.exists(audio_path):
+        logger.warning("音频不存在：%s", audio_path)
+        return []
+
+    audio, sample_rate = sf.read(audio_path, dtype="float32", always_2d=True)
+    audio = audio[:, 0]
+    if sample_rate != 16000:
+        import librosa
+
+        audio = librosa.resample(audio, orig_sr=sample_rate, target_sr=16000)
+        sample_rate = 16000
+
+    asr_engine.init_asr_model()
+
+    # spk 编号到「说话人N」的连续映射（sherpa 聚类编号可能不连续）
+    spk_names = {}
+    spk_i = 0
+    for d in sorted(diarization, key=lambda x: x["start_time"]):
+        spk = int(d["spk"])
+        if spk not in spk_names:
+            spk_i += 1
+            spk_names[spk] = f"说话人{spk_i}"
+
+    segments: list[dict[str, Any]] = []
+    for d in sorted(diarization, key=lambda x: x["start_time"]):
+        start_ms = max(0, int(d["start_time"]))
+        end_ms = int(d["end_time"])
+        spk = int(d["spk"])
+        si = min(int(start_ms / 1000 * sample_rate), len(audio))
+        ei = min(int(end_ms / 1000 * sample_rate), len(audio))
+        if ei <= si:
+            continue
+        chunk = audio[si:ei]
+        dur = (ei - si) / sample_rate
+        if dur < 0.3:
+            continue
+
+        if dur <= 15:
+            blocks = [(start_ms, (chunk * 32768).astype(np.int16).tobytes(), int(dur * 1000))]
+        else:
+            # 长轮次：webrtcvad 细分（说话人优先 → 轮次内再分句）
+            voiced = asr_engine.segment_audio(chunk, sample_rate, silence_timeout=0.6)
+            blocks = [(start_ms + off, b, len(b) // 32) for off, b in voiced]
+
+        for bstart, bbytes, bdur_ms in blocks:
+            texts = asr_engine.transcribe_audio_array(
+                bbytes, 16000, 1, allowed_languages=allowed_languages
+            )
+            for seg in texts:
+                segments.append({
+                    "text": seg["text"],
+                    "start_ms": bstart,
+                    "end_ms": bstart + bdur_ms,
+                    "speaker": spk_names[spk],
+                })
+    return segments

@@ -83,6 +83,9 @@ class MeetingRecord(Base):
         default="pending",
         comment="纪要生成状态：pending/done/failed",
     )
+    processing_stage: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, comment="会后处理当前阶段提示（转写/说话人/纪要）"
+    )
     minutes_reviewed: Mapped[bool] = mapped_column(
         Boolean, default=False, comment="纪要是否已审核"
     )
@@ -103,6 +106,9 @@ class MeetingRecord(Base):
         back_populates="meeting",
         cascade="all, delete-orphan",
         lazy="selectin",
+        # 转录段必须按时间排序返回：会后重写转录段时若无序，
+        # 前端会看到 [00:04]、[00:11]、[00:00] 这类错乱顺序
+        order_by="MeetingTranscriptSegment.audio_start_ms",
     )
     minutes: Mapped["MeetingMinutes | None"] = relationship(
         "MeetingMinutes",

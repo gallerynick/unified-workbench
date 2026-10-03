@@ -96,6 +96,7 @@ class MeetingRecordResponse(BaseModel):
     audio_file_path: str | None = None
     diarization_status: str
     minutes_status: str
+    processing_stage: str | None = None
     minutes_reviewed: bool
     notes: str | None = None
     created_at: datetime

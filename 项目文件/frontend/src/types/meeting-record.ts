@@ -44,6 +44,8 @@ export interface MeetingRecord {
   audio_file_path: string | null;
   diarization_status: DiarizationStatus;
   minutes_status: MinutesStatus;
+  /** 会后处理当前阶段提示（区分讲话人/转写/生成纪要）；处理中非空，完成置空 */
+  processing_stage?: string | null;
   minutes_reviewed: boolean;
   notes: string | null;
   created_at: string;
