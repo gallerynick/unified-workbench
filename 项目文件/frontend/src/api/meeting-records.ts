@@ -82,6 +82,18 @@ export async function getTranscript(id: string): Promise<UnifiedResponse<Meeting
   return request<MeetingTranscriptSegment[]>('/meetings/' + id + '/transcript');
 }
 
+export async function generateMinutes(id: string): Promise<UnifiedResponse<MeetingRecord>> {
+  return request<MeetingRecord>('/meetings/' + id + '/minutes/generate', { method: 'POST' });
+}
+
+/** 批量改说话人显示名：{"说话人1": "张三", ...}，会后「再次生成」会用新名字 */
+export async function updateSpeakerNames(
+  id: string,
+  mapping: Record<string, string>,
+): Promise<UnifiedResponse<MeetingRecord>> {
+  return request<MeetingRecord>('/meetings/' + id + '/speakers', { method: 'PUT', body: mapping });
+}
+
 export async function reviewMinutes(id: string): Promise<UnifiedResponse<MeetingRecord>> {
   return request<MeetingRecord>('/meetings/' + id + '/minutes/review', { method: 'POST' });
 }

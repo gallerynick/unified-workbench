@@ -59,8 +59,8 @@ export interface MeetingRecordCreate {
   visibility: MeetingVisibility;
   restricted_users: string[];
   restricted_tags: string[];
-  /** 参会人名单（会后说话人分离按人数聚类） */
-  participants?: string[];
+  /** 预期讲话人人数（会后说话人分离按此聚类；留空=不指定） */
+  expected_speakers?: number | null;
 }
 
 export interface MeetingRecordUpdate {

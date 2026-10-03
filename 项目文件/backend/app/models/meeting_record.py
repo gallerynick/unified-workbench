@@ -50,11 +50,10 @@ class MeetingRecord(Base):
     restricted_tags: Mapped[list] = mapped_column(
         JSONB, default=list, comment="指定可见标签ID列表"
     )
-    participants: Mapped[list[str] | None] = mapped_column(
-        JSONB,
+    expected_speakers: Mapped[int | None] = mapped_column(
+        Integer,
         nullable=True,
-        default=list,
-        comment="参会人名单（用于会后说话人分离的人数依据）",
+        comment="预期讲话人人数（会后说话人分离按此聚类；空=不指定自动判断）",
     )
     status: Mapped[str] = mapped_column(
         String(20),

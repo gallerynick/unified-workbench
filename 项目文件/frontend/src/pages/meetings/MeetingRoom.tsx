@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftOutlined, CheckCircleOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Button, Tag, Space, message, Spin, Typography, Empty, Tabs } from 'antd';
-import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord, autosaveMeetingRecord, generateMinutes } from '../../api/meeting-records';
+import { Button, Tag, Space, message, Spin, Typography, Empty, Tabs, Input } from 'antd';
+import { getMeetingRecord, startMeeting, pauseMeeting, resumeMeeting, endMeeting, updateMeetingRecord, autosaveMeetingRecord, generateMinutes, updateSpeakerNames } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingTranscriptSegment, TranscriptSegmentData} from '../../types/meeting-record';
 import { getVisibilityConfig } from '../../utils/visibility';
 import { getToken } from '../../utils/auth';
@@ -22,6 +22,9 @@ export default function MeetingRoom() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
+  // 讲话人改名输入（key=原说话人标签，value=新名字）
+  const [speakerEdits, setSpeakerEdits] = useState<Record<string, string>>({});
+  const [speakerSaving, setSpeakerSaving] = useState(false);
   const [noteContent, setNoteContent] = useState<string>('');
   // 与 noteContent 同步的 ref：自动保存/卸载兜底必须读 ref，
   // 不能读闭包里的 state（setTimeout 回调会捕获输入前的旧值，导致笔记丢失）
@@ -896,6 +899,7 @@ export default function MeetingRoom() {
                 { key: 'summary', label: '总结' },
                 { key: 'highlights', label: '重点摘要' },
                 { key: 'todos', label: '待办事项' },
+                { key: 'speakers', label: '讲话人管理' },
                 { key: 'recording', label: '录音' },
               ]}
               activeKey={activeTab}
@@ -983,6 +987,76 @@ export default function MeetingRoom() {
                   </ul>
                 ) : null,
               )}
+            </div>
+          )}
+          {activeTab === 'speakers' && (
+            <div className={styles.editor} style={{ padding: 16, overflowY: 'auto' }}>
+              {(() => {
+                // 聚合唯一说话人
+                const names = Array.from(
+                  new Set(transcript.map((s) => (('speaker' in s ? s.speaker : null) || '')).filter(Boolean) as string[]),
+                );
+                if (names.length === 0) {
+                  return <Empty description="暂未识别出说话人（会议结束后自动区分）" style={{ padding: '40px 0' }} />;
+                }
+                const save = async () => {
+                  if (!id) return;
+                  setSpeakerSaving(true);
+                  try {
+                    const mapping: Record<string, string> = {};
+                    for (const n of names) {
+                      const v = (speakerEdits[n] ?? '').trim();
+                      if (v && v !== n) mapping[n] = v;
+                    }
+                    if (Object.keys(mapping).length > 0) {
+                      await updateSpeakerNames(id, mapping);
+                      message.success('说话人名称已更新');
+                      setSpeakerEdits({});
+                      await fetchMeeting();
+                    } else {
+                      message.info('没有需要更新的名称');
+                    }
+                  } catch (e) {
+                    message.error('保存失败：' + (e instanceof Error ? e.message : '未知错误'));
+                  } finally {
+                    setSpeakerSaving(false);
+                  }
+                };
+                return (
+                  <div>
+                    <Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
+                      把系统识别的「说话人N」改成真实姓名；改完点「保存名称」，再点「重新生成纪要」，纪要会用新名字。
+                    </Paragraph>
+                    {names.map((n) => (
+                      <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Tag color="blue" style={{ minWidth: 70, textAlign: 'center' }}>{n}</Tag>
+                        <Input
+                          size="small"
+                          value={speakerEdits[n] ?? n}
+                          placeholder="新名字"
+                          onChange={(e) => setSpeakerEdits((prev) => ({ ...prev, [n]: e.target.value }))}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    ))}
+                    <Space style={{ marginTop: 12 }}>
+                      <Button size="small" type="primary" loading={speakerSaving} onClick={save}>
+                        保存名称
+                      </Button>
+                      <Button size="small" onClick={async () => {
+                        if (!id) return;
+                        try {
+                          await generateMinutes(id);
+                          message.success('已重新生成纪要');
+                          await fetchMeeting();
+                        } catch {
+                          message.error('重新生成失败');
+                        }
+                      }}>重新生成纪要</Button>
+                    </Space>
+                  </div>
+                );
+              })()}
             </div>
           )}
           {activeTab === 'recording' && (

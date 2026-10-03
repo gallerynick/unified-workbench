@@ -35,6 +35,7 @@ from app.services.meeting_record import (
     get_transcript_segments,
     list_meeting_records,
     pause_meeting_record,
+    regenerate_minutes_record,
     review_meeting_minutes,
     resume_meeting_record,
     start_meeting_record,
@@ -257,6 +258,54 @@ async def download_audio_endpoint(
         media_type="audio/wav",
         filename=f"{meeting.number}.wav",
     )
+
+
+@router.put("/{meeting_id}/speakers", response_model=UnifiedResponse[MeetingRecordResponse])
+async def update_speaker_names_endpoint(
+    meeting_id: uuid.UUID,
+    request: dict[str, str],
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """批量改说话人显示名：{"说话人1": "张三", ...}，同步到所有转录段。
+    改完名后前端再点「重新生成纪要」，AI 纪要会用真实名字。
+    """
+    from sqlalchemy import update as sa_update
+
+    from app.models.meeting_transcript_segment import MeetingTranscriptSegment
+
+    meeting = await get_meeting_record(db, meeting_id, current_user)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="会议不存在")
+    if meeting.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="仅创建者可以修改说话人")
+
+    for old_name, new_name in (request or {}).items():
+        if not old_name or not new_name:
+            continue
+        await db.execute(
+            sa_update(MeetingTranscriptSegment)
+            .where(MeetingTranscriptSegment.meeting_id == meeting_id)
+            .where(MeetingTranscriptSegment.speaker == old_name)
+            .values(speaker=new_name),
+        )
+    await db.commit()
+    return UnifiedResponse(data=MeetingRecordResponse.model_validate(meeting))
+
+@router.post(
+    "/{meeting_id}/minutes/generate",
+    response_model=UnifiedResponse[MeetingRecordResponse],
+)
+async def generate_minutes_endpoint(
+    meeting_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """手动重新生成会议纪要（失败重试入口）"""
+    item = await regenerate_minutes_record(db, meeting_id, current_user)
+    if not item:
+        raise HTTPException(status_code=404, detail="会议不存在")
+    return UnifiedResponse(data=MeetingRecordResponse.model_validate(item))
 
 
 @router.get(

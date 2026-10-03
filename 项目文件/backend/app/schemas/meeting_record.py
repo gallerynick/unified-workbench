@@ -16,7 +16,7 @@ class MeetingRecordCreate(BaseModel):
     visibility: str = Field(default="private", max_length=20)
     restricted_users: list[uuid.UUID] = []
     restricted_tags: list[uuid.UUID] = []
-    participants: list[str] | None = None
+    expected_speakers: int | None = None
 
 
 class MeetingRecordUpdate(BaseModel):
@@ -26,7 +26,7 @@ class MeetingRecordUpdate(BaseModel):
     visibility: str | None = Field(default=None, max_length=20)
     restricted_users: list[uuid.UUID] | None = None
     restricted_tags: list[uuid.UUID] | None = None
-    participants: list[str] | None = None
+    expected_speakers: int | None = None
     notes: str | None = None
 
 
@@ -99,7 +99,7 @@ class MeetingRecordResponse(BaseModel):
     diarization_status: str
     minutes_status: str
     processing_stage: str | None = None
-    participants: list[str] | None = None
+    expected_speakers: int | None = None
     minutes_reviewed: bool
     notes: str | None = None
     created_at: datetime

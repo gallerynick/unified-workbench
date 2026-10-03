@@ -179,7 +179,7 @@ async def create_meeting_record(
         visibility=data.get("visibility", "private"),
         restricted_users=data.get("restricted_users", []),
         restricted_tags=data.get("restricted_tags", []),
-        participants=data.get("participants") or [],
+        expected_speakers=data.get("expected_speakers"),
         status="not_started",
     )
     db.add(item)
@@ -216,7 +216,7 @@ async def update_meeting_record(
             status_code=403, detail="仅创建者可以更新会议"
         )
 
-    for field in ("title", "visibility", "restricted_users", "restricted_tags", "participants", "notes"):
+    for field in ("title", "visibility", "restricted_users", "restricted_tags", "expected_speakers", "notes"):
         if field in data and data[field] is not None:
             setattr(item, field, data[field])
 
@@ -373,16 +373,56 @@ async def end_meeting_record(
     return item
 
 
+async def _save_minutes_record(
+    db: AsyncSession,
+    meeting: MeetingRecord,
+    minutes_data: dict[str, Any],
+    model_used: str,
+) -> None:
+    """保存/更新会议纪要（按 meeting_id upsert）。"""
+    from sqlalchemy import select
+
+    from app.models.meeting_minutes import MeetingMinutes
+    from app.utils.timeutil import now_shanghai
+
+    result = await db.execute(
+        select(MeetingMinutes).where(MeetingMinutes.meeting_id == meeting.id)
+    )
+    existing = result.scalar_one_or_none()
+    payload = {
+        "summary": minutes_data.get("summary", ""),
+        "key_points": minutes_data.get("key_points", []),
+        "todos": minutes_data.get("todos", []),
+        "model_used": model_used,
+    }
+    if existing:
+        existing.summary = payload["summary"]
+        existing.key_points = payload["key_points"]
+        existing.todos = payload["todos"]
+        existing.model_used = payload["model_used"]
+        existing.generated_at = now_shanghai()
+    else:
+        db.add(MeetingMinutes(
+            id=uuid.uuid4(),
+            meeting_id=meeting.id,
+            summary=payload["summary"],
+            key_points=payload["key_points"],
+            todos=payload["todos"],
+            model_used=payload["model_used"],
+            generated_at=now_shanghai(),
+        ))
+
 async def regenerate_minutes_record(
     db: AsyncSession,
     meeting_id: uuid.UUID,
     user: User,
 ) -> MeetingRecord | None:
-    """手动重新生成会议纪要（供前端失败重试）。
+    """手动重新生成会议纪要（供前端「再次生成」/失败重试）。
 
     - 仅创建者可触发；
-    - 会议已结束（completed）才允许重新生成：重置纪要状态为 pending，
-      重新入队会后处理任务；若正在处理中（processing）则直接返回现状，防止重复并发。
+    - 会议已结束（completed）才允许；
+    - **只重新生成纪要**：用现有转录段（含用户改过的说话人名），
+      不重跑转写/说话人分离（否则会把改的名覆盖掉）。
     """
     user_tag_ids = await _get_user_tag_ids(db, user)
     item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
@@ -395,22 +435,39 @@ async def regenerate_minutes_record(
             status_code=400, detail="会议尚未结束，不能重新生成纪要"
         )
 
-    item.status = "processing"
-    item.minutes_status = "pending"
-
-    await db.flush()
-    await db.refresh(item)
-
-    await db.commit()
+    # 读取现有转录段（带说话人名）
+    result = await db.execute(
+        select(MeetingTranscriptSegment)
+        .where(MeetingTranscriptSegment.meeting_id == meeting_id)
+        .order_by(MeetingTranscriptSegment.seq)
+    )
+    segs = list(result.scalars().all())
+    minutes_input = [
+        {
+            "text": s.text,
+            "start_ms": s.audio_start_ms,
+            "end_ms": s.audio_end_ms,
+            "speaker": s.speaker,
+        }
+        for s in segs
+        if s.text
+    ]
 
     try:
-        process_meeting.delay(str(item.id))
-    except Exception as e:
-        logger.error(f"Failed to enqueue minutes regeneration for {item.id}: {e}")
-        item.status = "completed"
-        item.minutes_status = "failed"
-        await db.flush()
+        from app.services.meeting_minutes import generate_minutes
 
+        from app.tasks.meeting_process import _build_minutes_meta
+
+        meeting_meta = _build_minutes_meta(item, minutes_input)
+        minutes_data, model_used = await generate_minutes(
+            minutes_input, meeting_meta=meeting_meta
+        )
+        await _save_minutes_record(db, item, minutes_data, model_used)
+        item.minutes_status = "done"
+    except Exception as exc:
+        logger.error("重新生成纪要失败：%s", exc)
+        item.minutes_status = "failed"
+    await db.commit()
     return item
 
 

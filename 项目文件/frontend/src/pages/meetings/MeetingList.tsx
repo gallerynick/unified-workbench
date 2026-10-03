@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusOutlined, ClockCircleOutlined, CheckCircleOutlined, PlayCircleOutlined, PauseCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import { Button, Input, Modal, Form, Tag, Tooltip, Space, Empty, message, Spin, Typography, Select } from 'antd';
+import { Button, Input, InputNumber, Modal, Form, Tag, Tooltip, Space, Empty, message, Spin, Typography } from 'antd';
 import { listMeetingRecords, createMeetingRecord } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingRecordCreate, MeetingStatus } from '../../types/meeting-record';
 import VisibilitySetting from '../../components/VisibilitySetting/VisibilitySetting';
@@ -61,7 +61,7 @@ export default function MeetingList() {
         visibility: values.visibility || 'private',
         restricted_users: [],
         restricted_tags: [],
-        participants: values.participants ?? [],
+        expected_speakers: values.expected_speakers ?? null,
       };
       const res = await createMeetingRecord(data);
       if (res.code === 0) {
@@ -190,18 +190,11 @@ export default function MeetingList() {
             <VisibilitySetting label="" />
           </Form.Item>
           <Form.Item
-            name="participants"
-            label="参会人"
-            tooltip="填写参会人名单（如姓名），会后说话人分离将按人数聚类，区分更准；可留空自动判断"
+            name="expected_speakers"
+            label="讲话人人数"
+            tooltip="填写预期讲话人数，会后说话人分离将按此人数聚类、区分更准；留空则不指定、自动判断"
           >
-            <Select
-              mode="tags"
-              placeholder="输入姓名后回车添加（如：张三、李四）"
-              open={false}
-              suffixIcon={null}
-              tokenSeparators={[","]}
-              style={{ width: "100%" }}
-            />
+            <InputNumber min={2} max={20} placeholder="留空自动判断" style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>
