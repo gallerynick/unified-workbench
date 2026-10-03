@@ -70,6 +70,10 @@ const MODEL_INFO: Record<string, { name: string; description: string }> = {
     name: 'Qwen2.5-3B Q4',
     description: '阿里云通义千问 2.5 系列 3B 参数模型，Q4 量化版本，支持 32K 上下文，适合会议摘要',
   },
+  'qwen3-4b-instruct-q4_k_m': {
+    name: 'Qwen3-4B Q4',
+    description: '通义千问 3 系列 4B 混合思考模型（Q4_K_M）。默认先思考再回答；纪要等结构化场景后端已自动关闭思考、直答输出，避免思考块混入 JSON',
+  },
 };
 
 const PRESET_ASR_MODELS = {

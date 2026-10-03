@@ -190,6 +190,14 @@ MODEL_CATALOG: dict[str, dict[str, str]] = {
         "file": "qwen2.5-3b-instruct-q4_k_m.gguf",
         "sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
     },
+    # Qwen3-4B（2025-04 原版，混合思考）：默认会先输出思考块再给答案。
+    # 业务侧（纪要等结构化输出）请求带 chat_template_kwargs.enable_thinking=false
+    # 直答，避免思考部分混入 JSON；需要思考时可用 /think 或改 template 开启。
+    "qwen3-4b-instruct-q4_k_m": {
+        "label": "Qwen3-4B Instruct（混合思考，Q4_K_M）",
+        "repo": "Qwen/Qwen3-4B-Instruct-GGUF",
+        "file": "qwen3-4b-instruct-q4_k_m.gguf",
+    },
     # Ollama 时代的旧模型名 → GGUF 目录名。兼容遗留配置与前端旧缓存：
     # 用户数据库或浏览器还存着 qwen2.5:3b 时，下载/载入也能正确落到 GGUF。
     # 7B 因分片未入目录，别名保留但下载会报「不在目录」。
@@ -198,7 +206,8 @@ MODEL_CATALOG: dict[str, dict[str, str]] = {
         "qwen2.5:3b": "qwen2.5-3b-instruct-q4_k_m",
         "qwen2.5:7b": "qwen2.5-7b-instruct-q4_k_m",
         "qwen3:1.7b": "qwen2.5-1.5b-instruct-q4_k_m",
-        "qwen3.5:4b": "qwen2.5-3b-instruct-q4_k_m",
+        "qwen3:4b": "qwen3-4b-instruct-q4_k_m",
+        "qwen3.5:4b": "qwen3-4b-instruct-q4_k_m",
     },
     # 注意：qwen2.5-7b-instruct-q4_k_m 是**分片文件**（00001-of-00002），
     # 当前下载器与 llama.cpp 的 models-dir 均按单文件处理，分片需子目录结构，

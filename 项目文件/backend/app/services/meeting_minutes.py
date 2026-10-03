@@ -20,7 +20,35 @@ logger = logging.getLogger(__name__)
 DEFAULT_MODEL = LOCAL_AI_MODEL
 
 # prompt 版本号：每次修改提示词必须递增，便于对照评估与回归
-PROMPT_VERSION = "v2"
+PROMPT_VERSION = "v4"
+
+# 无实质内容的句子：纯标点 / 单个字符 / 语气词填充。命中即视为噪声，不进 prompt。
+# 说明：短会议只要有 1 句可读内容就必须如实概括，决不能退回模板文案。
+_NOISE_FILLERS = {
+    "嗯", "呃", "啊", "哦", "噢", "诶", "哎", "哈", "嗯嗯", "呃呃",
+    "对对", "对对对", "是是", "是的", "好", "好的", "好吧", "行", "行吧",
+    "yeah", "yes", "ok", "okay", "hmm", "emm", "um", "ah", "oh",
+}
+
+_STRIP_CHARS = " 	\n\r。．.！!？?，,；;：:\"'“”‘’（）()【】[]「」『』—…、"
+
+
+def _is_substantive(text: str) -> bool:
+    """判断一段转录文本是否有可读内容。
+
+    无实质：空、纯标点、单个字符、纯语气词填充。
+    有实质：至少含一个中文/英文有效词（长度 >= 2 的有效字符，
+    且不是纯语气词）。宁多勿少——只有认定全部无实质时才走兜底。
+    """
+    if not text:
+        return False
+    stripped = text.strip(_STRIP_CHARS).strip().lower()
+    if not stripped:
+        return False
+    if len(stripped) < 2:
+        return False
+    return stripped not in _NOISE_FILLERS
+
 
 MINUTES_SYSTEM_PROMPT = """你是一个专业的会议纪要助手。你的任务是根据会议转录内容，
 生成结构化的会议纪要。
@@ -28,7 +56,7 @@ MINUTES_SYSTEM_PROMPT = """你是一个专业的会议纪要助手。你的任�
 你必须严格按照以下 JSON 格式输出，不要添加任何额外内容、不要输出 markdown 代码块：
 
 {
-  "summary": "会议总结（200-500字，概括会议目的、主要讨论内容和结论）",
+  "summary": "会议总结（300-500字，概括会议目的、主要讨论内容和结论）",
   "key_points": [
     "要点1：关键决策或重要信息",
     "要点2：关键决策或重要信息"
@@ -43,12 +71,16 @@ MINUTES_SYSTEM_PROMPT = """你是一个专业的会议纪要助手。你的任�
 
 规则：
 1. summary 必须涵盖：会议主题、核心话题、达成结论；只能基于转录内容，不要外推
-2. key_points 列出 3-10 个最重要的决策和信息，每条不超过 100 字，优先采用原文关键句
+2. key_points 列出最重要的决策和信息（3-10 条；内容极少时至少 1 条，
+   宁缺毋滥，不硬凑数量），每条不超过 100 字，优先采用原文关键句；
+   若转录中存在明确点明会议主题或目的的句子（如"这个会议的主题是某某"），
+   该句必须作为第一条 key_point，summary 也必须提及该主题
 3. todos 只提取明确的待办（有执行的意图、负责人或时间要求），每条必须附 source_quote，
    且 source_quote 必须逐字抄自转录原文；找不到对应原文就不写这条待办
 4. 如果会议中没有明确的待办事项，todos 返回空数组 []
-5. 如果会议内容过短或无实质内容，summary 写"本次会议内容较少，无实质性讨论"，
-   key_points / todos 返回空数组
+5. 会议内容少但不是没有：只要转录中存在可读内容（哪怕只有一句），
+   summary 就必须如实概括这次会议的事实，禁止使用"本次会议内容较少，无实质性讨论"
+   之类模板文案；内容少时 summary 可简短（20-50字），重点写清楚会议实际说了什么。
 6. 所有文字使用简体中文
 7. 不要编造会议中没有的内容，不要改写原文语义，不要补充外部知识
 8. 时间表达（如"下周三""月底""11月5号"）只照抄原文说法，不要自行推算具体日期
@@ -56,8 +88,12 @@ MINUTES_SYSTEM_PROMPT = """你是一个专业的会议纪要助手。你的任�
 10. 严格输出 JSON，不要包含 markdown 代码块标记，不要在 JSON 前后输出任何其他文字
 
 示例（仅作输出格式参考，不要照抄内容）：
-转录：我们确定下周启动新版本上线，负责人是张三。
+转录：[0.0s] 说话人1: 我们确定下周启动新版本上线，负责人是张三。
 输出：{"summary":"会议确定下周启动新版本上线，并指定张三负责推进。","key_points":["决定下周启动新版本上线"],"todos":[{"content":"张三负责推进新版本上线排期","source_quote":"我们确定下周启动新版本上线，负责人是张三"}]}
+
+示例（内容极少时：点明主题 + 至少 1 条要点，禁止模板文案）：
+转录：[0.0s] 说话人1: 这个会议的主题是测试。
+输出：{"summary":"本次会议主题为测试，主要围绕测试展开，未形成其他明确结论。","key_points":["会议主题为测试"],"todos":[]}
 """
 
 
@@ -137,8 +173,25 @@ def _validate_minutes(minutes: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _strip_thinking(text: str) -> str:
+    """剥离 Qwen3 混合思考模型的思考块（防御性，Qwen2.x 无思考块不受影响）。
+
+    Qwen3 默认把思考内容放在英文双引号包裹的块里（如 "让我先想想..."），
+    回答在闭合引号之后。不剥离的话，思考块里若含 JSON 示例会被 _extract_json
+    的「找花括号」误当成纪要 JSON，导致思考/回答搞混。
+    """
+    if text.startswith('"'):
+        idx = text.rfind('"')
+        if 0 < idx < len(text) - 1:
+            rest = text[idx + 1 :].lstrip("\n\r ")
+            if rest:
+                return rest
+    return text
+
+
 def _extract_json(text: str) -> dict[str, Any] | None:
     """从 LLM 输出中提取 JSON 对象。"""
+    text = _strip_thinking(text)
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -160,6 +213,22 @@ def _extract_json(text: str) -> dict[str, Any] | None:
             pass
 
     return None
+
+
+def _format_transcript_line(seg: dict[str, Any]) -> str:
+    """把一条转录段格式化为 prompt 行。
+
+    带说话人时形如 "[12.3s] 说话人1: 文本"，为归属判断提供锚点；
+    无说话人时保持 v2 原有格式 "[12.3s] 文本"，保证向后兼容。
+    """
+    timestamp = "[" + str(round((seg.get("start_ms", 0) or 0) / 1000.0, 1)) + "s]"
+    text = str(seg.get("text", "")).strip()
+    speaker = str(seg.get("speaker") or "").strip()
+    if not text:
+        return ""
+    if speaker:
+        return timestamp + " " + speaker + ": " + text
+    return timestamp + " " + text
 
 
 def _build_meta_context(meeting_meta: dict[str, Any] | None) -> str:
@@ -203,9 +272,21 @@ async def generate_minutes(
     # 走 Docker 网络别名直连 llama.cpp 容器；localhost 会指向 backend 容器自身而连接失败
     model = model_name or DEFAULT_MODEL
 
+    # 过滤无实质内容的噪声句（纯标点/单字符/纯语气词），只留可读内容进 prompt
+    substantive_segments = [
+        seg for seg in segments if _is_substantive(str(seg.get("text", "")))
+    ]
+
+    if not substantive_segments:
+        # 没有一句可读内容：不调模型，直接返回确定性兜底（永不空屏、零成本）
+        return {
+            "summary": "本次会议内容较少，无实质性讨论",
+            "key_points": [],
+            "todos": [],
+        }, model
+
     transcript_text = "\n".join(
-        f"[{seg.get('start_ms', 0) / 1000:.1f}s] {seg.get('text', '')}"
-        for seg in segments
+        _format_transcript_line(seg) for seg in substantive_segments
     )
 
     if not transcript_text.strip():
@@ -233,17 +314,23 @@ async def generate_minutes(
     for attempt in range(max_retries):
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
+                request_body = {
+                    "model": model,
+                    "messages": [
+                        {"role": "user", "content": prompt},
+                    ],
+                    "stream": False,
+                    "temperature": 0.3,
+                    "top_p": 0.9,
+                }
+                # Qwen3 混合思考模型默认先输出思考块再回答：结构化纪要场景必须
+                # 关闭思考（chat template 的 enable_thinking=false），否则思考内容
+                # 会混进 JSON 导致解析失败/污染纪要。Qwen2.x 无此开关，不传。
+                if "qwen3" in str(model).lower():
+                    request_body["chat_template_kwargs"] = {"enable_thinking": False}
                 response = await client.post(
                     f"{LOCAL_AI_BASE_URL}/chat/completions",
-                    json={
-                        "model": model,
-                        "messages": [
-                            {"role": "user", "content": prompt},
-                        ],
-                        "stream": False,
-                        "temperature": 0.3,
-                        "top_p": 0.9,
-                    },
+                    json=request_body,
                 )
                 response.raise_for_status()
                 data = response.json()
