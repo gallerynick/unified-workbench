@@ -595,6 +595,8 @@ export default function NoteSidebar({
         ) : null}
       </div>
 
+      <div className={styles.sectionDivider ?? ''} role="separator" />
+
       {loading && notes.length === 0 ? (
         <div className={styles.emptyBox ?? ''}>
           <Spin indicator={<LoadingOutlined spin />} />
@@ -634,7 +636,7 @@ export default function NoteSidebar({
                   );
                 })}
               </div>
-              <div className={styles.divider ?? ''} role="separator" />
+              <div className={styles.groupDivider ?? ''} role="separator" />
             </div>
           ) : null}
 

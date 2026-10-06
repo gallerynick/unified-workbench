@@ -103,10 +103,22 @@
   white-space: nowrap;
 }
 
-/* 置顶区与下方树列表之间的分隔线。
-   上下各留 12px：上方沿用 .pinnedArea 的 margin-bottom，下方由本元素的
-   margin-bottom 承担，符合「文字↔分隔线 12px」的间距约定。 */
-.divider {
+/* ── 分隔线 ─────────────────────────────────────────────────── */
+/* 两条线共用 1px 高度与上下 12px 间距（符合「文字↔分隔线 12px」约定），
+   只靠色阶区分层级：结构边界用较深的 --border-primary，区块内分隔用
+   更淡的 --border-secondary。深色模式下 primary(#434343) 仍比
+   secondary(#303030) 更显眼，深浅两态下「上深下淡」的次序一致。 */
+
+/* 工具条与下方内容区之间：控制区与内容区的结构边界，色阶较深 */
+.sectionDivider {
+  height: var(--border-width-thin);
+  background: var(--border-primary);
+  margin: 0 0 var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+/* 置顶区与树列表之间：内容区内部的区块分隔，比上方那条更淡 */
+.groupDivider {
   height: var(--border-width-thin);
   background: var(--border-secondary);
   margin: 0 0 var(--spacing-sm);
