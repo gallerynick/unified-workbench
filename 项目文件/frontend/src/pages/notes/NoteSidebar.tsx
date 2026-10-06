@@ -634,6 +634,7 @@ export default function NoteSidebar({
                   );
                 })}
               </div>
+              <div className={styles.divider ?? ''} role="separator" />
             </div>
           ) : null}
 

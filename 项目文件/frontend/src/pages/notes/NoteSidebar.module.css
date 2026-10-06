@@ -103,6 +103,16 @@
   white-space: nowrap;
 }
 
+/* 置顶区与下方树列表之间的分隔线。
+   上下各留 12px：上方沿用 .pinnedArea 的 margin-bottom，下方由本元素的
+   margin-bottom 承担，符合「文字↔分隔线 12px」的间距约定。 */
+.divider {
+  height: var(--border-width-thin);
+  background: var(--border-secondary);
+  margin: 0 0 var(--spacing-sm);
+  flex-shrink: 0;
+}
+
 /* ── 列表 ───────────────────────────────────────────────────── */
 
 .list {
