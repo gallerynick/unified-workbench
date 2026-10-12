@@ -435,6 +435,9 @@ export default function MainLayout() {
                 display: 'flex',
                 flexDirection: 'column',
                 flexShrink: 0,
+                // 容器底色用 parchment（与内容区一致）：菜单滚动区不再整条白色
+                // 撑满到底，菜单较短时下方空区显示 parchment，避免大片白色。
+                background: 'var(--canvas-parchment)',
               }}
             >
             <div
@@ -498,7 +501,9 @@ export default function MainLayout() {
             <div
               ref={siderRef}
               className="sider-menu-scroll"
-              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
+              // flex: 0 1 auto —— 菜单内容短时收缩到内容高度（白色只盖菜单区）；
+              // 内容超长时在容器剩余高度内滚动（minHeight:0 + overflow）。
+              style={{ flex: '0 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}
             >
               <ConfigProvider
                 theme={{
