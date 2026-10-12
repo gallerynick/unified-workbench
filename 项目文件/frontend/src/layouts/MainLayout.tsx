@@ -535,7 +535,7 @@ export default function MainLayout() {
                   <Menu
                     mode="inline"
                     selectedKeys={[selectedKey]}
-                    openKeys={collapsed ? [] : openKeys}
+                    {...(collapsed ? {} : { openKeys })}
                     items={getMenuItems() ?? []}
                     onClick={({ key }) => navigate(key)}
                     onOpenChange={handleMenuOpenChange}
