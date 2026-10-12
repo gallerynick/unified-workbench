@@ -254,6 +254,7 @@ const userMenuItems: MenuProps['items'] = [
 
 export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [autoCollapseSidebar, setAutoCollapseSidebar] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
@@ -350,6 +351,8 @@ export default function MainLayout() {
         const res = await getUserPreferences();
         if (res.code === 0 && res.data?.theme_mode) {
           setTheme(res.data.theme_mode as ThemeMode);
+          // 「自动折叠模块栏」偏好：开启后点击模块即收起侧边栏
+          setAutoCollapseSidebar(res.data.auto_collapse_sidebar ?? false);
         }
       } catch {
         // 忽略错误
@@ -542,7 +545,11 @@ export default function MainLayout() {
                     selectedKeys={[selectedKey]}
                     {...(collapsed ? {} : { openKeys })}
                     items={getMenuItems() ?? []}
-                    onClick={({ key }) => navigate(key)}
+                    onClick={({ key }) => {
+                      navigate(key);
+                      // 「自动折叠模块栏」开启时，点击模块后自动收起侧边栏
+                      if (autoCollapseSidebar) setCollapsed(true);
+                    }}
                     onOpenChange={handleMenuOpenChange}
                     style={{ borderRight: 0 }}
                   />

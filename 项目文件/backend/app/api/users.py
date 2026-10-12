@@ -104,6 +104,7 @@ async def get_user_preferences_endpoint(
             page_zoom=prefs.get("page_zoom", "100"),
             theme_mode=prefs.get("theme_mode", "system"),
             allow_multiple_logins=prefs.get("allow_multiple_logins", True),
+            auto_collapse_sidebar=prefs.get("auto_collapse_sidebar", False),
         )
     )
 
@@ -127,6 +128,9 @@ async def update_user_preferences_endpoint(
     # 不能写回默认值，否则改一次缩放就会把「单设备登录」悄悄打开。
     if body.allow_multiple_logins is not None:
         prefs["allow_multiple_logins"] = body.allow_multiple_logins
+    # auto_collapse_sidebar 同理：不传保持原值，避免被重置回 False。
+    if body.auto_collapse_sidebar is not None:
+        prefs["auto_collapse_sidebar"] = body.auto_collapse_sidebar
     current_user.preferences = prefs
     flag_modified(current_user, "preferences")
     await db.commit()
@@ -136,5 +140,6 @@ async def update_user_preferences_endpoint(
             page_zoom=prefs.get("page_zoom"),
             theme_mode=prefs.get("theme_mode"),
             allow_multiple_logins=prefs.get("allow_multiple_logins", True),
+            auto_collapse_sidebar=prefs.get("auto_collapse_sidebar", False),
         )
     )

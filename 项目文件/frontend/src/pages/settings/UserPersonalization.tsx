@@ -3,12 +3,13 @@ import {
   Card,
   Segmented,
   Button,
+  Switch,
   Typography,
   message,
   Alert,
   Space,
 } from 'antd';
-import { BgColorsOutlined, SaveOutlined, FullscreenOutlined } from '@ant-design/icons';
+import { BgColorsOutlined, SaveOutlined, FullscreenOutlined, MenuFoldOutlined } from '@ant-design/icons';
 import { useTheme, type ThemeMode } from '../../contexts/ThemeContext';
 import { getUserPreferences, updateUserPreferences } from '../../api/user-preferences';
 import styles from './UserPersonalization.module.css';
@@ -33,6 +34,7 @@ export default function UserPersonalization() {
   const { themeMode, setTheme } = useTheme();
   const [localTheme, setLocalTheme] = useState<ThemeMode>('system');
   const [localZoom, setLocalZoom] = useState<string>('100');
+  const [localAutoCollapse, setLocalAutoCollapse] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -42,6 +44,7 @@ export default function UserPersonalization() {
         if (res.code === 0 && res.data) {
           setLocalTheme((res.data.theme_mode as ThemeMode) || 'system');
           setLocalZoom(res.data.page_zoom || '100');
+          setLocalAutoCollapse(res.data.auto_collapse_sidebar ?? false);
         }
       } catch {
         // 忽略错误
@@ -58,7 +61,11 @@ export default function UserPersonalization() {
     void (async () => {
       try {
         setTheme(localTheme);
-        await updateUserPreferences({ page_zoom: localZoom, theme_mode: localTheme });
+        await updateUserPreferences({
+          page_zoom: localZoom,
+          theme_mode: localTheme,
+          auto_collapse_sidebar: localAutoCollapse,
+        });
         window.dispatchEvent(new CustomEvent('zoom-changed', { detail: localZoom }));
         window.dispatchEvent(new CustomEvent('theme-changed', { detail: localTheme }));
         message.success('个性化设置已保存');
@@ -120,6 +127,29 @@ export default function UserPersonalization() {
 
         <Paragraph type="secondary">
           调整页面整体缩放比例。
+        </Paragraph>
+      </Card>
+
+      <Card
+        title={
+          <Space>
+            <MenuFoldOutlined />
+            自动折叠模块栏
+          </Space>
+        }
+      >
+        <div style={{ marginBottom: 'var(--spacing-card-gap)' }}>
+          <Switch
+            checked={localAutoCollapse}
+            onChange={setLocalAutoCollapse}
+            checkedChildren="开启"
+            unCheckedChildren="关闭"
+          />
+        </div>
+
+        <Paragraph type="secondary">
+          开启后，点击侧边栏的模块（如"首页"、"任务中心"）跳转时，侧边栏会自动收起。
+          关闭则保持侧边栏展开状态不变。
         </Paragraph>
       </Card>
 

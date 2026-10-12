@@ -23,6 +23,12 @@ class UserPreferenceUpdate(BaseModel):
         default=None,
         description="允许多处同时登录；不传则保持原值",
     )
+    # 自动折叠模块栏：开启后点击侧边栏模块（菜单项）即自动收起侧边栏。
+    # 该值存服务端，换设备登录保持一致。可空：不传则保持原值。
+    auto_collapse_sidebar: bool | None = Field(
+        default=None,
+        description="点击模块后自动折叠侧边栏；不传则保持原值",
+    )
 
 
 class UserPreferenceResponse(BaseModel):
@@ -32,4 +38,7 @@ class UserPreferenceResponse(BaseModel):
     theme_mode: str = Field(default="system", description="主题模式")
     allow_multiple_logins: bool = Field(
         default=True, description="允许多处同时登录"
+    )
+    auto_collapse_sidebar: bool = Field(
+        default=False, description="点击模块后自动折叠侧边栏"
     )
