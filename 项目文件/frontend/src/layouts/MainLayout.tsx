@@ -299,8 +299,11 @@ export default function MainLayout() {
     return location.pathname;
   }, [location.pathname]);
 
-  // 路由变化时自动展开对应菜单，并持久化到 localStorage
+  // 路由变化时自动展开对应菜单，并持久化到 localStorage。
+  // 折叠状态下跳过：受控 openKeys 若含子菜单 key，antd 5 在 inline-collapsed 下
+  // 会让子菜单弹出层保持打开（表现为二级菜单收纳后仍常驻）。
   useEffect(() => {
+    if (collapsed) return;
     const pathname = location.pathname;
     const newOpenKeys = [...openKeys];
     
@@ -313,7 +316,7 @@ export default function MainLayout() {
       setOpenKeys(newOpenKeys);
       localStorage.setItem('workbench_menu_open_keys', JSON.stringify(newOpenKeys));
     }
-  }, [location.pathname, openKeys]);
+  }, [location.pathname, openKeys, collapsed]);
   const { notifications, unreadCount, connected, markAsRead, markAllAsRead } = useWebSocket();
   const toggleIdlePause = useCallback(() => {
     setIdlePaused((prev) => {
@@ -532,7 +535,7 @@ export default function MainLayout() {
                   <Menu
                     mode="inline"
                     selectedKeys={[selectedKey]}
-                    openKeys={openKeys}
+                    openKeys={collapsed ? [] : openKeys}
                     items={getMenuItems() ?? []}
                     onClick={({ key }) => navigate(key)}
                     onOpenChange={handleMenuOpenChange}
