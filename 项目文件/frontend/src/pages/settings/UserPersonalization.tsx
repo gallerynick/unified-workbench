@@ -66,6 +66,8 @@ export default function UserPersonalization() {
           theme_mode: localTheme,
           auto_collapse_sidebar: localAutoCollapse,
         });
+        // 广播偏好变更：MainLayout 监听后即时生效，无需刷新页面
+        window.dispatchEvent(new CustomEvent('auto-collapse-changed', { detail: localAutoCollapse }));
         window.dispatchEvent(new CustomEvent('zoom-changed', { detail: localZoom }));
         window.dispatchEvent(new CustomEvent('theme-changed', { detail: localTheme }));
         message.success('个性化设置已保存');
@@ -148,8 +150,7 @@ export default function UserPersonalization() {
         </div>
 
         <Paragraph type="secondary">
-          开启后，点击侧边栏的模块（如"首页"、"任务中心"）跳转时，侧边栏会自动收起。
-          关闭则保持侧边栏展开状态不变。
+          开启后，点击侧边栏的模块跳转时，侧边栏会自动收起；关闭则保持展开状态不变。
         </Paragraph>
       </Card>
 

@@ -368,6 +368,15 @@ export default function MainLayout() {
     };
   }, [setTheme]);
 
+  // 「自动折叠模块栏」偏好变更：个性化页保存后即时同步，无需刷新
+  useEffect(() => {
+    const collapseHandler = (e: CustomEvent<boolean>) => setAutoCollapseSidebar(e.detail);
+    window.addEventListener('auto-collapse-changed', collapseHandler as EventListener);
+    return () => {
+      window.removeEventListener('auto-collapse-changed', collapseHandler as EventListener);
+    };
+  }, []);
+
   const [loggingOut, setLoggingOut] = useState(false);
 
   // 解锁溶回：LockPage 通过 sessionStorage 传信号，MainLayout 播放反向模糊进场
@@ -438,9 +447,7 @@ export default function MainLayout() {
                 display: 'flex',
                 flexDirection: 'column',
                 flexShrink: 0,
-                // 容器底色用 parchment（与内容区一致）：菜单滚动区不再整条白色
-                // 撑满到底，菜单较短时下方空区显示 parchment，避免大片白色。
-                background: 'var(--canvas-parchment)',
+                background: 'var(--sider-bg)',
               }}
             >
             <div
@@ -504,9 +511,7 @@ export default function MainLayout() {
             <div
               ref={siderRef}
               className="sider-menu-scroll"
-              // flex: 0 1 auto —— 菜单内容短时收缩到内容高度（白色只盖菜单区）；
-              // 内容超长时在容器剩余高度内滚动（minHeight:0 + overflow）。
-              style={{ flex: '0 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}
+              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
             >
               <ConfigProvider
                 theme={{
@@ -535,7 +540,7 @@ export default function MainLayout() {
                   trigger={null}
                   theme={isDark ? 'dark' : 'light'}
                   style={{
-                    height: 'auto',
+                    height: '100%',
                     borderRight: 'var(--sider-border)',
                     background: 'var(--sider-bg)',
                   }}
@@ -551,7 +556,7 @@ export default function MainLayout() {
                       if (autoCollapseSidebar) setCollapsed(true);
                     }}
                     onOpenChange={handleMenuOpenChange}
-                    style={{ borderRight: 0 }}
+                    style={{ borderRight: 0, height: '100%' }}
                   />
                 </Sider>
               </ConfigProvider>
