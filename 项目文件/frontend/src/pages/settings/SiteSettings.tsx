@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Switch, Button, Typography, message, Space, Result } from 'antd';
+import { Card, Form, Button, Typography, message, Space, Result } from 'antd';
+import Switch from '@/components/AppSwitch';
 import { SaveOutlined, SafetyOutlined, LockOutlined } from '@ant-design/icons';
 import { isAdmin } from '../../utils/auth';
 import { request } from '../../utils/request';

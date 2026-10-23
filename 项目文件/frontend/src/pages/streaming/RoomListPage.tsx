@@ -6,7 +6,6 @@ import {
   Select,
   Tag,
   Badge,
-  Switch,
   Typography,
   Space,
   Popconfirm,
@@ -15,6 +14,7 @@ import {
   message,
   Tooltip,
 } from 'antd';
+import Switch from '@/components/AppSwitch';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -223,7 +223,6 @@ export default function RoomListPage() {
       width: 100,
       render: (_open: boolean, record: StreamRoom) => (
         <Switch
-          size="small"
           checked={record.is_open}
           onChange={(checked) => handleToggleOpen(record.id, checked)}
         />
@@ -238,7 +237,6 @@ export default function RoomListPage() {
           <Tooltip title="进入">
             <Button
               type="link"
-              size="small"
               icon={<EnterOutlined />}
               onClick={() => navigate(`/streaming/studio/${record.id}`)}
             >
@@ -249,7 +247,6 @@ export default function RoomListPage() {
             <Tooltip title="管理">
               <Button
                 type="link"
-                size="small"
                 icon={<SettingOutlined />}
                 onClick={() => setManageRoom(record)}
               >
@@ -269,7 +266,6 @@ export default function RoomListPage() {
               <Tooltip title="删除">
                 <Button
                   type="link"
-                  size="small"
                   danger
                   icon={<DeleteOutlined />}
                 >
@@ -337,7 +333,6 @@ export default function RoomListPage() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />

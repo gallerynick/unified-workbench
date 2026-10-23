@@ -771,7 +771,6 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                     <Tooltip title="重命名分类">
                       <Button
                         type="text"
-                        size="small"
                         icon={<FormOutlined />}
                         aria-label="重命名"
                         onClick={(e) => {
@@ -783,7 +782,6 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                     <Tooltip title="删除分类">
                       <Button
                         type="text"
-                        size="small"
                         danger
                         icon={<DeleteOutlined />}
                         aria-label="删除"
@@ -844,7 +842,6 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                           <Tooltip title="复制">
                             <Button
                               type="text"
-                              size="small"
                               icon={<CopyOutlined />}
                               aria-label="复制"
                               onClick={(e) => {
@@ -856,7 +853,6 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                           <Tooltip title="导出">
                             <Button
                               type="text"
-                              size="small"
                               icon={<ExportOutlined />}
                               aria-label="导出"
                               onClick={(e) => {
@@ -868,7 +864,6 @@ export default function ProjectDocumentTab({ project, onUpdate }: ProjectDocumen
                           <Tooltip title="删除">
                             <Button
                               type="text"
-                              size="small"
                               danger
                               icon={<DeleteOutlined />}
                               aria-label="删除"

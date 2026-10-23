@@ -5,7 +5,6 @@ import {
   Empty,
   Input,
   message,
-  Modal,
   Pagination,
   Segmented,
   Space,
@@ -16,9 +15,6 @@ import {
 } from 'antd';
 import {
   ClockCircleOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  ExclamationCircleOutlined,
   FileTextOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -27,10 +23,7 @@ import {
 } from '@ant-design/icons';
 import type { Project } from '../../../types/project';
 import type { ProjectMeeting } from '../../../types/project-meeting';
-import {
-  deleteProjectMeeting,
-  listProjectMeetings,
-} from '../../../api/project-meetings';
+import { listProjectMeetings } from '../../../api/project-meetings';
 import type { ProjectMeetingListParams } from '../../../api/project-meetings';
 import { listUsers } from '../../../api/users';
 import { MEETING_TYPE_OPTIONS } from '../../../constants/project';
@@ -61,16 +54,6 @@ function getTypeLabel(type: string): string {
   return MEETING_TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type;
 }
 
-/**
- * 内容字段约定：后端无独立 title 字段，若填写了标题则按「标题\n\n正文」存储于 content，
- * 展示时再拆分还原，避免臆造不存在的 API 字段。
- */
-function splitTitleContent(content: string | null): { title: string; body: string } {
-  const raw = content ?? '';
-  const idx = raw.indexOf('\n\n');
-  if (idx === -1) return { title: '', body: raw };
-  return { title: raw.slice(0, idx).trim(), body: raw.slice(idx + 2) };
-}
 
 /** 格式化时间 */
 function formatDate(iso: string | null | undefined): string {
@@ -183,10 +166,11 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
     const kw = searchText.trim().toLowerCase();
     if (!kw) return meetings;
     return meetings.filter((m) => {
-      const { title, body } = splitTitleContent(m.content);
+      const title = (m.title ?? '').toLowerCase();
+      const body = (m.content ?? '').toLowerCase();
       return (
-        title.toLowerCase().includes(kw) ||
-        body.toLowerCase().includes(kw) ||
+        title.includes(kw) ||
+        body.includes(kw) ||
         m.number.toLowerCase().includes(kw)
       );
     });
@@ -198,40 +182,7 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
     setMeetingModalOpen(true);
   }, []);
 
-  const openEdit = useCallback((m: ProjectMeeting) => {
-    setEditingMeeting(m);
-    setMeetingModalOpen(true);
-  }, []);
-
-  // ── 新建/编辑统一由共用组件 MeetingModal 处理，见组件底部渲染 ──
-
-  // ── 删除记录 ──
-  const handleDelete = useCallback(
-    (m: ProjectMeeting) => {
-      Modal.confirm({
-        title: '确认删除',
-        icon: <ExclamationCircleOutlined />,
-        content: `确定要删除交流记录「${m.number}」吗？此操作不可撤销。`,
-        okText: '删除',
-        okButtonProps: { danger: true },
-        cancelText: '取消',
-        onOk: async () => {
-          try {
-            const res = await deleteProjectMeeting(m.id);
-            if (res.code === 0) {
-              void message.success('交流记录已删除');
-              void fetchMeetings();
-            } else {
-              void message.error(res.msg || '删除失败');
-            }
-          } catch (err: unknown) {
-            void message.error(err instanceof Error ? err.message : '删除失败');
-          }
-        },
-      });
-    },
-    [fetchMeetings],
-  );
+  // ── 新建统一由共用组件 MeetingModal 处理，见组件底部渲染 ──
 
   // ── 进入详情页 ──
   const handleGoToDetail = useCallback(
@@ -307,8 +258,8 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
             </Empty>
           ) : (
             filteredMeetings.map((m) => {
-              const { title, body } = splitTitleContent(m.content);
-              const summary = title || body || '无内容';
+              const title = m.title ?? '';
+              const summary = (m.content ?? '').trim();
               const typeLabel = getTypeLabel(m.type);
               const typeColor = TYPE_TAG_COLOR[m.type] ?? 'default';
               const participantText = (m.participants ?? []).map(
@@ -375,36 +326,7 @@ export default function MeetingRecordTab({ project }: { project: Project }) {
                         </div>
                       )}
                     </div>
-                    {canManage ? (
-                      <Space size={2} onClick={(e) => e.stopPropagation()}>
-                        <Tooltip title="编辑">
-                          <Button
-                            type="text"
-                            size="small"
-                            icon={<EditOutlined />}
-                            aria-label="编辑"
-                            onClick={() => openEdit(m)}
-                          />
-                        </Tooltip>
-                        <Tooltip title="删除">
-                          <Button
-                            type="text"
-                            size="small"
-                            danger
-                            icon={<DeleteOutlined />}
-                            aria-label="删除"
-                            onClick={() => handleDelete(m)}
-                          />
-                        </Tooltip>
-                      </Space>
-                    ) : (
-                      <Tooltip title="只读权限，无法操作">
-                        <Space size={2} onClick={(e) => e.stopPropagation()}>
-                          <Button type="text" size="small" icon={<EditOutlined />} disabled />
-                          <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled />
-                        </Space>
-                      </Tooltip>
-                    )}
+
                   </button>
                 </div>
               );

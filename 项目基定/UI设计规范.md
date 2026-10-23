@@ -246,26 +246,31 @@ animation:
   ease-in-out: ease-in-out
 
 components:
+  # 按钮圆角统一 {rounded.sm} 8px —— 与输入框、下拉、开关同一套圆角语言，不再使用胶囊
+  # 主行动底色取 {colors.color-info}（与输入框焦点环同色），静默态取 {colors.border-primary} 描边
   button-primary:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.color-info}"
     textColor: "{colors.on-primary}"
-    typography: "{typography.body}"
-    rounded: "{rounded.pill}"
-    padding: 11px 22px
+    typography: "{typography.caption}"
+    rounded: "{rounded.sm}"
+    height: 32px
+    padding: 0 12px
   button-primary-focus:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.color-info}"
     textColor: "{colors.on-primary}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.sm}"
   button-primary-active:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.color-info}"
     textColor: "{colors.on-primary}"
-    rounded: "{rounded.pill}"
-  button-secondary-pill:
+    rounded: "{rounded.sm}"
+  button-secondary:
     backgroundColor: "{colors.canvas}"
-    textColor: "{colors.primary}"
-    typography: "{typography.body}"
-    rounded: "{rounded.pill}"
-    padding: 11px 22px
+    textColor: "{colors.ink}"
+    typography: "{typography.caption}"
+    border: 1px solid {colors.border-primary}
+    rounded: "{rounded.sm}"
+    height: 32px
+    padding: 0 12px
   button-dark-utility:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.on-dark}"
@@ -279,10 +284,10 @@ components:
     rounded: "{rounded.md}"
     padding: 8px 14px
   button-hero:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.color-info}"
     textColor: "{colors.on-primary}"
     typography: "{typography.button-large}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.sm}"
     padding: 14px 28px
   button-icon-circular:
     backgroundColor: "{colors.surface-chip-translucent}"
@@ -447,12 +452,30 @@ components:
     rounded: "{rounded.sm}"
     height: 32px
     padding: 4px 11px
+  # 开关：8px 圆角矩形（与按钮、输入框同一套圆角，不使用胶囊）
+  # 关 = 输入框描边色，开 = 输入框焦点蓝，滑块恒为画布色
   switch:
-    width: 44px
-    height: 22px
-    backgroundColor: "{colors.divider-soft}"
+    width: 56px
+    height: 32px
+    widthSmall: 44px
+    heightSmall: 24px
+    widthLarge: 68px
+    heightLarge: 38px
+    backgroundColor: "{colors.bg-tertiary}"
     activeBackground: "{colors.color-info}"
-    rounded: "{rounded.pill}"
+    handleColor: "{colors.canvas}"
+    handleSize: 26px
+    handleInset: 3px
+    handleRounded: 5px（轨道 8px − 内缩 3px，内外同心）
+    handleShadow: "{shadows.sm}"
+    glyphOn: 竖线（通）
+    glyphOff: 圆环（断）
+    glyphOnColor: "{colors.on-primary}"
+    glyphOffColor: "{colors.ink-muted-80}"
+    loadingSweep: 1.4s 单向（1.4s，色 {colors.text-tertiary}，透明度 0.32 / 深色 0.4）
+    loadingHalo: 2s 轮廓绕行（环宽 2px，色 {colors.ink}，深色 {colors.on-dark}）
+    disabledOpacity: 0.45
+    rounded: "{rounded.sm}"
   checkbox:
     size: 16px
     border: 1px solid {colors.border-primary}
@@ -719,7 +742,7 @@ components:
 
 ## 概述
 
-本设计系统是一套**以内容为核心、界面框架退居其次**的界面语言。每个页面由全幅内容区块堆叠而成——交替使用浅深色画布，每个区块以标题为核心，配以简洁描述文案和蓝色胶囊形交互按钮，辅以高质量内容图像。内容本身即主角。
+本设计系统是一套**以内容为核心、界面框架退居其次**的界面语言。每个页面由全幅内容区块堆叠而成——交替使用浅深色画布，每个区块以标题为核心，配以简洁描述文案和蓝色圆角矩形交互按钮，辅以高质量内容图像。内容本身即主角。
 
 字体排版自信克制；色彩体系为纯白、暖白（Parchment）或近黑色区块；交互元素仅使用单一蓝色。
 
@@ -732,7 +755,7 @@ components:
 - 内容优先；界面框架退居其次。
 - 全幅区块交替使用白/暖白 ↔ 近黑底色，颜色切换本身即为分区线。
 - 单一蓝色强调色（`{colors.primary}` — #0066cc）承载所有交互元素，无第二品牌色。
-- 两种按钮范式：蓝色胶囊形主按钮（`{rounded.pill}`）和紧凑工具矩形（`{rounded.sm}`）。
+- 两种按钮范式：蓝色实底主按钮和中性描边次按钮，圆角统一 `{rounded.sm}`（8px 圆角矩形，与输入框一致）。
 - 系统字体族 + 显示字号使用负字距，形成紧凑清晰的标题质感。
 - 仅在内容图像需要呼吸时使用唯一一处微柔投影。
 - 双层导航：纤细全局导航 + 内容专属毛玻璃子导航，右侧常驻主行动按钮。
@@ -744,7 +767,7 @@ components:
 
 ### 品牌与强调色
 
-- **行动蓝**（`{colors.primary}` — #0066cc）：单一品牌级交互色。所有文本链接、所有蓝色胶囊按钮和焦点环的根源。按下状态通过全局缩放微交互（`transform: scale(0.95)`）切换，而非色值变化。
+- **行动蓝**（`{colors.primary}` — #0066cc）：单一品牌级交互色。所有文本链接、所有实底主按钮和焦点环的根源。按下状态通过全局缩放微交互（`transform: scale(0.95)`）切换，而非色值变化。
 - **焦点蓝**（`{colors.primary-focus}` — #0071e3）：行动蓝略亮变体，专用于键盘焦点环（`outline: 2px solid`）。
 - **浅底亮蓝**（`{colors.primary-on-dark}` — #2997ff）：深色表面上的文本链接和行内强调色，行动蓝在近黑底色上会消失时使用此色。
 
@@ -870,10 +893,10 @@ components:
 |---|---|---|
 | `{rounded.none}` | 0px | 全幅内容区块（无圆角） |
 | `{rounded.xs}` | 5px | 行内链接作为微妙芯片样式（罕见） |
-| `{rounded.sm}` | 8px | 深色工具按钮、行内卡片图像 |
+| `{rounded.sm}` | 8px | 全部按钮、输入框、下拉、开关、行内卡片图像 |
 | `{rounded.md}` | 11px | 白色珍珠胶囊按钮 |
 | `{rounded.lg}` | 18px | 工具卡片、网格卡片 |
-| `{rounded.pill}` | 9999px | 主蓝色胶囊按钮、子导航主按钮、选项芯片、搜索输入——标志性胶囊形 |
+| `{rounded.pill}` | 9999px | 选项芯片、搜索输入、徽标——仅限非按钮控件 |
 | `{rounded.full}` | 9999px / 50% | 摄影上悬浮的圆形控制芯片 |
 
 ### 摄影几何
@@ -894,17 +917,17 @@ components:
 
 ### 按钮
 
-**`button-primary`**——标志性行动按钮。背景 `{colors.primary}`（行动蓝 #0066cc），文本 `{colors.on-primary}` 使用 `{typography.body}`（系统字体 17px / 400），圆角 `{rounded.pill}`（全胶囊形），内边距 11px × 22px。全胶囊形半径即品牌行动信号。
+**`button-primary`**——主行动按钮。背景 `{colors.color-info}`（交互蓝 #1677ff，与输入框焦点环同色），文本 `{colors.on-primary}` 使用 `{typography.caption}`（14px / 400），圆角 `{rounded.sm}`（8px 圆角矩形，与输入框一致），高度 32px，内边距 0 × 12px。一个区块内只允许出现一个实底主按钮。
 - 激活状态：`{component.button-primary-active}`——`transform: scale(0.95)`（系统级微交互）。
 - 焦点状态：`{component.button-primary-focus}`——2px 实线 `{colors.primary-focus}` 轮廓。
 
-**`button-secondary-pill`**——当两个蓝色胶囊按钮并列出现时的次按钮。背景透明，文本 `{colors.primary}`，1px 实线 `{colors.primary}` 描边，圆角 `{rounded.pill}`，内边距 11px × 22px。读作"幽灵胶囊"。
+**`button-secondary`**——静默态按钮（原 `button-secondary-pill`）。背景 `{colors.canvas}`，文本 `{colors.ink}`，1px 实线 `{colors.border-primary}` 描边（与输入框同色），圆角 `{rounded.sm}`，高度 32px，内边距 0 × 12px。悬停底色转 `{colors.bg-tertiary}`。
 
 **`button-dark-utility`**——全局导航操作（登录、购物车、语言选择器）。背景 `{colors.ink}`（#1d1d1f），文本 `{colors.on-dark}` 使用 `{typography.button-utility}`（14px / 400 / -0.224px 字距），圆角 `{rounded.sm}`（8px），内边距 8px × 15px。激活状态通过 `transform: scale(0.95)` 收缩。
 
 **`button-pearl-capsule`**——内容卡片次按钮。背景 `{colors.surface-pearl}`（#fafafc），文本 `{colors.ink-muted-80}` 使用 `{typography.caption}`（14px），3px 实线 `{colors.divider-soft}` 描边（功能上为柔环而非可见线），圆角 `{rounded.md}`（11px），内边距 8px × 14px。
 
-**`button-hero`**——工具英雄区使用的更大主按钮。与 `{component.button-primary}` 相同的行动蓝 + 纸白，但使用 `{typography.button-large}`（18px / 300——注意罕见 weight 300）和更多内边距（14px × 28px）。在工具首页少量使用。
+**`button-hero`**——工具英雄区使用的更大主按钮。与 `{component.button-primary}` 相同的交互蓝 + 纸白，使用 `{typography.button-large}`（18px / 300——注意罕见 weight 300）、`{rounded.sm}` 圆角与更大内边距（14px × 28px）。在工具首页少量使用。
 
 **`button-icon-circular`**——悬浮于摄影之上。44 × 44px，背景 `{colors.surface-chip-translucent}` 约 64% 透明度，图标 `{colors.ink}`，圆角 `{rounded.full}`。用于轮播控制、关闭按钮和图像内控制（内容图像缩略图）。
 
@@ -963,11 +986,11 @@ components:
 
 ### 应做
 
-- 使用 `{colors.primary}`（行动蓝 #0066cc）处理所有交互元素——链接、胶囊按钮、焦点信号——仅此一种。单一强调色不可妥协。
+- 使用单一交互色处理所有交互元素——链接、主按钮、选中态、焦点信号。功能型页面取 `{colors.color-info}`（#1677ff），品牌展示页取 `{colors.primary}`（#0066cc）。单一强调色不可妥协。
 - 使用 `{typography.hero-display}` 或 `{typography.display-lg}` 排版标题，配合负字距（`-0.28 → -0.374px`）形成标志性紧凑标题节奏。
 - 正文使用 `{typography.body}`（17px / 400 / 1.47 / -0.374px）——非 16px。多出的 1 像素定义了阅读节奏。
 - 交替 `{component.content-tile-light}`（或暖白）和 `{component.content-tile-dark}` 形成全幅分区节奏。颜色变化即分隔线。
-- 将 `{rounded.pill}` 保留给主蓝色 CTA 及任何应读作"行动"的元素（选项芯片、搜索输入、粘性栏 CTA）。
+- 按钮一律使用 `{rounded.sm}`（8px 圆角矩形），与输入框、下拉、开关同族；`{rounded.pill}` 只留给搜索输入、选项芯片与徽标等非按钮控件。
 - 将唯一内容投影（`rgba(0, 0, 0, 0.22) 3px 5px 30px`）仅用于置于表面的内容渲染——不用于卡片、按钮或文本。
 - 在每个按钮的激活/按下状态使用 `transform: scale(0.95)`——这是系统级微交互。
 - 保持全局导航为 `{colors.surface-black}`（纯黑）——这是纯黑在大多数页面上出现的唯一位置。
@@ -980,7 +1003,7 @@ components:
 - 不要用 500 字重排版正文——系统阶梯为 300 / 400 / 600 / 700，500 刻意缺失。正文始终 400；行内强调 600；显示字号 600。
 - 不要给全幅区块添加圆角——区块矩形全幅触边；颜色变化即分隔。
 - 不要将正文行高收紧至 1.47 以下——编辑级行距是品牌的一部分。
-- 不要混用圆角范式——工具紧凑用 `{rounded.sm}`，工具卡片用 `{rounded.lg}`，胶囊用 `{rounded.pill}`，中间无过渡（除稀有的 `{rounded.md}` 珍珠按钮）。
+- 不要混用圆角范式——按钮、输入框、开关统一 `{rounded.sm}`，工具卡片用 `{rounded.lg}`，搜索框与芯片用 `{rounded.pill}`，中间无过渡（除稀有的 `{rounded.md}` 珍珠按钮）。
 - 不要在浅色表面上使用 `{colors.primary-on-dark}`（浅底亮蓝）——它是深色区块专属变体。行动蓝用于浅色表面。
 
 ## 响应式行为（适用于品牌展示页）
@@ -1002,7 +1025,7 @@ components:
 
 ### 触摸目标
 
-- 最小 44 × 44px。`{component.button-primary}` 约 44 × 100px（全胶囊形使可见点击区域比标签暗示的更宽裕）。
+- 最小 44 × 44px。`{component.button-primary}` 高 32px，宽度随文案；纯图标按钮为 32 × 32 正方形，需另加 `aria-label`。
 - `{component.button-icon-circular}` 精确 44 × 44px。
 - 全局导航工具链接较小（约 32 × 80px）——它们刻意处于更紧目标，因为是桌面精确操作，移动端在 ≤ 833px 处被汉堡菜单取代。
 
@@ -1104,7 +1127,7 @@ components:
 
 ### 模态框组件
 
-**`modal`**——标准操作模态框。背景 `{colors.canvas}`，内边距 24px，`{rounded.sm}`（8px）圆角，投影 `{shadows.md}`，默认宽度 560px。模态框头部包含标题（`{typography.caption-strong}`）和关闭按钮，底部包含操作按钮（右侧排列，主按钮 `{component.button-primary}`，次按钮 `{component.button-secondary-pill}`）。高内容模态框设置 `maxHeight: calc(100vh - 200px)`，超出部分自动滚动。
+**`modal`**——标准操作模态框。背景 `{colors.canvas}`，内边距 24px，`{rounded.sm}`（8px）圆角，投影 `{shadows.md}`，默认宽度 560px。模态框头部包含标题（`{typography.caption-strong}`）和关闭按钮，底部包含操作按钮（右侧排列，主按钮 `{component.button-primary}`，次按钮 `{component.button-secondary}`）。高内容模态框设置 `maxHeight: calc(100vh - 200px)`，超出部分自动滚动。
 
 - **大模态框：** `{component.modal-large}`——宽度 800px，用于富文本编辑、复杂表单等需要更大空间的内容。
 - **小模态框：** `{component.modal-small}`——宽度 480px，用于确认弹窗、轻量表单等简单操作。
@@ -1156,7 +1179,15 @@ components:
 
 **`select`**——下拉选择框。与 `{component.input}` 相同的基础样式，右侧附加下拉箭头图标。点击后展开选项列表，选中项在框内显示，未选中项悬停时使用 `{colors.bg-tertiary}` 背景。
 
-**`switch`**——切换开关。宽度 44px，高度 22px，背景 `{colors.divider-soft}`，圆角 `{rounded.pill}`（胶囊形）。关闭状态下圆点位于左侧，开启状态下切换为 `{colors.color-info}` 背景且圆点移至右侧。圆点大小 18px，白色。
+**`switch`**——切换开关（组件 `@/components/AppSwitch`）。默认 56 × 32（与输入框、按钮、分段控件同高），紧凑 44 × 24，大 68 × 38；轨道圆角 `{rounded.sm}`（8px 圆角矩形，与输入框、按钮同族）。
+
+- 轨道：关 = `{colors.bg-tertiary}`（与分段控件轨道同色），开 = `{colors.color-info}`（与输入框焦点蓝同色）。
+- 滑块：`{colors.canvas}` + `{shadows.sm}`，圆角 5px（外侧 8px − 内缩 3px，内外同心），四周留 3px（滑块 26px，轨道 32 = 3 + 26 + 3）。内缩比分段控件（2px）略大，使滑块与外壳之间有足够呼吸；开关与输入框、按钮同高；滑块内不放任何内容。
+- 状态图形：轨道上画「通」（竖线）与「断」（圆环），滑块滑过遮挡对侧 —— 开时露出竖线，关时露出圆环。禁止在开关内写文字（不再使用 开/关、启用/禁用 等文案）。
+- 悬停：`filter: brightness(0.96)`。焦点：2px `{colors.primary-focus}` 外描边，offset 2px。
+- 加载：滑块内单向扫光（1.4s，从左向右）+ 描边亮光绕行（2s，环状遮罩 + 旋转渐变角度），轨道图形降至 35% 透明。
+- 禁用：整体 opacity 0.45，滑块去投影，并在滑块上显示淡锁（12px、`{colors.ink-muted-48}`、opacity 0.55）。
+- 存取：`role="switch"` + `aria-checked`；无可见文字，必须有 `aria-label`。
 
 **`checkbox`**——复选框。大小 16px，1px `{colors.border-primary}` 描边，选中状态填充 `{colors.color-info}`，圆角 2px。选中后显示白色对勾图标。复选框后跟随标签文本，使用 `{typography.body-sm}`（14px）。
 

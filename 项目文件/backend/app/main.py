@@ -45,7 +45,8 @@ async def _asr_warmup_loop() -> None:
                 ):
                     await preload_asr_models(db)
         except Exception:
-            pass
+            # P15：热备循环静默死亡无从排查——至少留 debug 日志
+            logger.debug("ASR warmup loop tick failed", exc_info=True)
         await asyncio.sleep(10)
 
 
@@ -100,6 +101,31 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 logger.info("启动恢复 %d 个卡住的会议", len(stuck))
     except Exception:
         logger.exception("启动恢复卡住会议失败")
+
+    # 声纹模型自举：后台校验 + 缺失时下载（首次约 40MB）。
+    # 之前模型靠手工放进命名卷，缺了只在会议处理时报一句 RuntimeError，
+    # 界面上毫无提示——用户只能自己去查日志重下。这里启动即校验并补下载。
+    async def _speaker_model_bootstrap() -> None:
+        from app.services.speaker_diarization import ensure_models, verify_models
+
+        ok, reason = verify_models()
+        if ok:
+            logger.info("声纹模型校验通过（说话人分离可用）")
+            return
+        logger.warning("声纹模型不可用（%s），开始后台下载", reason)
+        try:
+            ok2, reason2 = await asyncio.to_thread(ensure_models)
+            if ok2:
+                logger.info("声纹模型下载并校验通过")
+            else:
+                logger.error("声纹模型自动下载失败：%s", reason2)
+        except Exception:
+            logger.exception("声纹模型自举异常")
+
+    try:
+        _STARTUP_WARMUP_TASK.append(asyncio.create_task(_speaker_model_bootstrap()))
+    except Exception:
+        logger.exception("启动声纹模型自举任务失败")
 
     # 启动资源采样器：进程内单例 + 内存环形缓冲，1 秒一次。
     # 采样只读 /proc 与 cgroup，失败仅影响监视页数据，不阻止应用启动。

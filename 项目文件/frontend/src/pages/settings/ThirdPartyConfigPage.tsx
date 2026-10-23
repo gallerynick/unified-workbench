@@ -1,6 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SaveOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, CheckCircleOutlined, LoadingOutlined, ThunderboltOutlined, PauseCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, InputNumber, Select, Radio, Checkbox, message, Space, Alert, Typography, Tag, Modal, Progress, Statistic, Row, Col, Switch } from 'antd';
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Radio,
+  Checkbox,
+  message,
+  Space,
+  Alert,
+  Typography,
+  Tag,
+  Modal,
+  Progress,
+  Statistic,
+  Row,
+  Col,
+} from 'antd';
+import Switch from '@/components/AppSwitch';
 import { getThirdPartyConfig, updateThirdPartyConfig, testAIConnection, testASRService, reloadASRModel, deleteASRModel, getASRModelStatus, preloadASRModels, getMemoryInfo, unloadASRModel, unloadAIModel } from '../../api/third-party-config';
 import { getLocalModelStatus, getLocalModels, deleteLocalModel, getLocalAIHealth, startModelDownload, getDownloadStatus, pauseDownload, resumeDownload, cancelDownload, getCurrentDownload } from '../../api/local-model';
 import type { ThirdPartyConfig, TestConnectionResponse, MemoryInfo } from '../../types/third-party-config';
@@ -694,8 +714,11 @@ export default function ThirdPartyConfigPage() {
 
     let waited = 0;
     asrPreloadTimerRef.current = setInterval(async () => {
+      // P2：每 tick 只发一次 /asr/status——原实现同一回调里请求两次
+      //（详情刷新 + 完成判断），结果可能不一致
+      let r: Awaited<ReturnType<typeof getASRModelStatus>> | null = null;
       try {
-        const r = await getASRModelStatus();
+        r = await getASRModelStatus();
         if (r.code === 0 && r.data) {
           setAsrModelDetails(r.data.details ?? null);
           // 同步下载进度（与 AI 下载同一套字段）
@@ -720,18 +743,22 @@ export default function ThirdPartyConfigPage() {
         console.warn('刷新内存信息失败', err);
       }
       waited += 5;
-      const r = await getASRModelStatus().catch(() => null);
+      // P6：后台加载失败数秒内可见——立即停止轮询并弹具体原因
+      const loadError = r?.data?.details?.load_error;
       // 加载完成后端返回 ready（已载入）；downloaded 且已加载也算完成
       const done =
         r?.data?.status === 'ready' ||
         (r?.data?.status === 'downloaded' && r?.data?.details?.loaded === true);
-      if (done || waited >= 180) {
+      if (done || loadError || waited >= 180) {
         if (asrPreloadTimerRef.current !== null) {
           clearInterval(asrPreloadTimerRef.current);
           asrPreloadTimerRef.current = null;
         }
         setAsrPreloading(false);
-        if (done) {
+        if (loadError) {
+          setAsrModelStatus('error');
+          message.error('ASR 模型载入失败：' + loadError);
+        } else if (done) {
           setAsrModelStatus('ready');
           message.success('ASR 模型已就绪');
         } else {
@@ -1063,7 +1090,6 @@ export default function ThirdPartyConfigPage() {
                       showIcon
                       action={
                         <Button
-                          size="small"
                           type="link"
                           loading={recheckingAiService}
                           onClick={async () => {
@@ -1139,7 +1165,7 @@ export default function ThirdPartyConfigPage() {
                         </div>
                         <div style={{ paddingTop: 24 }}>
                           {aiModelStatus === 'not_downloaded' && !checkingDownload && (
-                            <Button type="primary" size="small" icon={<DownloadOutlined />} onClick={handleDownloadAIModel}>
+                            <Button type="primary"  icon={<DownloadOutlined />} onClick={handleDownloadAIModel}>
                               下载模型
                             </Button>
                           )}
@@ -1194,16 +1220,16 @@ export default function ThirdPartyConfigPage() {
                         </div>
                         <Space style={{ marginTop: 8 }}>
                           {downloadStatus === 'downloading' && (
-                            <Button size="small" icon={<PauseCircleOutlined />} onClick={handlePauseDownload}>
+                            <Button  icon={<PauseCircleOutlined />} onClick={handlePauseDownload}>
                               暂停
                             </Button>
                           )}
                           {downloadStatus === 'paused' && (
-                            <Button size="small" type="primary" icon={<PlayCircleOutlined />} onClick={handleResumeDownload}>
+                            <Button  type="primary" icon={<PlayCircleOutlined />} onClick={handleResumeDownload}>
                               恢复
                             </Button>
                           )}
-                          <Button size="small" danger icon={<CloseCircleOutlined />} onClick={handleCancelDownload}>
+                          <Button  danger icon={<CloseCircleOutlined />} onClick={handleCancelDownload}>
                             取消
                           </Button>
                         </Space>
@@ -1273,7 +1299,7 @@ export default function ThirdPartyConfigPage() {
                         style={{ marginTop: 12 }}
                         showIcon
                         action={
-                          <Button size="small" type="primary" onClick={handleRetryDownload}>
+                          <Button  type="primary" onClick={handleRetryDownload}>
                             重试
                           </Button>
                         }
@@ -1586,10 +1612,12 @@ export default function ThirdPartyConfigPage() {
               <Statistic
                 title="可用内存"
                 value={memoryInfo.available_mb ? `${(memoryInfo.available_mb / 1024).toFixed(1)} GB` : 'N/A'}
-                valueStyle={{ color: memoryInfo.available_mb && memoryInfo.available_mb < 3000 ? '#ff4d4f' : undefined }}
+                // P4：红色阈值与后端 ASR 警告阈值同步下调——SenseVoice ONNX 约 0.5 GB，
+                // 原 3000 MB 是 paraformer 时代遗留
+                valueStyle={{ color: memoryInfo.available_mb && memoryInfo.available_mb < 800 ? '#ff4d4f' : undefined }}
               />
               <Paragraph type="secondary" style={{ margin: '4px 0 0', fontSize: 12 }}>
-                ASR 模型约 2.1 GB · AI 模型约 1-2.2 GB
+                ASR 模型约 0.5 GB · AI 模型约 1-2.2 GB
               </Paragraph>
             </Col>
             <Col xs={24} sm={8}>

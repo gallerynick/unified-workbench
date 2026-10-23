@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,11 +17,9 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class ContactType(StrEnum):
-    CUSTOMER = "customer"
-    SUPPLIER = "supplier"
-    PARTNER = "partner"
-    OTHER = "other"
+# 联系人类型预设（前端下拉建议项）；contact_type 为 VARCHAR(100) 自由文本，
+# 除预设外也允许用户自行输入
+PRESET_TYPES: tuple[str, ...] = ("customer", "supplier", "partner")
 
 
 class Contact(Base):
@@ -36,8 +33,9 @@ class Contact(Base):
     email: Mapped[str | None] = mapped_column(String(200), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
-    contact_type: Mapped[ContactType] = mapped_column(
-        Enum(ContactType, create_type=False), default=ContactType.CUSTOMER
+    # 联系人类型：预设 customer / supplier / partner，也允许自由填写自定义值
+    contact_type: Mapped[str] = mapped_column(
+        String(100), nullable=False, default="customer", server_default="customer"
     )
     tags: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

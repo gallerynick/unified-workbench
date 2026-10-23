@@ -499,10 +499,10 @@ export default function ServerFormModal({
               </Col>
             </Row>
             <Space style={{ marginTop: 12 }}>
-              <Button type="primary" size="small" icon={<CheckOutlined />} onClick={handleAddHardware}>
+              <Button type="primary"  icon={<CheckOutlined />} onClick={handleAddHardware}>
                 确认添加
               </Button>
-              <Button size="small" icon={<CloseOutlined />} onClick={() => setAddingHardware(false)}>
+              <Button  icon={<CloseOutlined />} onClick={() => setAddingHardware(false)}>
                 取消
               </Button>
             </Space>

@@ -1,20 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Input, Select, Tag, Typography, Modal, message, Space, Tooltip } from 'antd';
+import { Table, Button, Input, AutoComplete, Tag, Typography, Modal, message, Space, Tooltip } from 'antd';
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { listContacts, deleteContact } from '../../api/contacts';
-import type { Contact, ContactType } from '../../types/contact';
+import type { Contact } from '../../types/contact';
+import { CONTACT_TYPE_PRESETS, contactTypeColor, contactTypeLabel } from '../../types/contact';
 import ContactModal from './ContactModal';
 import styles from './ContactManagement.module.css';
 
 const { Title, Paragraph, Text } = Typography;
-
-const TYPE_MAP: Record<ContactType, { color: string; text: string }> = {
-  customer: { color: 'blue', text: '客户' },
-  supplier: { color: 'green', text: '供应商' },
-  partner: { color: 'purple', text: '合作伙伴' },
-  other: { color: 'default', text: '其他' },
-};
 
 export default function ContactManagement() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -84,8 +78,9 @@ export default function ContactManagement() {
     { title: '邮箱', dataIndex: 'email', key: 'email', width: 180, render: (v: string | null) => v || '-' },
     { title: '电话', dataIndex: 'phone', key: 'phone', width: 130, render: (v: string | null) => v || '-' },
     {
-      title: '类型', dataIndex: 'contact_type', key: 'contact_type', width: 100,
-      render: (type: ContactType) => <Tag color={TYPE_MAP[type].color}>{TYPE_MAP[type].text}</Tag>,
+      title: '类型', dataIndex: 'contact_type', key: 'contact_type', width: 140,
+      // 预设类型显示中文标签与预设配色，自定义类型按原文回显
+      render: (type: string) => <Tag color={contactTypeColor(type)}>{contactTypeLabel(type)}</Tag>,
     },
     {
       title: '创建时间', dataIndex: 'created_at', key: 'created_at', width: 160,
@@ -96,10 +91,10 @@ export default function ContactManagement() {
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="编辑">
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
+            <Button type="link"  icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
           </Tooltip>
           <Tooltip title="删除">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
+            <Button type="link"  danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
           </Tooltip>
         </Space>
       ),
@@ -120,14 +115,18 @@ export default function ContactManagement() {
             variant="filled"
             className={styles.searchInput ?? ''}
           />
-          <Select value={typeFilter} onChange={(v) => { setTypeFilter(v); setPage(1); }} placeholder="类型筛选" allowClear style={{ width: 120 }}
-            options={[{ value: '', label: '全部' }, ...Object.entries(TYPE_MAP).map(([k, v]) => ({ value: k, label: v.text }))]}
+          <AutoComplete
+            value={typeFilter}
+            onChange={(v) => { setTypeFilter(v); setPage(1); }}
+            options={CONTACT_TYPE_PRESETS.map((p) => ({ value: p.value, label: p.label }))}
+            placeholder="类型筛选"
+            allowClear
+            style={{ width: 150 }}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建联系人</Button>
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />

@@ -1,17 +1,26 @@
 /* ====== Sidebar fly-in animation ====== */
-:global(.sider-scroll-container .ant-menu-item),
-:global(.sider-scroll-container .ant-menu-submenu-title),
-:global(.sider-scroll-container > div:first-child),
-:global(.sider-menu-scroll) {
+/* 进场动画只在首次进入工作台时播放一次。
+   播完后由 sidebar-entry-done 关掉：
+   - 不再有 opacity: 0 的预置态（否则后挂载的节点会一直是不可见的）
+   - 不再有 animation（否则收起/展开侧栏时整批节点重新挂载会重播飞入动画，
+     与侧栏宽度平滑滑动的节奏打架） */
+:global(.sider-scroll-container:not(.sidebar-entry-done) .ant-menu-item),
+:global(.sider-scroll-container:not(.sidebar-entry-done) .ant-menu-submenu-title),
+:global(.sider-scroll-container:not(.sidebar-entry-done) > div:first-child),
+:global(.sider-scroll-container:not(.sidebar-entry-done) .sider-menu-scroll),
+:global(.sider-scroll-container:not(.sidebar-entry-done) [data-cat-header]),
+:global(.sider-scroll-container:not(.sidebar-entry-done) [data-rail-divider]) {
   opacity: 0;
   transform: translateX(-16px);
   transition: opacity 0.2s ease;
 }
 
-:global(.sidebar-entered .ant-menu-item),
-:global(.sidebar-entered .ant-menu-submenu-title),
-:global(.sidebar-entered > div:first-child),
-:global(.sidebar-entered .sider-menu-scroll) {
+:global(.sidebar-entered:not(.sidebar-entry-done) .ant-menu-item),
+:global(.sidebar-entered:not(.sidebar-entry-done) .ant-menu-submenu-title),
+:global(.sidebar-entered:not(.sidebar-entry-done) > div:first-child),
+:global(.sidebar-entered:not(.sidebar-entry-done) .sider-menu-scroll),
+:global(.sidebar-entered:not(.sidebar-entry-done) [data-cat-header]),
+:global(.sidebar-entered:not(.sidebar-entry-done) [data-rail-divider]) {
   animation: menuItemFlyIn 300ms ease-out forwards;
   will-change: transform, opacity;
 }
@@ -161,4 +170,128 @@
   align-items: center;
   gap: var(--spacing-sm);
   cursor: pointer;
+}
+
+/* ====== 侧边栏领域分类 ====== */
+
+/* 类别块。
+   刻意不用「通栏横线」做分隔——那样既压重，又会和底部「模块 / 设置」的分隔线撞脸。
+   改为「类别名 + 右侧延伸的细线」：读作带文字的标题，而不是一条结构分隔线。 */
+.categorySection {
+  /* 不再留 1px 下内边距：每个类别块都是一层 .ant-menu，若块高不一致，
+     叠加处会把 Sider 右边缘那条竖线盖住 1px，深色模式下表现为「断开的竖线」。 */
+  padding: 0;
+}
+
+/* 业务区分成多个 Menu 之后，每层 Menu 自带的背景色会在块与块之间
+   形成比 Sider 略亮的色带（深色下尤其明显）。统一透明，让 Sider 背景贯通。 */
+.categorySection :global(.ant-menu) {
+  background: transparent;
+}
+
+/* 类别头：整行可点击折叠，但视觉上只是一行小字标题 */
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 16px 2px;
+  background: none;
+  border: none;
+  color: var(--sider-category-label);
+  font-size: var(--sider-category-label-size);
+  font-family: inherit;
+  line-height: 1;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+/* 类别名：小字、次级色，作为路标而非标题块 */
+.categoryLabel {
+  flex: none;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* 类别名之后延伸的极淡细线：填充剩余宽度，收束这一组 */
+.categoryRule {
+  flex: 1;
+  height: 1px;
+  margin-left: 2px;
+  background: var(--divider-soft);
+}
+
+.categoryHeader:hover {
+  color: var(--ink);
+}
+
+.categoryHeader:focus-visible {
+  outline: 2px solid var(--color-info);
+  outline-offset: -2px;
+}
+
+/* 箭头只在悬停/聚焦时出现，常态不占视觉；收起态强制显示以保留状态可读性 */
+.categoryCaret {
+  flex: none;
+  font-size: 8px;
+  opacity: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.categoryHeader:hover .categoryCaret,
+.categoryHeader:focus-visible .categoryCaret,
+.categoryCaretShown {
+  opacity: 0.45;
+}
+
+.categoryCaretCollapsed {
+  transform: rotate(-90deg);
+}
+
+/* 各类别内部的 Menu 去掉 antd 默认内边距，避免多段 Menu 叠加出多余留白 */
+.categorySection :global(.ant-menu-inline) {
+  padding: 0;
+  border-inline-end: none !important;
+}
+
+/* 底部区块（个人区 + 系统设置）：首项分隔线刻意加深，
+   与类别之间的淡线拉开层级——这是两组不同性质的导航。 */
+.settingsSection {
+  margin-top: 2px;
+}
+
+.settingsSection :global(.ant-menu-item-divider) {
+  /* 通栏 + 更深：与类别的「小字 + 延伸细线」形成两种明确不同的线，
+     一条是结构分隔，一条是分组标题收尾，不再互相混淆。 */
+  margin: 10px 0;
+  border-color: var(--border-primary);
+}
+
+/* ====== 图标栏（收起态，80px） ====== */
+
+/* 收起后没有类别名，只剩一串图标；在类别之间留一条居中短横线做定位锚点。
+   刻意不用通栏线——80px 宽的通栏线会把图标栏切成一段段「格子」，很笨重。 */
+.railDivider {
+  width: 28px;
+  height: 1px;
+  margin: 8px auto;
+  background: var(--divider-soft);
+  border-radius: 1px;
+  /* 纯装饰：不参与任何点击命中，避免鼠标停在分隔线上时误触发相邻交互 */
+  pointer-events: none;
+}
+
+/* 图标栏同样按类别分了多个 Menu，背景须与 Sider 贯通，否则块间会露出色带，
+   并在右边缘压住 Sider 的竖线。 */
+.siderMenuRail :global(.ant-menu) {
+  background: transparent;
+}
+
+/* 图标栏下底部区块的分隔线同样收窄成短横线，保持同一套视觉语言；
+   颜色仍沿用更深的 --border-primary，保留「结构分隔 vs 分组锚点」的层级差。 */
+.settingsSectionRail :global(.ant-menu-item-divider) {
+  width: 28px;
+  margin: 8px auto;
 }

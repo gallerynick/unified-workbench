@@ -71,6 +71,7 @@ async def create_project_meeting(
         project_id=project_id,
         number=data["number"],
         type=data["type"],
+        title=data.get("title"),
         started_at=data["started_at"],
         speaker=data.get("speaker"),
         participants=data.get("participants", []),
@@ -98,6 +99,7 @@ async def update_project_meeting(
     for field in (
         "number",
         "type",
+        "title",
         "started_at",
         "speaker",
         "participants",

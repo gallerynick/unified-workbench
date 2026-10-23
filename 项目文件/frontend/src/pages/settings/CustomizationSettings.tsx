@@ -231,7 +231,7 @@ export default function CustomizationSettings() {
         )}
       </Upload>
       {files.length > 0 && (
-        <Button type="link" size="small" icon={<DeleteOutlined />} onClick={() => handleRemove(setter)}>
+        <Button type="link"  icon={<DeleteOutlined />} onClick={() => handleRemove(setter)}>
           清除
         </Button>
       )}
@@ -246,14 +246,14 @@ export default function CustomizationSettings() {
       <Form form={form} layout="vertical">
         <Card title={<><FontSizeOutlined /> 应用信息</>} className={styles.card ?? ''}>
           <Form.Item label="应用名称" name="appName" rules={[{ required: true, message: '请输入应用名称' }]}>
-            <Input placeholder="一站式工作台" suffix={<Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => handleReset('appName')}>重置</Button>} />
+            <Input placeholder="一站式工作台" suffix={<Button type="link"  icon={<ReloadOutlined />} onClick={() => handleReset('appName')}>重置</Button>} />
           </Form.Item>
           <Form.Item label="简短名称" name="appShortName" rules={[{ required: true, message: '请输入简短名称' }]}>
-            <Input placeholder="工" suffix={<Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => handleReset('appShortName')}>重置</Button>} />
+            <Input placeholder="工" suffix={<Button type="link"  icon={<ReloadOutlined />} onClick={() => handleReset('appShortName')}>重置</Button>} />
           </Form.Item>
           <Form.Item label="应用描述" name="appDescription">
             <Input.TextArea rows={2} placeholder="面向小团队的内网一体化协作与信息管理平台" />
-            <Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => handleReset('appDescription')}>重置为默认值</Button>
+            <Button type="link"  icon={<ReloadOutlined />} onClick={() => handleReset('appDescription')}>重置为默认值</Button>
           </Form.Item>
         </Card>
 

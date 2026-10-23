@@ -37,7 +37,6 @@ export default function SortableWidget({ id, title, extra, children, onRemove }:
       <div className={styles.widgetHeader}>
         <Button
           type="text"
-          size="small"
           icon={<HolderOutlined />}
           className={styles.dragHandle ?? ''}
           {...attributes}
@@ -47,7 +46,6 @@ export default function SortableWidget({ id, title, extra, children, onRemove }:
         {onRemove && (
           <Button
             type="text"
-            size="small"
             icon={<CloseOutlined />}
             onClick={onRemove}
             className={styles.removeBtn ?? ''}

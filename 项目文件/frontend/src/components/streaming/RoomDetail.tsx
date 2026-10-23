@@ -8,11 +8,11 @@ import {
   Tooltip,
   Collapse,
   Input,
-  Switch,
   Radio,
   message,
   Descriptions,
 } from 'antd';
+import Switch from '@/components/AppSwitch';
 import {
   CopyOutlined,
   EnterOutlined,
@@ -90,7 +90,6 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
           <Tooltip title="编辑名称">
             <Button
               type="text"
-              size="small"
               icon={<EditOutlined />}
               aria-label="编辑"
               onClick={() => {
@@ -143,7 +142,6 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
 
         <Descriptions.Item label="开放访问">
           <Switch
-            size="small"
             checked={room.is_open}
             disabled={!isOwner}
             onChange={(checked) => handleUpdate({ is_open: checked })}
@@ -176,7 +174,6 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
             <Tooltip title="复制">
               <Button
                 type="text"
-                size="small"
                 icon={<CopyOutlined />}
                 aria-label="复制"
                 onClick={() => copyToClipboard(room.push_url, '推流地址')}
@@ -202,7 +199,6 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
             <Tooltip title="复制">
               <Button
                 type="text"
-                size="small"
                 icon={<CopyOutlined />}
                 aria-label="复制"
                 onClick={() => copyToClipboard(room.rtmp_url, 'RTMP 地址')}
@@ -236,7 +232,6 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
           <Tooltip title="复制">
             <Button
               type="text"
-              size="small"
               icon={<CopyOutlined />}
               aria-label="复制"
               onClick={() => copyToClipboard(room.watch_url, '观看地址')}
@@ -286,7 +281,6 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
             <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginTop: 6 }}>
               <Tooltip title="复制 RTMP 地址">
                 <Button
-                  size="small"
                   icon={<CopyOutlined />}
                   onClick={() => copyToClipboard(room.rtmp_url, 'RTMP 地址')}
                 >
@@ -295,7 +289,6 @@ export default function RoomDetail({ room, isOwner, onUpdate }: RoomDetailProps)
               </Tooltip>
               <Tooltip title="复制推流地址">
                 <Button
-                  size="small"
                   icon={<CopyOutlined />}
                   onClick={() => copyToClipboard(room.push_url, '推流地址')}
                 >

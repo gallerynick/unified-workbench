@@ -9,12 +9,12 @@ import {
   Space,
   Input,
   Tag,
-  Switch,
   Tooltip,
   Form,
   Dropdown,
   Select,
 } from 'antd';
+import Switch from '@/components/AppSwitch';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -165,7 +165,6 @@ function FieldEditor({
               <div className={styles.fieldActions ?? ''}>
                 <Button
                   type="text"
-                  size="small"
                   icon={<ArrowUpOutlined />}
                   disabled={index === 0}
                   onClick={() => moveField(index, -1)}
@@ -173,7 +172,6 @@ function FieldEditor({
                 />
                 <Button
                   type="text"
-                  size="small"
                   icon={<ArrowDownOutlined />}
                   disabled={index === fields.length - 1}
                   onClick={() => moveField(index, 1)}
@@ -181,7 +179,6 @@ function FieldEditor({
                 />
                 <Button
                   type="text"
-                  size="small"
                   danger
                   icon={<DeleteOutlined />}
                   onClick={() => removeField(index)}
@@ -208,7 +205,6 @@ function FieldEditor({
                     <span key={optionIndex} className={styles.optionItem ?? ''}>
                       <Input
                         className={styles.optionInput ?? ''}
-                        size="small"
                         value={option}
                         onChange={(e) => patchOption(index, optionIndex, e.target.value)}
                         maxLength={30}
@@ -223,7 +219,6 @@ function FieldEditor({
                   ))}
                   <Button
                     type="dashed"
-                    size="small"
                     icon={<PlusOutlined />}
                     onClick={() => addOption(index)}
                   >
@@ -452,7 +447,6 @@ export default function FormManagement() {
             <Tooltip title="填写表单">
               <Button
                 type="link"
-                size="small"
                 icon={<FormOutlined />}
                 onClick={() => window.open(fillUrl(record.id), '_blank')}
               >
@@ -463,7 +457,6 @@ export default function FormManagement() {
           <Tooltip title="查看统计与回复">
             <Button
               type="link"
-              size="small"
               icon={<BarChartOutlined />}
               onClick={() => navigate('/forms/' + record.id + '/responses')}
             >
@@ -494,7 +487,7 @@ export default function FormManagement() {
               ],
             }}
           >
-            <Button type="link" size="small" icon={<EditOutlined />}>
+            <Button type="link"  icon={<EditOutlined />}>
               更多
             </Button>
           </Dropdown>
@@ -523,7 +516,7 @@ export default function FormManagement() {
                 ],
               }}
             >
-              <Button type="link" size="small" icon={<ShareAltOutlined />}>
+              <Button type="link"  icon={<ShareAltOutlined />}>
                 分享
               </Button>
             </Dropdown>
@@ -531,7 +524,6 @@ export default function FormManagement() {
           <Tooltip title="删除">
             <Button
               type="link"
-              size="small"
               danger
               icon={<DeleteOutlined />}
               aria-label="删除"
@@ -556,7 +548,6 @@ export default function FormManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />

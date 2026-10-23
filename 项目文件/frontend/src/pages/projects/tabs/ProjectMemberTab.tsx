@@ -359,7 +359,6 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
                 <Tooltip title="权限设置">
                   <Button
                     type="link"
-                    size="small"
                     icon={<SettingOutlined />}
                     aria-label="权限设置"
                     onClick={() => openPermissionModal(member)}
@@ -369,7 +368,6 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
               <Tooltip title="编辑职务/备注">
                 <Button
                   type="link"
-                  size="small"
                   icon={<EditOutlined />}
                   aria-label="编辑"
                   onClick={() => openEditModal(member)}
@@ -379,7 +377,6 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
                 <Tooltip title="负责人不可移除">
                   <Button
                     type="link"
-                    size="small"
                     danger
                     icon={<DeleteOutlined />}
                     aria-label="移除"
@@ -390,7 +387,6 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
                 <Tooltip title="移除成员">
                   <Button
                     type="link"
-                    size="small"
                     danger
                     icon={<DeleteOutlined />}
                     aria-label="移除"
@@ -417,7 +413,6 @@ export default function ProjectMemberTab({ project, onUpdate }: ProjectMemberTab
           <Tooltip title="拉回成员">
             <Button
               type="link"
-              size="small"
               icon={<UndoOutlined />}
               onClick={() => handleRecoverMember(member)}
             >

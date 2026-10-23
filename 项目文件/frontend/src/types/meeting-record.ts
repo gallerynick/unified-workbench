@@ -30,7 +30,6 @@ export interface MeetingMinutes {
 
 export interface MeetingRecord {
   id: string;
-  number: string;
   title: string;
   owner_id: string;
   visibility: MeetingVisibility;

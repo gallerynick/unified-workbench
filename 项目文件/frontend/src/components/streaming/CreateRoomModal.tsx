@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Modal, Form, Input, Radio, Switch, message } from 'antd';
+import { Modal, Form, Input, Radio, message } from 'antd';
+import Switch from '@/components/AppSwitch';
 import { createRoom } from '../../api/stream';
 import type { StreamRoomCreate } from '../../types/stream';
 

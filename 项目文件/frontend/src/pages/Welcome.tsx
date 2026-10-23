@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Steps, Input, Button, Typography, message, Space, Spin, ConfigProvider } from 'antd';
+import { Card, Steps, Input, Button, Typography, message, Space, Spin, ConfigProvider, Form } from 'antd';
 import { RocketOutlined, UserOutlined, LockOutlined, IdcardOutlined, SettingOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useCustomization, saveAppSettings } from '../hooks/useCustomization';
 import { getAntdThemeConfig } from '../contexts/ThemeContext';
@@ -12,11 +12,9 @@ const { Title, Paragraph, Text } = Typography;
 export default function Welcome() {
   const navigate = useNavigate();
   const customization = useCustomization();
+  const [form] = Form.useForm();
   const [currentStep, setCurrentStep] = useState(0);
   const [appName, setAppName] = useState(customization.app.name);
-  const [adminUser, setAdminUser] = useState('');
-  const [adminPass, setAdminPass] = useState('');
-  const [adminName, setAdminName] = useState('');
   const [creating, setCreating] = useState(false);
   const [checkingInit, setCheckingInit] = useState(true);
   const [showAnimation, setShowAnimation] = useState(true);
@@ -47,8 +45,28 @@ export default function Welcome() {
     check();
   }, []);
 
+  // 离开「创建管理员」步骤前就地校验表单（用户名 / 密码强度 / 确认密码一致）
+  const handleNext = async () => {
+    if (currentStep === 1) {
+      try {
+        await form.validateFields();
+      } catch {
+        return; // 校验失败：错误已就地显示在字段下方，停留在当前步骤
+      }
+    }
+    setCurrentStep(currentStep + 1);
+  };
+
   const handleComplete = async () => {
-    if (!adminUser || !adminPass) { message.warning('请设置管理员账号和密码'); return; }
+    try {
+      await form.validateFields();
+    } catch {
+      message.warning('请先完善管理员账号信息');
+      return;
+    }
+    const adminUser = form.getFieldValue('username') as string;
+    const adminPass = form.getFieldValue('password') as string;
+    const adminName = form.getFieldValue('nickname') as string | undefined;
     setCreating(true);
     try {
       const res = await fetch('/api/v1/auth/initial-setup', {
@@ -85,18 +103,59 @@ export default function Welcome() {
       content: (
         <div className={styles.stepContent}>
           <Title level={4}>创建管理员账号</Title>
-          <div className={styles.formItem}>
-            <Text strong>用户名</Text>
-            <Input prefix={<UserOutlined />} value={adminUser} onChange={(e) => setAdminUser(e.target.value)} placeholder="管理员用户名" maxLength={50} />
-          </div>
-          <div className={styles.formItem}>
-            <Text strong>姓名</Text>
-            <Input prefix={<IdcardOutlined />} value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="请输入您的姓名（可选）" maxLength={20} />
-          </div>
-          <div className={styles.formItem}>
-            <Text strong>密码</Text>
-            <Input.Password prefix={<LockOutlined />} value={adminPass} onChange={(e) => setAdminPass(e.target.value)} placeholder="至少8位，包含字母和数字" />
-          </div>
+          <Form
+            form={form}
+            layout="vertical"
+            className={styles.form}
+          >
+            <Form.Item
+              name="username"
+              label="用户名"
+              rules={[
+                { required: true, message: '请输入管理员用户名' },
+                { min: 3, message: '用户名长度至少 3 个字符' },
+                { max: 50, message: '用户名长度不能超过 50 个字符' },
+              ]}
+            >
+              <Input prefix={<UserOutlined />} placeholder="管理员用户名" maxLength={50} />
+            </Form.Item>
+            <Form.Item
+              name="nickname"
+              label="姓名"
+            >
+              <Input prefix={<IdcardOutlined />} placeholder="请输入您的姓名（可选）" maxLength={20} />
+            </Form.Item>
+            <Form.Item
+              name="password"
+              label="密码"
+              rules={[
+                { required: true, message: '请输入密码' },
+                { min: 8, message: '密码长度至少 8 位' },
+                { pattern: /^(?=.*[a-zA-Z])(?=.*\d).+$/, message: '密码必须包含字母和数字' },
+              ]}
+              extra="密码长度至少 8 位，必须包含字母和数字"
+            >
+              <Input.Password prefix={<LockOutlined />} placeholder="至少8位，包含字母和数字" />
+            </Form.Item>
+            <Form.Item
+              name="confirmPassword"
+              label="确认密码"
+              dependencies={['password']}
+              rules={[
+                { required: true, message: '请再次输入密码' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('两次输入的密码不一致'));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password prefix={<LockOutlined />} placeholder="请再次输入密码" />
+            </Form.Item>
+          </Form>
         </div>
       ),
     },
@@ -119,7 +178,7 @@ export default function Welcome() {
       content: (
         <div className={styles.stepContent}>
           <Title level={3}>设置完成</Title>
-          <Paragraph>管理员：<Text strong>{adminUser || '未设置'}</Text></Paragraph>
+          <Paragraph>管理员：<Text strong>{form.getFieldValue('username') || '未设置'}</Text></Paragraph>
           <Paragraph>工作台名称：<Text strong>{appName}</Text></Paragraph>
           <Paragraph type="secondary">点击"完成"创建管理员并进入登录页面。</Paragraph>
         </div>
@@ -172,7 +231,7 @@ export default function Welcome() {
               </Button>
             )}
             {currentStep < steps.length - 1 && (
-              <Button type="primary" onClick={() => setCurrentStep(currentStep + 1)}>
+              <Button type="primary" onClick={handleNext}>
                 下一步
               </Button>
             )}

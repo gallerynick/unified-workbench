@@ -67,7 +67,7 @@
 .input.ant-input,
 .input.ant-input-affix-wrapper,
 .input.ant-input-textarea {
-  height: 36px;
+  height: var(--input-height);
   border-radius: var(--rounded-sm);
   border: var(--input-border);
   background: var(--input-bg);
@@ -113,7 +113,7 @@
 
 .picker.ant-picker {
   width: 100%;
-  height: 36px;
+  height: var(--input-height);
   border-radius: var(--rounded-sm);
   border: var(--input-border);
   background: var(--input-bg);
@@ -146,7 +146,7 @@
 
 .select.ant-select .ant-select-selector,
 .selectSmall.ant-select .ant-select-selector {
-  height: 36px !important;
+  height: var(--input-height) !important;
   border-radius: var(--rounded-sm) !important;
   border: var(--input-border) !important;
   background: var(--input-bg) !important;
@@ -266,9 +266,9 @@
 }
 
 .cancelBtn {
-  height: 38px;
+  height: var(--btn-height);
   padding: 0 20px;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--btn-radius);
   background: var(--canvas);
   border: 1px solid var(--hairline);
   color: var(--color-primary);
@@ -293,9 +293,9 @@
 }
 
 .submitBtn {
-  height: 38px;
+  height: var(--btn-height);
   padding: 0 20px;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--btn-radius);
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   font-family: var(--font-body);

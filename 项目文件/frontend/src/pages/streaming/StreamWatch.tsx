@@ -53,10 +53,12 @@ export default function StreamWatch() {
     };
   }, [roomId, startConnection]);
 
+  // 仅在成功播放期间暂停自动锁定：连接中/出错/未播放时不应阻止锁定。
   useEffect(() => {
-    pauseIdleTimer();
-    return () => { resumeIdleTimer(); };
-  }, []);
+    if (status !== 'playing') return;
+    pauseIdleTimer('stream-watch');
+    return () => { resumeIdleTimer('stream-watch'); };
+  }, [status]);
 
   const handleRetry = () => {
     if (!roomId) return;
@@ -90,7 +92,7 @@ export default function StreamWatch() {
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--modal-overlay)' }}>
             <Space direction="vertical" align="center">
               <Text style={{ color: 'var(--color-error)' }}>连接失败</Text>
-              <Button size="small" onClick={handleRetry}>重试</Button>
+              <Button  onClick={handleRetry}>重试</Button>
             </Space>
           </div>
         )}

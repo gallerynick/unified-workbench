@@ -1,0 +1,233 @@
+/* ============================================================
+ * 全站开关（AppSwitch）
+ * 规格来源：/dev/testpage/switch 定稿 + UI设计规范 switch
+ *   轨道：关 = --border-primary / 开 = --color-info，8px 圆角矩形
+ *   滑块：--canvas + --shadow-sm，5px 圆角，四周留 3px
+ *   状态：图形画在轨道上（通=竖线 / 断=圆环），滑块滑过遮挡
+ *   加载：滑块内单向扫光 + 描边亮光绕行
+ *   禁用：整体降透明 + 滑块上淡锁
+ * ============================================================ */
+
+.switch {
+  --sw-w: var(--switch-width);
+  --sw-h: var(--switch-height);
+  --sw-inset: var(--switch-inset);
+  --sw-thumb: calc(var(--sw-h) - var(--sw-inset) * 2);
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  width: var(--sw-w);
+  height: var(--sw-h);
+  padding: 0;
+  border: none;
+  background: var(--switch-track-off);
+  border-radius: var(--switch-radius);
+  font-family: var(--font-body);
+  cursor: pointer;
+  vertical-align: middle;
+  /* 把开关自身的重绘隔离在本元素内，避免触发父级（路由容器有大面积 will-change）
+     整层重栅格化而出现闪烁 */
+  contain: paint;
+  transition: background var(--anim-normal) var(--anim-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 悬停不用 filter：filter 会新建合成层，与 MainLayout 路由容器的
+   will-change: transform/opacity 叠加时容易触发整块重栅格化（表现为闪烁），
+   改用底色微调表达悬停。 */
+.switch:hover {
+  background: var(--divider-soft);
+}
+
+.switch[aria-checked='true']:hover {
+  background: var(--switch-track-on);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.switch[aria-checked='true'] {
+  background: var(--switch-track-on);
+}
+
+/* ── 轨道上的状态图形 ─────────────────────────── */
+
+.glyph {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50%;
+  pointer-events: none;
+}
+
+.glyphOn {
+  left: 0;
+  color: var(--switch-glyph-on);
+}
+
+.glyphOff {
+  right: 0;
+  color: var(--switch-glyph-off);
+}
+
+.glyphBar {
+  width: 0.2em;
+  height: 0.9em;
+  border-radius: var(--rounded-chip);
+  background: currentColor;
+}
+
+.glyphRing {
+  width: 0.8em;
+  height: 0.8em;
+  box-sizing: border-box;
+  border: 0.14em solid currentColor;
+  border-radius: var(--rounded-circular);
+}
+
+/* ── 滑块 ─────────────────────────────────────── */
+
+.thumb {
+  position: absolute;
+  top: var(--sw-inset);
+  left: var(--sw-inset);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sw-thumb);
+  height: var(--sw-thumb);
+  border-radius: var(--switch-thumb-radius);
+  background: var(--switch-thumb-bg);
+  box-shadow: var(--switch-thumb-shadow);
+  transition: transform var(--anim-normal) var(--anim-ease-in-out);
+}
+
+.switch[aria-checked='true'] .thumb {
+  transform: translateX(calc(var(--sw-w) - var(--sw-thumb) - var(--sw-inset) * 2));
+}
+
+.lockIcon {
+  font-size: var(--text-body-xs-size);
+  color: var(--ink-muted-48);
+  opacity: 0.55;
+}
+
+/* ── 加载：扫光 + 轮廓绕行 ────────────────────── */
+
+.isLoading {
+  pointer-events: none;
+}
+
+.isLoading .glyph {
+  opacity: 0.35;
+}
+
+.isLoading .thumb {
+  overflow: hidden;
+}
+
+.isLoading .thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    var(--switch-sweep-color) 50%,
+    transparent 75%
+  );
+  opacity: var(--switch-sweep-opacity);
+  animation: appSwitchSweep 1.4s linear infinite;
+}
+
+@keyframes appSwitchSweep {
+  0% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+@property --app-switch-halo {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.isLoading .thumb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: var(--switch-halo-width);
+  background: conic-gradient(
+    from var(--app-switch-halo),
+    transparent 0deg 200deg,
+    var(--switch-halo) 360deg
+  );
+  /* #000 仅为遮罩占位色，不参与界面配色 */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: appSwitchHalo 2s linear infinite;
+}
+
+@keyframes appSwitchHalo {
+  to {
+    --app-switch-halo: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .isLoading .thumb::after {
+    animation-duration: 2.6s;
+  }
+  .isLoading .thumb::before {
+    animation-duration: 4s;
+  }
+}
+
+/* ── 尺寸 ─────────────────────────────────────── */
+
+.sm {
+  --sw-w: var(--switch-width-sm);
+  --sw-h: var(--switch-height-sm);
+  font-size: var(--text-body-xs-size);
+}
+
+.lg {
+  --sw-w: var(--switch-width-lg);
+  --sw-h: var(--switch-height-lg);
+  font-size: var(--text-caption-strong-size);
+}
+
+/* ── 禁用 ─────────────────────────────────────── */
+
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: var(--switch-disabled-opacity);
+}
+
+.switch:disabled:hover {
+  background: var(--switch-track-off);
+}
+
+.switch:disabled .thumb {
+  box-shadow: none;
+}

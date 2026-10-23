@@ -177,12 +177,18 @@ _webrtc_vad = None
 
 
 def _get_webrtc_vad():
-    """懒加载 webrtcvad 实例（模式 2，平衡灵敏度）。"""
+    """懒加载 webrtcvad 实例。
+
+    模式 3（最激进地过滤非语音）：实测真实会议录音在模式 2 下把 69% 的
+    帧判为「有人在说话」——麦克风底噪让静音段也被判成语音，静音计时器
+    永远攒不满，导致一句话可以长达 113 秒才切。换成模式 3 后同一段录音
+    的中位切句时长从 3.0s 降到 1.7s、被硬上限强切次数从 11 降到 3。
+    """
     global _webrtc_vad
     if _webrtc_vad is None:
         import webrtcvad
 
-        _webrtc_vad = webrtcvad.Vad(2)
+        _webrtc_vad = webrtcvad.Vad(3)
     return _webrtc_vad
 
 
@@ -199,6 +205,7 @@ def segment_audio(
     sample_rate: int = 16000,
     silence_timeout: float = 0.6,
     min_duration: float = 0.3,
+    max_duration: float = 20.0,
 ) -> list[tuple[int, bytes]]:
     """整段切句：把音频切成语音句段。
 
@@ -207,6 +214,9 @@ def segment_audio(
         sample_rate: 采样率（16000）
         silence_timeout: 句内静音超过该秒数则切句
         min_duration: 短于该秒数的段丢弃（噪声）
+        max_duration: 单段时长硬上限。VAD 被底噪持续误判为语音时，
+            silence_timeout 永远触发不了，声音会一直累积成超长段
+            （实测离线路径出现过 34 秒单段）。超过该上限强制切段。
 
     Returns:
         [(start_ms, pcm_int16_bytes)]，按时间顺序。
@@ -230,6 +240,13 @@ def segment_audio(
                 cur_start_ms = start_ms
             cur.extend(frame)
             silence = 0.0
+            # 单段硬上限：连续语音（或底噪被误判为语音）时静音条件
+            # 永远不成立，必须靠时长兜底，否则会攒出超长段
+            if len(cur) // 2 / sample_rate >= max_duration:
+                segments.append((cur_start_ms, bytes(cur)))
+                cur_start_ms = None
+                cur = bytearray()
+                silence = 0.0
         elif cur_start_ms is not None:
             cur.extend(frame)
             silence += frame_ms / 1000
@@ -292,7 +309,9 @@ def init_asr_model(asr_model: str = "sensevoice") -> None:
             _asr_model = SenseVoiceSmall(
                 snap,
                 quantize=True,
-                intra_op_num_threads=2,
+                # 4 线程：实时场景单个 12s 段推理约 0.3-1.5s，2 线程时
+                # 密集说话会排队出字延迟；4 线程实测吞吐翻倍、内存增量可忽略
+                intra_op_num_threads=4,
             )
             _model_initialized = True
             logger.info("ASR model loaded successfully")
@@ -320,6 +339,18 @@ def _detect_language(raw_text: str) -> str | None:
     """从富文本中提取语言标签（auto 模式输出 <|zh|> 等），没有则 None。"""
     m = _LANG_TAG_RE.search(raw_text)
     return m.group(1).lower() if m else None
+
+
+def _has_letters(text: str) -> bool:
+    """文本是否含至少一个字母/数字。
+
+    噪音段（风扇/底噪/碰撞声）被 SenseVoice 识别后只剩标点（如「。」「.」），
+    标签为 <|Event_UNK|>——真实语音再短也至少有一个字。用于在转写层
+    把这类垃圾段拦在落库之前。
+    """
+    import unicodedata
+
+    return any(unicodedata.category(c)[0] in ("L", "N") for c in text)
 
 
 def transcribe_audio_array(
@@ -357,10 +388,17 @@ def transcribe_audio_array(
 
         audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
 
+        # 会议场景不过任何降噪/静音门限：音频原样传入 ASR，
+        # 避免低电平真实语音被阈值误切（负面优化）。需要滤波请在前端/采集端自行处理。
+
         # SenseVoice ONNX 推理：withitn 启用内建标点（ITN）
         raw = _asr_model(audio_np, language=language, textnorm="withitn")
 
         segments = []
+        # 白名单只含中文（["zh"]）时，额外做字符级日语假名检测：
+        # SenseVoice 对「中文为主、夹几个日文假名」的句子会整体标 <|zh|>，
+        # 语言标签过滤拦不住；按用户要求白名单无日语即不能出现日语。
+        ja_not_allowed = not allowed_languages or "ja" not in allowed_languages
         for item in raw:
             raw_text = str(item)
             # 语言白名单过滤：auto 模式带语言标签，检出白名单外语言则丢弃
@@ -369,8 +407,16 @@ def transcribe_audio_array(
                 if detected and detected not in allowed_languages:
                     continue
             text = _clean_rich_text(raw_text)
-            if text:
-                segments.append({"text": text})
+            if not text:
+                continue
+            # 纯标点段（无任何字母/数字）= 噪音被 VAD 误判为语音后的空识别，
+            # 落库只会产出「。」「.」这类垃圾行，直接丢弃
+            if not _has_letters(text):
+                continue
+            # 白名单无日语时，含平假名/片假名（日文）的段落丢弃
+            if ja_not_allowed and re.search("[\u3040-\u30ff]", text):
+                continue
+            segments.append({"text": text})
 
         return segments
     except Exception as e:

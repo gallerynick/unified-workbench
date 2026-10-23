@@ -1,0 +1,468 @@
+/* ============================================================
+ * 开发测试页 — 开关样式（沙箱验证 · 第三版）
+ * 视觉依据：
+ *   滑动选择框（.segmented）：白滑块 + 细投影 + 8px 圆角矩形
+ *   输入框：同 8px 圆角、同描边语言
+ * 本版要点：
+ *   1. 状态图形（竖线 = 通 / 圆环 = 断）画在轨道上，滑块滑过去盖住它
+ *   2. 关 = 输入框描边灰（--border-primary），开 = 交互蓝（--color-info），拉开对比
+ *   3. 保持 8px 圆角矩形，尺寸 56×32 与输入框同高
+ * ============================================================ */
+
+.section {
+  flex: 1;
+  min-height: 0;
+  padding: var(--spacing-lg);
+  box-sizing: border-box;
+  background: var(--bg-primary);
+}
+
+.inner {
+  max-width: var(--content-max-width-text);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+/* ── 页头 ─────────────────────────────────────── */
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-heading-2-size);
+  font-weight: var(--text-heading-2-weight);
+  line-height: var(--text-heading-2-line);
+  letter-spacing: var(--text-heading-2-spacing);
+  color: var(--ink);
+}
+
+.lead {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-line);
+  letter-spacing: var(--text-caption-spacing);
+  color: var(--text-secondary);
+}
+
+/* ── 分组 ─────────────────────────────────────── */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.group + .group {
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.groupHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.groupName {
+  font-family: var(--font-body);
+  font-size: var(--text-caption-strong-size);
+  font-weight: var(--text-caption-strong-weight);
+  line-height: var(--text-caption-strong-line);
+  letter-spacing: var(--text-caption-strong-spacing);
+  color: var(--ink);
+}
+
+.groupNote {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs-size);
+  font-weight: var(--text-body-xs-weight);
+  line-height: var(--text-body-xs-line);
+  color: var(--text-tertiary);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  min-height: 40px;
+}
+
+.rowLabel {
+  flex: none;
+  width: 84px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs-size);
+  line-height: var(--text-body-xs-line);
+  color: var(--text-secondary);
+}
+
+/* ── 基线对照 ─────────────────────────────────── */
+
+.baseline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+}
+
+/* ── 开关基座 ─────────────────────────────────── */
+
+.switch {
+  --sw-w: 56px;
+  --sw-h: 32px;
+  --sw-inset: 3px;
+  --sw-thumb: calc(var(--sw-h) - var(--sw-inset) * 2);
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  width: var(--sw-w);
+  height: var(--sw-h);
+  padding: 0;
+  border: none;
+  /* 关：输入框描边灰，白底上能看清是一个控件 */
+  background: var(--border-primary);
+  border-radius: var(--rounded-sm);
+  color: var(--ink-muted-48);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  cursor: pointer;
+  transition: background var(--anim-normal) var(--anim-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.switch:hover {
+  filter: brightness(0.96);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+/* 开：交互蓝，与输入框焦点环同色 */
+.switch[aria-checked='true'] {
+  background: var(--color-info);
+  color: var(--btn-primary-text);
+}
+
+/* ── 轨道上的状态图形（滑块之下） ─────────────── */
+
+.glyph {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50%;
+  pointer-events: none;
+}
+
+/* 图形放在「滑块不在的那一侧」：开时滑块在右，图形在左；关时滑块在左，图形在右 */
+.glyphOn {
+  left: 0;
+  color: var(--btn-primary-text);
+}
+
+.glyphOff {
+  right: 0;
+  color: var(--ink-muted-80);
+}
+
+/* 通：竖线 */
+.glyphBar {
+  width: 0.2em;
+  height: 0.9em;
+  border-radius: var(--rounded-chip);
+  background: currentColor;
+}
+
+/* 断：圆环 */
+.glyphRing {
+  width: 0.8em;
+  height: 0.8em;
+  box-sizing: border-box;
+  border: 0.14em solid currentColor;
+  border-radius: var(--rounded-circular);
+}
+
+/* 加载中：轨道上的图形让位，视线落在滑块的高光上 */
+.isLoading .glyph {
+  opacity: 0.35;
+}
+
+/* ── 滑块 ─────────────────────────────────────── */
+
+.thumb {
+  position: absolute;
+  top: var(--sw-inset);
+  left: var(--sw-inset);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sw-thumb);
+  height: var(--sw-thumb);
+  /* 内外圆角同心：外 8px − 内缩 2px = 6px */
+  border-radius: calc(var(--rounded-sm) - var(--sw-inset));
+  background: var(--canvas);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  /* 加载时沿轮廓绕行的亮光颜色：与轨道蓝刻意区分 */
+  --halo: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-strong-weight);
+  line-height: 1;
+  transition: transform var(--anim-normal) var(--anim-ease-in-out);
+}
+
+.switch[aria-checked='true'] .thumb {
+  transform: translateX(calc(var(--sw-w) - var(--sw-thumb) - var(--sw-inset) * 2));
+}
+
+/* 加载：① 高光单向从左扫到右 ② 边缘一段亮边绕圈
+   注意：不覆盖 .thumb 的 position: absolute，否则滑块会错位 */
+.isLoading .thumb {
+  overflow: hidden;
+}
+
+/* ① 单向扫光：每轮从左侧重新开始，不折返 */
+.isLoading .thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* 窄带 + 浅灰 + 低不透明度：只留一层淡淡掠过 */
+  background: linear-gradient(100deg, transparent 25%, var(--text-tertiary) 50%, transparent 75%);
+  opacity: 0.32;
+  animation: thumbSweep 1.4s linear infinite;
+}
+
+[data-theme='dark'] .thumb {
+  --halo: var(--body-on-dark);
+}
+
+[data-theme='dark'] .isLoading .thumb::after {
+  background: linear-gradient(100deg, transparent 25%, var(--text-tertiary) 50%, transparent 75%);
+  opacity: 0.4;
+}
+
+@keyframes thumbSweep {
+  0% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+/* ② 轮廓转圈亮：滑块描边上一段亮光沿轮廓绕行（环形遮罩只留 2px 边框）
+   亮光刻意不用轨道蓝：浅色取 ink（深），深色取 body-on-dark（白），
+   避免与开启态的蓝色轨道糊成一片 */
+/* 关键：只转渐变角度，不转元素本身。
+   之前用 transform: rotate 转整个伪元素，2px 环跟着转成斜方块被裁进滑块内部，
+   看起来就是"光在滑块里转"，而不是沿边框走。
+   用 @property 注册角度变量，动画只改角度 → 环固定贴在描边上，光沿环绕行。 */
+@property --halo-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.isLoading .thumb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from var(--halo-angle), transparent 0deg 200deg, var(--halo) 360deg);
+  /* #000 只是遮罩占位色，不是界面配色 */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: thumbEdgeSpin 2s linear infinite;
+}
+
+@keyframes thumbEdgeSpin {
+  to {
+    --halo-angle: 360deg;
+  }
+}
+
+/* 系统要求减弱动效时放慢节奏，避免高频闪烁 */
+@media (prefers-reduced-motion: reduce) {
+  .isLoading .thumb::after {
+    animation-duration: 2.6s;
+  }
+  .isLoading .thumb::before {
+    animation-duration: 4s;
+  }
+}
+
+.isLoading {
+  pointer-events: none;
+}
+
+/* ── 尺寸 ─────────────────────────────────────── */
+
+.sm {
+  --sw-w: 44px;
+  --sw-h: 24px;
+  font-size: var(--text-body-xs-size);
+}
+
+.lg {
+  --sw-w: 68px;
+  --sw-h: 38px;
+  font-size: var(--text-caption-strong-size);
+}
+
+/* ── 禁用 ─────────────────────────────────────── */
+
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.switch:disabled:hover {
+  filter: none;
+}
+
+.switch:disabled .thumb {
+  box-shadow: none;
+}
+
+/* 禁用：滑块上放一把淡淡的锁，提示当前不可操作 */
+.lockIcon {
+  font-size: var(--text-body-xs-size);
+  color: var(--ink-muted-48);
+  opacity: 0.55;
+}
+
+/* ── 设置行 ───────────────────────────────────── */
+
+.settingList {
+  display: flex;
+  flex-direction: column;
+  max-width: 560px;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+}
+
+.settingRow + .settingRow {
+  border-top: 1px solid var(--border-secondary);
+}
+
+.settingText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settingLabel {
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--ink);
+}
+
+.settingDesc {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs-size);
+  line-height: var(--text-body-xs-line);
+  color: var(--text-tertiary);
+}
+
+/* ── 并排演示按钮 ─────────────────────────────── */
+
+.inlineAction {
+  height: var(--input-height);
+  padding: 0 var(--spacing-sm);
+  border: var(--input-border);
+  border-radius: var(--rounded-sm);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  cursor: pointer;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.inlineAction:hover {
+  background: var(--bg-tertiary);
+}
+
+.inlineAction:active {
+  transform: var(--btn-active-scale);
+}
+
+.inlineAction:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+/* ── 规格速查 ─────────────────────────────────── */
+
+.spec {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: var(--spacing-xxs) var(--spacing-sm);
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+}
+
+.spec dt {
+  color: var(--text-secondary);
+}
+
+.spec dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+.notes {
+  margin: 0;
+  padding-left: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--text-secondary);
+}

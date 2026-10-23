@@ -239,16 +239,19 @@
 }
 
 .meterBar {
-  width: 2px;
-  background: var(--border-tertiary);
-  border-radius: 1px;
+  width: 3px;
+  background: var(--text-tertiary);
+  border-radius: 1.5px;
   height: 20%;
+  opacity: 0.5;
   transition: all 0.05s ease-out;
 }
 
-/* 录音中电平表 - 根据实时音频电平显示 */
+/* 录音中电平表 - 根据实时音频电平显示，点亮柱用醒目高亮色 */
 .meterBar.active {
   background: var(--color-info);
+  opacity: 1;
+  box-shadow: 0 0 4px var(--color-info);
 }
 
 /* 录音按钮 */

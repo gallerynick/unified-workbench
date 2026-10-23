@@ -15,6 +15,7 @@ class ProjectMeetingCreate(BaseModel):
     project_id: uuid.UUID
     number: str = Field(max_length=50)
     type: str = Field(max_length=50)
+    title: str | None = Field(default=None, max_length=500)
     started_at: datetime
     speaker: str | None = Field(default=None, max_length=100)
     participants: list[str] = []
@@ -29,6 +30,7 @@ class ProjectMeetingUpdate(BaseModel):
 
     number: str | None = Field(default=None, max_length=50)
     type: str | None = Field(default=None, max_length=50)
+    title: str | None = Field(default=None, max_length=500)
     started_at: datetime | None = None
     speaker: str | None = Field(default=None, max_length=100)
     participants: list[str] | None = None
@@ -47,6 +49,7 @@ class ProjectMeetingResponse(BaseModel):
     project_id: uuid.UUID
     number: str
     type: str
+    title: str | None = None
     started_at: datetime
     speaker: str | None = None
     participants: list[Any] = []

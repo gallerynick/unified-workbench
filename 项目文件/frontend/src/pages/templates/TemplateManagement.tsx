@@ -159,7 +159,6 @@ function ProjectDocsTab() {
           <Tooltip title="编辑">
             <Button
               type="link"
-              size="small"
               icon={<EditOutlined />}
               onClick={() => openEditModal(record)}
             >
@@ -169,7 +168,6 @@ function ProjectDocsTab() {
           <Tooltip title="删除">
             <Button
               type="link"
-              size="small"
               danger
               icon={<DeleteOutlined />}
               onClick={() => handleDelete(record)}
@@ -264,7 +262,6 @@ export default function TemplateManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />

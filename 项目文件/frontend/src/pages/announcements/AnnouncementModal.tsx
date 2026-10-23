@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Modal, Switch, message } from 'antd';
+import { Form, Input, Modal, message } from 'antd';
+import Switch from '@/components/AppSwitch';
 import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import type { Announcement } from '../../types/announcement';
 import { createAnnouncement, updateAnnouncement } from '../../api/announcements';

@@ -290,7 +290,7 @@ export default function ServerSystemsPage() {
         <Title level={5} className={styles.sectionTitle ?? ''}>
           系统列表
         </Title>
-        <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreate}>
+        <Button type="primary"  icon={<PlusOutlined />} onClick={handleCreate}>
           新增系统
         </Button>
       </div>
@@ -309,7 +309,6 @@ export default function ServerSystemsPage() {
                   <Button
                     key="edit"
                     type="link"
-                    size="small"
                     icon={<EditOutlined />}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -321,7 +320,6 @@ export default function ServerSystemsPage() {
                   <Button
                     key="delete"
                     type="link"
-                    size="small"
                     danger
                     icon={<DeleteOutlined />}
                     onClick={(e) => {

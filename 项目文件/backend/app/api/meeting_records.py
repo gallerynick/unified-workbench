@@ -28,6 +28,7 @@ from app.schemas.meeting_record import (
     MeetingRecordResponse,
     MeetingRecordUpdate,
     MeetingTranscriptSegmentResponse,
+    SpeakerModelStatus,
 )
 from app.services.meeting_record import (
     autosave_meeting_record,
@@ -39,9 +40,11 @@ from app.services.meeting_record import (
     get_transcript_segments,
     list_meeting_records,
     pause_meeting_record,
+    rediarize_meeting_record,
     regenerate_minutes_record,
     review_meeting_minutes,
     resume_meeting_record,
+    set_segment_speaker,
     start_meeting_record,
     update_meeting_record,
 )
@@ -132,17 +135,44 @@ async def import_audio_endpoint(
         raise HTTPException(status_code=404, detail="会议不存在")
     if item.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="仅创建者可以导入录音")
+    # M3-3：处理中禁止重复导入——两个 Celery 任务并发跑同一会议会互相覆盖转录段
+    if item.status == "processing":
+        raise HTTPException(status_code=409, detail="会议正在处理中，请等待完成后再导入")
 
-    # 保存到会议音频目录（扩展名保留，处理时由 soundfile 自动解析格式）
-    ext = os.path.splitext(file.filename or "")[1] or ".wav"
+    # M3-1：扩展名白名单（处理时由 soundfile 自动解析格式）
+    ALLOWED_AUDIO_EXTS = {".wav", ".mp3", ".flac", ".m4a", ".ogg", ".opus", ".aac"}
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in ALLOWED_AUDIO_EXTS:
+        raise HTTPException(status_code=400, detail=f"不支持的音频格式：{ext}")
+
     audio_dir = os.path.join(get_settings().FILE_STORAGE_PATH, "meetings", "audio")
     os.makedirs(audio_dir, exist_ok=True)
     dest = os.path.join(audio_dir, f"{meeting_id}{ext}")
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="文件为空")
+
+    # M3-3：换扩展名重复导入时清理旧音频，避免孤儿文件
+    old_path = item.audio_file_path
+    if old_path and os.path.isfile(old_path) and os.path.abspath(old_path) != os.path.abspath(dest):
+        try:
+            os.remove(old_path)
+            logger.info("Removed old audio on re-import: %s", old_path)
+        except OSError as exc:
+            logger.warning("旧音频删除失败 %s: %s", old_path, exc)
+
+    # M3-2：流式落盘 + 大小上限——原实现 file.read() 整读进内存，
+    # 大文件直接打爆容器（M3-2）
+    MAX_AUDIO_BYTES = 500 * 1024 * 1024  # 500 MB 足够数小时会议
+    size = 0
     with open(dest, "wb") as fh:
-        fh.write(content)
+        while chunk := await file.read(1024 * 1024):
+            size += len(chunk)
+            if size > MAX_AUDIO_BYTES:
+                fh.close()
+                os.remove(dest)
+                raise HTTPException(status_code=400, detail="音频文件超过 500 MB 上限")
+            fh.write(chunk)
+    if size == 0:
+        os.remove(dest)
+        raise HTTPException(status_code=400, detail="文件为空")
 
     item.audio_file_path = dest
     item.status = "processing"
@@ -176,6 +206,35 @@ async def import_audio_endpoint(
     )
     item = result.scalar_one()
     return UnifiedResponse(data=MeetingRecordResponse.model_validate(item))
+
+@router.get(
+    "/speaker-model", response_model=UnifiedResponse[SpeakerModelStatus]
+)
+async def get_speaker_model_status(
+    current_user: User = Depends(get_current_user),
+):
+    """声纹模型状态：界面据此提示「为什么没区分说话人」并提供一键下载。"""
+    from app.services.speaker_diarization import model_status
+
+    return UnifiedResponse(data=SpeakerModelStatus(**model_status()))
+
+
+@router.post(
+    "/speaker-model/download", response_model=UnifiedResponse[SpeakerModelStatus]
+)
+async def download_speaker_model(
+    current_user: User = Depends(get_current_user),
+):
+    """触发声纹模型下载（后台任务，接口立即返回，前端轮询状态）。"""
+    from app.services.speaker_diarization import model_status
+
+    from app.tasks.model_warmup import ensure_speaker_models_task
+
+    status = model_status()
+    if not status["downloading"] and not status["available"]:
+        ensure_speaker_models_task.delay()
+    return UnifiedResponse(data=SpeakerModelStatus(**model_status()))
+
 
 @router.get("/{meeting_id}", response_model=UnifiedResponse[MeetingRecordResponse])
 async def get_meeting_endpoint(
@@ -324,7 +383,7 @@ async def download_audio_endpoint(
     return FileResponse(
         path=meeting.audio_file_path,
         media_type="audio/wav",
-        filename=f"{meeting.number}.wav",
+        filename=f"{meeting.title}-{meeting_id}.wav",
     )
 
 
@@ -358,7 +417,50 @@ async def update_speaker_names_endpoint(
             .values(speaker=new_name),
         )
     await db.commit()
-    return UnifiedResponse(data=MeetingRecordResponse.model_validate(meeting))
+    # M10：改名只同步转录段，纪要里的旧名字不会自动更新——
+    # 明确告知用户需要重新生成纪要（避免自动重生成每次烧一次模型调用）
+    return UnifiedResponse(
+        data=MeetingRecordResponse.model_validate(meeting),
+        msg="说话人名已更新；如需纪要同步使用新名字，请重新生成纪要",
+    )
+
+@router.patch(
+    "/{meeting_id}/segments/{seq}/speaker",
+    response_model=UnifiedResponse[None],
+)
+async def set_segment_speaker_endpoint(
+    meeting_id: uuid.UUID,
+    seq: int,
+    speaker: str | None = Query(None, description="说话人名称；留空表示清除"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """手动指定某一句的说话人（模型分不出来时的最终出口）。"""
+    await set_segment_speaker(db, meeting_id, current_user, seq, speaker)
+    return UnifiedResponse(msg="已更新该句说话人")
+
+
+@router.put(
+    "/{meeting_id}/speakers/rediarize",
+    response_model=UnifiedResponse[MeetingRecordResponse],
+)
+async def rediarize_speakers_endpoint(
+    meeting_id: uuid.UUID,
+    num_speakers: int = Query(..., ge=1, le=20, description="实际讲话人人数"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """按指定人数重新区分说话人（不重跑转写，几秒完成）。
+
+    自动聚类对小模型不可靠（同一段音频可能分出 1~9 个「说话人」），
+    真实人数只有用户知道——这条路径用用户给的人数强制 N 簇，结果可靠。
+    """
+    item = await rediarize_meeting_record(db, meeting_id, current_user, num_speakers)
+    return UnifiedResponse(
+        data=MeetingRecordResponse.model_validate(item),
+        msg=f"已按 {num_speakers} 位讲话人重新区分；如需纪要同步请重新生成纪要",
+    )
+
 
 @router.post(
     "/{meeting_id}/minutes/generate",

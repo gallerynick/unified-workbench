@@ -21,6 +21,7 @@ import {
 } from 'antd';
 import {
   ArrowLeftOutlined,
+  DeleteOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
   PlusOutlined,
@@ -46,7 +47,13 @@ import {
 import { useUser } from '../../contexts/UserContext';
 import TodoModal from './components/TodoModal';
 import ProposalModal from './components/ProposalModal';
-import MeetingModal, { splitTitleContent } from './components/MeetingModal';
+import MeetingModal from './components/MeetingModal';
+import ContentEditor from '../../components/ContentEditor/ContentEditor';
+import {
+  parseDescription,
+  serializeDescription,
+  wrapPlainTextToDoc,
+} from './components/proposalDescription';
 import type { Project } from '../../types/project';
 import type { ProjectMeeting } from '../../types/project-meeting';
 import type { ProjectProposal } from '../../types/project-proposal';
@@ -125,8 +132,10 @@ export default function MeetingDetailPage() {
   const [editBasicVisible, setEditBasicVisible] = useState(false);
   const [editContentVisible, setEditContentVisible] = useState(false);
   const [basicForm] = Form.useForm();
-  const [editContentBody, setEditContentBody] = useState('');
+  const [editContentDoc, setEditContentDoc] = useState<Record<string, unknown> | null>(null);
   const [newNoteText, setNewNoteText] = useState('');
+  const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
+  const [editingNoteValue, setEditingNoteValue] = useState('');
   const [saving, setSaving] = useState(false);
 
   // 用户列表（用于发言人/参与者下拉）
@@ -328,10 +337,9 @@ export default function MeetingDetailPage() {
   // ── 分区编辑：打开基础信息弹窗 ──
   const openEditBasic = useCallback(() => {
     if (!meeting) return;
-    const { title } = splitTitleContent(meeting.content);
     basicForm.setFieldsValue({
       type: meeting.type,
-      title,
+      title: meeting.title ?? '',
       started_at: meeting.started_at ? dayjs(meeting.started_at) : undefined,
       speaker: meeting.speaker || '',
       participants: meeting.participants || [],
@@ -349,13 +357,10 @@ export default function MeetingDetailPage() {
     }
     setSaving(true);
     try {
-      const { body } = splitTitleContent(meeting.content);
-      const newTitle = values.title?.trim() ?? '';
-      const content = body ? `${newTitle}\n\n${body}` : newTitle;
       const payload = {
         type: values.type,
+        title: values.title?.trim() || null,
         started_at: values.started_at?.toISOString() ?? new Date().toISOString(),
-        content,
         ...(values.speaker?.trim() ? { speaker: values.speaker.trim() } : { speaker: null }),
         ...(values.participants?.length ? { participants: values.participants } : { participants: [] }),
       };
@@ -374,11 +379,12 @@ export default function MeetingDetailPage() {
     }
   }, [meeting, basicForm]);
 
-  // ── 分区编辑：打开交流正文弹窗 ──
+  // ── 分区编辑：交流正文（内联富文本） ──
+  // 正文存储约定：Tiptap doc JSON 字符串；历史纯文本由 parseDescription 兜底识别
   const openEditContent = useCallback(() => {
     if (!meeting) return;
-    const { body } = splitTitleContent(meeting.content);
-    setEditContentBody(body);
+    const raw = meeting.content ?? '';
+    setEditContentDoc(parseDescription(raw) ?? wrapPlainTextToDoc(raw));
     setEditContentVisible(true);
   }, [meeting]);
 
@@ -386,10 +392,9 @@ export default function MeetingDetailPage() {
     if (!meeting) return;
     setSaving(true);
     try {
-      const { title } = splitTitleContent(meeting.content);
-      const body = editContentBody.trim();
-      const content = body ? `${title}\n\n${body}` : title;
-      const res = await updateProjectMeeting(meeting.id, { content });
+      const res = await updateProjectMeeting(meeting.id, {
+        content: serializeDescription(editContentDoc ?? undefined) ?? '',
+      });
       if (res.code === 0) {
         message.success('交流正文已更新');
         setMeeting(res.data);
@@ -402,7 +407,12 @@ export default function MeetingDetailPage() {
     } finally {
       setSaving(false);
     }
-  }, [meeting, editContentBody]);
+  }, [meeting, editContentDoc]);
+
+  const cancelEditContent = useCallback(() => {
+    setEditContentVisible(false);
+    setEditContentDoc(null);
+  }, []);
 
   // ── 追加备注 ──
   const handleAddNote = useCallback(async () => {
@@ -431,10 +441,97 @@ export default function MeetingDetailPage() {
     }
   }, [meeting, newNoteText, user]);
 
+  // ── 编辑单条备注 ──
+  const startEditNote = useCallback((index: number, content: string) => {
+    setEditingNoteIndex(index);
+    setEditingNoteValue(content);
+  }, []);
+
+  const cancelEditNote = useCallback(() => {
+    setEditingNoteIndex(null);
+    setEditingNoteValue('');
+  }, []);
+
+  const handleSaveNote = useCallback(async () => {
+    if (!meeting || editingNoteIndex === null) return;
+    const trimmed = editingNoteValue.trim();
+    if (!trimmed) {
+      void message.warning('备注内容不能为空');
+      return;
+    }
+    setSaving(true);
+    try {
+      const current = Array.isArray(meeting.notes) ? meeting.notes : [];
+      const target = current[editingNoteIndex] as Record<string, unknown> | undefined;
+      const updatedNotes = current.map((note, i) =>
+        i === editingNoteIndex
+          ? {
+              ...(note as Record<string, unknown>),
+              content: trimmed,
+              author: (target?.author as string) ?? '',
+              created_at: (target?.created_at as string) ?? '',
+            }
+          : note,
+      );
+      const res = await updateProjectMeeting(meeting.id, { notes: updatedNotes });
+      if (res.code === 0) {
+        message.success('备注已更新');
+        setMeeting(res.data);
+        cancelEditNote();
+      } else {
+        message.error(res.msg || '更新失败');
+      }
+    } catch (err: unknown) {
+      message.error(err instanceof Error ? err.message : '更新失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [meeting, editingNoteIndex, editingNoteValue, cancelEditNote]);
+
+  // ── 删除单条备注 ──
+  const handleDeleteNote = useCallback(
+    (index: number) => {
+      if (!meeting) return;
+      Modal.confirm({
+        title: '确认删除备注',
+        icon: <ExclamationCircleOutlined />,
+        content: '删除后不可恢复，确定要删除这条备注吗？',
+        okText: '删除',
+        okButtonProps: { danger: true },
+        cancelText: '取消',
+        onOk: async () => {
+          setSaving(true);
+          try {
+            const current = Array.isArray(meeting.notes) ? meeting.notes : [];
+            const updatedNotes = current.filter((_, i) => i !== index);
+            const res = await updateProjectMeeting(meeting.id, { notes: updatedNotes });
+            if (res.code === 0) {
+              message.success('备注已删除');
+              setMeeting(res.data);
+              if (editingNoteIndex === index) cancelEditNote();
+            } else {
+              message.error(res.msg || '删除失败');
+            }
+          } catch (err: unknown) {
+            message.error(err instanceof Error ? err.message : '删除失败');
+          } finally {
+            setSaving(false);
+          }
+        },
+      });
+    },
+    [meeting, editingNoteIndex, cancelEditNote],
+  );
+
   if (!meeting && !loading) return null;
 
   const typeLabel = meeting ? getLabel(typeOptions, meeting.type) : '';
-  const { title: contentTitle, body: contentBody } = meeting ? splitTitleContent(meeting.content) : { title: '', body: '' };
+  const contentTitle = meeting?.title ?? '';
+  // 正文：Tiptap JSON 优先，历史纯文本兜底包成段落 doc
+  const contentDoc = meeting
+    ? parseDescription(meeting.content ?? '') ?? wrapPlainTextToDoc(meeting.content ?? '')
+    : null;
+  const contentBody = (meeting?.content ?? '').trim();
   const participantNames = meeting ? (meeting.participants ?? []).map((id) => displayName(id)).join('、') : '';
   const notes = meeting ? (Array.isArray(meeting.notes) ? meeting.notes : []).map(parseNote) : [];
   const linkedProposal = linkedProposals[0];
@@ -452,7 +549,7 @@ export default function MeetingDetailPage() {
     <div className={styles.sectionHeader ?? ''}>
       <span className={styles.sectionTitle ?? ''}>{title}</span>
       {canManageMeetings && onEdit && (
-        <Button type="link" size="small" icon={<EditOutlined />} onClick={onEdit}>
+        <Button type="link"  icon={<EditOutlined />} onClick={onEdit}>
           编辑
         </Button>
       )}
@@ -511,11 +608,31 @@ export default function MeetingDetailPage() {
       label: '交流内容',
       children: (
         <div className={styles.tabContent ?? ''}>
-          {/* 交流正文 */}
+          {/* 交流正文：默认只读，内联富文本编辑 */}
           <div className={styles.textBlock ?? ''}>
-            {sectionHeader('交流正文', openEditContent)}
-            {contentBody ? (
-              <div className={styles.textBody ?? ''}>{contentBody}</div>
+            {sectionHeader(
+              '交流正文',
+              canManageMeetings && !editContentVisible ? openEditContent : undefined,
+            )}
+            {editContentVisible ? (
+              <>
+                <ContentEditor
+                  value={editContentDoc}
+                  onChange={(doc) => setEditContentDoc(doc)}
+                  placeholder="请输入交流正文..."
+                  minHeight={200}
+                />
+                <Space style={{ marginTop: 12 }}>
+                  <Button type="primary" onClick={() => void handleSaveContent()} loading={saving}>
+                    保存
+                  </Button>
+                  <Button onClick={cancelEditContent} disabled={saving}>
+                    取消
+                  </Button>
+                </Space>
+              </>
+            ) : contentBody ? (
+              <ContentEditor value={contentDoc} editable={false} minHeight={100} />
             ) : (
               <Text type="secondary" style={{ fontSize: 'var(--text-body-sm-size)' }}>
                 暂无正文内容
@@ -528,18 +645,80 @@ export default function MeetingDetailPage() {
             {notes.length > 0 ? (
               <Space direction="vertical" size="small" style={{ width: '100%' }}>
                 {notes.map((note, index) => (
-                  <div key={`${note.author}-${note.created_at}-${index}`} style={{ padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                  <div
+                    key={`${note.author}-${note.created_at}-${index}`}
+                    style={{
+                      padding: '8px 0',
+                      borderBottom: '1px solid var(--color-border)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        marginBottom: 4,
+                      }}
+                    >
                       <Text strong style={{ fontSize: 'var(--text-body-sm-size)' }}>
                         {note.author || '未知用户'}
                       </Text>
-                      <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
-                        {note.created_at ? formatDate(note.created_at) : ''}
-                      </Text>
+                      {canManageMeetings && editingNoteIndex !== index && (
+                        <Space size={2}>
+                          <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                            {note.created_at ? formatDate(note.created_at) : ''}
+                          </Text>
+                          <Tooltip title="编辑备注">
+                            <Button
+                              type="text"
+                              icon={<EditOutlined />}
+                              aria-label="编辑备注"
+                              onClick={() => startEditNote(index, note.content ?? '')}
+                            />
+                          </Tooltip>
+                          <Tooltip title="删除备注">
+                            <Button
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                              aria-label="删除备注"
+                              onClick={() => handleDeleteNote(index)}
+                            />
+                          </Tooltip>
+                        </Space>
+                      )}
+                      {canManageMeetings && editingNoteIndex === index && (
+                        <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>
+                          {note.created_at ? formatDate(note.created_at) : ''}
+                        </Text>
+                      )}
                     </div>
-                    <Text style={{ fontSize: 'var(--text-body-sm-size)' }}>
-                      {note.content || '-'}
-                    </Text>
+                    {editingNoteIndex === index ? (
+                      <>
+                        <TextArea
+                          value={editingNoteValue}
+                          onChange={(e) => setEditingNoteValue(e.target.value)}
+                          maxLength={500}
+                          autoSize={{ minRows: 1, maxRows: 5 }}
+                        />
+                        <Space size={4} style={{ marginTop: 4 }}>
+                          <Button
+                            type="primary"
+                            onClick={() => void handleSaveNote()}
+                            loading={saving}
+                          >
+                            保存
+                          </Button>
+                          <Button  onClick={cancelEditNote} disabled={saving}>
+                            取消
+                          </Button>
+                        </Space>
+                      </>
+                    ) : (
+                      <Text style={{ fontSize: 'var(--text-body-sm-size)' }}>
+                        {note.content || '-'}
+                      </Text>
+                    )}
                   </div>
                 ))}
               </Space>
@@ -632,7 +811,6 @@ export default function MeetingDetailPage() {
                           key="disconnect-proposal"
                           type="link"
                           danger
-                          size="small"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDisconnectProposal();
@@ -726,7 +904,6 @@ export default function MeetingDetailPage() {
                           key="disconnect-todo"
                           type="link"
                           danger
-                          size="small"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDisconnectTodo();
@@ -836,31 +1013,6 @@ export default function MeetingDetailPage() {
           </Form.Item>
         </Form>
       </Modal>
-
-      {/* ── 交流正文编辑弹窗 ── */}
-      <Modal
-        title="编辑交流正文"
-        open={editContentVisible}
-        onOk={() => void handleSaveContent()}
-        onCancel={() => setEditContentVisible(false)}
-        confirmLoading={saving}
-        okText="保存"
-        cancelText="取消"
-        destroyOnClose
-        width={560}
-        styles={{ body: { paddingBottom: 24 } }}
-      >
-        <TextArea
-          rows={10}
-          value={editContentBody}
-          onChange={(e) => setEditContentBody(e.target.value)}
-          placeholder="请输入交流正文（换行保留）"
-          maxLength={5000}
-          showCount
-        />
-      </Modal>
-
-      {/* 备注采用追加式，无需编辑弹窗 */}
 
       {/* ── 关联提案/待办弹窗 ── */}
       <MeetingModal

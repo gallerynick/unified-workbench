@@ -1,13 +1,15 @@
 import {
+  AppstoreAddOutlined,
   AppstoreOutlined,
   CloudOutlined,
   FireOutlined,
   ThunderboltOutlined,
   ThunderboltTwoTone,
   UnorderedListOutlined,
+  SwapOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
-import { Button, List, Result, Space, Typography } from 'antd';
+import { Button, List, Result, Space, Spin, Typography } from 'antd';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -17,6 +19,8 @@ import SmokeBandAnimationSection from './TestPageSmokeBand';
 import HapticsTestSection from './TestPageHaptics';
 import ConvergenceAnimationSection from './TestPageConvergence';
 import AftermathAnimationSection from './TestPageAftermath';
+import ButtonStyleSection from './TestPageButtons';
+import SwitchStyleSection from './TestPageSwitch';
 import styles from './TestPage.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -55,6 +59,20 @@ const SECTIONS: Section[] = [
     icon: <AppstoreOutlined />,
     description: '按钮与基础组件展示',
     render: () => <ExampleSection />,
+  },
+  {
+    key: 'switch',
+    label: '开关样式',
+    icon: <SwapOutlined />,
+    description: '滑动开关：轨道取输入框描边色，开启态取焦点蓝，含尺寸 / 状态 / 设置行',
+    render: () => <SwitchStyleSection />,
+  },
+  {
+    key: 'buttons',
+    label: '按钮样式',
+    icon: <AppstoreAddOutlined />,
+    description: '纯图标 / 开关型 / 带文字三类按钮，规格对齐输入框与滑动选择框',
+    render: () => <ButtonStyleSection />,
   },
   {
     key: 'animation-bg',
@@ -104,20 +122,52 @@ export default function TestPage() {
   const navigate = useNavigate();
   const { key } = useParams<{ key?: string }>();
   const [debugEnabled, setDebugEnabled] = useState<boolean | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(false);
+    setDebugEnabled(null);
     void (async () => {
-      const enabled = await isDebugModeEnabled();
-      if (!cancelled) setDebugEnabled(enabled);
+      try {
+        const enabled = await isDebugModeEnabled();
+        if (!cancelled) setDebugEnabled(enabled);
+      } catch {
+        // 配置接口异常时不能停在 null（会渲染成整页空白，看起来像"打不开"）
+        if (!cancelled) setLoadError(true);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
+
+  // 配置读取失败：给出可操作的提示，而不是白屏
+  if (loadError) {
+    return (
+      <Result
+        status="warning"
+        title="无法读取站点配置"
+        subTitle="站点配置接口没有正常返回，测试页无法判断调试模式状态。"
+        extra={
+          <Space>
+            <Button type="primary" onClick={() => setReloadToken((t) => t + 1)}>
+              重试
+            </Button>
+            <Button onClick={() => navigate('/', { replace: true })}>返回工作台</Button>
+          </Space>
+        }
+      />
+    );
+  }
 
   if (debugEnabled === null) {
-    return null; // 加载中
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--spacing-section)' }}>
+        <Spin size="large" />
+      </div>
+    );
   }
 
   if (!debugEnabled) {

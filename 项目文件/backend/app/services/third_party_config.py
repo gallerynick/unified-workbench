@@ -10,6 +10,8 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # ── ASR 模型下载进度（字节级，与 AI 下载一致的前端展示）────────────
+import asyncio
+
 # 后台下载线程把进度写进这个模块级状态，get_asr_model_status 读取后
 # 随状态一起返回；前端据此渲染进度条 / 速度 / 预计剩余时间。
 _asr_dl_lock = threading.Lock()
@@ -23,6 +25,14 @@ _asr_dl_state: dict[str, Any] = {
     "progress": 0.0,
     "samples": [],  # [(ts, downloaded_bytes)]
 }
+
+# P10：后台加载/准备任务的强引用集合——事件循环对 task 只保留弱引用，
+# 无引用的 task 理论上可能被 GC；完成后经 add_done_callback 自我清理。
+_asr_bg_tasks: set[asyncio.Task] = set()
+
+# P6：最近一次后台加载失败的暴露点——get_asr_model_status 随 details
+# 返回，前端数秒内即可弹错误，而非等 180 秒轮询超时。
+_asr_load_error: dict[str, Any] = {"error": None, "at": 0.0}
 
 # SenseVoiceSmall-onnx 仓库的模型文件（model_quant.onnx 占体积大头）
 _ASR_MODEL_FILES: tuple[str, ...] = (
@@ -85,7 +95,12 @@ DEFAULT_ASR_CONFIG = {
     "parameters": {
         "sample_rate": 16000,
         # 静音超时：超过此秒数无语音则切句（webrtcvad 句子边界）
-        "silence_timeout": 1.5,
+        # 0.8s：中文正常停顿 0.3~0.6s，1.5s 会让「说完话」到「出字」
+        # 多等近 1 秒，实时体感明显变差
+        "silence_timeout": 0.8,
+        # 单句硬上限（秒）：VAD 被底噪持续误判为语音时的兜底，
+        # 超过即强制切句，避免整段音频被当成一句话
+        "max_sentence_seconds": 12.0,
         # 语言白名单：只允许识别这些语言（zh/en/ja/ko/yue），
         # 白名单外的语言（auto 检出）会被丢弃
         "allowed_languages": ["zh"],
@@ -119,6 +134,22 @@ async def get_third_party_config(db: AsyncSession) -> ThirdPartyConfig:
     ai_config = _deep_merge_defaults(DEFAULT_AI_CONFIG, saved_ai)
     asr_config = _deep_merge_defaults(DEFAULT_ASR_CONFIG, saved_asr)
     warmup_config = _deep_merge_defaults(DEFAULT_WARMUP_CONFIG, saved_warmup)
+
+    # P14：旧版全局热备开关迁移——历史上存过 {"enabled": true}，拆分成
+    # ai/asr 后旧键被合并原样保留、新键回落 False，用户的热备静默失效。
+    # 幂等一次性映射并回写，读路径此后不再依赖运行时换算。
+    if "enabled" in saved_warmup and "ai" not in saved_warmup and "asr" not in saved_warmup:
+        warmup_config["ai"] = bool(saved_warmup.get("enabled"))
+        warmup_config["asr"] = bool(saved_warmup.get("enabled"))
+        try:
+            await _save_config_value(db, "warmup", warmup_config)
+            await db.commit()
+            logger.info(
+                "已迁移旧版全局热备开关：enabled=%s → ai/asr",
+                saved_warmup.get("enabled"),
+            )
+        except Exception:
+            logger.warning("旧版热备开关迁移写回失败（读路径仍按迁移值生效）")
 
     return ThirdPartyConfig(
         ai_provider=AIProviderConfig(**ai_config),
@@ -254,56 +285,13 @@ async def test_ai_connection(db: AsyncSession) -> TestConnectionResponse:
 
 
 async def test_asr_service(db: AsyncSession) -> TestConnectionResponse:
-    """测试 ASR 服务"""
+    """测试 ASR 服务（P11：与带配置路径同一实现，消除本地模式假阳性）。
+
+    原实现本地模式只回「配置正常」不加载模型；前端总是带配置走
+    test_asr_with_config，但不带 body 调 /asr/test 的调用方会拿到假阳性。
+    """
     config = await get_third_party_config(db)
-
-    if config.asr_config.mode == "local":
-        # 检查本地 ASR 模型是否可用
-        return TestConnectionResponse(
-            success=True,
-            message="本地 ASR 服务配置正常",
-            details={"model": config.asr_config.local.get("model")},
-        )
-    else:
-        # 测试在线 ASR API
-        provider = config.asr_config.online.get("provider", "openai")
-        api_key = config.asr_config.online.get("api_key", "")
-        base_url = config.asr_config.online.get("base_url", "")
-
-        if not api_key:
-            return TestConnectionResponse(
-                success=False,
-                message="请填写 API Key",
-            )
-
-        import httpx
-        try:
-            if provider == "openai":
-                url = f"{base_url}/models"
-                headers = {"Authorization": f"Bearer {api_key}"}
-            else:
-                url = base_url
-                headers = {}
-
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(url, headers=headers)
-                if response.status_code == 200:
-                    return TestConnectionResponse(
-                        success=True,
-                        message=f"在线 ASR 服务连接正常 ({provider})",
-                        details={"provider": provider},
-                    )
-                else:
-                    return TestConnectionResponse(
-                        success=False,
-                        message=f"API 返回错误：{response.status_code}",
-                        details={"error": response.text[:200]},
-                    )
-        except Exception as e:
-            return TestConnectionResponse(
-                success=False,
-                message=f"连接失败：{str(e)}",
-            )
+    return await test_asr_with_config(config.asr_config)
 
 
 async def test_ai_with_config(ai_config: AIProviderConfig, measure_speed: bool = False, test_prompt: str = "Hi") -> TestConnectionResponse:
@@ -601,11 +589,31 @@ async def test_asr_with_config(asr_config: ASRConfig) -> TestConnectionResponse:
             )
 
 
+async def _prepare_asr_loaded(config: ThirdPartyConfig) -> None:
+    """同步完成「下载缺失缓存 + 载入内存」，调用方负责等待（P5）。
+
+    Celery 的 ensure_models_warm 用 asyncio.run 驱动，协程返回即关事件
+    循环——必须用可等待的同步版本；backend 进程内的热备循环才走
+    立即返回的后台模式。
+    """
+    import asyncio
+
+    from app.services import asr_engine
+
+    local = config.asr_config.local or {}
+    cached = asr_engine.get_cached_asr_models(_local_asr_model_names(config))
+    if cached["downloaded"] < cached["total"]:
+        await asyncio.to_thread(_download_asr_models, cached["models"])
+    await asyncio.to_thread(
+        asr_engine.init_asr_model,
+        local.get("model") or "sensevoice",
+    )
+
+
 async def preload_asr_models(db: AsyncSession) -> TestConnectionResponse:
     """预热本地 ASR 模型：缓存里没有的从 ModelScope 下载，然后加载进内存。
 
-    首次下载约 300 MB 权重，耗时可能几分钟，所以在后台线程里跑，
-    接口立即返回；进度通过 /asr/status 轮询查看。
+    后台执行（接口立即返回）；进度/失败通过 /asr/status 轮询查看。
     """
     import asyncio
 
@@ -615,7 +623,6 @@ async def preload_asr_models(db: AsyncSession) -> TestConnectionResponse:
     if config.asr_config.mode != "local":
         return TestConnectionResponse(success=False, message="在线模式无需下载模型")
 
-    local = config.asr_config.local or {}
     cached = asr_engine.get_cached_asr_models(_local_asr_model_names(config))
 
     if asr_engine.is_available():
@@ -628,18 +635,20 @@ async def preload_asr_models(db: AsyncSession) -> TestConnectionResponse:
     need_download = cached["downloaded"] < cached["total"]
 
     async def _prepare_in_background() -> None:
-        """后台：缓存不齐先下载（modelscope），下载完成再加载进内存。"""
         try:
-            if need_download:
-                await asyncio.to_thread(_download_asr_models, cached["models"])
-            await asyncio.to_thread(
-                asr_engine.init_asr_model,
-                local.get("model") or "sensevoice",
-            )
+            await _prepare_asr_loaded(config)
+            # 成功后清除失败标记（P6）
+            _asr_load_error["error"] = None
         except Exception as e:
             logger.warning("ASR 模型后台准备失败：%s", e)
+            _asr_load_error["error"] = str(e)
+            _asr_load_error["at"] = time.time()
 
+    # P10：持有 task 强引用（CPython 事件循环只保留弱引用，
+    # 无引用的 task 理论上可能被 GC），完成后自我清理。
     task = asyncio.create_task(_prepare_in_background())
+    _asr_bg_tasks.add(task)
+    task.add_done_callback(_asr_bg_tasks.discard)
 
     return TestConnectionResponse(
         success=True,
@@ -914,6 +923,9 @@ async def get_asr_model_status(db: AsyncSession) -> dict:
             "loaded": loaded,
             # 下载进度（与 AI 下载同源的字节级进度，供前端统一展示）
             **dl,
+            # P6：最近一次后台加载失败原因（None=无失败）；前端轮询
+            # 检测到即弹错误，不再等 180 秒超时
+            "load_error": _asr_load_error["error"],
         },
     }
 
@@ -994,15 +1006,34 @@ async def auto_start_ai_warmup(db: AsyncSession) -> TestConnectionResponse:
     return await warmup_ai_model(db)
 
 
-async def get_memory_info() -> dict[str, Any]:
+async def get_memory_info(db: AsyncSession | None = None) -> dict[str, Any]:
     """获取当前系统内存使用情况。
 
     读取 /proc/meminfo（Linux 容器内），返回总量、已用、可用、推荐值。
     智能判断警告：只在模型未加载时发出加载警告，已加载则视为正常占用。
     推荐值动态计算：基于当前已加载模型 + 系统开销。
+
+    P1 修复：原实现引用了未定义的 ``config``，NameError 被内层 except
+    吞掉，「缓存齐了就不报 ASR 内存警告」的逻辑从未生效。现在 db 可选：
+    调用方有会话就复用，没有就开独立会话取配置。
     """
     import platform
     from app.services import asr_engine
+
+    # 取当前 ASR 配置（决定本地模型名）；失败时退回默认名，仅影响
+    # 缓存检查的模型名，不影响内存数值本身。
+    config: ThirdPartyConfig | None = None
+    try:
+        if db is not None:
+            config = await get_third_party_config(db)
+        else:
+            from app.core.database import isolated_session
+
+            async with isolated_session() as s:
+                config = await get_third_party_config(s)
+    except Exception:
+        logger.warning("get_memory_info 读取 ASR 配置失败，按默认模型名检查缓存")
+        config = None
 
     info: dict[str, Any] = {
         "total_mb": None,
@@ -1032,14 +1063,17 @@ async def get_memory_info() -> dict[str, Any]:
         info["used_mb"] = round((total_kb - available_kb) / 1024)
         info["available_mb"] = round(available_kb / 1024)
 
-        # 检查 ASR 是否已加载
+        # 检查 ASR 是否已加载（纯「内存中」语义，P3）
         asr_loaded = asr_engine.is_available()
 
-        # 如果缓存已经齐了，即使进程内还没初始化，也不要立刻报“可能无法加载”
+        # 缓存完整单独成变量（P3）：只用于抑制「可能无法加载」警告——
+        # 原实现把「缓存齐」并入 asr_loaded，导致 loaded_mb 把不在内存里的
+        # 模型也计入，推荐内存虚高。
+        cache_complete = False
         try:
-            cached = asr_engine.get_cached_asr_models(_local_asr_model_names(config))
-            if not asr_loaded and cached["downloaded"] == cached["total"]:
-                asr_loaded = True
+            names = _local_asr_model_names(config) if config else ["sensevoice"]
+            cached = asr_engine.get_cached_asr_models(names)
+            cache_complete = cached["downloaded"] == cached["total"] and cached["total"] > 0
         except Exception:
             pass
 
@@ -1079,9 +1113,16 @@ async def get_memory_info() -> dict[str, Any]:
                 f"建议 {info['recommended_vm_mb']} MB）"
             )
 
-        # ASR 警告：只在 ASR 未加载且可用内存不足时
-        if not asr_loaded and info["available_mb"] and info["available_mb"] < 3000:
-            info["asr_warning"] = "可用内存不足 3 GB，ASR 模型可能无法加载"
+        # ASR 警告：只在「未在内存且缓存也不完整」且可用内存不足时（P4）。
+        # 阈值按 SenseVoice ONNX 实际占用（约 500 MB）下调：原 3000 MB 阈值
+        # 是 paraformer 时代（2.1 GB）的遗留，缓存完整时不应再报。
+        if (
+            not asr_loaded
+            and not cache_complete
+            and info["available_mb"]
+            and info["available_mb"] < 800
+        ):
+            info["asr_warning"] = "可用内存不足 800 MB，ASR 模型可能无法加载"
 
         # AI 警告：只在 AI 未加载且可用内存不足时
         if not info["ai_loaded"] and info["available_mb"] and info["available_mb"] < 2000:

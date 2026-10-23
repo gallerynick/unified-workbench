@@ -42,7 +42,6 @@ from app.core.database import Base
 # 显式导入全部模型，确保 Base.metadata 完整（与 Dockerfile 原有逻辑一致）
 from app.models import *  # noqa: F401, F403
 
-
 # ══════════════════════════════════════════════════════════════════════
 # 第一层：PG 枚举类型（必须在 create_all 之前）
 # ══════════════════════════════════════════════════════════════════════
@@ -263,6 +262,37 @@ def run() -> None:
             print(f"[startup_migrate]   {action}")
 
         # ── 第三层：手工特例 ──
+
+        # 迁移 045：contact.contact_type 由 PG 枚举 contacttype 改为 VARCHAR(100)，
+        # 支持自由填写联系人类型（预设 customer/supplier/partner 之外的值）。
+        # 列「类型变更」无法由第二层元数据对比表达（对比只补列、不改型），须显式写出。
+        # 幂等：已是 character varying 时跳过 ALTER；转换用 ::text 保留既有值，
+        # ALTER TYPE 会连带清掉默认值表达式，故单独补 SET DEFAULT。
+        # 枚举类型改由第一层从模型元数据派生，模型中已无该枚举，此处删除残留类型。
+        contact_cols = _actual_columns(conn, "contact")
+        if "contact_type" in contact_cols:
+            ct_type = conn.execute(
+                sa.text(
+                    "SELECT data_type FROM information_schema.columns "
+                    "WHERE table_schema = 'public' AND table_name = 'contact' "
+                    "AND column_name = 'contact_type'"
+                )
+            ).scalar()
+            if ct_type != "character varying":
+                conn.execute(
+                    sa.text(
+                        "ALTER TABLE contact ALTER COLUMN contact_type "
+                        "TYPE VARCHAR(100) USING contact_type::text"
+                    )
+                )
+                conn.execute(
+                    sa.text(
+                        "ALTER TABLE contact ALTER COLUMN contact_type "
+                        "SET DEFAULT 'customer'"
+                    )
+                )
+                print("[startup_migrate]   contact.contact_type 枚举 → VARCHAR(100)")
+            conn.execute(sa.text("DROP TYPE IF EXISTS contacttype"))
 
         # 迁移 046：form 表物理列改名，按当前列状态分支，保证幂等
         form_cols = _actual_columns(conn, "form")

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Collapse, Empty, Select, Spin, Switch, Tag, Typography, message } from 'antd';
+import { Collapse, Empty, Select, Spin, Tag, Typography, message } from 'antd';
+import Switch from '@/components/AppSwitch';
 import { SaveOutlined, UserOutlined } from '@ant-design/icons';
 import { getBacklinks, listFolders, listNoteTags, setNoteFolders, updateNote } from '@/api/notes';
 import type { Note, NoteBody, NoteFolder, NoteUpdate, TagCount } from '@/types/note';

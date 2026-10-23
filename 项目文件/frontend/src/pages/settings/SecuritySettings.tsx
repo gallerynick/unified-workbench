@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, Input, List, Modal, Space, Switch, Tag, Typography, message, Spin } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  Input,
+  List,
+  Modal,
+  Space,
+  Tag,
+  Typography,
+  message,
+  Spin,
+} from 'antd';
+import Switch from '@/components/AppSwitch';
 import {
   MobileOutlined,
   SafetyOutlined,
@@ -377,7 +390,6 @@ export default function SecuritySettings() {
                     key="rm"
                     type="text"
                     danger
-                    size="small"
                     icon={<DeleteOutlined />}
                     onClick={() => confirmRemove(d.id)}
                   >删除</Button>,
@@ -415,7 +427,6 @@ export default function SecuritySettings() {
                     key="rm"
                     type="text"
                     danger
-                    size="small"
                     icon={<DeleteOutlined />}
                     onClick={() => confirmRemoveWa(d.credential_id)}
                   >删除</Button>,
@@ -513,7 +524,6 @@ export default function SecuritySettings() {
               <code>{bindInfo.secret}</code>
             </Paragraph>
             <Input
-              size="large"
               maxLength={6}
               placeholder="输入 6 位动态码"
               value={bindCode}

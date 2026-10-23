@@ -311,7 +311,7 @@ export default function ChangeDetailPage() {
     <div className={styles.sectionHeader ?? ''}>
       <span className={styles.sectionTitle ?? ''}>{title}</span>
       {canManageChange && (
-        <Button type="link" size="small" icon={<EditOutlined />} onClick={onEdit}>
+        <Button type="link"  icon={<EditOutlined />} onClick={onEdit}>
           编辑
         </Button>
       )}

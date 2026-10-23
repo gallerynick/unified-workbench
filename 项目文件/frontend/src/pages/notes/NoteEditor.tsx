@@ -249,8 +249,8 @@ export default function NoteEditor({ note, isNew, onNavigate, onSaved, onCancelN
           description={`服务端草稿保存于 ${formatTime(pendingDraft.saved_at)}，与已发布的内容不同。`}
           action={
             <Space size={8}>
-              <Button size="small" type="primary" onClick={restoreDraft}>恢复草稿</Button>
-              <Button size="small" onClick={() => void discardDraft()}>丢弃</Button>
+              <Button  type="primary" onClick={restoreDraft}>恢复草稿</Button>
+              <Button  onClick={() => void discardDraft()}>丢弃</Button>
             </Space>
           }
         />

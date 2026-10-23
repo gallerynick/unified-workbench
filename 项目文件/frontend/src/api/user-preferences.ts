@@ -8,6 +8,10 @@ export interface UserPreferences {
   allow_multiple_logins: boolean;
   /** 点击侧边栏模块后自动折叠模块栏 */
   auto_collapse_sidebar: boolean;
+  /** 侧栏显示项 key 列表；null = 未设置（全部显示） */
+  sidebar_visible_items: string[] | null;
+  /** 侧栏显示密度 */
+  sidebar_density: 'compact' | 'comfortable';
 }
 
 export interface UpdateUserPreferencesRequest {
@@ -17,6 +21,10 @@ export interface UpdateUserPreferencesRequest {
   allow_multiple_logins?: boolean;
   /** 可选：不传，保持原值 */
   auto_collapse_sidebar?: boolean;
+  /** 可选：不传，保持原值 */
+  sidebar_visible_items?: string[] | null;
+  /** 可选：不传，保持原值 */
+  sidebar_density?: 'compact' | 'comfortable';
 }
 
 export async function getUserPreferences(): Promise<UnifiedResponse<UserPreferences>> {

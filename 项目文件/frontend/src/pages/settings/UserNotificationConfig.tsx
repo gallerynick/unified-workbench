@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Card, Input, Switch, Button, Typography, message, Space, Form, Alert } from 'antd';
+import { Card, Input, Button, Typography, message, Space, Form, Alert } from 'antd';
+import Switch from '@/components/AppSwitch';
 import { SaveOutlined, SendOutlined } from '@ant-design/icons';
 import { getNotificationConfig, updateNotificationConfig } from '../../api/auth';
 import { DEFAULT_CHANNELS } from '../../constants/channels';
@@ -142,7 +143,7 @@ export default function UserNotificationConfig() {
                 <Form.Item name="feishu_enabled" valuePropName="checked" noStyle>
                   <Switch checkedChildren="启用" unCheckedChildren="禁用" />
                 </Form.Item>
-                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel(FEISHU_CHANNEL)}>
+                <Button  icon={<SendOutlined />} onClick={() => testChannel(FEISHU_CHANNEL)}>
                   测试
                 </Button>
               </div>
@@ -165,7 +166,7 @@ export default function UserNotificationConfig() {
                 <Form.Item name="wecom_enabled" valuePropName="checked" noStyle>
                   <Switch checkedChildren="启用" unCheckedChildren="禁用" />
                 </Form.Item>
-                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel(WECOM_CHANNEL)}>
+                <Button  icon={<SendOutlined />} onClick={() => testChannel(WECOM_CHANNEL)}>
                   测试
                 </Button>
               </div>
@@ -188,7 +189,7 @@ export default function UserNotificationConfig() {
                 <Form.Item name="email_enabled" valuePropName="checked" noStyle>
                   <Switch checkedChildren="启用" unCheckedChildren="禁用" />
                 </Form.Item>
-                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel(EMAIL_CHANNEL)}>
+                <Button  icon={<SendOutlined />} onClick={() => testChannel(EMAIL_CHANNEL)}>
                   测试
                 </Button>
               </div>

@@ -29,6 +29,29 @@ export async function getMeetingRecord(id: string): Promise<UnifiedResponse<Meet
   return request<MeetingRecord>('/meetings/' + id);
 }
 
+/** 说话人分离模型状态（缺失时前端提示并可一键下载） */
+export interface SpeakerModelStatus {
+  available: boolean;
+  reason: string;
+  downloading: boolean;
+  message: string;
+  models: {
+    label: string;
+    path: string;
+    present: boolean;
+    bytes: number;
+    expected_bytes: number;
+  }[];
+}
+
+export async function getSpeakerModelStatus(): Promise<UnifiedResponse<SpeakerModelStatus>> {
+  return request<SpeakerModelStatus>('/meetings/speaker-model');
+}
+
+export async function downloadSpeakerModel(): Promise<UnifiedResponse<SpeakerModelStatus>> {
+  return request<SpeakerModelStatus>('/meetings/speaker-model/download', { method: 'POST' });
+}
+
 /** 导入会议录音（上传音频后自动触发识别） */
 export async function importMeetingAudio(id: string, file: File): Promise<UnifiedResponse<MeetingRecord>> {
   const form = new FormData();
@@ -99,6 +122,29 @@ export async function updateSpeakerNames(
   mapping: Record<string, string>,
 ): Promise<UnifiedResponse<MeetingRecord>> {
   return request<MeetingRecord>('/meetings/' + id + '/speakers', { method: 'PUT', body: mapping });
+}
+
+/** 手动指定某一句的说话人（模型分不出来时的最终出口） */
+export async function setSegmentSpeaker(
+  id: string,
+  seq: number,
+  speaker: string | null,
+): Promise<UnifiedResponse<null>> {
+  const q = speaker ? '?speaker=' + encodeURIComponent(speaker) : '';
+  return request<null>('/meetings/' + id + '/segments/' + seq + '/speaker' + q, {
+    method: 'PATCH',
+  });
+}
+
+/** 按指定人数重新区分说话人（不重跑转写） */
+export async function rediarizeSpeakers(
+  id: string,
+  numSpeakers: number,
+): Promise<UnifiedResponse<MeetingRecord>> {
+  return request<MeetingRecord>(
+    '/meetings/' + id + '/speakers/rediarize?num_speakers=' + numSpeakers,
+    { method: 'PUT' },
+  );
 }
 
 export async function reviewMinutes(id: string): Promise<UnifiedResponse<MeetingRecord>> {

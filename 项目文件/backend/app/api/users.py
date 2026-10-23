@@ -105,6 +105,8 @@ async def get_user_preferences_endpoint(
             theme_mode=prefs.get("theme_mode", "system"),
             allow_multiple_logins=prefs.get("allow_multiple_logins", True),
             auto_collapse_sidebar=prefs.get("auto_collapse_sidebar", False),
+            sidebar_visible_items=prefs.get("sidebar_visible_items"),
+            sidebar_density=prefs.get("sidebar_density", "comfortable"),
         )
     )
 
@@ -131,6 +133,11 @@ async def update_user_preferences_endpoint(
     # auto_collapse_sidebar 同理：不传保持原值，避免被重置回 False。
     if body.auto_collapse_sidebar is not None:
         prefs["auto_collapse_sidebar"] = body.auto_collapse_sidebar
+    # 侧栏显示项：[] 是合法值（全部取消勾选），只有 None 表示「不传、保持原值」
+    if body.sidebar_visible_items is not None:
+        prefs["sidebar_visible_items"] = body.sidebar_visible_items
+    if body.sidebar_density is not None:
+        prefs["sidebar_density"] = body.sidebar_density
     current_user.preferences = prefs
     flag_modified(current_user, "preferences")
     await db.commit()
@@ -141,5 +148,7 @@ async def update_user_preferences_endpoint(
             theme_mode=prefs.get("theme_mode"),
             allow_multiple_logins=prefs.get("allow_multiple_logins", True),
             auto_collapse_sidebar=prefs.get("auto_collapse_sidebar", False),
+            sidebar_visible_items=prefs.get("sidebar_visible_items"),
+            sidebar_density=prefs.get("sidebar_density", "comfortable"),
         )
     )

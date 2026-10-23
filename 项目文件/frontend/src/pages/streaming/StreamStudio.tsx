@@ -1,6 +1,24 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Space, Input, Tag, message, Modal, Tooltip, Dropdown, Typography, Form, InputNumber, Select, Slider, Switch, Spin, Table, Badge } from 'antd';
+import {
+  Button,
+  Space,
+  Input,
+  Tag,
+  message,
+  Modal,
+  Tooltip,
+  Dropdown,
+  Typography,
+  Form,
+  InputNumber,
+  Select,
+  Slider,
+  Spin,
+  Table,
+  Badge,
+} from 'antd';
+import Switch from '@/components/AppSwitch';
 import {
   VideoCameraOutlined, DesktopOutlined,
   PlayCircleOutlined, StopOutlined, PlusOutlined,
@@ -204,10 +222,13 @@ export default function StreamStudio() {
     loadSettings();
   }, [loadSettings]);
 
+  // 仅在真正推流期间暂停自动锁定。原先空依赖写法是「进入页面即暂停」，
+  // 会导致人离开工位、页面停在工作室但未推流时也永不锁屏。
   useEffect(() => {
-    pauseIdleTimer();
-    return () => { resumeIdleTimer(); };
-  }, []);
+    if (!isStreaming) return;
+    pauseIdleTimer('stream-studio');
+    return () => { resumeIdleTimer('stream-studio'); };
+  }, [isStreaming]);
 
   const handleSaveSettings = async () => {
     if (!roomId) return;
@@ -970,7 +991,6 @@ export default function StreamStudio() {
                     {scenes.length > 1 && (
                       <Button
                         type="text"
-                        size="small"
                         danger
                         icon={<DeleteOutlined />}
                         aria-label="删除场景"
@@ -998,7 +1018,7 @@ export default function StreamStudio() {
             <div className={styles.sectionTitle}>画面源</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xxs)", marginBottom: "var(--spacing-xxs)" }}>
               <Tooltip title={activeScene.sources.every((s) => s.visible) ? '全部隐藏' : '全部显示'}>
-                <Button type="text" size="small" icon={activeScene.sources.every((s) => s.visible) ? <EyeOutlined /> : <EyeOutlined style={{ opacity: 0.3 }} />} aria-label="切换显示" onClick={toggleAllSourcesVisibility} />
+                <Button type="text"  icon={activeScene.sources.every((s) => s.visible) ? <EyeOutlined /> : <EyeOutlined style={{ opacity: 0.3 }} />} aria-label="切换显示" onClick={toggleAllSourcesVisibility} />
               </Tooltip>
               <span style={{ fontSize: 'var(--text-body-xs-size)', fontWeight: 600 }}>黑屏</span>
             </div>
@@ -1018,7 +1038,6 @@ export default function StreamStudio() {
                   <Space size={4}>
                     <Button
                       type="text"
-                      size="small"
                       icon={<ArrowUpOutlined />}
                       aria-label="上移"
                       disabled={idx === 0}
@@ -1026,7 +1045,6 @@ export default function StreamStudio() {
                     />
                     <Button
                       type="text"
-                      size="small"
                       icon={<ArrowDownOutlined />}
                       aria-label="下移"
                       disabled={idx === activeScene.sources.length - 1}
@@ -1034,7 +1052,6 @@ export default function StreamStudio() {
                     />
                     <Button
                       type="text"
-                      size="small"
                       icon={
                         source.visible ? (
                           <EyeOutlined />
@@ -1047,7 +1064,6 @@ export default function StreamStudio() {
                     />
                     <Button
                       type="text"
-                      size="small"
                       danger
                       icon={<DeleteOutlined />}
                       aria-label="删除画面源"
@@ -1091,7 +1107,7 @@ export default function StreamStudio() {
             <div className={styles.sectionTitle}>音频源</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xxs)", marginBottom: "var(--spacing-xxs)" }}>
               <Tooltip title={masterMuted ? '取消静音' : '全部静音'}>
-                <Button type="text" size="small" icon={masterMuted ? <MutedOutlined /> : <SoundOutlined />} aria-label="切换静音" onClick={toggleMasterMute} />
+                <Button type="text"  icon={masterMuted ? <MutedOutlined /> : <SoundOutlined />} aria-label="切换静音" onClick={toggleMasterMute} />
               </Tooltip>
               <span style={{ fontSize: 'var(--text-body-xs-size)', fontWeight: 600 }}>静音</span>
             </div>
@@ -1100,14 +1116,13 @@ export default function StreamStudio() {
                 {track.stream ? (
                   <>
                     <Tooltip title={track.muted ? '取消静音' : '静音'}>
-                      <Button type="text" size="small" icon={track.muted ? <MutedOutlined /> : <SoundOutlined />} aria-label="切换静音" onClick={() => toggleTrackMute(i)} />
+                      <Button type="text"  icon={track.muted ? <MutedOutlined /> : <SoundOutlined />} aria-label="切换静音" onClick={() => toggleTrackMute(i)} />
                     </Tooltip>
                     <Text style={{ fontSize: 'var(--text-body-xs-size)', color: 'var(--color-success)', flex: 1 }}>{track.name}</Text>
-                    <Tooltip title="移除"><Button type="text" size="small" icon={<DeleteOutlined />} aria-label="移除音轨" onClick={() => removeAudioFromTrack(i)} /></Tooltip>
+                    <Tooltip title="移除"><Button type="text"  icon={<DeleteOutlined />} aria-label="移除音轨" onClick={() => removeAudioFromTrack(i)} /></Tooltip>
                   </>
                 ) : (
                   <Select
-                    size="small"
                     style={{ flex: 1 }}
                     placeholder={`${track.name} — 选择音频源`}
                     value={audioSourceSelections[i] || undefined}
@@ -1266,12 +1281,12 @@ export default function StreamStudio() {
               <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)" }}>
                 <Text style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>观看:</Text>
               <code style={{ color: 'var(--color-success)', fontSize: 'var(--text-body-xs-size)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{watchUrl || '设置中配置'}</code>
-              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} aria-label="复制" onClick={() => copyToClipboard(watchUrl, '观看地址')} /></Tooltip>
+              <Tooltip title="复制"><Button type="text"  icon={<CopyOutlined />} aria-label="复制" onClick={() => copyToClipboard(watchUrl, '观看地址')} /></Tooltip>
             </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: "var(--spacing-xs)" }}>
                 <Text style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>拉流:</Text>
               <code style={{ color: 'var(--color-warning)', fontSize: 'var(--text-body-xs-size)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roomInfo?.rtmp_url || '配置中'}</code>
-              <Tooltip title="复制"><Button type="text" size="small" icon={<CopyOutlined />} aria-label="复制" onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', '拉流地址')} /></Tooltip>
+              <Tooltip title="复制"><Button type="text"  icon={<CopyOutlined />} aria-label="复制" onClick={() => copyToClipboard(roomInfo?.rtmp_url || '', '拉流地址')} /></Tooltip>
             </div>
           </div>
           </div>
@@ -1460,7 +1475,7 @@ export default function StreamStudio() {
             </Text>
             <Text type="secondary" style={{ fontSize: 'var(--text-body-xs-size)' }}>4 档数据量 × 3 轮 + 2/4 路并发 + 下行，约 30~60 秒</Text>
             <div style={{ marginTop: "var(--spacing-md)" }}>
-              <Button type="primary" icon={<DashboardOutlined />} onClick={handleSpeedTest} size="large">开始测速</Button>
+              <Button type="primary" icon={<DashboardOutlined />} onClick={handleSpeedTest}>开始测速</Button>
             </div>
           </div>
         )}

@@ -407,7 +407,6 @@ export default function TopologyManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />
@@ -430,7 +429,7 @@ export default function TopologyManagement() {
                     className={`${styles.topologyItem} ${currentTopology?.id === item.id ? styles.topologyItemActive : ''}`}
                     onClick={() => loadTopology(item)}
                     actions={[
-                      <Button key="delete" type="text" size="small" danger icon={<DeleteOutlined />} aria-label="删除" onClick={(e) => { e.stopPropagation(); handleDelete(item); }} />
+                      <Button key="delete" type="text"  danger icon={<DeleteOutlined />} aria-label="删除" onClick={(e) => { e.stopPropagation(); handleDelete(item); }} />
                     ]}
                   >
                     <div className={styles.topologyItemContent}>
@@ -584,9 +583,9 @@ export default function TopologyManagement() {
                           </div>
                           <div className={styles.customRow}>
                             <span className={styles.customLabel}>文字</span>
-                            <Input size="small" placeholder="节点文字" value={customLabel} onChange={(e) => setCustomLabel(e.target.value)} />
+                            <Input  placeholder="节点文字" value={customLabel} onChange={(e) => setCustomLabel(e.target.value)} />
                           </div>
-                          <Button type="primary" size="small" icon={<PlusOutlined />} onClick={addCustomNode} block>添加到画布</Button>
+                          <Button type="primary"  icon={<PlusOutlined />} onClick={addCustomNode} block>添加到画布</Button>
                         </>
                       )}
                     </div>

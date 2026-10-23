@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Button, Typography, Modal, message, Space, Table, Tag, Tooltip, Empty, Collapse } from 'antd';
+import { Button, Typography, Modal, message, Space, Table, Tag, Tooltip, Empty, Collapse, Spin } from 'antd';
 import { PlusOutlined, ArrowLeftOutlined, EyeOutlined, DeleteOutlined, KeyOutlined, FolderOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getSecretCategory } from '../../api/secret_categories';
@@ -180,13 +180,16 @@ export default function CategoryDetail({ categoryId, onBack }: CategoryDetailPro
     {
       title: '操作',
       key: 'action',
-      width: 140,
+      // size="small" 表格单元格 padding 仅 8px，内容区 = 列宽 − 16。
+      // 两个带文字 link 按钮（查看 66 + 间隔 8 + 删除 66 = 140）在 140 列宽下
+      // 内容区只有 124px，按钮组放不下、右侧溢出撞到表格行边界（实测 953>945）。
+      // 170 → 内容区 154px ≥ 140px，留 14px 余量。
+      width: 170,
       render: (_: unknown, record: Secret) => (
         <Space size="small">
           <Tooltip title="查看">
             <Button
               type="link"
-              size="small"
               icon={<EyeOutlined />}
               onClick={() => handleView(record)}
             >
@@ -196,7 +199,6 @@ export default function CategoryDetail({ categoryId, onBack }: CategoryDetailPro
           <Tooltip title="删除">
             <Button
               type="link"
-              size="small"
               danger
               icon={<DeleteOutlined />}
               onClick={() => handleDelete(record)}
@@ -278,7 +280,11 @@ export default function CategoryDetail({ categoryId, onBack }: CategoryDetailPro
         </Button>
       </div>
 
-      {secrets.length === 0 && !loading ? (
+      {loading ? (
+        <div className={styles.loadingContainer ?? ''}>
+          <Spin size="large" />
+        </div>
+      ) : secrets.length === 0 ? (
         <Empty description="该分类下暂无密钥">
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             添加密钥

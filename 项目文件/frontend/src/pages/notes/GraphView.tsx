@@ -398,7 +398,6 @@ export default function GraphView({ graph, onNodeClick }: GraphViewProps) {
         ) : null}
         <Tooltip title={colorMode === 'folder' ? '按文件夹着色' : '统一色'}>
           <Select
-            size="small"
             value={colorMode}
             onChange={(value: ColorMode) => setColorMode(value)}
             options={[

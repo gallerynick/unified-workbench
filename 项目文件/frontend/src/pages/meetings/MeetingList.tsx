@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusOutlined, ClockCircleOutlined, CheckCircleOutlined, PlayCircleOutlined, PauseCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import { Button, Input, InputNumber, Modal, Form, Tag, Tooltip, Space, Empty, message, Spin, Typography, Upload } from 'antd';
+import { Button, Input, InputNumber, Modal, Form, Tag, Tooltip, Space, Empty, message, Spin, Typography, Upload, Pagination } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { listMeetingRecords, createMeetingRecord, importMeetingAudio } from '../../api/meeting-records';
 import type { MeetingRecord, MeetingRecordCreate, MeetingStatus } from '../../types/meeting-record';
@@ -33,14 +33,19 @@ export default function MeetingList() {
   const [permissionVisible, setPermissionVisible] = useState(false);
   const [createForm] = Form.useForm();
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  // M9：分页——原实现固定拉第一页 100 条，第 101 场会议起静默不可见
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 20;
   const navigate = useNavigate();
 
-  const fetchMeetings = useCallback(async () => {
+  const fetchMeetings = useCallback(async (targetPage: number = page) => {
     setLoading(true);
     try {
-      const res = await listMeetingRecords({ page: 1, page_size: 100 });
+      const res = await listMeetingRecords({ page: targetPage, page_size: PAGE_SIZE });
       if (res.code === 0 && res.data) {
         setMeetings(res.data.items || []);
+        setTotal(res.data.total || 0);
       }
     } catch (error) {
       console.error('获取会议列表失败:', error);
@@ -48,7 +53,7 @@ export default function MeetingList() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     fetchMeetings();
@@ -86,7 +91,8 @@ export default function MeetingList() {
         setCreateModalOpen(false);
         createForm.resetFields();
         setAudioFile(null);
-        fetchMeetings();
+        setPage(1);  // 新会议排在最前，回到第一页能看到
+        fetchMeetings(1);
       } else {
         message.error(res.msg || '创建失败');
       }
@@ -128,7 +134,6 @@ export default function MeetingList() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />
@@ -174,6 +179,19 @@ export default function MeetingList() {
               </div>
             );
           })}
+          </div>
+        )}
+        {/* M9：分页器——后端本就支持分页，前端此前固定拉 100 条 */}
+        {total > PAGE_SIZE && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+            <Pagination
+              current={page}
+              total={total}
+              pageSize={PAGE_SIZE}
+              showSizeChanger={false}
+              showTotal={(t) => `共 ${t} 场会议`}
+              onChange={(p) => setPage(p)}
+            />
           </div>
         )}
       </Spin>

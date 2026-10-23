@@ -159,7 +159,6 @@ export default function SecretFormModal({
           <span className={styles.kvLabel ?? ''}>数据</span>
           <Button
             type="dashed"
-            size="small"
             icon={<PlusOutlined />}
             onClick={handleAddKv}
           >
@@ -184,7 +183,6 @@ export default function SecretFormModal({
               />
               <Button
                 type="text"
-                size="small"
                 danger
                 icon={<MinusCircleOutlined />}
                 aria-label="移除"

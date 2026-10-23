@@ -29,6 +29,17 @@ class UserPreferenceUpdate(BaseModel):
         default=None,
         description="点击模块后自动折叠侧边栏；不传则保持原值",
     )
+    # 侧栏显示项：哪些业务菜单项在侧栏显示。
+    # 注意 None 与 [] 语义不同——None = 不传（保持原值），[] = 用户全部取消勾选。
+    sidebar_visible_items: list[str] | None = Field(
+        default=None,
+        description="侧栏显示项 key 列表；不传则保持原值",
+    )
+    sidebar_density: str | None = Field(
+        default=None,
+        pattern=r"^(compact|comfortable)$",
+        description="侧栏显示密度：compact=紧凑, comfortable=舒适；不传则保持原值",
+    )
 
 
 class UserPreferenceResponse(BaseModel):
@@ -42,3 +53,7 @@ class UserPreferenceResponse(BaseModel):
     auto_collapse_sidebar: bool = Field(
         default=False, description="点击模块后自动折叠侧边栏"
     )
+    sidebar_visible_items: list[str] | None = Field(
+        default=None, description="侧栏显示项 key 列表；null 表示未设置（全部显示）"
+    )
+    sidebar_density: str = Field(default="comfortable", description="侧栏显示密度")

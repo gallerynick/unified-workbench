@@ -150,30 +150,9 @@ async def create_meeting_record(
     user: User,
     data: dict[str, Any],
 ) -> MeetingRecord:
-    """创建会议记录，生成唯一会议编号。"""
-    now = now_shanghai()
-    date_str = now.strftime("%Y%m%d")
-    prefix = f"MTG-{date_str}-"
-
-    result = await db.execute(
-        select(MeetingRecord.number)
-        .where(MeetingRecord.number.like(f"{prefix}%"))
-        .order_by(MeetingRecord.number.desc())
-        .limit(1)
-    )
-    last_number = result.scalar_one_or_none()
-
-    if last_number:
-        seq_part = last_number.split("-")[-1]
-        next_seq = int(seq_part) + 1
-    else:
-        next_seq = 1
-
-    meeting_number = f"{prefix}{next_seq:03d}"
-
+    """创建会议记录。"""
     item = MeetingRecord(
         id=uuid.uuid4(),
-        number=meeting_number,
         title=data["title"],
         owner_id=user.id,
         visibility=data.get("visibility", "private"),
@@ -230,7 +209,7 @@ async def delete_meeting_record(
     meeting_id: uuid.UUID,
     user: User,
 ) -> bool:
-    """删除会议记录。"""
+    """删除会议记录（彻底：连同音频文件一并删除）。"""
     user_tag_ids = await _get_user_tag_ids(db, user)
     item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
 
@@ -239,8 +218,22 @@ async def delete_meeting_record(
             status_code=403, detail="仅创建者可以删除会议"
         )
 
+    audio_path = item.audio_file_path
     await db.delete(item)
     await db.flush()
+
+    # 同步删除音频文件（数据库记录已删，若文件删除失败仅记日志不影响删除结果）。
+    # 用独立事务提交后删除，避免文件系统操作阻塞数据库会话。
+    if audio_path:
+        import os
+
+        try:
+            if os.path.isfile(audio_path):
+                os.remove(audio_path)
+                logger.info("Removed audio file for meeting %s: %s", meeting_id, audio_path)
+        except Exception as exc:
+            logger.warning("Failed to remove audio file %s: %s", audio_path, exc)
+
     return True
 
 
@@ -349,7 +342,14 @@ async def end_meeting_record(
     item.status = "processing"
     item.ended_at = now_shanghai()
 
-    if item.started_at:
+    # 时长以实际录音时长为准（中途离开/暂停的空白不能计入）；
+    # 无音频文件时回退到墙钟时间。
+    from app.utils.timeutil import wav_duration_seconds
+
+    audio_duration = wav_duration_seconds(item.audio_file_path)
+    if audio_duration is not None:
+        item.duration_seconds = audio_duration
+    elif item.started_at:
         elapsed = (item.ended_at - item.started_at).total_seconds()
         item.duration_seconds = int(elapsed)
 
@@ -421,7 +421,10 @@ async def regenerate_minutes_record(
 
     - 仅创建者可触发；
     - 会议已结束（completed）才允许；
-    - **只重新生成纪要**：用现有转录段（含用户改过的说话人名），
+    - **异步执行**：置 processing 后入队 regenerate_minutes_task，
+      请求立即返回，模型生成（30~120s）由 Celery 后台完成，
+      前端按钮不再长时间转圈，由轮询获取完成/失败；
+    - **只重新生成纪要**：任务内用现有转录段（含用户改过的说话人名），
       不重跑转写/说话人分离（否则会把改的名覆盖掉）。
     """
     user_tag_ids = await _get_user_tag_ids(db, user)
@@ -430,44 +433,34 @@ async def regenerate_minutes_record(
     if item.owner_id != user.id:
         raise HTTPException(status_code=403, detail="仅创建者可以重新生成纪要")
 
+    # 已在处理中：幂等返回现状，不重复入队（避免 400 让前端状态卡死）
+    if item.status == "processing":
+        return item
+
     if item.status != "completed":
         raise HTTPException(
             status_code=400, detail="会议尚未结束，不能重新生成纪要"
         )
 
-    # 读取现有转录段（带说话人名）
-    result = await db.execute(
-        select(MeetingTranscriptSegment)
-        .where(MeetingTranscriptSegment.meeting_id == meeting_id)
-        .order_by(MeetingTranscriptSegment.seq)
-    )
-    segs = list(result.scalars().all())
-    minutes_input = [
-        {
-            "text": s.text,
-            "start_ms": s.audio_start_ms,
-            "end_ms": s.audio_end_ms,
-            "speaker": s.speaker,
-        }
-        for s in segs
-        if s.text
-    ]
+    # 置为处理中，前端轮询显示生成进度
+    item.status = "processing"
+    item.minutes_status = "pending"
+    item.processing_stage = "正在生成纪要"
+    await db.flush()
+    await db.refresh(item)
+    await db.commit()
 
     try:
-        from app.services.meeting_minutes import generate_minutes
+        from app.tasks.meeting_process import regenerate_minutes_task
 
-        from app.tasks.meeting_process import _build_minutes_meta
-
-        meeting_meta = _build_minutes_meta(item, minutes_input)
-        minutes_data, model_used = await generate_minutes(
-            minutes_input, meeting_meta=meeting_meta
-        )
-        await _save_minutes_record(db, item, minutes_data, model_used)
-        item.minutes_status = "done"
+        regenerate_minutes_task.delay(str(item.id))
     except Exception as exc:
-        logger.error("重新生成纪要失败：%s", exc)
+        logger.error("Failed to enqueue minutes regeneration for %s: %s", item.id, exc)
+        item.status = "completed"
         item.minutes_status = "failed"
-    await db.commit()
+        item.processing_stage = None
+        await db.flush()
+
     return item
 
 
@@ -587,7 +580,6 @@ async def export_meeting_data(
         segments = await get_transcript_segments(db, meeting_id, user)
         return {
             "type": "transcript",
-            "number": item.number,
             "title": item.title,
             "segments": [
                 {
@@ -606,7 +598,6 @@ async def export_meeting_data(
             raise HTTPException(status_code=404, detail="纪要尚未生成")
         return {
             "type": "minutes",
-            "number": item.number,
             "title": item.title,
             "summary": item.minutes.summary,
             "key_points": item.minutes.key_points,
@@ -622,11 +613,133 @@ async def export_meeting_data(
     if export_type == "audio":
         if not item.audio_file_path:
             raise HTTPException(status_code=404, detail="音频文件不存在")
+        # M12：不再返回容器内部路径（前端无法使用）；
+        # 前端导出录音应走 GET /{meeting_id}/audio 下载端点
         return {
             "type": "audio",
-            "number": item.number,
             "title": item.title,
-            "audio_file_path": item.audio_file_path,
+            "audio_download_url": f"/api/v1/meetings/{meeting_id}/audio",
         }
 
     raise HTTPException(status_code=400, detail="不支持的导出类型")
+
+async def set_segment_speaker(
+    db: AsyncSession,
+    meeting_id: uuid.UUID,
+    user: User,
+    seq: int,
+    speaker: str | None,
+) -> MeetingTranscriptSegment:
+    """手动指定某一句的说话人（模型分不出来时的最终出口）。
+
+    自动聚类/分离都可能失败（实测 22 秒近场音频 pyannote 只检出 0.7 秒
+    语音，即使放大 4.6 倍也仅 8% 覆盖）——这种情况下唯一可靠的办法
+    是让用户自己标。只改这一句，不动其它段。
+    """
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
+
+    if item.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="仅创建者可以修改说话人")
+
+    result = await db.execute(
+        select(MeetingTranscriptSegment).where(
+            MeetingTranscriptSegment.meeting_id == meeting_id,
+            MeetingTranscriptSegment.seq == seq,
+        )
+    )
+    seg = result.scalar_one_or_none()
+    if not seg:
+        raise HTTPException(status_code=404, detail="该转录句子不存在")
+
+    seg.speaker = (speaker or "").strip() or None
+    await db.flush()
+    return seg
+
+
+async def rediarize_meeting_record(
+    db: AsyncSession,
+    meeting_id: uuid.UUID,
+    user: User,
+    num_speakers: int,
+) -> MeetingRecord:
+    """按指定人数重新区分说话人（不重跑转写）。
+
+    自动聚类对小模型不可靠：同一段音频在不同阈值下可能分出 1~9 个
+    "说话人"，没有通用阈值。真实人数只有用户知道，所以提供这条
+    "用户指定人数 → 强制 N 簇"的可靠路径。
+
+    做法：用 num_speakers=N 重跑说话人分离，再按**时间重叠度**把
+    已落库的转录段重新归属到新的说话人——不重新做 ASR，几秒完成。
+    """
+    import asyncio
+
+    user_tag_ids = await _get_user_tag_ids(db, user)
+    item = await _get_meeting_or_404(db, meeting_id, user, user_tag_ids)
+
+    if item.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="仅创建者可以重新区分说话人")
+    if not item.audio_file_path:
+        raise HTTPException(status_code=400, detail="该会议没有音频文件，无法区分说话人")
+    if num_speakers < 1 or num_speakers > 20:
+        raise HTTPException(status_code=400, detail="讲话人人数需在 1-20 之间")
+
+    from app.services.speaker_diarization import diarize_speakers
+
+    try:
+        turs = await asyncio.to_thread(
+            diarize_speakers, item.audio_file_path, num_speakers
+        )
+    except Exception as exc:
+        logger.error("重新区分说话人失败：%s", exc)
+        raise HTTPException(status_code=500, detail=f"说话人分离失败：{exc}")
+
+    if not turs:
+        raise HTTPException(
+            status_code=400, detail="音频中未检测到语音，无法区分说话人"
+        )
+
+    # spk 编号 → 连续「说话人N」，按首次出现时间排序，保证稳定
+    spk_order: list[int] = []
+    for seg in sorted(turs, key=lambda x: x["start_time"]):
+        if seg["spk"] not in spk_order:
+            spk_order.append(seg["spk"])
+    spk_name = {spk: f"说话人{i + 1}" for i, spk in enumerate(spk_order)}
+
+    # 读取现有转录段，逐段按最大时间重叠归属
+    result = await db.execute(
+        select(MeetingTranscriptSegment)
+        .where(MeetingTranscriptSegment.meeting_id == meeting_id)
+        .order_by(MeetingTranscriptSegment.seq)
+    )
+    segments = list(result.scalars().all())
+
+    for seg in segments:
+        seg_start = seg.audio_start_ms or 0
+        seg_end = seg.audio_end_ms
+        if seg_end is None:
+            # 老数据可能没有结束时间：按文本长度粗估 5 字/秒，最少 1 秒
+            seg_end = seg_start + max(1000, len(seg.text or "") * 200)
+
+        best_spk: int | None = None
+        best_overlap = 0.0
+        for turn in turs:
+            overlap = min(seg_end, turn["end_time"]) - max(seg_start, turn["start_time"])
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_spk = turn["spk"]
+
+        # 无重叠（静音/噪声段）保持原归属，不改动
+        if best_spk is not None and best_overlap > 0:
+            seg.speaker = spk_name[best_spk]
+
+    item.expected_speakers = num_speakers
+    item.diarization_status = "done"
+    await db.flush()
+    await db.refresh(item)
+    logger.info(
+        "会议 %s 按指定人数 %d 重新区分说话人完成，%d 段已重新归属",
+        meeting_id, num_speakers, len(segments),
+    )
+    return item
+

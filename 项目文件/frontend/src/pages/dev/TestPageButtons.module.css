@@ -1,0 +1,319 @@
+/* ============================================================
+ * 开发测试页 — 按钮样式（沙箱验证）
+ * 对齐来源：
+ *   输入框（CalendarEventModal.module.css）
+ *     --input-border / --input-bg / --rounded-sm / 焦点 --color-info + 光晕
+ *   滑动选择框（CalendarPage.module.css .segmented、ColorFilterBar.module.css .chip）
+ *     --bg-tertiary 悬停底 / --color-info-bg + --color-info 选中态 / scale(0.95) 按下
+ * 约束：颜色与尺寸一律引用 token.css、typography.css，无硬编码色值
+ * ============================================================ */
+
+.section {
+  flex: 1;
+  min-height: 0;
+  padding: var(--spacing-lg);
+  box-sizing: border-box;
+  background: var(--bg-primary);
+}
+
+.inner {
+  max-width: var(--content-max-width-text);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+/* ── 页头 ─────────────────────────────────────── */
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-heading-2-size);
+  font-weight: var(--text-heading-2-weight);
+  line-height: var(--text-heading-2-line);
+  letter-spacing: var(--text-heading-2-spacing);
+  color: var(--ink);
+}
+
+.lead {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-line);
+  letter-spacing: var(--text-caption-spacing);
+  color: var(--text-secondary);
+}
+
+/* ── 分组 ─────────────────────────────────────── */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.group + .group {
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.groupHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.groupName {
+  font-family: var(--font-body);
+  font-size: var(--text-caption-strong-size);
+  font-weight: var(--text-caption-strong-weight);
+  line-height: var(--text-caption-strong-line);
+  letter-spacing: var(--text-caption-strong-spacing);
+  color: var(--ink);
+}
+
+.groupNote {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs-size);
+  font-weight: var(--text-body-xs-weight);
+  line-height: var(--text-body-xs-line);
+  color: var(--text-tertiary);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.rowLabel {
+  flex: none;
+  width: 76px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs-size);
+  line-height: var(--text-body-xs-line);
+  color: var(--text-secondary);
+}
+
+/* ── 基线对照条：输入框 / 下拉 / 分段 / 按钮 同高同圆角 ── */
+
+.baseline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--rounded-sm);
+}
+
+/* ── 按钮基座（对齐输入框规格） ────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xxs);
+  height: var(--input-height);
+  padding: 0 var(--spacing-sm);
+  box-sizing: border-box;
+  border: var(--input-border);
+  border-radius: var(--rounded-sm);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: 1;
+  letter-spacing: var(--text-caption-spacing);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background var(--anim-fast) var(--anim-ease),
+    border-color var(--anim-fast) var(--anim-ease),
+    color var(--anim-fast) var(--anim-ease),
+    transform var(--anim-fast) var(--anim-ease);
+}
+
+.btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.btn:active {
+  transform: var(--btn-active-scale);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 1px;
+}
+
+.btn:disabled {
+  color: var(--text-disabled);
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
+  cursor: not-allowed;
+}
+
+.btn:disabled:active {
+  transform: none;
+}
+
+/* ── 纯图标按钮：正方形，宽高相等 ──────────────── */
+
+.iconBtn {
+  width: var(--input-height);
+  padding: 0;
+  font-size: var(--text-body-sm-size);
+}
+
+/* ── 变体 ─────────────────────────────────────── */
+
+/* 轻量：无描边、无底色，用于工具栏与列表行内 */
+.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.ghost:hover {
+  background: var(--bg-tertiary);
+  color: var(--ink);
+}
+
+/* 主行动：实底，与输入框焦点蓝同色 */
+.primary {
+  background: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--btn-primary-text);
+}
+
+.primary:hover {
+  background: var(--color-info);
+  border-color: var(--color-info);
+  filter: brightness(0.92);
+}
+
+/* 危险：描边型，静默时不喧哗 */
+.danger {
+  color: var(--color-error);
+}
+
+.danger:hover {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+/* 危险：实底型，用于不可逆操作的最终确认 */
+.dangerSolid {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: var(--btn-primary-text);
+}
+
+.dangerSolid:hover {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  filter: brightness(0.92);
+}
+
+/* 文本按钮：无底无边，仅文字 */
+.text {
+  padding: 0 var(--spacing-xxs);
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-info);
+}
+
+.text:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-info);
+  text-decoration: underline;
+}
+
+/* 开关按下 / 选中：与分段控件、筛选芯片的选中态同源 */
+.on,
+.on:hover {
+  background: var(--color-info-bg);
+  border-color: transparent;
+  color: var(--color-info);
+}
+
+/* ── 尺寸 ─────────────────────────────────────── */
+
+.sm {
+  height: 28px;
+  padding: 0 var(--spacing-xs);
+  font-size: var(--text-body-xs-size);
+}
+
+.sm.iconBtn {
+  width: 28px;
+  padding: 0;
+}
+
+.lg {
+  height: 36px;
+  padding: 0 var(--spacing-md);
+}
+
+.lg.iconBtn {
+  width: 36px;
+  padding: 0;
+}
+
+/* ── 加载态 ───────────────────────────────────── */
+
+.loading {
+  pointer-events: none;
+  opacity: 0.72;
+}
+
+/* ── 规格速查 ─────────────────────────────────── */
+
+.spec {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: var(--spacing-xxs) var(--spacing-sm);
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+}
+
+.spec dt {
+  color: var(--text-secondary);
+}
+
+.spec dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+/* ── 使用建议 ─────────────────────────────────── */
+
+.notes {
+  margin: 0;
+  padding-left: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--text-secondary);
+}

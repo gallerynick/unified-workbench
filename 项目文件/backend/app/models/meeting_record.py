@@ -26,9 +26,6 @@ class MeetingRecord(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    number: Mapped[str] = mapped_column(
-        String(50), nullable=False, unique=True, comment="会议编号 MTG-YYYYMMDD-NNN"
-    )
     title: Mapped[str] = mapped_column(
         String(500), nullable=False, comment="会议标题"
     )

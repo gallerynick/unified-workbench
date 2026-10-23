@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Button, Form, Input, Modal, Select, Space, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import type { Contact, ContactType } from '../../types/contact';
+import { AutoComplete, Form, Input, Modal, message } from 'antd';
+import { CONTACT_TYPE_PRESETS } from '../../types/contact';
+import type { Contact } from '../../types/contact';
 import type { Visibility } from '../../utils/visibility';
 import VisibilitySetting from '@/components/VisibilitySetting/VisibilitySetting';
 import { createContact, updateContact } from '../../api/contacts';
-
-const TYPE_MAP: Record<ContactType, { color: string; text: string }> = {
-  customer: { color: 'blue', text: '客户' },
-  supplier: { color: 'green', text: '供应商' },
-  partner: { color: 'purple', text: '合作伙伴' },
-  other: { color: 'default', text: '其他' },
-};
 
 interface ContactModalProps {
   open: boolean;
@@ -22,16 +15,14 @@ interface ContactModalProps {
   onSaved: () => void;
 }
 
-interface CustomField {
-  key: string;
-  value: string;
-}
-
 /**
  * 联系人 新建/编辑 共用弹窗
  *
  * 供「联系人管理」页（ContactManagement）复用，表单与提交逻辑内聚于此，
  * 页面只负责打开/关闭/刷新，一处修改、多处以一。
+ *
+ * 类型字段为 AutoComplete：可选「客户/供应商/合作伙伴」预设，也可直接输入
+ * 自定义类型（后端 VARCHAR(100) 存储）；旧版「其他 + 自定义字段」方案已移除。
  */
 export default function ContactModal({
   open,
@@ -45,8 +36,7 @@ export default function ContactModal({
   const [formCompany, setFormCompany] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formPhone, setFormPhone] = useState('');
-  const [formType, setFormType] = useState<ContactType>('customer');
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [formType, setFormType] = useState('customer');
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [restrictedUsers, setRestrictedUsers] = useState<string[]>([]);
 
@@ -58,22 +48,15 @@ export default function ContactModal({
       setFormCompany(editingContact.company || '');
       setFormEmail(editingContact.email || '');
       setFormPhone(editingContact.phone || '');
-      setFormType(editingContact.contact_type);
+      setFormType(editingContact.contact_type || 'customer');
       setVisibility((editingContact.visibility as Visibility) || 'private');
       setRestrictedUsers(editingContact.restricted_users || []);
-      const tags = editingContact.tags as Record<string, unknown> | null;
-      setCustomFields(
-        tags?.customFields && Array.isArray(tags.customFields)
-          ? tags.customFields as CustomField[]
-          : []
-      );
     } else {
       setFormName('');
       setFormCompany('');
       setFormEmail('');
       setFormPhone('');
       setFormType('customer');
-      setCustomFields([]);
       setVisibility('private');
       setRestrictedUsers([]);
     }
@@ -88,8 +71,8 @@ export default function ContactModal({
         company: formCompany,
         email: formEmail,
         phone: formPhone,
-        contact_type: formType,
-        tags: formType === 'other' && customFields.length > 0 ? { customFields } : null,
+        // 预设与自定义类型共用同一字段；清空时回落到默认值 customer
+        contact_type: formType.trim() || 'customer',
         visibility,
         ...(visibility === 'restricted' && restrictedUsers.length > 0 ? { restricted_users: restrictedUsers } : {}),
       };
@@ -146,7 +129,14 @@ export default function ContactModal({
           <Input placeholder="请输入电话" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
         </Form.Item>
         <Form.Item label="类型">
-          <Select value={formType} onChange={(v) => setFormType(v as ContactType)} options={Object.entries(TYPE_MAP).map(([k, v]) => ({ value: k, label: v.text }))} />
+          <AutoComplete
+            value={formType}
+            onChange={(v) => setFormType(v)}
+            options={CONTACT_TYPE_PRESETS.map((p) => ({ value: p.value, label: p.label }))}
+            placeholder="选择预设或直接输入自定义类型"
+            allowClear
+            onBlur={() => { if (!formType.trim()) setFormType('customer'); }}
+          />
         </Form.Item>
         <Form.Item label="可见性">
           <VisibilitySetting
@@ -158,23 +148,6 @@ export default function ContactModal({
             label=""
           />
         </Form.Item>
-        {formType === 'other' && (
-          <div style={{ border: 'var(--border-width-thin) solid var(--border-primary)', borderRadius: 'var(--rounded-chip)', padding: "var(--spacing-sm)" }}>
-            <div style={{ marginBottom: "var(--spacing-xs)", fontWeight: 600 }}>自定义字段</div>
-            {customFields.map((f, i) => (
-              <Space key={i} style={{ marginBottom: "var(--spacing-xs)", display: 'flex' }}>
-                <Input placeholder="字段名" value={f.key} style={{ width: 120 }}
-                  onChange={(e) => { const n = [...customFields]; n[i]!.key = e.target.value; setCustomFields(n); }} />
-                <Input placeholder="值" value={f.value} style={{ width: 160 }}
-                  onChange={(e) => { const n = [...customFields]; n[i]!.value = e.target.value; setCustomFields(n); }} />
-                <Button type="link" danger size="small" onClick={() => setCustomFields(customFields.filter((_, idx) => idx !== i))}>删除</Button>
-              </Space>
-            ))}
-            <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setCustomFields([...customFields, { key: '', value: '' }])}>
-              添加字段
-            </Button>
-          </div>
-        )}
       </Form>
     </Modal>
   );

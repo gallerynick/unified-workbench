@@ -607,7 +607,6 @@ const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.sta
                           key="disconnect"
                           type="link"
                           danger
-                          size="small"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDisconnectTodo(todo.id);
@@ -693,7 +692,6 @@ const headerStatusLabel = PROPOSAL_STATUS_LABEL[proposal.status] ?? proposal.sta
                           key="disconnect"
                           type="link"
                           danger
-                          size="small"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDisconnectMeeting(meeting.id);

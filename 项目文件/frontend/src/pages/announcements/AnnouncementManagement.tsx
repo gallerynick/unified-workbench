@@ -122,7 +122,6 @@ export default function AnnouncementManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />
@@ -174,7 +173,6 @@ export default function AnnouncementManagement() {
                       <Tooltip title="编辑">
                         <Button
                           type="link"
-                          size="small"
                           icon={<EditOutlined />}
                           onClick={() => handleEdit(item)}
                         >
@@ -190,7 +188,7 @@ export default function AnnouncementManagement() {
                         onConfirm={() => handleDelete(item)}
                       >
                         <Tooltip title="删除">
-                          <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+                          <Button type="link"  danger icon={<DeleteOutlined />}>
                             删除
                           </Button>
                         </Tooltip>

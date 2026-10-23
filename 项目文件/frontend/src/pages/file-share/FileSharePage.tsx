@@ -176,7 +176,6 @@ export function FileSharePage() {
           <Tooltip title="共享">
             <Button
               type="link"
-              size="small"
               icon={<ShareAltOutlined />}
               aria-label="分享"
               onClick={() => setQrRecord(record)}
@@ -185,7 +184,6 @@ export function FileSharePage() {
           <Tooltip title="设置">
             <Button
               type="link"
-              size="small"
               icon={<SettingOutlined />}
               aria-label="设置"
               onClick={() => setSettingsRecord(record)}
@@ -194,7 +192,6 @@ export function FileSharePage() {
           <Tooltip title="删除">
             <Button
               type="link"
-              size="small"
               danger
               icon={<DeleteOutlined />}
               aria-label="删除"
@@ -219,7 +216,6 @@ export function FileSharePage() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />
@@ -292,7 +288,6 @@ export function FileSharePage() {
                 suffix={
                   <Button
                     type="text"
-                    size="small"
                     icon={<CopyOutlined />}
                     aria-label="复制"
                     onClick={() => {
@@ -312,7 +307,6 @@ export function FileSharePage() {
                 suffix={
                   <Button
                     type="text"
-                    size="small"
                     icon={<CopyOutlined />}
                     aria-label="复制"
                     onClick={() => {

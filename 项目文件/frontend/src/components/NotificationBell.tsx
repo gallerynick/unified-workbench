@@ -46,7 +46,6 @@ export default function NotificationBell({
         {unreadCount > 0 && (
           <Button
             type="link"
-            size="small"
             icon={<CheckOutlined />}
             onClick={onMarkAllAsRead}
           >
@@ -102,7 +101,7 @@ export default function NotificationBell({
             )}
           />
           <div style={{ padding: 'var(--spacing-xs) var(--spacing-card-gap)', borderTop: '1px solid var(--border-secondary)', textAlign: 'center' }}>
-            <Button type="link" size="small" icon={<ExpandOutlined />} onClick={() => navigate('/notifications')}>
+            <Button type="link"  icon={<ExpandOutlined />} onClick={() => navigate('/notifications')}>
               查看全部
             </Button>
           </div>

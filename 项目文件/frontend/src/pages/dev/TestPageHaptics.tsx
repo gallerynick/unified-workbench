@@ -197,7 +197,6 @@ export default function HapticsTestSection() {
             actions={[
               <Button
                 key="test"
-                size="small"
                 onClick={() => {
                   const actions = [
                     testVibrateSupport,

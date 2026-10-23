@@ -113,10 +113,16 @@ export function useMeetingWebSocket(
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       setState((prev) => ({ ...prev, connected: false, warningMessage: null }));
-      // 只有在应该连接的情况下才重连
-      if (shouldConnectRef.current) {
+      // 业务性关闭（后端明确拒绝）不重连，避免死循环：
+      // 4001 无效 token / 4002 会议未录音 / 4004 会议不存在 / 4005 已被他人占用
+      // 1000 被新连接替换（同用户重连成功，旧连接由后端主动关闭）
+      const businessCloseCodes = [1000, 4001, 4002, 4004, 4005];
+      const isBusinessClose = businessCloseCodes.includes(event.code);
+      // 只有非业务性关闭（网络异常/服务端重启等）且在应当连接时才重连
+      if (shouldConnectRef.current && !isBusinessClose) {
+        setState((prev) => ({ ...prev, error: '连接已断开，正在重连...' }));
         reconnectTimer.current = setTimeout(() => {
           connect();
         }, 3000);

@@ -84,10 +84,10 @@ export default function TagManagement() {
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="编辑">
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
+            <Button type="link"  icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
           </Tooltip>
           <Tooltip title="删除">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
+            <Button type="link"  danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
           </Tooltip>
         </Space>
       ),

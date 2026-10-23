@@ -1,7 +1,13 @@
 # note 知识库重做 —— 实施计划
 
-> 关联规格：`待办计划/note知识库重做设计规格.md`
+> 关联规格：`待办计划/已完成/note知识库重做设计规格.md`
 > 状态：**待执行** ｜ 创建日期：2026-09-08 ｜ 版本：v2.0.0
+>
+> ⚠️ **归档说明（2026-10-22）**：本计划已被《note 工作台重构设计整理》（2026-09-30 五阶段完成）取代，
+> 其能力目标（Tiptap 正文、双链、反链、图谱、标签、全文搜索、服务端草稿）均已落地：
+> `note_link` / `note_draft` 表、`BacklinksPanel.tsx`、`NoteWorkspace.tsx`、
+> `schemas/note.py` 的 `visibility` / `restricted_users` / `restricted_tags` 均已就位。
+> 状态行保留原始「待执行」以存真，不再更新。
 
 ---
 

@@ -662,7 +662,6 @@ export default function CalendarPage() {
                 </div>
                 <div className={styles.panelHeadRight}>
                   <Button
-                    size="small"
                     className={cx(styles.panelCreateBtn)}
                     icon={<PlusOutlined />}
                     onClick={() => openCreateModal(panelDay)}

@@ -84,7 +84,6 @@ class MeetingRecordResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    number: str
     title: str
     owner_id: uuid.UUID
     visibility: str
@@ -113,3 +112,24 @@ class MeetingRecordListResponse(BaseModel):
 
     items: list[MeetingRecordResponse]
     total: int
+
+
+class SpeakerModelFile(BaseModel):
+    """声纹模型文件状态"""
+
+    label: str
+    path: str
+    present: bool
+    bytes: int
+    expected_bytes: int
+
+
+class SpeakerModelStatus(BaseModel):
+    """说话人分离模型状态（前端据此提示「为什么没区分说话人」）"""
+
+    available: bool
+    reason: str = ""
+    downloading: bool = False
+    message: str = ""
+    models: list[SpeakerModelFile] = []
+

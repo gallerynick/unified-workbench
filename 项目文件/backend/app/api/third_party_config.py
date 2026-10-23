@@ -9,7 +9,7 @@ from typing import Any
 # 保存配置时触发的后台预热任务引用（防 GC 回收协程）
 _WARMUP_SAVE_TASKS: list[asyncio.Task] = []
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -178,10 +178,12 @@ async def preload_asr_models_endpoint(
 @router.get("/asr/memory", response_model=UnifiedResponse[dict[str, Any]])
 async def get_memory_info_endpoint(
     current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
 ):
     """获取系统内存信息和建议"""
     from app.services.third_party_config import get_memory_info
-    result = await get_memory_info()
+    # P1：复用请求会话取 ASR 配置，省一次独立连接
+    result = await get_memory_info(db)
     return UnifiedResponse(data=result)
 
 

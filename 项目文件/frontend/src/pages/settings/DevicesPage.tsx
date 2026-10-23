@@ -150,7 +150,7 @@ export default function DevicesPage() {
                   {new Date(d.last_active_at).toLocaleString('zh-CN')}
                 </Text>
                 {d.device_token ? (
-                  <Button type="link" danger size="small" icon={<LogoutOutlined />}
+                  <Button type="link" danger  icon={<LogoutOutlined />}
                     loading={revoking === d.device_token}
                     onClick={(e) => { e.stopPropagation(); handleLogout(d); }}
                   >注销</Button>

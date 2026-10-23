@@ -1,14 +1,5 @@
-import {
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  Switch,
-  DatePicker,
-  Divider,
-  Upload,
-  Button,
-} from 'antd';
+import { Form, Input, InputNumber, Select, DatePicker, Divider, Upload, Button } from 'antd';
+import Switch from '@/components/AppSwitch';
 import { UploadOutlined } from '@ant-design/icons';
 import type { TemplateField } from '../../types/template';
 

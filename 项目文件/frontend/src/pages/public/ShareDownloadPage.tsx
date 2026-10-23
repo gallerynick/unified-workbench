@@ -177,7 +177,6 @@ export default function ShareDownloadPage() {
         {status === 'ready' && (
           <Button
             type="primary"
-            size="large"
             icon={<DownloadOutlined />}
             className={styles.downloadButton ?? ''}
             onClick={handleDownload}

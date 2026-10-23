@@ -201,10 +201,10 @@
 /* ── 新建事件按钮（规格 button-primary：胶囊形 + 行动蓝） ── */
 
 .createBtn {
-  height: 38px;
+  height: var(--btn-height);
   padding: 0 20px;
   border: none;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--btn-radius);
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   font-family: var(--font-body);
@@ -231,8 +231,8 @@
 }
 
 .infoBtn {
-  width: 36px;
-  height: 36px;
+  width: var(--btn-height);
+  height: var(--btn-height);
   border-radius: var(--rounded-circular);
   color: var(--ink-muted-48);
   font-size: var(--text-body-sm-size);

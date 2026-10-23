@@ -152,11 +152,21 @@
   --content-max-width-text: 980px;
   --content-max-width-grid: 1440px;
 
-  /* === 组件级 token — 按钮 === */
-  --btn-primary-bg: var(--color-primary);
+  /* === 组件级 token — 按钮 ===
+   * 圆角统一 rounded-sm 8px：按钮与输入框、下拉、开关同一套圆角语言，不再使用胶囊
+   * 主行动底色取交互蓝 color-info，与输入框焦点环同色 */
+  --btn-radius: var(--rounded-sm);
+  --btn-height: var(--input-height);
+  --btn-bg: var(--input-bg);
+  --btn-border: var(--input-border);
+  --btn-text: var(--ink);
+  --btn-hover-bg: var(--bg-tertiary);
+  --btn-selected-bg: var(--color-info-bg);
+  --btn-selected-text: var(--color-info);
+  --btn-primary-bg: var(--color-info);
   --btn-primary-text: #ffffff;
-  --btn-primary-padding: 11px 22px;
-  --btn-primary-rounded: var(--rounded-pill);
+  --btn-primary-padding: 0 12px;
+  --btn-primary-rounded: var(--rounded-sm);
   --btn-hero-padding: 14px 28px;
   --btn-dark-utility-bg: var(--ink);
   --btn-dark-utility-text: var(--body-on-dark);
@@ -207,8 +217,31 @@
   --input-focus-border: 1px solid var(--color-info);
   --input-focus-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
   --input-error-border: 1px solid var(--color-error);
-  --switch-width: 44px;
-  --switch-height: 22px;
+  /* 开关（AppSwitch）：关=输入框描边色、开=输入框焦点蓝、滑块恒白
+   * 默认 56×32 与输入框同高；图形画在轨道上由滑块遮挡；详见 UI设计规范 switch */
+  --switch-width: 56px;
+  --switch-height: 32px;
+  /* 轨道 32 = 内缩 3 + 滑块 26 + 3；内缩略大于分段控件，保证滑块与外壳之间有足够呼吸 */
+  --switch-thumb-size: 26px;
+  --switch-inset: 3px;
+  --switch-radius: var(--rounded-sm);
+  /* 内外圆角同心：内 = 外 8px − 内缩 2px = 6px */
+  --switch-thumb-radius: calc(var(--switch-radius) - var(--switch-inset));
+  --switch-track-off: var(--bg-tertiary);
+  --switch-track-on: var(--color-info);
+  --switch-thumb-bg: var(--canvas);
+  --switch-thumb-shadow: var(--shadow-sm);
+  --switch-glyph-on: var(--btn-primary-text);
+  --switch-glyph-off: var(--ink-muted-80);
+  --switch-halo: var(--ink);
+  --switch-halo-width: 2px;
+  --switch-sweep-color: var(--text-tertiary);
+  --switch-sweep-opacity: 0.32;
+  --switch-width-sm: 44px;
+  --switch-height-sm: 24px;
+  --switch-width-lg: 68px;
+  --switch-height-lg: 38px;
+  --switch-disabled-opacity: 0.45;
   --checkbox-size: 16px;
   --radio-size: 16px;
 
@@ -221,6 +254,9 @@
   --sider-menu-item-active-bg: var(--color-info-bg);
   --sider-menu-item-active-text: var(--color-info);
   --sider-menu-item-hover-bg: var(--bg-tertiary);
+  /* 类别名文字：次级色小字，作为分组路标（弱于菜单项正文） */
+  --sider-category-label: var(--ink-muted-48);
+  --sider-category-label-size: var(--text-body-xs-size);
 
   /* === 组件级 token — 顶栏 === */
   --header-bg: var(--canvas);
@@ -364,6 +400,11 @@
   --color-gold: #ffec3d;
   --color-cornflower: #85a5ff;
   --color-rose: #ffadd2;
+
+  /* === 开关（深色）===
+   * 深色下滑块为近黑，轮廓绕行亮光改取白，保证对比 */
+  --switch-halo: var(--body-on-dark);
+  --switch-sweep-opacity: 0.4;
 
   /* === 滚动条（深色） === */
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);

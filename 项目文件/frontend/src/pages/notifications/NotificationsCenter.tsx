@@ -102,7 +102,7 @@ export default function NotificationsCenter() {
                   className={item.read ? styles.readItem ?? '' : styles.unreadItem ?? ''}
                   actions={
                     !item.read
-                      ? [<Button key="read" type="link" size="small" onClick={() => markAsRead(item.id)}>标为已读</Button>]
+                      ? [<Button key="read" type="link"  onClick={() => markAsRead(item.id)}>标为已读</Button>]
                       : []
                   }
                 >

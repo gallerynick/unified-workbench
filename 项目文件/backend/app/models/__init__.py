@@ -3,7 +3,7 @@
 from app.models.announcement import Announcement
 from app.models.budget import Budget, BudgetPeriod, BudgetStatus
 from app.models.calendar_event import CalendarEvent, EventRepeat
-from app.models.contact import Contact, ContactType
+from app.models.contact import Contact
 from app.models.content import Content
 from app.models.file_share import FileShare
 from app.models.form import Form, FormResponse

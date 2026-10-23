@@ -372,7 +372,6 @@ export default function SystemDetail() {
           <Tooltip title="编辑">
             <Button
               type="link"
-              size="small"
               icon={<EditOutlined />}
               aria-label="编辑服务"
               onClick={() => handleServiceEdit(record)}
@@ -381,7 +380,6 @@ export default function SystemDetail() {
           <Tooltip title="删除">
             <Button
               type="link"
-              size="small"
               danger
               icon={<DeleteOutlined />}
               aria-label="删除服务"
@@ -497,7 +495,7 @@ export default function SystemDetail() {
           <Title level={5} className={styles.sectionTitle ?? ''}>
             虚拟机列表
           </Title>
-          <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleVmCreate}>
+          <Button type="primary"  icon={<PlusOutlined />} onClick={handleVmCreate}>
             新增虚拟机
           </Button>
         </div>
@@ -516,7 +514,6 @@ export default function SystemDetail() {
                     <Button
                       key="edit"
                       type="link"
-                      size="small"
                       icon={<EditOutlined />}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -528,7 +525,6 @@ export default function SystemDetail() {
                     <Button
                       key="delete"
                       type="link"
-                      size="small"
                       danger
                       icon={<DeleteOutlined />}
                       onClick={(e) => {
@@ -557,7 +553,7 @@ export default function SystemDetail() {
         <Title level={5} className={styles.sectionTitle ?? ''}>
           服务列表
         </Title>
-        <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleServiceCreate}>
+        <Button type="primary"  icon={<PlusOutlined />} onClick={handleServiceCreate}>
           新增服务
         </Button>
       </div>

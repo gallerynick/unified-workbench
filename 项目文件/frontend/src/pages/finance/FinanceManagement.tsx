@@ -158,10 +158,10 @@ export default function FinanceManagement() {
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="编辑">
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEditBudget(record)}>编辑</Button>
+            <Button type="link"  icon={<EditOutlined />} onClick={() => handleEditBudget(record)}>编辑</Button>
           </Tooltip>
           <Tooltip title="删除">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteBudget(record)}>删除</Button>
+            <Button type="link"  danger icon={<DeleteOutlined />} onClick={() => handleDeleteBudget(record)}>删除</Button>
           </Tooltip>
         </Space>
       ),
@@ -189,10 +189,10 @@ export default function FinanceManagement() {
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="编辑">
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEditSubscription(record)}>编辑</Button>
+            <Button type="link"  icon={<EditOutlined />} onClick={() => handleEditSubscription(record)}>编辑</Button>
           </Tooltip>
           <Tooltip title="删除">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteSubscription(record)}>删除</Button>
+            <Button type="link"  danger icon={<DeleteOutlined />} onClick={() => handleDeleteSubscription(record)}>删除</Button>
           </Tooltip>
         </Space>
       ),
@@ -207,7 +207,6 @@ export default function FinanceManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />

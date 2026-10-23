@@ -507,7 +507,6 @@ export default function TodoDetailPage() {
                           key="disconnect-proposal"
                           type="link"
                           danger
-                          size="small"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDisconnectProposal();
@@ -601,7 +600,6 @@ export default function TodoDetailPage() {
                           key="disconnect-meeting"
                           type="link"
                           danger
-                          size="small"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDisconnectMeeting(meeting);

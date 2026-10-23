@@ -112,9 +112,9 @@ export interface ASRCachedModel {
 }
 
 export interface ASRModelStatus {
-  /** downloaded 全部就绪 / partial 部分就绪 / not_downloaded 未下载 /
+  /** ready 已载入内存 / downloaded 全部就绪(未载入) / partial 部分 / not_downloaded 未下载 /
    *  not_available 当前是在线模式 / error 检查失败 */
-  status: 'downloaded' | 'partial' | 'not_downloaded' | 'not_available' | 'error' | string;
+  status: 'ready' | 'downloaded' | 'partial' | 'not_downloaded' | 'not_available' | 'error' | string;
   message?: string;
   details?: {
     models: ASRCachedModel[];
@@ -123,6 +123,8 @@ export interface ASRModelStatus {
     loaded: boolean;
     /** 下载进度（与 AI 下载同一套字段，未下载时为 false/0） */
     downloading?: boolean;
+    /** P6：最近一次后台加载失败原因（null=无失败），前端据此即时弹错 */
+    load_error?: string | null;
     download_progress?: number;
     download_speed?: number;
     download_eta_seconds?: number | null;

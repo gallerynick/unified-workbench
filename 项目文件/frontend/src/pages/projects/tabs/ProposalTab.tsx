@@ -184,7 +184,6 @@ export default function ProposalTab({ project }: { project: Project }) {
         render: (number: string, record: ProjectProposal) => (
           <Button
             type="link"
-            size="small"
             style={{ padding: 0, height: 'auto' }}
             onClick={() => navigate(`/projects/${project.id}/proposal/${record.id}`)}
           >
@@ -268,7 +267,6 @@ export default function ProposalTab({ project }: { project: Project }) {
         render: (_: unknown, record: ProjectProposal) => (
           <Button
             type="link"
-            size="small"
             icon={<RightOutlined />}
             onClick={() => navigate(`/projects/${project.id}/proposal/${record.id}`)}
           >

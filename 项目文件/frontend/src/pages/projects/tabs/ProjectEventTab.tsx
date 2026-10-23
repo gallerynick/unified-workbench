@@ -4,27 +4,19 @@ import {
   Button,
   Empty,
   Input,
-  Modal,
   Space,
   Table,
   Tag,
-  Tooltip,
   Typography,
   message,
 } from 'antd';
 import {
-  DeleteOutlined,
-  EditOutlined,
-  ExclamationCircleOutlined,
   PlusOutlined,
   SearchOutlined,
   SwapOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import {
-  deleteProjectEvent,
-  listProjectEvents,
-} from '../../../api/project-events';
+import { listProjectEvents } from '../../../api/project-events';
 import { listUsers } from '../../../api/users';
 import { EVENT_TYPE_OPTIONS } from '../../../constants/project';
 import { useUser } from '../../../contexts/UserContext';
@@ -165,39 +157,6 @@ export default function ProjectEventTab({ project }: { project: Project }) {
     setEventModalOpen(true);
   }, []);
 
-  const openEdit = useCallback((record: ProjectEvent) => {
-    setEditingEvent(record);
-    setEventModalOpen(true);
-  }, []);
-
-  // ── 删除 ──
-  const handleDelete = useCallback(
-    (record: ProjectEvent) => {
-      Modal.confirm({
-        title: '确认删除事件',
-        icon: <ExclamationCircleOutlined />,
-        content: `确定要删除事件「${record.number} ${record.title}」吗？此操作不可恢复。`,
-        okText: '删除',
-        okButtonProps: { danger: true },
-        cancelText: '取消',
-        onOk: async () => {
-          try {
-            const res = await deleteProjectEvent(record.id);
-            if (res.code === 0) {
-              message.success('事件已删除');
-              void fetchData();
-            } else {
-              message.error(res.msg || '删除失败');
-            }
-          } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : '删除失败';
-            message.error(msg);
-          }
-        },
-      });
-    },
-    [fetchData],
-  );
 
   // ── 列定义 ──
   const columns = useMemo<ColumnsType<ProjectEvent>>(
@@ -250,40 +209,9 @@ export default function ProjectEventTab({ project }: { project: Project }) {
         width: 170,
         render: (time: string) => formatDate(time),
       },
-      {
-        title: '操作',
-        key: 'actions',
-        width: 140,
-        align: 'right',
-        render: (_, record) => {
-          if (!canOperate) return null;
-          return (
-            <Space size="small" wrap>
-              <Tooltip title="编辑">
-                <Button
-                  size="small"
-                  type="link"
-                  icon={<EditOutlined />}
-                  aria-label="编辑"
-                  onClick={() => openEdit(record)}
-                />
-              </Tooltip>
-              <Tooltip title="删除">
-                <Button
-                  size="small"
-                  type="link"
-                  danger
-                  icon={<DeleteOutlined />}
-                  aria-label="删除"
-                  onClick={() => handleDelete(record)}
-                />
-              </Tooltip>
-            </Space>
-          );
-        },
-      },
+
     ],
-    [canOperate, displayName, openEdit, handleDelete],
+    [canOperate, displayName],
   );
 
   return (

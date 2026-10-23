@@ -94,15 +94,15 @@ export default function VoteManagement() {
         <Space size="small">
           {record.status === 'active' && (
             <Tooltip title="参与投票">
-              <Button type="link" size="small" icon={<CheckCircleOutlined />} onClick={() => handleOpenVote(record)}>投票</Button>
+              <Button type="link"  icon={<CheckCircleOutlined />} onClick={() => handleOpenVote(record)}>投票</Button>
             </Tooltip>
           )}
           <Tooltip title="查看结果">
-            <Button type="link" size="small" icon={<BarChartOutlined />} onClick={() => handleViewResults(record)}>结果</Button>
+            <Button type="link"  icon={<BarChartOutlined />} onClick={() => handleViewResults(record)}>结果</Button>
           </Tooltip>
           {record.owner_id === user?.id && (
             <Tooltip title="删除">
-              <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
+              <Button type="link"  danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
             </Tooltip>
           )}
         </Space>
@@ -119,7 +119,6 @@ export default function VoteManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />

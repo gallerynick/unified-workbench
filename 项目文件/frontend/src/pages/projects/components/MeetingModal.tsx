@@ -19,8 +19,6 @@ import { createProjectMeeting, updateProjectMeeting } from '../../../api/project
 import { listUsers } from '../../../api/users';
 import { MEETING_TYPE_OPTIONS, PROJECT_NUMBER_PREFIX } from '../../../constants/project';
 
-const { TextArea } = Input;
-
 interface MeetingModalProps {
   project: Project;
   /** 控制弹窗显隐 */
@@ -40,9 +38,8 @@ interface MeetingModalProps {
 
 interface MeetingFormValues {
   type: string;
-  title: string;
-  /** 正文（可选）；后端按「标题\n\n正文」存于 content */
-  body?: string;
+  /** 交流主题；正文与备注均在详情页编辑，此处只填元数据 */
+  title?: string;
   started_at?: Dayjs;
   speaker?: string;
   participants?: string[];
@@ -63,18 +60,6 @@ function buildMeetingNumber(project: Project, existing: ProjectMeeting[]): strin
     }
   }
   return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
-}
-
-/**
- * 内容字段约定：后端无独立 title 字段，按「标题\n\n正文」存储于 content。
- * 表单「主题」字段编辑标题部分，「正文」字段编辑正文部分，正文为空时不写入分隔符。
- * 新建模式仅填元数据（类型/主题/时间/发言人/参与人），正文留待详情页编辑时填写。
- */
-export function splitTitleContent(content: string | null): { title: string; body: string } {
-  const raw = content ?? '';
-  const idx = raw.indexOf('\n\n');
-  if (idx === -1) return { title: raw, body: '' };
-  return { title: raw.slice(0, idx).trim(), body: raw.slice(idx + 2) };
 }
 
 /**
@@ -102,11 +87,9 @@ export default function MeetingModal({
     if (!open) return;
     form.resetFields();
     if (editingMeeting) {
-      const { title, body } = splitTitleContent(editingMeeting.content);
       form.setFieldsValue({
         type: editingMeeting.type,
-        title,
-        body,
+        title: editingMeeting.title ?? '',
         ...(editingMeeting.started_at ? { started_at: dayjs(editingMeeting.started_at) } : {}),
         ...(editingMeeting.speaker ? { speaker: editingMeeting.speaker } : {}),
         ...(editingMeeting.participants?.length ? { participants: editingMeeting.participants } : {}),
@@ -135,16 +118,13 @@ export default function MeetingModal({
     setSubmitting(true);
     try {
       if (editingMeeting) {
-        // 编辑模式：标题与正文均取自表单，避免与旧数据混写
-        const title = values.title?.trim() ?? '';
-        const body = values.body?.trim() ?? '';
-        const content = body ? `${title}\n\n${body}` : title;
+        // 编辑模式仅改元数据（含主题）；正文与备注在详情页编辑，避免与正文混写
         const payload: ProjectMeetingUpdate = {
           type: values.type,
+          title: values.title?.trim() || null,
           started_at: values.started_at?.toISOString() ?? new Date().toISOString(),
           ...(values.speaker?.trim() ? { speaker: values.speaker.trim() } : { speaker: null }),
           ...(values.participants?.length ? { participants: values.participants } : { participants: [] }),
-          content,
         };
         const res = await updateProjectMeeting(editingMeeting.id, payload);
         if (res.code === 0) {
@@ -162,11 +142,7 @@ export default function MeetingModal({
           started_at: values.started_at?.toISOString() ?? new Date().toISOString(),
           ...(values.speaker?.trim() ? { speaker: values.speaker.trim() } : {}),
           ...(values.participants?.length ? { participants: values.participants } : {}),
-          content: (() => {
-            const title = values.title?.trim() ?? '';
-            const body = values.body?.trim() ?? '';
-            return body ? `${title}\n\n${body}` : title;
-          })(),
+          title: values.title?.trim() || null,
           ...(initialProposalId ? { proposal_id: initialProposalId } : {}),
           ...(initialTodoId ? { todo_id: initialTodoId } : {}),
         };
@@ -208,18 +184,8 @@ export default function MeetingModal({
           label="主题"
           rules={[{ required: true, message: '请输入交流主题' }]}
         >
-          <TextArea rows={3} placeholder="请输入交流主题（如：产品评审、客户需求沟通）" maxLength={500} showCount />
+          <Input placeholder="请输入交流主题（如：产品评审、客户需求沟通）" maxLength={500} />
         </Form.Item>
-        {editingMeeting && (
-          <Form.Item name="body" label="正文">
-            <TextArea
-              rows={6}
-              placeholder="请输入交流正文（可选，换行保留）"
-              maxLength={5000}
-              showCount
-            />
-          </Form.Item>
-        )}
         <Form.Item name="started_at" label="时间">
           <DatePicker showTime style={{ width: '100%' }} />
         </Form.Item>

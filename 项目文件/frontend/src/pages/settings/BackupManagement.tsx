@@ -1,5 +1,18 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Table, Button, Typography, Modal, message, Space, Card, Switch, InputNumber, Input, Result, Tooltip } from 'antd';
+import {
+  Table,
+  Button,
+  Typography,
+  Modal,
+  message,
+  Space,
+  Card,
+  InputNumber,
+  Input,
+  Result,
+  Tooltip,
+} from 'antd';
+import Switch from '@/components/AppSwitch';
 import { CloudServerOutlined, DeleteOutlined, ReloadOutlined, CloudDownloadOutlined, LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { createBackup, listBackups, deleteBackup, restoreBackup } from '../../api/backups';
@@ -199,7 +212,6 @@ export default function BackupManagement() {
           <Tooltip title="恢复">
             <Button
               type="link"
-              size="small"
               icon={<CloudDownloadOutlined />}
               onClick={() => handleRestore(record.filename)}
            >
@@ -209,7 +221,6 @@ export default function BackupManagement() {
           <Tooltip title="删除">
             <Button
               type="link"
-              size="small"
               danger
               icon={<DeleteOutlined />}
               onClick={() => handleDelete(record.filename)}

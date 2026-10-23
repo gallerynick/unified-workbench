@@ -439,7 +439,6 @@ export default function NoteSidebar({
           <Dropdown trigger={['hover']} menu={noteMenu(note)}>
             <Button
               type="text"
-              size="small"
               icon={<MoreOutlined />}
               className={styles.noteMore ?? ''}
               aria-label="笔记操作"
@@ -464,7 +463,6 @@ export default function NoteSidebar({
           <div className={rowClass.join(' ')}>
             <Button
               type="text"
-              size="small"
               className={styles.folderArrow ?? ''}
               aria-label={isExpanded ? '收起文件夹' : '展开文件夹'}
               icon={
@@ -513,7 +511,6 @@ export default function NoteSidebar({
             >
               <Button
                 type="text"
-                size="small"
                 icon={<MoreOutlined />}
                 className={styles.noteMore ?? ''}
                 aria-label="文件夹操作"
@@ -541,7 +538,6 @@ export default function NoteSidebar({
           <Tooltip title={searchOpen ? '关闭搜索' : '搜索笔记'}>
             <Button
               type={searchOpen ? 'primary' : 'text'}
-              size="small"
               icon={<SearchOutlined />}
               aria-label="搜索笔记"
               aria-pressed={searchOpen}
@@ -551,7 +547,6 @@ export default function NoteSidebar({
           <Tooltip title={allExpanded ? '全部收起' : '全部展开'}>
             <Button
               type="text"
-              size="small"
               icon={allExpanded ? <CompressOutlined /> : <ExpandOutlined />}
               aria-label={allExpanded ? '全部收起' : '全部展开'}
               disabled={folders.length === 0}
@@ -562,7 +557,6 @@ export default function NoteSidebar({
             <Tooltip title="排序方式">
               <Button
                 type="text"
-                size="small"
                 icon={<SortAscendingOutlined />}
                 aria-label="排序方式"
               />
@@ -572,7 +566,6 @@ export default function NoteSidebar({
           <Tooltip title="新建文件夹">
             <Button
               type="text"
-              size="small"
               icon={<FolderAddOutlined />}
               aria-label="新建文件夹"
               onClick={() => openCreateFolder()}

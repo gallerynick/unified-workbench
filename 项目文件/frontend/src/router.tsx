@@ -1,6 +1,6 @@
 import { Spin } from 'antd';
 import { Suspense } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import AuthGuard from '@/components/AuthGuard';
 import LockGuard from '@/components/LockGuard';
 import LockPage from '@/pages/LockPage';
@@ -70,6 +70,13 @@ const TestPage = lazy(() => import('@/pages/dev/TestPage'));
 const MeetingList = lazy(() => import('@/pages/meetings/MeetingList'));
 const MeetingRoom = lazy(() => import('@/pages/meetings/MeetingRoom'));
 const ThirdPartyConfigPage = lazy(() => import('@/pages/settings/ThirdPartyConfigPage'));
+
+/** 测试页别名：/testpage 容易被当成完整路径输入，统一转投 /dev/testpage */
+function TestPageAlias() {
+  const location = useLocation();
+  const target = location.pathname.replace(/^\/testpage/, '/dev/testpage');
+  return <Navigate to={target + location.search} replace />;
+}
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -536,6 +543,14 @@ export const router = createBrowserRouter([
                 element: <Navigate to="/404" replace />,
               },
             ],
+          },
+          {
+            path: '/testpage',
+            element: <TestPageAlias />,
+          },
+          {
+            path: '/testpage/:key',
+            element: <TestPageAlias />,
           },
           {
             path: '/dev/testpage',

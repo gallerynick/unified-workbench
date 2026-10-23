@@ -135,7 +135,6 @@ export default function SecretManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />
@@ -188,14 +187,12 @@ export default function SecretManagement() {
                 <div className={styles.categoryActions ?? ''}>
                   <Button
                     type="text"
-                    size="small"
                     icon={<EditOutlined />}
                     aria-label="编辑"
                     onClick={(e) => handleEdit(category, e)}
                   />
                   <Button
                     type="text"
-                    size="small"
                     danger
                     icon={<DeleteOutlined />}
                     aria-label="删除"

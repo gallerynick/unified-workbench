@@ -185,7 +185,6 @@ export default function UserManagement() {
           <Tooltip title="编辑">
             <Button
               type="link"
-              size="small"
               icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
             >
@@ -196,7 +195,6 @@ export default function UserManagement() {
             <Tooltip title="禁用">
               <Button
                 type="link"
-                size="small"
                 danger
                 icon={<StopOutlined />}
                 onClick={() => handleDisable(record)}

@@ -171,7 +171,6 @@ export default function ProjectInfoTab({ project, template, onRefresh }: Project
                     <Button
                       key={rid}
                       type="link"
-                      size="small"
                       style={{ padding: 0, height: 'auto', lineHeight: 1.6 }}
                       onClick={() => navigate(`/projects/${rid}`)}
                     >

@@ -15,3 +15,21 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* 侧栏显示项：按领域分组列出勾选项 */
+.itemGroup {
+  padding: var(--spacing-sm) 0;
+  border-top: 1px solid var(--border-tertiary);
+}
+
+.itemGroup:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.itemGroupLabel {
+  margin-bottom: var(--spacing-xs);
+  color: var(--ink-muted-48);
+  font-size: var(--text-body-xs-size);
+  letter-spacing: 0.02em;
+}

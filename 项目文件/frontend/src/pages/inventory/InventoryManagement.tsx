@@ -99,7 +99,7 @@ export default function InventoryManagement() {
     {
       title: '状态', dataIndex: 'status', key: 'status', width: 110,
       render: (status: InventoryStatus, record) => (
-        <Select value={status} size="small" style={{ width: 100 }}
+        <Select value={status}  style={{ width: 100 }}
           onChange={(v) => handleStatusChange(record, v as InventoryStatus)}
           options={Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text }))}
         />
@@ -110,10 +110,10 @@ export default function InventoryManagement() {
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="编辑">
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
+            <Button type="link"  icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
           </Tooltip>
           <Tooltip title="删除">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
+            <Button type="link"  danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
           </Tooltip>
         </Space>
       ),
@@ -141,7 +141,6 @@ export default function InventoryManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />

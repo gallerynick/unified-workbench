@@ -1,16 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  Button,
-  DatePicker,
-  Form,
-  Input,
-  Modal,
-  Select,
-  Space,
-  Switch,
-  Tooltip,
-  message,
-} from 'antd';
+import { Button, DatePicker, Form, Input, Modal, Select, Space, Tooltip, message } from 'antd';
+import Switch from '@/components/AppSwitch';
 import { DeleteOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';

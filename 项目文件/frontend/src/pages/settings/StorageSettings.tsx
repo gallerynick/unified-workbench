@@ -308,7 +308,7 @@ function BreakdownSection() {
           message="存储占用分布加载失败"
           description={breakdownError}
           action={
-            <Button size="small" onClick={() => void loadBreakdown()}>
+            <Button  onClick={() => void loadBreakdown()}>
               重试
             </Button>
           }
@@ -474,7 +474,6 @@ function BreakdownSection() {
                         <Text type="secondary">{item.label}</Text>
                         <code className={styles.cmd ?? ''}>{item.cmd}</code>
                         <Button
-                          size="small"
                           type="text"
                           icon={<CopyOutlined />}
                           onClick={() => void copyCommand(item.cmd)}

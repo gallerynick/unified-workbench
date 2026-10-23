@@ -118,6 +118,11 @@
   gap: var(--spacing-xs);
 }
 
+/* 创建管理员步骤的垂直表单：stepContent 是居中布局，表单需左对齐 */
+.form {
+  text-align: left;
+}
+
 .actions {
   display: flex;
   justify-content: center;

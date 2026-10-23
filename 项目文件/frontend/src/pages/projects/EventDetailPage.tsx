@@ -200,7 +200,7 @@ export default function EventDetailPage() {
             <div className={styles.sectionHeader ?? ''}>
               <span className={styles.sectionTitle ?? ''}>基础信息</span>
               {canOperate && (
-                <Button type="link" size="small" icon={<EditOutlined />} onClick={() => setEditVisible(true)}>
+                <Button type="link"  icon={<EditOutlined />} onClick={() => setEditVisible(true)}>
                   编辑
                 </Button>
               )}

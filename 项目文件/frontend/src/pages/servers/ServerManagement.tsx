@@ -170,7 +170,6 @@ export default function ServerManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />
@@ -207,7 +206,6 @@ export default function ServerManagement() {
                     <Button
                       key="detail"
                       type="text"
-                      size="small"
                       icon={<EyeOutlined />}
                       aria-label="详情"
                       onClick={() => handleDetail(record)}
@@ -217,7 +215,6 @@ export default function ServerManagement() {
                     <Button
                       key="edit"
                       type="text"
-                      size="small"
                       icon={<EditOutlined />}
                       aria-label="编辑"
                       onClick={() => handleEdit(record)}
@@ -227,7 +224,6 @@ export default function ServerManagement() {
                     <Button
                       key="delete"
                       type="text"
-                      size="small"
                       danger
                       icon={<DeleteOutlined />}
                       aria-label="删除"

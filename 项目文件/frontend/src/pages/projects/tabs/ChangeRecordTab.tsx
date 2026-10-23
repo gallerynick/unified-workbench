@@ -6,21 +6,17 @@ import {
   Select,
   Tag,
   Space,
-  Modal,
   Input,
   message,
   Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
   listProjectChanges,
-  deleteProjectChange,
   type ProjectChangeListParams,
 } from '../../../api/project-changes';
 import type { ProjectChange } from '../../../types/project-change';
@@ -103,7 +99,6 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
   const changesApprover = !!user && project.member_permissions?.[user?.id ?? '']?.changes_approver === true;
   const isProjectOwner = !!user && project.owner_id === user?.id;
   const canCreateChange = isAdminUser || isOwner || changesPermission === 'create';
-  const canManageChange = isAdminUser || isOwner || changesApprover;
   const canApproveChange = isAdminUser || isProjectOwner || changesApprover;
 
   const fetchList = useCallback(async () => {
@@ -151,38 +146,10 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
     setModalVisible(true);
   };
 
-  const openEdit = (record: ProjectChange) => {
-    setEditing(record);
-    setModalVisible(true);
-  };
-
   const handleCloseModal = useCallback(() => {
     setModalVisible(false);
     setEditing(null);
   }, []);
-
-  const handleDelete = (record: ProjectChange) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除修改记录「${record.number} ${record.title}」吗？此操作不可恢复。`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          const res = await deleteProjectChange(record.id);
-          if (res.code === 0) {
-            message.success('修改记录已删除');
-            fetchList();
-          } else {
-            message.error(res.msg || '删除失败');
-          }
-        } catch (err: unknown) {
-          message.error(err instanceof Error ? err.message : '删除失败');
-        }
-      },
-    });
-  };
 
   const columns: ColumnsType<ProjectChange> = [
     {
@@ -258,35 +225,7 @@ export default function ChangeRecordTab({ project }: { project: Project }) {
         return <Tag color={cfg.color}>{cfg.text}</Tag>;
       },
     },
-    {
-      title: '操作',
-      key: 'action',
-      width: 140,
-      render: (_: unknown, record: ProjectChange) =>
-        canManageChange ? (
-          <Space size="small">
-            <Tooltip title="编辑修改记录">
-              <Button
-                type="link"
-                size="small"
-                icon={<EditOutlined />}
-                aria-label="编辑修改记录"
-                onClick={() => openEdit(record)}
-              />
-            </Tooltip>
-            <Tooltip title="删除修改记录">
-              <Button
-                type="link"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label="删除修改记录"
-                onClick={() => handleDelete(record)}
-              />
-            </Tooltip>
-          </Space>
-        ) : null,
-    },
+
   ];
 
   return (

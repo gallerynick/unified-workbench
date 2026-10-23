@@ -5,6 +5,7 @@ export interface ProjectMeeting {
   project_id: string;
   number: string;
   type: string;
+  title: string | null;
   started_at: string;
   speaker: string | null;
   participants: string[];
@@ -20,6 +21,7 @@ export interface ProjectMeetingCreate {
   project_id: string;
   number: string;
   type: string;
+  title?: string | null;
   started_at: string;
   speaker?: string | null;
   participants?: string[];
@@ -32,6 +34,7 @@ export interface ProjectMeetingCreate {
 export interface ProjectMeetingUpdate {
   number?: string;
   type?: string;
+  title?: string | null;
   started_at?: string;
   speaker?: string | null;
   participants?: string[];

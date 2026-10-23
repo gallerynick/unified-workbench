@@ -115,7 +115,7 @@ export default function ProjectManagement() {
       key: 'title',
       ellipsis: true,
       render: (text: string, record: Project) => (
-        <Button type="link" size="small" onClick={() => navigate(`/projects/${record.id}`)}>
+        <Button type="link"  onClick={() => navigate(`/projects/${record.id}`)}>
           {text}
         </Button>
       ),
@@ -166,7 +166,6 @@ export default function ProjectManagement() {
           <Tooltip title="进入项目">
             <Button
               type="link"
-              size="small"
               icon={<EyeOutlined />}
               onClick={() => navigate(`/projects/${record.id}`)}
             >
@@ -201,7 +200,6 @@ export default function ProjectManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />

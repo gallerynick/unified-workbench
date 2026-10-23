@@ -248,7 +248,6 @@ export default function FormFill() {
               type="primary"
               htmlType="submit"
               loading={submitting}
-              size="large"
               block
             >
               {submitting ? '提交中...' : '提交'}

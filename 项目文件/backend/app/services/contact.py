@@ -5,15 +5,14 @@ from __future__ import annotations
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.visibility import Visibility
-from app.models.contact import Contact, ContactType
+from app.models.contact import Contact
 from app.models.user import User, UserRole
 from app.schemas.contact import ContactCreate, ContactUpdate
 from app.services.visibility import check_visibility as build_visibility_filter
-
 
 # ── 辅助函数 ──────────────────────────────────────────────────────────
 
@@ -55,7 +54,7 @@ async def list_contacts(
     query = select(Contact).where(visibility_cond)
 
     if contact_type:
-        query = query.where(Contact.contact_type == ContactType(contact_type))
+        query = query.where(Contact.contact_type == contact_type)
     if search:
         query = query.where(
             Contact.name.ilike(f"%{search}%")
@@ -102,10 +101,12 @@ async def create_contact(
         email=request.email,
         phone=request.phone,
         address=request.address,
-        contact_type=ContactType(request.contact_type),
+        contact_type=request.contact_type,
         tags=request.tags,
         notes=request.notes,
         owner_id=owner_id,
+        visibility=request.visibility,
+        restricted_users=request.restricted_users,
     )
     db.add(contact)
     await db.flush()
@@ -149,11 +150,15 @@ async def update_contact(
     if request.address is not None:
         contact.address = request.address
     if request.contact_type is not None:
-        contact.contact_type = ContactType(request.contact_type)
+        contact.contact_type = request.contact_type
     if request.tags is not None:
         contact.tags = request.tags
     if request.notes is not None:
         contact.notes = request.notes
+    if request.visibility is not None:
+        contact.visibility = request.visibility
+    if request.restricted_users is not None:
+        contact.restricted_users = request.restricted_users
     await db.flush()
     await db.refresh(contact)
     return contact

@@ -280,7 +280,6 @@ const handleBackToLogin = () => {
         {!pendingToken ? (
           <Form<LoginRequest>
             name="login"
-            size="large"
             onFinish={handleSubmit}
             autoComplete="off"
             className={styles.form ?? ''}
@@ -376,7 +375,6 @@ const handleBackToLogin = () => {
               </div>
             ) : codeMode === 'recovery' ? (
               <Input
-                size="large"
                 autoFocus
                 maxLength={20}
                 placeholder="恢复码（如 XXXX-XXXX-XXXX）"

@@ -1,4 +1,5 @@
-import { Modal, List, Switch, Typography } from 'antd';
+import { Modal, List, Typography } from 'antd';
+import Switch from '@/components/AppSwitch';
 import type { WidgetItem } from './types';
 import { WIDGET_META } from './types';
 

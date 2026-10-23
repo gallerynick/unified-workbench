@@ -109,7 +109,6 @@ function TaskCard({ task, canManage, onEdit, onDelete, onStatusChange }: TaskCar
         <div className={styles.cardHead ?? ''}>
           <Select
             value={task.status}
-            size="small"
             className={styles.statusSelect ?? ''}
             disabled={!canManage}
             onChange={(v) => onStatusChange(task, v as TaskStatus)}
@@ -125,10 +124,10 @@ function TaskCard({ task, canManage, onEdit, onDelete, onStatusChange }: TaskCar
             </Tooltip>
             {canManage ? (
               <Space size="small">
-                <Button type="link" size="small" icon={<EditOutlined />} onClick={() => onEdit(task)}>
+                <Button type="link"  icon={<EditOutlined />} onClick={() => onEdit(task)}>
                   编辑
                 </Button>
-                <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => onDelete(task)}>
+                <Button type="link"  danger icon={<DeleteOutlined />} onClick={() => onDelete(task)}>
                   删除
                 </Button>
               </Space>
@@ -151,11 +150,11 @@ function TaskCard({ task, canManage, onEdit, onDelete, onStatusChange }: TaskCar
               {description}
             </div>
             {expanded ? (
-              <Button type="link" size="small" className={styles.descToggle ?? ''} onClick={() => setExpanded(false)}>
+              <Button type="link"  className={styles.descToggle ?? ''} onClick={() => setExpanded(false)}>
                 收起 <UpOutlined />
               </Button>
             ) : overflowing ? (
-              <Button type="link" size="small" className={styles.descToggle ?? ''} onClick={() => setExpanded(true)}>
+              <Button type="link"  className={styles.descToggle ?? ''} onClick={() => setExpanded(true)}>
                 展开 <DownOutlined />
               </Button>
             ) : null}
@@ -304,7 +303,6 @@ export default function TaskManagement() {
           <Tooltip title="权限说明">
             <Button
               type="text"
-              size="small"
               icon={<QuestionCircleOutlined />}
               onClick={() => setPermissionVisible(true)}
             />

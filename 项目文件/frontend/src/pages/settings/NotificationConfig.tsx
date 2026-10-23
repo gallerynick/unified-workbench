@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Switch, Button, Typography, Card, message, Space, Result, Modal } from 'antd';
+import { Form, Input, Button, Typography, Card, message, Space, Result, Modal } from 'antd';
+import Switch from '@/components/AppSwitch';
 import { SaveOutlined, LockOutlined, SendOutlined } from '@ant-design/icons';
 import { getConfig, updateConfig } from '../../api/system_config';
 import { DEFAULT_CHANNELS, NOTIFICATION_CHANNELS } from '../../constants/channels';
@@ -142,7 +143,7 @@ export default function NotificationConfig() {
                 <Form.Item name="feishu_enabled" valuePropName="checked" noStyle>
                   <Switch checkedChildren="启用" unCheckedChildren="禁用" />
                 </Form.Item>
-                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel('feishu')}>测试</Button>
+                <Button  icon={<SendOutlined />} onClick={() => testChannel('feishu')}>测试</Button>
               </div>
             </div>
             <Form.Item
@@ -163,7 +164,7 @@ export default function NotificationConfig() {
                 <Form.Item name="email_enabled" valuePropName="checked" noStyle>
                   <Switch checkedChildren="启用" unCheckedChildren="禁用" />
                 </Form.Item>
-                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel('email')}>测试</Button>
+                <Button  icon={<SendOutlined />} onClick={() => testChannel('email')}>测试</Button>
               </div>
             </div>
             <Form.Item name="smtp_host" label="SMTP 服务器">
@@ -192,7 +193,7 @@ export default function NotificationConfig() {
                 <Form.Item name="wecom_enabled" valuePropName="checked" noStyle>
                   <Switch checkedChildren="启用" unCheckedChildren="禁用" />
                 </Form.Item>
-                <Button size="small" icon={<SendOutlined />} onClick={() => testChannel('wecom')}>测试</Button>
+                <Button  icon={<SendOutlined />} onClick={() => testChannel('wecom')}>测试</Button>
               </div>
             </div>
             <Form.Item
