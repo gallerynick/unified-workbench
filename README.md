@@ -103,7 +103,7 @@
 | 用户上传文件 | `项目文件/data/files` | 可配置，修改 `.env` 中 `FILE_STORAGE_PATH` |
 | 备份文件 | `项目文件/data/backups` | 系统备份与数据迁转使用 |
 
-> `.gitignore` 排除策略：`.omo/`（AI 开发计划工作产物）、`.Own/`（个人私有文件）、`data/`（运行态存储）不纳入版本控制。`AGENTS.md` 和 `DESIGN.md` 是项目核心文档，**不排除**——团队成员依赖它们理解开发规范与设计约束。
+> `.gitignore` 排除策略：`.omo/`（AI 开发计划工作产物）、`Own/`（个人私有文件，绝不入库与推送）、`data/`（运行态存储）、`项目文件/.buildx/`（buildx 运行时缓存）不纳入版本控制。`AGENTS.md` 和 `DESIGN.md` 是项目核心文档，**不排除**——团队成员依赖它们理解开发规范与设计约束。
 
 > 数据库和 Redis 由 Docker 管理，删除容器不会丢失数据。如需彻底清除，使用 Docker Desktop 删除对应 Volume。
 

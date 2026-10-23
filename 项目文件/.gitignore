@@ -33,6 +33,8 @@ frontend/build/
 !.env.example
 # 本地构建工具状态（buildx / compose 插件，沙箱无法写 ~/.docker 时的工作区内替代）
 .docker-local/
+# buildx 构建缓存状态：纯运行时产物，每次构建都会变动，不入库
+.buildx/
 
 # ==================== IDE ====================
 .vscode/
